@@ -282,16 +282,9 @@
  empty('dash-alertas', 'Sin alertas ');
  }
 
- // Cargar licitaciones UNA SOLA VEZ y reutilizar
- let _licitData = null;
- async function getLicitaciones() {
-   if (!_licitData) { const r = await api('/api/licitaciones'); _licitData = r; }
-   return _licitData;
- }
-
  // Licitaciones pendientes de aprobacion
  try {
-   const lp = await getLicitaciones();
+   const lp = await api('/api/licitaciones');
    if (lp && lp.ok) {
      const pendL = (lp.data.licitaciones||[]).filter(x => x.estado === 'pendiente_admin');
      document.getElementById('dash-pendientes').innerHTML = pendL.length === 0
@@ -299,7 +292,7 @@
        : pendL.slice(0,5).map(function(l) {
            return '<div class="row" style="cursor:pointer" onclick="verDetalleLicit(\''+l.id+'\')">'+
            '<div class="row-body">'+
-           '<div class="row-name">'+(l.codigo?'<span style="font-size:10px;font-family:monospace;color:#9CA3AF;margin-right:4px">'+l.codigo+'</span>':'')+l.tipoEquipo+(l.marca?' - '+l.marca:'')+'</div>'+
+           '<div class="row-name">'+(l.código?'<span style="font-size:10px;font-family:monospace;color:#9CA3AF;margin-right:4px">'+l.código+'</span>':'')+l.tipoEquipo+(l.marca?' - '+l.marca:'')+'</div>'+
            '<div class="row-meta">'+(l.clienteEmpresa||'--')+' · '+l.origen+' -> '+l.destino+'</div>'+
            '</div>'+
            '<div style="display:flex;gap:6px;flex-shrink:0">'+
@@ -316,13 +309,13 @@
 
  // Licitaciones abiertas
  try {
- const l = await getLicitaciones();
+ const l = await api('/api/licitaciones');
  if (l && l.ok) {
  const abiertas = (l.data.licitaciones||[]).filter(x=>x.estado==='abierta');
  document.getElementById('dash-licitaciones').innerHTML = abiertas.length === 0
  ? `<div style="padding:16px;text-align:center;color:#9CA3AF;font-size:14px;">Sin licitaciones abiertas </div>`
  : abiertas.slice(0,5).map(l => `
- <div class="row" style="cursor:pointer" onclick="verDetalleLicit('${l.id}')"><div style="font-size:14px;color:#9CA3AF">▶</div><div class="row-body"><div class="row-name">${l.codigo?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+ l.codigo +'</span>':''}${l.tipoEquipo}${l.marca?' — '+l.marca:''}</div><div class="row-meta">${l.clienteEmpresa||'-'} · ${l.origen} → ${l.destino} · ${(l.cotizaciones||[]).length} cotizaciones</div></div>
+ <div class="row" style="cursor:pointer" onclick="verDetalleLicit('${l.id}')"><div style="font-size:14px;color:#9CA3AF">▶</div><div class="row-body"><div class="row-name">${l.código?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+ l.código +'</span>':''}${l.tipoEquipo}${l.marca?' — '+l.marca:''}</div><div class="row-meta">${l.clienteEmpresa||'-'} · ${l.origen} → ${l.destino} · ${(l.cotizaciones||[]).length} cotizaciones</div></div>
  ${estadoBadge(l.estado)}
  </div>`).join('');
  } else {
@@ -362,7 +355,7 @@
  if (l.estado==='abierta' && nCotiz>0) {
  acciones.push(`<button class="btn btn-primary btn-sm" onclick="cerrarYEnviar('${l.id}',${nCotiz})">Enviar TOP 3 →</button>`);
  }
- return `<div class="row" style="cursor:pointer;" onclick="verDetalleLicit('${l.id}')"><div style="font-size:20px;flex-shrink:0;"></div><div class="row-body"><div class="row-name">${l.codigo?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+ l.codigo +'</span>':''}${l.tipoEquipo}${l.marca?' — '+l.marca:''}</div><div class="row-meta">${l.clienteEmpresa||'-'} · ${l.origen}→${l.destino} · ${timeAgo(l.createdAt)}</div>
+ return `<div class="row" style="cursor:pointer;" onclick="verDetalleLicit('${l.id}')"><div style="font-size:20px;flex-shrink:0;"></div><div class="row-body"><div class="row-name">${l.código?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+ l.código +'</span>':''}${l.tipoEquipo}${l.marca?' — '+l.marca:''}</div><div class="row-meta">${l.clienteEmpresa||'-'} · ${l.origen}→${l.destino} · ${timeAgo(l.createdAt)}</div>
  ${acciones.length>0?`<div style="display:flex;gap:6px;margin-top:6px" onclick="event.stopPropagation()">${acciones.join('')}</div>`:''}
  </div><div class="row-right" style="display:flex;align-items:center;gap:8px;">
  ${nCotiz>0?`<span style="font-size:12px;color:#FF8904;font-weight:500;">${nCotiz} cotiz.</span>`:''}
@@ -576,7 +569,7 @@
 
     // Titulo
     document.getElementById('ml-titulo').innerHTML =
-      (l.código ? '<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 6px;border-radius:4px;margin-right:8px">'+l.codigo+'</span>' : '')
+      (l.código ? '<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 6px;border-radius:4px;margin-right:8px">'+l.código+'</span>' : '')
       + (l.tipoEquipo||'') + (l.marca ? ' — '+l.marca : '');
 
     // Badge estado
@@ -764,7 +757,7 @@
       <div>
         <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
         <div style="display:flex;flex-direction:column;gap:6px">
-          <a href="/términos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Términos y condiciones</a>
+          <a href="/terminos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Términos y condiciones</a>
           <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Política de privacidad</a>
           <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Centro de ayuda</a>
         </div>
