@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>TransMatch — Servicios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#1e2d4e;--orange:#ff8904;--light:#f5f7fb;--text:#374151;--muted:#6B7280;--border:#e8eaf0}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Barlow',sans-serif;color:var(--text);background:#fff;line-height:1.6}
+  nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 48px;height:60px;background:rgba(30,45,78,.97);backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,.06)}
+  .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+  .nav-icon{background:var(--orange);border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;color:#fff;font-size:15px}
+  .nav-wordmark{font-family:'Barlow Condensed',sans-serif;font-weight:700;color:#fff;font-size:20px}.nav-wordmark span{color:var(--orange)}
+  .nav-right{display:flex;align-items:center;gap:4px}
+  .nav-right a{font-size:13px;font-weight:500;color:#93C5FD;text-decoration:none;padding:7px 13px;border-radius:6px;transition:all .15s;white-space:nowrap}
+  .nav-right a:hover,.nav-right a.active{color:#fff;background:rgba(255,255,255,.1)}
+  .nav-right .sep{border-left:1px solid rgba(255,255,255,.1);margin-left:6px;padding-left:16px}
+  .nav-right .cta{background:var(--orange);color:#fff!important;font-weight:600;margin-left:4px}
+  .nav-mb-btn{display:none;background:none;border:none;color:#fff;cursor:pointer;padding:8px}
+  .nav-mb-menu{display:none;position:fixed;top:60px;left:0;right:0;background:var(--navy);padding:16px 24px;flex-direction:column;gap:4px;z-index:99;border-bottom:1px solid rgba(255,255,255,.08)}
+  .nav-mb-menu.open{display:flex}
+  .nav-mb-menu a{font-size:15px;font-weight:500;color:#93C5FD;text-decoration:none;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+  /* PAGE HERO */
+  .page-hero{background:var(--navy);padding:120px 48px 80px;position:relative;overflow:hidden}
+  .page-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 60% at 80% 50%,rgba(255,137,4,.07) 0%,transparent 65%)}
+  .page-hero-grid{position:absolute;inset:0;opacity:.03;background-image:linear-gradient(rgba(255,255,255,.4) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.4) 1px,transparent 1px);background-size:56px 56px}
+  .page-hero-inner{max-width:1100px;margin:0 auto;position:relative;z-index:2}
+  .section-tag{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--orange);margin-bottom:12px}
+  h1{font-family:'Barlow Condensed',sans-serif;font-size:clamp(40px,5vw,68px);font-weight:800;color:#fff;line-height:1.0;letter-spacing:-1px;margin-bottom:20px}
+  h1 em{color:var(--orange);font-style:normal}
+  .page-sub{font-size:17px;color:#94A3B8;max-width:540px;line-height:1.75}
+  /* TABS */
+  .tabs-wrap{background:var(--light);border-bottom:1px solid var(--border);position:sticky;top:60px;z-index:90}
+  .tabs{max-width:1100px;margin:0 auto;display:flex;padding:0 48px}
+  .tab-btn{padding:18px 28px;font-size:14px;font-weight:600;color:var(--muted);background:none;border:none;border-bottom:3px solid transparent;cursor:pointer;transition:all .2s;font-family:'Barlow',sans-serif;white-space:nowrap}
+  .tab-btn:hover{color:var(--navy)}
+  .tab-btn.active{color:var(--orange);border-bottom-color:var(--orange)}
+  .tab-panel{display:none}
+  .tab-panel.active{display:block}
+  section{padding:80px 48px}
+  .container{max-width:1100px;margin:0 auto}
+  h2{font-family:'Barlow Condensed',sans-serif;font-size:clamp(28px,3.5vw,44px);font-weight:800;color:var(--navy);line-height:1.05;letter-spacing:-.4px;margin-bottom:14px}
+  h2 em{color:var(--orange);font-style:normal}
+  h3{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--navy);margin-bottom:8px}
+  /* COMO FUNCIONA DETALLE */
+  .steps-detail{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:64px}
+  .step-d{background:var(--light);border-radius:12px;border:0.5px solid var(--border);padding:28px 24px;display:flex;gap:18px;align-items:flex-start}
+  .step-d-num{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;color:var(--border);line-height:1;flex-shrink:0;min-width:36px}
+  .step-d-icon{width:40px;height:40px;border-radius:10px;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .step-d h3{font-size:16px;margin-bottom:6px}
+  .step-d p{font-size:13px;color:var(--muted);line-height:1.7}
+  .step-d ul{margin-top:8px;padding-left:16px}
+  .step-d ul li{font-size:12px;color:var(--muted);margin-bottom:4px;line-height:1.5}
+  /* PLANES */
+  .planes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:48px}
+  .plan{border:1.5px solid var(--border);border-radius:16px;padding:32px;position:relative;transition:all .2s;display:flex;flex-direction:column}
+  .plan-list{flex:1}
+  .planes{align-items:stretch}
+  .plan:hover{border-color:var(--navy);box-shadow:0 8px 32px rgba(30,45,78,.08);transform:translateY(-2px)}
+  .plan.best{border-color:var(--navy);background:var(--navy)}
+  .plan-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--orange);color:#fff;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 14px;border-radius:999px;white-space:nowrap}
+  .plan-name{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--navy);margin-bottom:4px}
+  .plan.best .plan-name{color:#fff}
+  .plan-price{font-family:'Barlow Condensed',sans-serif;font-size:42px;font-weight:800;color:var(--navy);line-height:1;margin-bottom:4px}
+  .plan.best .plan-price{color:var(--orange)}
+  .plan-period{font-size:13px;color:var(--muted);margin-bottom:24px;padding-bottom:24px;border-bottom:0.5px solid var(--border)}
+  .plan.best .plan-period{color:#93C5FD;border-color:rgba(255,255,255,.1)}
+  .plan-list{list-style:none;margin-bottom:28px}
+  .plan-list li{font-size:13px;color:var(--text);padding:8px 0;border-bottom:0.5px solid var(--border);display:flex;align-items:flex-start;gap:10px;line-height:1.5}
+  .plan.best .plan-list li{color:#CBD5E1;border-color:rgba(255,255,255,.08)}
+  .plan-list li::before{content:'';width:16px;height:16px;flex-shrink:0;margin-top:1px;background:url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='8' cy='8' r='8' fill='rgba(255%2C137%2C4%2C0.15)'/%3E%3Cpath d='M5 8.5L7 10.5L11 6' stroke='%23ff8904' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center}
+  .plan-list li.no::before{background:url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='8' cy='8' r='8' fill='rgba(156%2C163%2C175%2C0.15)'/%3E%3Cpath d='M5 11L11 5M5 5l6 6' stroke='%239CA3AF' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat center;opacity:.5}
+  .plan-list li.no{color:var(--muted)!important;opacity:.6}
+  .plan-btn{display:block;text-align:center;padding:12px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;transition:all .2s;border:1.5px solid var(--navy);color:var(--navy);font-family:'Barlow',sans-serif}
+  .plan.best .plan-btn{background:var(--orange);color:#fff;border-color:var(--orange)}
+  .plan-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(30,45,78,.12)}
+  /* FEE BOX */
+  .fee-box{margin-top:24px;background:var(--light);border-radius:10px;padding:16px 24px;font-size:13px;color:var(--muted);text-align:center;border:0.5px solid var(--border)}
+  .fee-box strong{color:var(--navy)}
+  /* MODELO COBRO TRANSPORTISTA */
+  .cobro-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:680px}
+  .cobro-card{border-radius:12px;padding:28px}
+  /* BOTONES */
+  .btn-primary{background:var(--orange);color:#fff;padding:14px 30px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:all .2s;border:none;cursor:pointer;font-family:'Barlow',sans-serif}
+  .btn-primary:hover{background:#e87900;transform:translateY(-1px)}
+  /* FOOTER */
+  footer{background:var(--navy);padding:48px 48px 24px}
+  .footer-top{max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:32px;padding-bottom:32px;border-bottom:1px solid rgba(255,255,255,.07)}
+  .footer-brand-name{font-family:'Barlow Condensed',sans-serif;font-weight:700;color:#fff;font-size:18px}.footer-brand-name span{color:var(--orange)}
+  .footer-tagline{font-size:12px;color:#475569;margin-top:6px;line-height:1.6}
+  .footer-col h4{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#93C5FD;margin-bottom:14px}
+  .footer-col a{display:block;font-size:13px;color:#94A3B8;text-decoration:none;margin-bottom:9px;transition:color .15s}
+  .footer-col a:hover{color:#fff}
+  .footer-col span{display:block;font-size:13px;color:#94A3B8;margin-bottom:9px}
+  .footer-bottom{max-width:1100px;margin:20px auto 0;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px;color:#475569}
+  .fade{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+  .fade.in{opacity:1;transform:translateY(0)}
+  @media(max-width:860px){
+    nav{padding:0 20px}.nav-right{display:none}.nav-mb-btn{display:flex}
+    .tabs{padding:0 20px;overflow-x:auto}
+    .tab-btn{padding:16px 18px;font-size:13px}
+    section{padding:56px 24px}.page-hero{padding:100px 24px 60px}
+    .steps-detail{grid-template-columns:1fr}
+    .planes{grid-template-columns:1fr}
+    .cobro-grid{grid-template-columns:1fr}
+    footer{padding:40px 24px 20px}.footer-top{flex-direction:column;gap:24px}
+  }
+</style>
+</head>
+<body>
+<nav>
+  <a href="/index.html" class="nav-logo"><div class="nav-icon">T</div><span class="nav-wordmark">Trans<span>Match</span></span></a>
+  <div class="nav-right">
+    <a href="/index.html">Inicio</a>
+    <a href="/landing-conócenos.html">Conócenos</a>
+    <a href="/landing-servicios.html" class="active">Servicios</a>
+    <a href="/landing-contacto.html">Contacto</a>
+    <a href="/login.html" class="sep">Iniciar sesion</a>
+    <a href="/registro.html" class="cta">Registrarme</a>
+  </div>
+  <button class="nav-mb-btn" onclick="document.getElementById('mmenu').classList.toggle('open')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="nav-mb-menu" id="mmenu">
+    <a href="/index.html">Inicio</a><a href="/landing-conócenos.html">Conócenos</a>
+    <a href="/landing-servicios.html">Servicios</a><a href="/landing-contacto.html">Contacto</a>
+    <a href="/login.html">Iniciar sesion</a><a href="/registro.html" style="color:var(--orange);font-weight:700">Registrarme</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <div class="page-hero-grid"></div>
+  <div class="page-hero-inner">
+    <div class="section-tag">Servicios</div>
+    <h1>Una plataforma,<br><em>dos soluciónes</em></h1>
+    <p class="page-sub">Todo lo que necesitas saber sobre como funciona TransMatch para empresas mandantes y transportistas.</p>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs-wrap">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="setTab('empresa',this)">Soy empresa mandante</button>
+    <button class="tab-btn" onclick="setTab('transportista',this)">Soy transportista</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PANEL EMPRESA
+═══════════════════════════════════════════ -->
+<div class="tab-panel active" id="panel-empresa">
+<section>
+<div class="container">
+
+  <div style="margin-bottom:56px" class="fade">
+    <div class="section-tag">Como funciona para empresas</div>
+    <h2>Del requerimiento a la<br><em>adjudicación en horas</em></h2>
+    <p style="font-size:16px;color:var(--muted);margin-top:12px;max-width:560px;line-height:1.75">Un proceso estructurado que reemplaza llamadas, correos y cotizaciónes dispersas por un flujo digital, trazable y eficiente.</p>
+  </div>
+
+  <div class="steps-detail fade">
+
+    <div class="step-d">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0">
+        <div class="step-d-num">01</div>
+        <div class="step-d-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div>
+      </div>
+      <div>
+        <h3>Publica tu licitación</h3>
+        <p>Completa un formulario estructurado con el tipo de equipo requerido, origen, destino, fecha y específicaciónes técnicas.</p>
+        <ul>
+          <li>Tipo de equipo y capacidad de carga</li>
+          <li>Ruta completa origen — destino</li>
+          <li>Fecha y ventana horaria requerida</li>
+          <li>Documentos técnicos adjuntos (opcional)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="step-d">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0">
+        <div class="step-d-num">02</div>
+        <div class="step-d-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      </div>
+      <div>
+        <h3>Validación por TransMatch</h3>
+        <p>Nuestro equipo revisa la licitación antes de publicarla, garantizando que los requisitos esten bien definidos para recibir cotizaciónes comparables.</p>
+        <ul>
+          <li>Revisión de específicaciónes técnicas</li>
+          <li>Verificación de datos y ruta</li>
+          <li>Aprobacion en menos de 24 horas habiles</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="step-d">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0">
+        <div class="step-d-num">03</div>
+        <div class="step-d-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
+      </div>
+      <div>
+        <h3>Recibe el TOP 3 de cotizaciónes</h3>
+        <p>TransMatch seleccióna las 3 mejores propuestas recibidas y te las presenta ordenadas por un score que combina precio, valoración del transportista y velocidad de respuesta.</p>
+        <ul>
+          <li>Precio total con IVA incluido</li>
+          <li>Tiempo estimado de entrega</li>
+          <li>Valoración historica del transportista</li>
+          <li>Tiempo de respuesta promedio</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="step-d">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0">
+        <div class="step-d-num">04</div>
+        <div class="step-d-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+      </div>
+      <div>
+        <h3>Adjudica con un clic</h3>
+        <p>Elige al transportista que prefieras. Al adjudicar, sus datos de contacto se revelan y se genera automáticamente el registro del transporte.</p>
+        <ul>
+          <li>Datos de contacto del transportista revelados</li>
+          <li>Creación automatica del transporte en plataforma</li>
+          <li>Notificación inmediata al transportista adjudicado</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="step-d">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0">
+        <div class="step-d-num">05</div>
+        <div class="step-d-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      </div>
+      <div>
+        <h3>Sigue tu transporte</h3>
+        <p>Monitorea el estado del transporte en tiempo real a traves de la plataforma. El transportista actualiza los hitos del viaje desde su panel.</p>
+        <ul>
+          <li>Estados: preparacion, en ruta, carga recogida, en destino, entregado</li>
+          <li>Historial completo de eventos con fecha y hora</li>
+          <li>Notificaciónes automaticas en cada cambio de estado</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="step-d">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0">
+        <div class="step-d-num">06</div>
+        <div class="step-d-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+      </div>
+      <div>
+        <h3>Documentos y valoración</h3>
+        <p>Gestióna la orden de compra y la factura directamente en la plataforma. Al cerrar el servicio, valora al transportista para construir su historial.</p>
+        <ul>
+          <li>Descarga de OC emitida por el transportista</li>
+          <li>Subida de factura para cierre del ciclo</li>
+          <li>Valoración en 4 criterios: cumplimiento, comunicación, equipo y seguridad</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PLANES EMPRESA -->
+  <div class="fade">
+    <div class="section-tag">Planes para empresas mandantes</div>
+    <h2 style="margin-bottom:8px">Acceso sin <em>comision por transporte</em></h2>
+    <p style="font-size:15px;color:var(--muted);max-width:540px;line-height:1.7;margin-bottom:0">El fee es cobrado al transportista adjudicado. Las empresas pagan solo por su plan de acceso.</p>
+  </div>
+
+  <div class="planes fade">
+
+    <div class="plan">
+      <div class="plan-name">Básico</div>
+      <div class="plan-price">2 UF</div>
+      <div class="plan-period">por mes</div>
+      <ul class="plan-list">
+        <li>Hasta 5 licitaciónes al mes</li>
+        <li>3 propuestas por licitación</li>
+        <li>Respaldo de OC y facturas</li>
+        <li>Valoración de transportistas</li>
+        <li>Historial de los últimos 3 meses</li>
+        <li class="no">Trazabilidad del transporte</li>
+        <li class="no">Acceso a retornos disponibles</li>
+        <li class="no">Key account manager</li>
+      </ul>
+      <a href="/registro.html" class="plan-btn">Comenzar</a>
+    </div>
+
+    <div class="plan best">
+      <div class="plan-badge">Mas popular</div>
+      <div class="plan-name">Pro</div>
+      <div class="plan-price">3 UF</div>
+      <div class="plan-period">por mes</div>
+      <ul class="plan-list">
+        <li>Hasta 30 licitaciónes al mes</li>
+        <li>3 propuestas por licitación + recotización</li>
+        <li>Respaldo de OC y facturas</li>
+        <li>Valoración de transportistas</li>
+        <li>Historial completo</li>
+        <li>Trazabilidad del transporte</li>
+        <li>Acceso a retornos disponibles</li>
+        <li>Reportes de gastos y estadísticas</li>
+        <li>Prioridad en respuestas</li>
+        <li>Onboarding y capacitación personalizada</li>
+        <li class="no">Key account manager</li>
+      </ul>
+      <a href="/registro.html" class="plan-btn">Comenzar</a>
+    </div>
+
+    <div class="plan">
+      <div class="plan-name">Enterprise</div>
+      <div class="plan-price">4 UF</div>
+      <div class="plan-period">por mes</div>
+      <ul class="plan-list">
+        <li>Licitaciónes ilimitadas</li>
+        <li>3 propuestas por licitación + recotización</li>
+        <li>Respaldo de OC y facturas</li>
+        <li>Valoración de transportistas</li>
+        <li>Historial completo</li>
+        <li>Trazabilidad del transporte</li>
+        <li>Acceso a retornos disponibles</li>
+        <li>Reportes de gastos y estadísticas</li>
+        <li>Prioridad en respuestas</li>
+        <li>Onboarding y capacitación personalizada</li>
+        <li>Key account manager</li>
+      </ul>
+      <a href="/landing-contacto.html" class="plan-btn">Comenzar</a>
+    </div>
+
+  </div>
+
+  
+</div>
+</section>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PANEL TRANSPORTISTA
+═══════════════════════════════════════════ -->
+<div class="tab-panel" id="panel-transportista">
+<section>
+<div class="container">
+
+  <div style="margin-bottom:56px" class="fade">
+    <div class="section-tag">Como funciona para transportistas</div>
+    <h2>Mas trabajo para<br><em>tu flota especializada</em></h2>
+    <p style="font-size:16px;color:var(--muted);margin-top:12px;max-width:560px;line-height:1.75">Accede a licitaciónes reales de empresas verificadas, compatibles con tus equipos. Cotiza rápido, gana trabajo y construye tu reputacion en la plataforma.</p>
+  </div>
+
+  <div class="steps-detail fade">
+
+    <div class="step-d">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0">
+        <div class="step-d-num">01</div>
+        <div class="step-d-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+      </div>
+      <div>
+        <h3>Registra tu empresa y flota</h3>
+        <p>Crea tu cuenta como transportista e ingresa los equipos de tu flota con sus características técnicas. Solo recibiras licitaciónes compatibles con lo que tienes disponible.</p>
+        <ul>
+          <li>Tipo de equipo (cama baja, cama alta, grua, etc.)</li>
+          <li>Capacidad de carga y dimensiones</li>
+          <li>Permisos y certificaciones disponibles</li>
+          <li>Zonas geograficas de operación</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="step-d">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0">
+        <div class="step-d-num">02</div>
+        <div class="step-d-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+      </div>
+      <div>
+        <h3>Recibe licitaciónes compatibles</h3>
+        <p>El sistema te muestra automáticamente las licitaciónes activas que se ajustan a tus equipos registrados. No pierdes tiempo revisando solicitudes que no puedes atender.</p>
+        <ul>
+          <li>Filtrado automático por tipo de equipo</li>
+          <li>Notificación inmediata de nuevas licitaciónes</li>
+          <li>Acceso a específicaciónes técnicas y documentos</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="step-d">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0">
+        <div class="step-d-num">03</div>
+        <div class="step-d-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+      </div>
+      <div>
+        <h3>Cotiza en minutos</h3>
+        <p>Responde con tu precio, tiempo de entrega y cualquier condicion especial. La velocidad de respuesta es uno de los factores del score que te da ventaja frente a otros transportistas.</p>
+        <ul>
+          <li>Precio total IVA incluido</li>
+          <li>Plazo de entrega estimado</li>
+          <li>Servicios incluidos (permisos, escoltas, etc.)</li>
+          <li>Notas o condiciones especiales</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="step-d">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0">
+        <div class="step-d-num">04</div>
+        <div class="step-d-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+      </div>
+      <div>
+        <h3>Ejecuta y actualiza estados</h3>
+        <p>Una vez adjudicado, actualiza el estado del transporte desde tu panel en cada etapa del viaje. El cliente ve el progreso en tiempo real sin necesidad de llamadas.</p>
+        <ul>
+          <li>En preparacion / En ruta / Carga recogida</li>
+          <li>En destino / Entregado</li>
+          <li>Registro de incidencias si corresponde</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="step-d">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0">
+        <div class="step-d-num">05</div>
+        <div class="step-d-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+      </div>
+      <div>
+        <h3>Sube tu OC y cobra</h3>
+        <p>Al entregar, sube tu orden de compra a la plataforma. El cliente emite la factura y el ciclo queda cerrado. Recibes el 100% del flete pactado.</p>
+        <ul>
+          <li>Carga tu OC en PDF directamente en la plataforma</li>
+          <li>El cliente sube la factura de pago</li>
+          <li>Historial completo de documentos disponible</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="step-d">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0">
+        <div class="step-d-num">06</div>
+        <div class="step-d-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+      </div>
+      <div>
+        <h3>Construye tu reputacion</h3>
+        <p>Cada transporte completado suma a tu valoración. Un buen historial mejora tu score y aumenta tus posibilidades de ser selecciónado en futuras licitaciónes.</p>
+        <ul>
+          <li>Valoración en 4 criterios por el cliente</li>
+          <li>Score visible en tus cotizaciónes</li>
+          <li>Historial de transportes y adjudicaciónes</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RETORNOS -->
+  <div style="background:var(--navy);border-radius:14px;padding:32px 36px;margin-bottom:64px;display:flex;gap:28px;align-items:flex-start" class="fade">
+    <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,137,4,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+    </div>
+    <div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#fff;margin-bottom:8px">Publica tus retornos disponibles</div>
+      <p style="font-size:14px;color:#94A3B8;line-height:1.7;max-width:600px">Si tienes equipo de regreso disponible tras un transporte, publicalo en la plataforma. Las empresas con plan Pro pueden ver estos retornos y contratarte directamente, optimizando tu ruta y eliminando viajes vacios.</p>
+    </div>
+  </div>
+
+  <!-- MODELO COBRO -->
+  <div class="fade">
+    <div class="section-tag">Modelo de cobro</div>
+    <h2 style="margin-bottom:8px">Solo pagas cuando <em>ganas trabajo</em></h2>
+    <p style="font-size:15px;color:var(--muted);max-width:540px;line-height:1.7;margin-bottom:36px">Sin cuotas fijas ni mensualidades. El fee se aplica unicamente cuando eres adjudicado en una licitación.</p>
+  </div>
+
+  <div class="cobro-grid fade">
+    <div class="cobro-card" style="background:var(--light);border:0.5px solid var(--border)">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:44px;font-weight:800;color:var(--navy);line-height:1">$0</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px;margin-bottom:20px">Costo de registro y uso mensual</div>
+      <ul style="list-style:none">
+        <li style="font-size:13px;color:var(--text);padding:8px 0;border-bottom:0.5px solid var(--border);display:flex;gap:8px"><span style="color:var(--orange);font-weight:700;flex-shrink:0">+</span>Acceso a todas las licitaciónes compatibles</li>
+        <li style="font-size:13px;color:var(--text);padding:8px 0;border-bottom:0.5px solid var(--border);display:flex;gap:8px"><span style="color:var(--orange);font-weight:700;flex-shrink:0">+</span>Cotizar sin limite de licitaciónes</li>
+        <li style="font-size:13px;color:var(--text);padding:8px 0;border-bottom:0.5px solid var(--border);display:flex;gap:8px"><span style="color:var(--orange);font-weight:700;flex-shrink:0">+</span>Publicar retornos disponibles</li>
+        <li style="font-size:13px;color:var(--text);padding:8px 0;display:flex;gap:8px"><span style="color:var(--orange);font-weight:700;flex-shrink:0">+</span>Historial, valoraciónes y trazabilidad</li>
+      </ul>
+    </div>
+    <div class="cobro-card" style="background:var(--navy)">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:44px;font-weight:800;color:var(--orange);line-height:1">Fee</div>
+      <div style="font-size:13px;color:#93C5FD;margin-top:4px;margin-bottom:20px">Solo al ser adjudicado en una licitación</div>
+      <p style="font-size:13px;color:#CBD5E1;line-height:1.75;margin-bottom:16px">Se descuenta un porcentaje sobre el valor total del flete pactado. Si cotizas y no te adjudican, no pagas nada.</p>
+      
+
+  <div style="margin-top:36px" class="fade">
+    <a href="/registro.html" class="btn-primary">
+      Registrar mis equipos
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+
+</div>
+</section>
+</div>
+
+<footer>
+  <div class="footer-top">
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div style="background:var(--orange);border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;color:#fff;font-size:15px">T</div><span class="footer-brand-name">Trans<span>Match</span></span></div>
+      <div class="footer-tagline">Plataforma B2B de transporte especializado para la industria. Santiago, Chile.</div>
+    </div>
+    <div class="footer-col"><h4>Plataforma</h4><a href="/index.html">Inicio</a><a href="/landing-conócenos.html">Conócenos</a><a href="/landing-servicios.html">Servicios</a><a href="/landing-contacto.html">Contacto</a></div>
+    <div class="footer-col"><h4>Legal</h4><a href="/términos.html">Términos y condiciones</a><a href="/privacidad.html">Política de privacidad</a><a href="/ayuda.html">Centro de ayuda</a></div>
+    <div class="footer-col"><h4>Contacto</h4><span>contacto&#64;transmatch.cl</span><span>+56 9 6908 1098</span><span>Santiago, Chile</span></div>
+  </div>
+  <div class="footer-bottom"><span>© 2026 TransMatch SpA. Todos los derechos reservados.</span><span>RUT 76.XXX.XXX-X</span></div>
+</footer>
+
+<script>
+function setTab(t, btn) {
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('panel-'+t).classList.add('active');
+}
+var obs = new IntersectionObserver(function(entries){
+  entries.forEach(function(e){ if(e.isIntersecting) e.target.classList.add('in'); });
+}, {threshold:0.08});
+document.querySelectorAll('.fade').forEach(function(el){ obs.observe(el); });
+</script>
+</body>
+</html>

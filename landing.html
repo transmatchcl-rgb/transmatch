@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>TransMatch — Red de Transporte Especializado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#1e2d4e;--orange:#ff8904;--light:#f5f7fb;--text:#374151;--muted:#6B7280;--border:#e8eaf0}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Barlow',sans-serif;color:var(--text);background:#fff;line-height:1.6;display:flex;flex-direction:column;min-height:100vh}
+  /* NAV */
+  nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 48px;height:60px;background:rgba(30,45,78,.97);backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,.06)}
+  .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+  .nav-icon{background:var(--orange);border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;color:#fff;font-size:15px}
+  .nav-wordmark{font-family:'Barlow Condensed',sans-serif;font-weight:700;color:#fff;font-size:20px}
+  .nav-wordmark span{color:var(--orange)}
+  .nav-right{display:flex;align-items:center;gap:4px}
+  .nav-right a{font-size:13px;font-weight:500;color:#93C5FD;text-decoration:none;padding:7px 13px;border-radius:6px;transition:all .15s;white-space:nowrap}
+  .nav-right a:hover,.nav-right a.active{color:#fff;background:rgba(255,255,255,.1)}
+  .nav-right .sep{border-left:1px solid rgba(255,255,255,.1);margin-left:6px;padding-left:16px}
+  .nav-right .cta{background:var(--orange);color:#fff!important;font-weight:600;margin-left:4px}
+  .nav-right .cta:hover{opacity:.9;background:var(--orange)!important}
+  .nav-mb-btn{display:none;background:none;border:none;color:#fff;cursor:pointer;padding:8px}
+  .nav-mb-menu{display:none;position:fixed;top:60px;left:0;right:0;background:var(--navy);padding:16px 24px;border-bottom:1px solid rgba(255,255,255,.08);flex-direction:column;gap:4px;z-index:99}
+  .nav-mb-menu.open{display:flex}
+  .nav-mb-menu a{font-size:15px;font-weight:500;color:#93C5FD;text-decoration:none;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+  /* HERO */
+  .hero{min-height:100vh;background:var(--navy);display:flex;align-items:center;padding:120px 48px 80px;position:relative;overflow:hidden}
+  .hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 75% 40%,rgba(255,137,4,.07) 0%,transparent 65%),radial-gradient(ellipse 50% 50% at 0% 100%,rgba(29,78,216,.12) 0%,transparent 60%)}
+  .hero-grid{position:absolute;inset:0;opacity:.035;background-image:linear-gradient(rgba(255,255,255,.4) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.4) 1px,transparent 1px);background-size:56px 56px}
+  .hero-inner{max-width:1100px;margin:0 auto;width:100%;position:relative;z-index:2;display:grid;grid-template-columns:1fr 200px;gap:48px;align-items:flex-start}
+  .hero-label{display:inline-flex;align-items:center;gap:8px;background:rgba(255,137,4,.1);border:1px solid rgba(255,137,4,.2);border-radius:999px;padding:4px 14px;font-size:11px;font-weight:700;color:var(--orange);letter-spacing:.1em;text-transform:uppercase;margin-bottom:28px}
+  h1{font-family:'Barlow Condensed',sans-serif;font-size:clamp(42px,5.5vw,72px);font-weight:800;color:#fff;line-height:1.0;letter-spacing:-1.5px;margin-bottom:20px}
+  h1 em{color:var(--orange);font-style:normal}
+  .hero-sub{font-size:16px;color:#94A3B8;line-height:1.75;margin-bottom:14px;max-width:480px}
+  .hero-tagline{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.05em;text-transform:uppercase;margin-bottom:36px;max-width:480px;line-height:1.3}
+  .hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+  .btn-primary{background:var(--orange);color:#fff;padding:14px 30px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:all .2s;border:none;cursor:pointer;font-family:'Barlow',sans-serif}
+  .btn-primary:hover{background:#e87900;transform:translateY(-1px);box-shadow:0 8px 24px rgba(255,137,4,.3)}
+  .btn-ghost{color:#93C5FD;padding:14px 24px;border-radius:8px;font-size:15px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.12);transition:all .2s}
+  .btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,.3)}
+  .hero-stats{display:flex;gap:36px;margin-top:48px;padding-top:36px;border-top:1px solid rgba(255,255,255,.07);flex-wrap:wrap}
+  .stat-val{font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#fff;line-height:1}
+  .stat-val em{color:var(--orange);font-style:normal}
+  .stat-lbl{font-size:12px;color:#64748B;margin-top:4px}
+  /* MAP */
+  .map-panel{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:20px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;max-height:420px}
+  .map-title{font-size:12px;font-weight:600;color:#93C5FD;letter-spacing:.06em;text-transform:uppercase;margin-bottom:16px;text-align:center}
+  #chile-map{width:100%;max-width:280px;margin:0 auto;display:block;cursor:pointer}
+  .region{fill:#2d4270;stroke:#1e2d4e;stroke-width:1.5;transition:fill .2s;cursor:pointer}
+  .region:hover,.region.active{fill:var(--orange)}
+  .map-tooltip{position:absolute;background:var(--navy);border:1px solid var(--orange);border-radius:8px;padding:8px 12px;font-size:12px;color:#fff;font-weight:500;pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .2s;z-index:10}
+  .map-counter{text-align:center;margin-top:14px;font-size:13px;color:#93C5FD}
+  .map-counter strong{color:#fff;font-size:20px;font-family:'Barlow Condensed',sans-serif;font-weight:800}
+  /* SECTIONS */
+  section{padding:96px 48px}
+  .container{max-width:1100px;margin:0 auto}
+  .section-tag{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--orange);margin-bottom:12px}
+  h2{font-family:'Barlow Condensed',sans-serif;font-size:clamp(30px,4vw,48px);font-weight:800;color:var(--navy);line-height:1.05;letter-spacing:-.5px}
+  h2 em{color:var(--orange);font-style:normal}
+  h3{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--navy)}
+  .section-sub{font-size:16px;color:var(--muted);line-height:1.75;max-width:540px;margin-top:14px}
+  /* BENEFICIOS */
+  #beneficios{background:var(--light)}
+  .ben-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:2px;margin-top:56px;border-radius:16px;overflow:hidden;background:var(--border)}
+  .ben-col{background:#fff;padding:40px 36px}
+  .ben-col-title{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;color:var(--navy);margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid var(--orange);display:inline-block}
+  .ben-item{display:flex;align-items:flex-start;gap:14px;margin-bottom:20px}
+  .ben-dot{width:8px;height:8px;border-radius:50%;background:var(--orange);flex-shrink:0;margin-top:7px}
+  .ben-text-title{font-size:14px;font-weight:600;color:var(--navy);margin-bottom:3px}
+  .ben-text-sub{font-size:13px;color:var(--muted);line-height:1.6}
+  /* HOW */
+  #como{background:#fff}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:48px}
+  .step{background:var(--light);border-radius:12px;border:0.5px solid var(--border);padding:28px 24px}
+  .step-num{font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:800;color:var(--border);line-height:1;margin-bottom:14px}
+  .step-icon{width:40px;height:40px;border-radius:10px;background:var(--navy);display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+  .step p{font-size:13px;color:var(--muted);line-height:1.7;margin-top:8px}
+  /* CTA BAND */
+  .cta-band{background:var(--navy);padding:80px 48px;text-align:center}
+  .cta-band h2{color:#fff;margin-bottom:16px}
+  .cta-band p{font-size:16px;color:#94A3B8;margin-bottom:36px;max-width:480px;margin-left:auto;margin-right:auto}
+  /* FOOTER */
+  footer{background:var(--navy);padding:48px 48px 24px;margin-top:0}
+  .footer-top{max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:32px;padding-bottom:32px;border-bottom:1px solid rgba(255,255,255,.07)}
+  .footer-brand-name{font-family:'Barlow Condensed',sans-serif;font-weight:700;color:#fff;font-size:18px}
+  .footer-brand-name span{color:var(--orange)}
+  .footer-tagline{font-size:12px;color:#475569;margin-top:6px;line-height:1.6}
+  .footer-col h4{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#93C5FD;margin-bottom:14px}
+  .footer-col a{display:block;font-size:13px;color:#94A3B8;text-decoration:none;margin-bottom:9px;transition:color .15s}
+  .footer-col a:hover{color:#fff}
+  .footer-col span{display:block;font-size:13px;color:#94A3B8;margin-bottom:9px}
+  .footer-bottom{max-width:1100px;margin:20px auto 0;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px;color:#475569}
+  /* FADE */
+  .fade{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+  .fade.in{opacity:1;transform:translateY(0)}
+  .fd1{transition-delay:.1s}.fd2{transition-delay:.2s}.fd3{transition-delay:.3s}
+  @media(max-width:980px){.hero-inner{grid-template-columns:1fr}.map-panel{display:none}}@media(max-width:1200px){.hero-inner{grid-template-columns:1fr 180px}}
+  @media(max-width:860px){nav{padding:0 20px}.nav-right{display:none}.nav-mb-btn{display:flex}section{padding:64px 24px}#por-que-transmatch{padding:64px 24px}#por-que-transmatch .container>div:nth-child(2){grid-template-columns:1fr!important}.ben-grid{grid-template-columns:1fr}.steps{grid-template-columns:1fr}.cta-band{padding:60px 24px}footer{padding:40px 24px 20px}.footer-top{flex-direction:column;gap:24px}}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/landing.html" class="nav-logo">
+    <div class="nav-icon">T</div>
+    <span class="nav-wordmark">Trans<span>Match</span></span>
+  </a>
+  <div class="nav-right">
+    <a href="/landing.html" class="active">Inicio</a>
+    <a href="/landing-conocenos.html">Conocenos</a>
+    <a href="/landing-servicios.html">Servicios</a>
+    <a href="/landing-contacto.html">Contacto</a>
+    <a href="/index.html" class="sep">Iniciar sesion</a>
+    <a href="/registro.html" class="cta">Registrarme</a>
+  </div>
+  <button class="nav-mb-btn" onclick="document.getElementById('mmenu').classList.toggle('open')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="nav-mb-menu" id="mmenu">
+    <a href="/landing.html">Inicio</a>
+    <a href="/landing-conocenos.html">Conocenos</a>
+    <a href="/landing-servicios.html">Servicios</a>
+    <a href="/landing-contacto.html">Contacto</a>
+    <a href="/index.html">Iniciar sesion</a>
+    <a href="/index.html" style="color:var(--orange);font-weight:700">Registrarme</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-inner">
+    <div>
+      <div class="hero-label">
+        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#ff8904"/></svg>
+        Red de Transporte Digital · Chile
+      </div>
+      <h1>Licitación de<br>transporte <em>especializado</em><br>en un solo lugar</h1>
+      <p class="hero-sub">Publica tus requerimientos, recibe multiples cotizaciónes comparadas y adjudica con total trazabilidad.</p>
+      <p class="hero-tagline">Centralizamos y simplificamos<br>la licitación de transporte especializado</p>
+      <div class="hero-actions">
+        <a href="/registro.html" class="btn-primary">
+          Comenzar
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="/landing-servicios.html" class="btn-ghost">Ver servicios</a>
+      </div>
+      
+    </div>
+    <!-- MAPA -->
+    <div class="map-panel">
+      <div class="map-title">Cobertura nacional</div>
+      <div class="map-tooltip" id="map-tooltip"></div>
+      <svg id="chile-map" viewBox="0 0 160 600" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:160px;display:block;margin:0 auto">
+
+        <!-- Arica y Parinacota -->
+        <path class="region active" data-name="Arica y Parinacota"
+          d="M72,18 L105,14 L108,28 L104,34 L85,36 L72,32 Z"/>
+
+        <!-- Tarapaca -->
+        <path class="region" data-name="Tarapaca"
+          d="M72,32 L104,34 L107,52 L102,58 L80,60 L72,55 Z"/>
+
+        <!-- Antofagasta -->
+        <path class="region" data-name="Antofagasta"
+          d="M72,55 L102,58 L105,95 L98,102 L74,100 L70,80 Z"/>
+
+        <!-- Atacama -->
+        <path class="region" data-name="Atacama"
+          d="M70,100 L98,102 L100,132 L93,138 L71,136 L68,118 Z"/>
+
+        <!-- Coquimbo -->
+        <path class="region" data-name="Coquimbo"
+          d="M68,136 L93,138 L94,162 L87,168 L68,166 L65,150 Z"/>
+
+        <!-- Valparaiso -->
+        <path class="region" data-name="Valparaiso"
+          d="M65,166 L87,168 L88,184 L80,188 L63,186 L61,175 Z"/>
+
+        <!-- Metropolitana -->
+        <path class="region" data-name="Region Metropolitana"
+          d="M63,186 L80,188 L81,200 L73,204 L62,202 L60,193 Z"/>
+
+        <!-- O'Higgins -->
+        <path class="region" data-name="O Higgins"
+          d="M60,202 L73,204 L74,218 L66,222 L58,220 L57,210 Z"/>
+
+        <!-- Maule -->
+        <path class="region" data-name="Maule"
+          d="M57,220 L66,222 L67,242 L59,246 L54,244 L53,230 Z"/>
+
+        <!-- Nuble -->
+        <path class="region" data-name="Nuble"
+          d="M53,244 L59,246 L60,258 L52,261 L50,254 Z"/>
+
+        <!-- Biobio -->
+        <path class="region" data-name="Biobio"
+          d="M50,261 L60,258 L61,274 L51,278 L47,272 Z"/>
+
+        <!-- Araucania -->
+        <path class="region" data-name="Araucania"
+          d="M47,278 L61,274 L62,294 L50,299 L44,292 Z"/>
+
+        <!-- Los Rios -->
+        <path class="region" data-name="Los Rios"
+          d="M44,299 L62,294 L62,310 L48,315 L41,308 Z"/>
+
+        <!-- Los Lagos -->
+        <path class="region" data-name="Los Lagos"
+          d="M41,315 L62,310 L63,340 L52,348 L42,344 L37,330 Z"/>
+
+        <!-- Aysen -->
+        <path class="region" data-name="Aysen"
+          d="M37,344 L52,348 L53,385 L40,392 L30,384 L30,360 Z"/>
+
+        <!-- Magallanes -->
+        <path class="region" data-name="Magallanes"
+          d="M30,392 L53,385 L54,430 L44,448 L28,444 L22,424 L24,400 Z"/>
+
+        <!-- Isla Grande Tierra del Fuego -->
+        <path class="region" data-name="Magallanes" style="opacity:.7"
+          d="M28,455 L46,450 L50,470 L38,485 L22,478 L20,462 Z"/>
+
+      </svg>
+      <div class="map-counter"><strong id="region-count">16</strong> regiones de cobertura</div>
+    </div>
+  </div>
+</section>
+
+<!-- BENEFICIOS CONJUNTOS -->
+<section id="por-que-transmatch" style="background:#fff;padding:96px 48px">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:56px" class="fade">
+      <div class="section-tag" style="display:inline-block">Por que TransMatch</div>
+      <h2 style="margin-top:10px">Conoce los beneficios de<br><em>trabajar en conjunto</em></h2>
+      <p style="font-size:16px;color:var(--muted);margin-top:14px;max-width:520px;margin-left:auto;margin-right:auto;line-height:1.75">Una plataforma que conecta oferta y demanda de transporte especializado, generando valor real para ambas partes desde el primer dia.</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px" class="fade">
+
+      <!-- Eficiencia -->
+      <div style="background:var(--light);border-radius:14px;border:0.5px solid var(--border);padding:32px;display:flex;gap:20px;align-items:flex-start">
+        <div style="width:48px;height:48px;border-radius:12px;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--navy);margin-bottom:8px">Eficiencia operaciónal</div>
+          <p style="font-size:14px;color:var(--muted);line-height:1.75">Reducimos el tiempo de cotización de dias a horas. El proceso de licitación completo ocurre dentro de la plataforma, eliminando llamadas, correos y coordinaciones manuales que consumen tiempo y recursos.</p>
+        </div>
+      </div>
+
+      <!-- Optimización -->
+      <div style="background:var(--light);border-radius:14px;border:0.5px solid var(--border);padding:32px;display:flex;gap:20px;align-items:flex-start">
+        <div style="width:48px;height:48px;border-radius:12px;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--navy);margin-bottom:8px">Optimización de recursos</div>
+          <p style="font-size:14px;color:var(--muted);line-height:1.75">Las empresas acceden a las mejores propuestas del mercado ordenadas por precio y valoración. Los transportistas optimizan sus rutas publicando retornos y eliminando tiempos muertos entre servicios.</p>
+        </div>
+      </div>
+
+      <!-- Automatización -->
+      <div style="background:var(--light);border-radius:14px;border:0.5px solid var(--border);padding:32px;display:flex;gap:20px;align-items:flex-start">
+        <div style="width:48px;height:48px;border-radius:12px;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--navy);margin-bottom:8px">Automatización del proceso</div>
+          <p style="font-size:14px;color:var(--muted);line-height:1.75">Desde la publicación hasta la factura, cada etapa del transporte queda registrada automáticamente. Trazabilidad de estados, gestión de documentos y notificaciónes sin intervencion manual.</p>
+        </div>
+      </div>
+
+      <!-- Planificación -->
+      <div style="background:var(--light);border-radius:14px;border:0.5px solid var(--border);padding:32px;display:flex;gap:20px;align-items:flex-start">
+        <div style="width:48px;height:48px;border-radius:12px;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--navy);margin-bottom:8px">Planificación informada</div>
+          <p style="font-size:14px;color:var(--muted);line-height:1.75">Historial de transportes, reportes de gasto y valoraciónes acumuladas permiten tomar mejores decisiones en cada licitación. Los datos de la operación quedan centralizados y disponibles en todo momento.</p>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+<!-- CTA BAND -->
+<div class="cta-band fade">
+  <div class="section-tag" style="color:rgba(255,137,4,.7)">Comienza hoy</div>
+  <h2 style="color:#fff;margin-bottom:16px">Simplifica tu operación<br>de transporte ahora</h2>
+  <p style="font-size:16px;color:#94A3B8;margin-bottom:36px;max-width:460px;margin-left:auto;margin-right:auto;line-height:1.7">Registrate en minutos y comienza a simplificar tu operación de transporte.</p>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <a href="/registro.html" class="btn-primary">Registrarme ahora<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    <a href="/landing-contacto.html" class="btn-ghost">Hablar con el equipo</a>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-top">
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="background:var(--orange);border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;color:#fff;font-size:15px">T</div>
+        <span class="footer-brand-name">Trans<span>Match</span></span>
+      </div>
+      <div class="footer-tagline">Plataforma B2B de transporte especializado para la industria. Santiago, Chile.</div>
+    </div>
+    <div class="footer-col">
+      <h4>Plataforma</h4>
+      <a href="/landing.html">Inicio</a>
+      <a href="/landing-conocenos.html">Conocenos</a>
+      <a href="/landing-servicios.html">Servicios</a>
+      <a href="/landing-contacto.html">Contacto</a>
+    </div>
+    <div class="footer-col">
+      <h4>Legal</h4>
+      <a href="/términos.html">Términos y condiciones</a>
+      <a href="/privacidad.html">Política de privacidad</a>
+      <a href="/ayuda.html">Centro de ayuda</a>
+    </div>
+    <div class="footer-col">
+      <h4>Contacto</h4>
+      <span>contacto&#64;transmatch.cl</span>
+      <span>+56 9 6908 1098</span>
+      <span>Santiago, Chile</span>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 TransMatch SpA. Todos los derechos reservados.</span>
+    <span>RUT 76.XXX.XXX-X</span>
+  </div>
+</footer>
+
+
+<script>
+  // Map interaction
+  var regions = document.querySelectorAll('.region');
+  var tooltip = document.getElementById('map-tooltip');
+  regions.forEach(function(r){
+    r.addEventListener('mouseenter', function(e){
+      tooltip.textContent = r.getAttribute('data-name');
+      tooltip.style.opacity = '1';
+      tooltip.style.top = (e.offsetY - 36)+'px';
+      tooltip.style.left = (e.offsetX + 12)+'px';
+      r.classList.add('active');
+    });
+    r.addEventListener('mouseleave', function(){
+      tooltip.style.opacity = '0';
+      r.classList.remove('active');
+    });
+  });
+  // Fade
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if(e.isIntersecting) e.target.classList.add('in'); });
+  }, {threshold:0.08});
+  document.querySelectorAll('.fade').forEach(function(el){ obs.observe(el); });
+</script>
+</body>
+</html>

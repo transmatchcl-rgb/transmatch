@@ -1,0 +1,951 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>TransMatch — Retornos vacíos</title><style>
+ *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#ffffff;display:flex;flex-direction:column;min-height:100vh}
+ #auth-guard{position:fixed;inset:0;background:#ffffff;display:flex;align-items:center;justify-content:center;z-index:9999}
+ .spinner{width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+ @keyframes spin{to{transform:rotate(360deg)}}
+ #app{display:none}#app.shown{display:flex;flex-direction:column;min-height:100vh}
+ .nav{background:#1e2d4e;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+ .nav-left{display:flex;align-items:center;gap:16px}
+ .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+ .nav-icon{background:#FF8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+ .nav-name{font-weight:700;color:#fff;font-size:15px}
+ .nav-name span{color:#FF8904}
+ .nav-links{display:flex;gap:2px}
+ .nav-link{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+ .nav-link:hover,.nav-link.active{color:#fff;background:rgba(255,255,255,.18)}
+ .avatar{width:30px;height:30px;border-radius:50%;background:#FF8904;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;cursor:pointer}
+ main{max-width:900px;margin:0 auto;padding:24px 20px;min-height:calc(100vh - 52px);flex:1}
+ .card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);overflow:hidden;margin-bottom:16px}
+ .card-hdr{padding:16px 20px;border-bottom:0.5px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between}
+ .card-title{font-size:15px;font-weight:600;color:#111827}
+ .form-group{margin-bottom:16px}
+ label{display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:5px}
+ .required{color:#EF4444;margin-left:2px}
+ input,select,textarea{width:100%;padding:10px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;color:#111827;font-family:inherit;background:#fff}
+ input:focus,select:focus,textarea:focus{outline:none;border-color:#1d4ed8;box-shadow:0 0 0 3px rgba(30,45,78,.08)}
+ textarea{resize:vertical;min-height:70px}
+ .hint{font-size:11px;color:#9CA3AF;margin-top:4px}
+ .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+ @media(max-width:600px){.grid-2{grid-template-columns:1fr}}
+ .btn{padding:9px 18px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s;display:inline-flex;align-items:center;gap:6px}
+ .btn:hover{opacity:.88}
+ .btn:disabled{opacity:.5;cursor:not-allowed}
+ .btn-orange{background:#FF8904;color:#fff}
+ .btn-outline{background:transparent;border:0.5px solid #E5E7EB;color:#374151}
+ .btn-red{background:#EF4444;color:#fff}
+ .btn-sm{padding:5px 12px;font-size:12px}
+ .retorno-card{border:0.5px solid #E5E7EB;border-radius:10px;padding:16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:14px}
+ .retorno-icon{font-size:28px;flex-shrink:0}
+ .retorno-body{flex:1;min-width:0}
+ .retorno-ruta{font-size:15px;font-weight:600;color:#111827;margin-bottom:3px}
+ .retorno-meta{font-size:12px;color:#6B7280}
+ .retorno-right{flex-shrink:0;text-align:right}
+ .retorno-precio{font-size:16px;font-weight:600;color:#1e2d4e}
+ .badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px}
+ .badge-green{background:#F0FDF4;color:#14532D}
+ .info-box{background:#eef1f8;border-radius:10px;padding:16px;margin-bottom:20px;display:flex;gap:12px;align-items:flex-start}
+ #toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none}
+
+  
+
+  .cal-mini{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);margin-bottom:16px;overflow:hidden}
+  .cal-mini-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:0.5px solid #f3f4f6}
+  .cal-mini-title{font-size:15px;font-weight:600;color:#1e2d4e}
+  .cal-mini-nav{display:flex;gap:6px}
+  .cal-mini-btn{width:28px;height:28px;border-radius:6px;border:0.5px solid #e8eaf0;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+  .cal-mini-btn:hover{background:#f5f7fb}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:12px 16px;gap:2px}
+  .cal-dow{font-size:10px;font-weight:600;color:#9CA3AF;text-align:center;padding:4px 0;text-transform:uppercase}
+  .cal-day{min-height:52px;border-radius:7px;padding:4px;position:relative;cursor:default}
+  .cal-day.other-month .cal-day-num{color:#D1D5DB}
+  .cal-day.today .cal-day-num{background:#ff8904;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+  .cal-day-num{font-size:12px;font-weight:500;color:#374151;width:22px;height:22px;display:flex;align-items:center;justify-content:center;margin-bottom:2px}
+  .cal-evt{font-size:10px;font-weight:600;padding:2px 5px;border-radius:4px;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cal-evt-disponible{background:#DCFCE7;color:#14532D}
+  .cal-evt-reservado{background:#FEF9C3;color:#713F12}
+  .cal-evt-confirmado{background:#DBEAFE;color:#1e3a8a}
+  .cal-evt-completado{background:#F3F4F6;color:#374151}
+  .cal-evt-inactivo{background:#FEE2E2;color:#991B1B}
+  .cal-evt.sol{background:#FEF9C3;color:#854D0E}
+  .fil-btn{padding:5px 14px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e8eaf0;background:#fff;color:#6B7280;transition:all .15s;font-family:inherit}
+  .fil-btn.active{background:#1e2d4e;color:#fff;border-color:#1e2d4e}
+  .ret-card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);margin-bottom:10px;overflow:hidden}
+  .ret-hdr{padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none}
+  .ret-hdr:hover{background:#f5f7fb}
+  .ret-info{flex:1;min-width:0}
+  .ret-title{font-size:14px;font-weight:600;color:#1e2d4e}
+  .ret-meta{font-size:11px;color:#6B7280;margin-top:2px}
+  .ret-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+  .ret-precio{font-size:13px;font-weight:700;color:#1e2d4e}
+  .ret-body{display:none;border-top:0.5px solid #f3f4f6;padding:16px 18px}
+  .ret-body.open{display:block}
+  .ret-arr{font-size:16px;color:#9CA3AF;transition:transform .2s;flex-shrink:0}
+  .badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px}
+  .b-disponible{background:#DCFCE7;color:#14532D}
+  .b-reservado{background:#FEF9C3;color:#713F12}
+  .b-confirmado{background:#DBEAFE;color:#1e3a8a}
+  .b-completado{background:#F3F4F6;color:#374151}
+  .b-inactivo{background:#FEE2E2;color:#991B1B}
+</style><script>
+ const API='https://transmatch.transmatchcl.workers.dev';
+ (async function(){
+ const token=localStorage.getItem('tm_token');
+ const role=localStorage.getItem('tm_role');
+ if(!token){window.location.replace('/index.html');return}
+ if(role==='admin'){window.location.replace('/admin.html');return}
+ if(role==='cliente'){window.location.replace('/cliente.html');return}
+ try{
+ const res=await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+token}});
+ if(res.status===401){localStorage.clear();window.location.replace('/index.html');return}
+ if(res.ok){const{user}=await res.json();if(user.role!=='transportista'){window.location.replace('/index.html');return}}
+ }catch(e){}
+ document.getElementById('auth-guard').style.display='none';
+ var appEl=document.getElementById('app');appEl.style.display='flex';appEl.style.flexDirection='column';appEl.style.minHeight='100vh';
+      cargarNotificaciones();
+ cargarRetornos();
+ var _params=new URLSearchParams(window.location.search);
+ var _action=_params.get('action');
+ var _retId=_params.get('id');
+ if(_action==='nuevo'){
+   var _c=document.getElementById('form-retorno-card');
+   var _b=document.getElementById('btn-publicar-retorno');
+   if(_c){_c.style.display='block';}
+   if(_b){_b.style.display='none';}
+   setTimeout(function(){_c&&_c.scrollIntoView({behavior:'smooth',block:'start'});},300);
+ }
+ if(_retId){
+   setTimeout(function(){
+     var el=document.getElementById('ret-body-'+_retId);
+     var arr=document.getElementById('ret-arr-'+_retId);
+     if(el&&!el.classList.contains('open')){
+       el.classList.add('open');
+       if(arr) arr.style.transform='rotate(90deg)';
+     }
+     var card=document.getElementById('ret-card-'+_retId)||el;
+     if(card) card.scrollIntoView({behavior:'smooth',block:'center'});
+   },800);
+ }
+ })();
+
+  async function cargarNotificaciones(){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var r = await fetch(API + '/api/notificaciones', { headers: {'Authorization':'Bearer '+token} });
+      var data = await r.json();
+      var notifs = data.notificaciones || [];
+      var noLeidas = notifs.filter(function(n){ return !n.leida; }).length;
+      var badge = document.getElementById('notif-count');
+      if(badge){ badge.textContent = noLeidas > 9 ? '9+' : noLeidas; badge.style.display = noLeidas > 0 ? 'flex' : 'none'; }
+      var list = document.getElementById('notif-list');
+      if(!list) return;
+      if(notifs.length === 0){
+        list.innerHTML = '<div style="padding:32px 20px;text-align:center"><div style="font-size:28px;margin-bottom:8px">🔔</div><div style="font-size:14px;font-weight:500;color:#374151;margin-bottom:4px">Sin notificaciones</div><div style="font-size:12px;color:#9CA3AF">Te avisaremos cuando haya novedades</div></div>';
+        return;
+      }
+      var iconMap = { adjudicacion:'🏆', licitacion_aprobada:'✅', licitacion_rechazada:'❌', licitacion_cerrada:'📋', cotizaciones_disponibles:'🎯', nueva_licitacion:'📣', cobro_pendiente:'💰', cobro_pagado:'✅', cuenta_aprobada:'✅' };
+      list.innerHTML = notifs.slice(0,20).map(function(n){
+        var icono = iconMap[n.tipo] || '🔔';
+        var bg = !n.leida ? 'background:#f0f4ff' : '';
+        var ts = n.createdAt ? new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+        return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'+
+          '<div style="font-size:18px;flex-shrink:0;margin-top:1px">'+icono+'</div>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4">'+n.mensaje+'</div>'+
+            '<div style="font-size:11px;color:#9CA3AF">'+ts+'</div>'+
+          '</div>'+
+          (!n.leida
+            ? '<button onclick="marcarUnaLeida(\'' + n.id + '\')" title="Marcar como leída" style="background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0;margin-top:2px;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">✓</button>'
+            : '') +
+        '</div>';
+      }).join('');
+      cargarPrefsConfig();
+    } catch(e){}
+  }
+
+  function toggleConfigNotif(){
+    var cfg      = document.getElementById('notif-config');
+    var list     = document.getElementById('notif-list');
+    var hMain    = document.getElementById('notif-header-main');
+    var hConfig  = document.getElementById('notif-header-config');
+    var isOpen   = cfg && cfg.style.display !== 'none';
+    if(isOpen){
+      if(cfg)     cfg.style.display     = 'none';
+      if(list)    list.style.display    = 'block';
+      if(hMain)   hMain.style.display   = 'flex';
+      if(hConfig) hConfig.style.display = 'none';
+    } else {
+      if(cfg)     cfg.style.display     = 'block';
+      if(list)    list.style.display    = 'none';
+      if(hMain)   hMain.style.display   = 'none';
+      if(hConfig) hConfig.style.display = 'flex';
+      cargarPrefsConfig();
+    }
+  }
+
+  function cargarPrefsConfig(){
+    try {
+      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      var ec = document.getElementById('notif-email-chk');
+      var wc = document.getElementById('notif-wa-chk');
+      if(ec) ec.checked = prefs.notifEmail !== false;
+      if(wc) wc.checked = !!prefs.notifWhatsapp;
+      if(wc && wc.checked){ var wi=document.getElementById('wa-input'); if(wi) wi.style.display='block'; }
+      var waNum = document.getElementById('wa-numero');
+      if(waNum && prefs.whatsapp) waNum.value = prefs.whatsapp;
+      ['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
+        var el = document.getElementById('pref-'+id);
+        if(el) el.checked = prefs['pref_'+id] !== false;
+      });
+    } catch(e){}
+  }
+
+  async function guardarPrefsDetalle(){
+    try {
+      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      ['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
+        var el = document.getElementById('pref-'+id);
+        if(el) prefs['pref_'+id] = el.checked;
+      });
+      localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+    } catch(e){}
+  }
+
+
+  function toggleWA(){
+    var wc = document.getElementById('notif-wa-chk');
+    var wi = document.getElementById('wa-input');
+    if(wi) wi.style.display = (wc && wc.checked) ? 'block' : 'none';
+    guardarPrefs();
+  }
+
+
+  function closeAllPanels(){
+    var m=document.getElementById('user-menu');
+    var p=document.getElementById('notif-panel');
+    if(m) m.style.display='none';
+    if(p) p.style.display='none';
+  }
+
+  function toggleNotifs(e){
+    if(e) e.stopPropagation();
+    var panel=document.getElementById('notif-panel');
+    if(!panel) return;
+    var isOpen=panel.style.display==='flex';
+    closeAllPanels();
+    if(!isOpen){panel.style.display='flex';cargarNotificaciones();}
+  }
+
+
+  async function marcarUnaLeida(id){
+    try {
+      await api('/api/notificaciones/leer', 'POST', { id: id });
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+  async function marcarTodasLeidas(){
+    try {
+      const r = await api('/api/notificaciones');
+      if(!r || !r.ok) return;
+      const notifs = r.data.notificaciones || [];
+      const noLeidas = notifs.filter(function(n){ return !n.leida; });
+      for(var i=0; i<noLeidas.length; i++){
+        await api('/api/notificaciones/leer', 'POST', { id: noLeidas[i].id });
+      }
+      const badge = document.getElementById('notif-count');
+      if(badge) badge.style.display = 'none';
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+</script></head><body><div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px"><div style="background:#FF8904;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:16px">T</div><div style="font-size:20px;font-weight:700;color:#1e2d4e">Trans<span style="color:#FF8904">Match</span></div></div><div class="spinner"></div></div></div><div id="app"><nav class="nav"><div class="nav-left"><a href="/transportista.html" class="nav-logo"><div class="nav-icon">T</div><span class="nav-name">Trans<span>Match</span></span></a><div class="nav-links"><a href="/transportista.html" class="nav-link">Inicio</a><a href="/transportista-retornos.html" class="nav-link active">Retornos</a><a href="/transportista-licitaciones.html" class="nav-link">Licitaciones</a><a href="/transportista-transporte.html" class="nav-link">Transportes</a><a href="/transportista-cobros.html" class="nav-link">Facturacion</a><a href="/transportista-calendario.html" class="nav-link">Calendario</a><a href="/transportista-historial.html" class="nav-link">Historial</a></div></div><div style="display:flex;align-items:center;gap:12px;"><div style="text-align:right"><div style="font-size:13px;color:#fff;font-weight:500" id="nav-nombre">--</div><div style="font-size:11px;color:#93C5FD" id="nav-empresa">--</div></div><div style="display:flex;align-items:center;gap:8px;"><div id="notif-btn" onclick="toggleNotifs(event)" style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;"></span></div><div style="position:relative"><div class="avatar" id="nav-avatar" onclick="toggleUserMenu(event)" style="cursor:pointer">?</div>
+<div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:240px;z-index:999;overflow:hidden">
+  <div style="padding:14px 16px;border-bottom:1px solid #f3f4f6">
+    <div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div>
+    <div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div>
+    <div id="um-plan" style="font-size:11px;color:#9CA3AF;margin-top:3px"></div>
+  </div>
+  <a href="/transportista-perfil.html" class="um-item" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Mi perfil y equipos
+  </a>
+  <a href="/transportista-historial.html" class="um-item" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4.5"/><polyline points="3 3 3 9 9 9"/></svg>
+    Historial
+  </a>
+  <a href="/ayuda.html" class="um-item" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    Ayuda
+  </a>
+  <div style="border-top:1px solid #f3f4f6">
+    <button onclick="localStorage.clear();window.location.replace('/index.html')" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#DC2626;background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:background .15s" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background=''">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Cerrar sesión
+    </button>
+  </div>
+</div>
+</div></nav>
+<div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:360px;background:#fff;border-radius:14px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.14);z-index:500;overflow:hidden;max-height:520px;flex-direction:column">
+  <!-- Header dinámico: cambia entre "Notificaciones" y "← Configuración" -->
+  <div id="notif-header-main" style="padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <span style="font-size:14px;font-weight:700;color:#1e2d4e">Notificaciones</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button onclick="marcarTodasLeidas()" style="font-size:11px;color:#6B7280;background:none;border:none;cursor:pointer;padding:3px 6px;border-radius:5px" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">Marcar leídas</button>
+      <button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;color:#6B7280" title="Configurar notificaciones" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="notif-header-config" style="display:none;padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:none;align-items:center;gap:10px;flex-shrink:0">
+    <button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;color:#1e2d4e;font-size:13px;font-weight:500;padding:4px 8px;border-radius:6px" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Volver
+    </button>
+    <span style="font-size:14px;font-weight:700;color:#1e2d4e">Configuración</span>
+  </div>
+  <div id="notif-config" style="display:none;border-bottom:0.5px solid #E5E7EB;background:#f8f9fc;flex-shrink:0">
+    <div style="padding:14px 16px">
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Canal de notificaciones</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:13px;color:#374151">✉️ Por email</span><input type="checkbox" id="notif-email-chk" onchange="guardarPrefs()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:13px;color:#374151">💬 Por WhatsApp</span><input type="checkbox" id="notif-wa-chk" onchange="toggleWA()" style="width:16px;height:16px;accent-color:#25D366;cursor:pointer"/></label>
+        <div id="wa-input" style="display:none;margin-top:4px"><input id="wa-numero" type="tel" placeholder="+56 9 XXXX XXXX" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:7px;font-size:13px"/><button onclick="guardarPrefs()" style="margin-top:6px;width:100%;padding:7px;background:#25D366;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer">Guardar número</button></div>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Sobre licitaciones</div>
+      <div style="display:flex;flex-direction:column;gap:0">
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Nueva licitación disponible</span><input type="checkbox" id="pref-nueva-licit" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Licitación cerrada sin adjudicación</span><input type="checkbox" id="pref-licit-cerrada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Licitación adjudicada a mí</span><input type="checkbox" id="pref-adjudicada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#374151;margin:10px 0;text-transform:uppercase;letter-spacing:.06em">Sobre retornos</div>
+      <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;cursor:pointer"><span style="font-size:13px;color:#374151">Solicitudes en retornos publicados</span><input type="checkbox" id="pref-retornos" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+    </div>
+  </div>
+  <div id="notif-list" style="overflow-y:auto;flex:1"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div>
+</div><main><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px"><div><div style="font-size:20px;font-weight:600;color:#1e2d4e">Retornos vacíos</div><div style="font-size:14px;color:#6B7280;margin-top:2px">Publica tu disponibilidad de viaje de regreso</div></div><button onclick="toggleFormRetorno()" id="btn-publicar-retorno" class="btn btn-orange" style="display:inline-flex;align-items:center;gap:8px;">+ Publicar retorno</button></div><div class="card" id="form-retorno-card" style="display:none;"><div class="card-hdr"><span class="card-title"> Publicar retorno disponible</span></div><div style="padding:20px">
+  <div class="grid-2">
+    <div class="form-group">
+      <label>Ciudad de origen <span class="required">*</span></label>
+      <input type="text" id="ciudad-origen" placeholder="Ej: Antofagasta"/>
+    </div>
+    <div class="form-group">
+      <label>Ciudad de destino <span class="required">*</span></label>
+      <input type="text" id="ciudad-destino" placeholder="Ej: Santiago"/>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="form-group">
+      <label>Disponibilidad desde <span class="required">*</span></label>
+      <input type="date" id="fecha-desde"/>
+    </div>
+    <div class="form-group">
+      <label>Disponibilidad hasta <span class="required">*</span></label>
+      <input type="date" id="fecha-hasta"/>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="form-group">
+      <label>Equipo disponible <span class="required">*</span></label>
+      <select id="equipo-retorno" onchange="toggleOtroEquipo(this.value)">
+        <option value="">Selecciónar...</option>
+        <option>Cama baja estandar (40 - 60 ton)</option>
+        <option>Cama baja reforzada (60 - 100 ton)</option>
+        <option>Cama baja super reforzada / modular (+100 ton)</option>
+        <option>Plataforma abierta</option>
+        <option>Plataforma con baranda</option>
+        <option>Camion pluma</option>
+        <option>Palote</option>
+        <option value="otro">Otro</option>
+      </select>
+      <input type="text" id="equipo-otro" placeholder="Describe el equipo..." style="display:none;margin-top:8px"/>
+    </div>
+    <div class="form-group">
+      <label>Capacidad de carga <span class="required">*</span></label>
+      <input type="text" id="capacidad-retorno" placeholder="Ej: 80 ton"/>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="form-group">
+      <label>Precio sugerido <span class="required">*</span></label>
+      <input type="text" id="precio-retorno" placeholder="Ej: $3.000.000" inputmode="numeric" oninput="formatPrecioRetorno(this)"/>
+      <div class="hint">En pesos chilenos, precio neto</div>
+    </div>
+  </div>
+  <div class="form-group">
+    <label>Notas adicionales</label>
+    <textarea id="descripción-retorno" placeholder="Ej: Disponible desde las 08:00, acepto carga sobredimensionada, requiero 24h de aviso..."></textarea>
+  </div>
+  <div style="display:flex;gap:10px;justify-content:flex-end">
+    <button class="btn btn-outline" onclick="cerrarFormRetorno()">Cancelar</button>
+    <button class="btn btn-orange" id="btn-publicar" onclick="publicarRetorno()">Publicar retorno</button>
+  </div>
+</div></div><div class="cal-mini">
+  <div class="cal-mini-hdr">
+    <span class="cal-mini-title" id="cal-ret-titulo">—</span>
+    <div class="cal-mini-nav">
+      <button class="cal-mini-btn" onclick="calRetNav(-1)">‹</button>
+      <button class="cal-mini-btn" onclick="calRetNav(0)" style="font-size:11px;width:auto;padding:0 8px">Hoy</button>
+      <button class="cal-mini-btn" onclick="calRetNav(1)">›</button>
+    </div>
+  </div>
+  <div class="cal-grid" id="cal-ret-grid"></div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;padding:10px 16px 14px;border-top:0.5px solid #f3f4f6">
+  <span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:10px;height:10px;border-radius:3px;background:#DCFCE7;border:1px solid #14532D;display:inline-block"></span>Disponible</span>
+  <span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:10px;height:10px;border-radius:3px;background:#FEF9C3;border:1px solid #713F12;display:inline-block"></span>Reservado</span>
+  <span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:10px;height:10px;border-radius:3px;background:#DBEAFE;border:1px solid #1e3a8a;display:inline-block"></span>Confirmado</span>
+  <span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:10px;height:10px;border-radius:3px;background:#F3F4F6;border:1px solid #374151;display:inline-block"></span>Completado</span>
+  <span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:10px;height:10px;border-radius:3px;background:#FEE2E2;border:1px solid #991B1B;display:inline-block"></span>Inactivo</span>
+</div>
+</div>
+
+<!-- Lista de retornos publicados --><div class="card">
+  <div class="card-hdr" style="flex-direction:column;align-items:flex-start;gap:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+      <span class="card-title">Mis retornos publicados</span>
+      <span id="retornos-count" class="badge badge-green" style="font-size:11px">—</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <button class="fil-btn active" onclick="setFiltroEstado('todos',this)">Todos</button>
+      <button class="fil-btn" onclick="setFiltroEstado('disponible',this)">Disponible</button>
+      <button class="fil-btn" onclick="setFiltroEstado('reservado',this)">Reservados</button>
+      <button class="fil-btn" onclick="setFiltroEstado('confirmado',this)">Confirmados</button>
+      <button class="fil-btn" onclick="setFiltroEstado('completado',this)">Completados</button>
+      <button class="fil-btn" onclick="setFiltroEstado('inactivo',this)">Inactivos</button>
+      <div style="width:1px;height:18px;background:#e8eaf0;margin:0 4px"></div>
+      <select id="fil-mes" onchange="filtrarRetornos()" style="font-size:12px;border:0.5px solid #e8eaf0;border-radius:5px;padding:4px 8px;color:#374151;background:#fff;cursor:pointer">
+        <option value="">Todos los meses</option>
+      </select>
+      <button onclick="limpiarFiltrosRetornos()" style="font-size:12px;border:0.5px solid #e8eaf0;border-radius:5px;padding:4px 10px;background:#fff;cursor:pointer;color:#6B7280">Limpiar</button>
+    </div>
+  </div>
+  <div id="lista-retornos" style="padding:16px 20px"><div style="text-align:center"><div class="spinner" style="width:24px;height:24px;border-width:2px"></div></div></div></div>
+<!-- Calendario de retornos -->
+</main></main></div><div id="toast"></div><script>
+ const nombre=localStorage.getItem('tm_nombre')||'';
+ const empresa=localStorage.getItem('tm_empresa')||'';
+
+ document.getElementById('nav-avatar').textContent=(nombre[0]||'U').toUpperCase();
+var nn=document.getElementById('nav-nombre');if(nn)nn.textContent=localStorage.getItem('tm_nombre')||'';
+var ne=document.getElementById('nav-empresa');if(ne)ne.textContent=localStorage.getItem('tm_empresa')||'';
+
+ // Fecha mínima hoy
+ var hoy = new Date().toISOString().split('T')[0];
+  var fd = document.getElementById('fecha-desde');
+  var fh = document.getElementById('fecha-hasta');
+  if(fd) fd.min = hoy;
+  if(fh) fh.min = hoy;
+  // Sync fecha-hasta min when fecha-desde changes
+  if(fd) fd.addEventListener('change', function(){ if(fh) fh.min = this.value || hoy; });
+
+ function toast(msg,type='ok'){
+ const el=document.getElementById('toast');
+ el.textContent=msg;el.style.background=type==='ok'?'#1ED24E':'#EF4444';
+ el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0'},3500);
+ }
+
+ function peso(n){return new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n)}
+
+ async function api(path,method='GET',body=null){
+ const o={method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}};
+ if(body)o.body=JSON.stringify(body);
+ try{const r=await fetch(API+path,o);if(r.status===401){localStorage.clear();window.location.replace('/index.html');return null}return{ok:r.ok,data:await r.json()}}
+ catch(e){return null}
+ }
+
+ 
+  function toggleFormRetorno(){
+    var card = document.getElementById('form-retorno-card');
+    var btn  = document.getElementById('btn-publicar-retorno');
+    if(!card) return;
+    var open = card.style.display !== 'none';
+    card.style.display = open ? 'none' : 'block';
+    if(btn) btn.style.display = open ? 'inline-flex' : 'none';
+  }
+async function cargarRetornos(){
+ // Get user id directly from API to ensure correct filtering
+ const meRes = await api('/api/auth/me');
+ const userId = (meRes&&meRes.ok) ? meRes.data.user.id : '';
+ const r=await api('/api/retornos');
+ const todos=(r&&r.ok)?(r.data.retornos||[]):[];
+ // Auto-desactivar los que pasaron su fechaHasta
+const hoy = new Date(); hoy.setHours(0,0,0,0);
+const vencidos = todos.filter(function(r){
+  return r.transportistaId===userId && r.estado==='disponible' && r.fechaHasta && new Date(r.fechaHasta+'T23:59:59') < hoy;
+});
+for(var vi=0; vi<vencidos.length; vi++){
+  try{ await api('/api/retornos/'+vencidos[vi].id+'/desactivar','POST'); }catch(e){}
+}
+// Recargar si hubo vencidos
+if(vencidos.length > 0){
+  const r2 = await api('/api/retornos');
+  const todos2 = (r2&&r2.ok)?(r2.data.retornos||[]):todos;
+  todos.splice(0, todos.length, ...todos2);
+}
+const mios = todos.filter(function(x){ return x.transportistaId===userId; });
+window._retornosData = mios;
+renderCalRet();
+window._todosRetornos = mios;
+ filtrarRetornos();
+
+ if(mios.length===0){}
+}
+
+  var _filtroEstado = 'todos';
+
+  function setFiltroEstado(val, btn){
+    _filtroEstado = val;
+    document.querySelectorAll('.fil-btn').forEach(function(b){ b.classList.remove('active'); });
+    if(btn) btn.classList.add('active');
+    filtrarRetornos();
+  }
+
+  function limpiarFiltrosRetornos(){
+    _filtroEstado = 'todos';
+    document.querySelectorAll('.fil-btn').forEach(function(b){ b.classList.remove('active'); });
+    var first = document.querySelector('.fil-btn'); if(first) first.classList.add('active');
+    document.getElementById('fil-mes').value = '';
+    filtrarRetornos();
+  }
+
+  function poblarSelectMeses(mios){
+    var meses = {};
+    mios.forEach(function(r){
+      var f = r.fechaDesde || r.fecha;
+      if(f) meses[f.slice(0,7)] = true;
+    });
+    var sel = document.getElementById('fil-mes');
+    if(!sel) return;
+    var current = sel.value;
+    sel.innerHTML = '<option value="">Todos los meses</option>';
+    Object.keys(meses).sort().reverse().forEach(function(m){
+      var partes = m.split('-');
+      var label = new Date(parseInt(partes[0]), parseInt(partes[1])-1, 1)
+        .toLocaleDateString('es-CL',{month:'long',year:'numeric'});
+      label = label.charAt(0).toUpperCase()+label.slice(1);
+      sel.innerHTML += '<option value="'+m+'"'+(m===current?' selected':'')+'>'+label+'</option>';
+    });
+  }
+
+  function filtrarRetornos(){
+    var mios = window._todosRetornos || [];
+    poblarSelectMeses(mios);
+    renderListaRetornos(mios);
+  }
+
+ function renderListaRetornos(mios){
+  var estadoFil = typeof _filtroEstado !== 'undefined' ? _filtroEstado : 'todos';
+  var mesFil = document.getElementById('fil-mes') ? document.getElementById('fil-mes').value : '';
+  var filtrados = mios.filter(function(r){
+   if(estadoFil !== 'todos' && r.estado !== estadoFil) return false;
+   if(mesFil){ var fechaRef=r.fechaDesde||r.fecha; if(!fechaRef||fechaRef.slice(0,7)!==mesFil) return false; }
+   return true;
+  });
+  var activos=mios.filter(function(r){return r.estado==='disponible';}).length;
+  document.getElementById('retornos-count').textContent=activos+' activo'+(activos!==1?'s':'');
+  if(filtrados.length===0){
+   document.getElementById('lista-retornos').innerHTML='<div style="text-align:center;padding:24px;color:#9CA3AF"><div style="font-size:14px">Sin retornos para estos filtros</div></div>';
+   return;
+  }
+  var badgeCls={disponible:'b-disponible',reservado:'b-reservado',confirmado:'b-confirmado',completado:'b-completado',inactivo:'b-inactivo'};
+  var badgeLbl={disponible:'Disponible',reservado:'Reservado',confirmado:'Confirmado',completado:'Completado',inactivo:'Inactivo'};
+  document.getElementById('lista-retornos').innerHTML=filtrados.map(function(r){
+   var fDesde=(r.fechaDesde||r.fecha)?new Date((r.fechaDesde||r.fecha)+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}):'—';
+   var fHasta=r.fechaHasta?' — '+new Date(r.fechaHasta+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}):'';
+   var cls=badgeCls[r.estado]||'b-disponible';
+   var lbl=badgeLbl[r.estado]||r.estado;
+   var esDisp=r.estado==='disponible';
+   var detalle='<div class="ret-body" id="ret-body-'+r.id+'">'+
+    '<div style="background:#f8f9fc;border-radius:8px;padding:12px 14px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+    '<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Disponibilidad</div><div style="font-size:12px;color:#374151">'+fDesde+fHasta+'</div></div>'+
+    '<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Precio</div><div style="font-size:13px;font-weight:700;color:#1e2d4e">'+(r.precio?peso(r.precio):'A negociar')+'</div></div>'+
+    (r.equipo?'<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Equipo</div><div style="font-size:12px;color:#374151">'+r.equipo+'</div></div>':'')+
+    (r.capacidad?'<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Capacidad</div><div style="font-size:12px;color:#374151">'+r.capacidad+'</div></div>':'')+
+    '</div>'+
+    (r.descripción?'<div style="font-size:12px;color:#6B7280;margin-bottom:14px">'+r.descripción+'</div>':'')+
+    (esDisp?'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'+
+     '<button class="btn btn-outline btn-sm" onclick="abrirEditar(\''+r.id+'\')">Editar</button>'+
+     '<button class="btn btn-sm" style="background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;padding:5px 12px;font-size:12px;border-radius:8px;cursor:pointer;font-weight:500" onclick="desactivar(\''+r.id+'\')">Desactivar</button>'+
+     '</div>':'')+
+    '<div style="padding-top:12px;border-top:0.5px solid #f3f4f6">'+
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">'+
+        '<span style="font-size:12px;font-weight:600;color:#1e2d4e;text-transform:uppercase;letter-spacing:.04em">Solicitudes recibidas</span>'+
+        '<span id="sol-count-'+r.id+'" style="background:#eef1f8;color:#1e2d4e;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px">—</span>'+
+      '</div>'+
+      '<div id="sol-lista-'+r.id+'"><div style="text-align:center;padding:8px"><div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0 auto"></div></div></div>'+
+    '</div>'+
+   '</div>';
+   return '<div class="ret-card" id="ret-card-'+r.id+'">'+
+    '<div class="ret-hdr" onclick="toggleRet(\''+r.id+'\')">'+
+     '<div class="ret-info">'+
+      '<div class="ret-title">'+r.ciudadOrigen+' → '+r.ciudadDestino+'</div>'+
+      '<div class="ret-meta">'+(r.equipo||'Sin equipo especificado')+' · '+fDesde+fHasta+'</div>'+
+     '</div>'+
+     '<div class="ret-right">'+
+      '<span class="ret-precio">'+(r.precio?peso(r.precio):'A negociar')+'</span>'+
+      '<span class="badge '+cls+'">'+lbl+'</span>'+
+     '</div>'+
+     '<span class="ret-arr" id="ret-arr-'+r.id+'">›</span>'+
+    '</div>'+detalle+'</div>';
+  }).join('');
+ }
+
+ function toggleRet(id){
+  var body=document.getElementById('ret-body-'+id);
+  var arr=document.getElementById('ret-arr-'+id);
+  if(!body) return;
+  var open=body.classList.contains('open');
+  body.classList.toggle('open',!open);
+  if(arr) arr.style.transform=open?'':'rotate(90deg)';
+  if(!open) cargarSolicitudes(id);
+ }
+
+ async function cargarSolicitudes(retornoId){
+  var el=document.getElementById('sol-lista-'+retornoId);
+  var cnt=document.getElementById('sol-count-'+retornoId);
+  if(!el) return;
+  try{
+    // Endpoint correcto: GET /api/retornos/:id/propuestas
+    var r=await api('/api/retornos/'+retornoId+'/propuestas');
+    if(!r||!r.ok){
+      el.innerHTML='<div style="font-size:12px;color:#9CA3AF;padding:8px 0">Sin solicitudes aún.</div>';
+      if(cnt) cnt.textContent='0';
+      return;
+    }
+    var props=(r.data.propuestas||[]);
+    if(cnt) cnt.textContent=props.length;
+    if(!props.length){
+      el.innerHTML='<div style="font-size:12px;color:#9CA3AF;padding:8px 0">Ningún cliente ha solicitado este retorno aún.</div>';
+      return;
+    }
+    var estadoBadge={
+      pendiente:'<span style="background:#FEF9C3;color:#713F12;font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px">Pendiente</span>',
+      aceptada:'<span style="background:#DCFCE7;color:#14532D;font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px">Aceptada</span>',
+      rechazada:'<span style="background:#FEE2E2;color:#991B1B;font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px">Rechazada</span>'
+    };
+    el.innerHTML=props.map(function(p){
+      var esParcial=p.esTramoParcial||false;
+      var origen=p.origenPropuesto||'—';
+      var destino=p.destinoPropuesto||'—';
+      var fecha=p.createdAt?new Date(p.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}):'—';
+      var fechaSol=p.fechaSolicitada?new Date(p.fechaSolicitada+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'}):null;
+      var badge=estadoBadge[p.estado]||estadoBadge['pendiente'];
+      var esPend=!p.estado||p.estado==='pendiente';
+      var contactoHtml='';
+      if(p.estado==='aceptada'&&p.contactoCliente){
+        contactoHtml='<div style="background:#f0fdf4;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:12px;color:#14532D">'
+          +'<div style="font-weight:600;margin-bottom:2px">Datos de contacto del cliente</div>'
+          +(p.contactoCliente.nombre?'<div>'+p.contactoCliente.nombre+'</div>':'')
+          +(p.contactoCliente.empresa?'<div>'+p.contactoCliente.empresa+'</div>':'')
+          +(p.contactoCliente.email?'<div><a href="mailto:'+p.contactoCliente.email+'" style="color:#14532D">'+p.contactoCliente.email+'</a></div>':'')
+          +'</div>';
+      }
+      var accionesHtml='';
+      if(esPend){
+        accionesHtml='<div id="acc-'+p.id+'" style="margin-top:10px">'
+          +'<div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:6px">Proponer precio final (CLP)</div>'
+          +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+          +'<input type="text" id="precio-prop-'+p.id+'" placeholder="Ej: $2.500.000" inputmode="numeric" oninput="formatPrecioProp(this)" style="flex:1;min-width:140px;padding:8px 12px;border:0.5px solid #e8eaf0;border-radius:8px;font-size:13px;font-family:inherit"/>'
+          +'<button onclick="responderSolicitud(\''+retornoId+'\',\''+p.id+'\',\'aceptar\')" class="btn btn-orange btn-sm" style="white-space:nowrap">Aceptar</button>'
+          +'<button onclick="responderSolicitud(\''+retornoId+'\',\''+p.id+'\',\'rechazar\')" class="btn btn-sm" style="background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;white-space:nowrap">Rechazar</button>'
+          +'</div>'
+          +'</div>';
+      }
+      return '<div style="border:0.5px solid #e8eaf0;border-radius:10px;padding:12px 14px;margin-bottom:8px;background:#fff">'
+        +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px">'
+        +'<div>'
+        +'<div style="font-size:13px;font-weight:600;color:#1e2d4e">'+(esParcial?'Tramo parcial: '+origen+' → '+destino:'Tramo completo')+'</div>'
+        +'<div style="font-size:11px;color:#6B7280;margin-top:2px">Solicitado el '+fecha+(esParcial?' · Precio a negociar':'')+'</div>'
+        +(fechaSol?'<div style="font-size:12px;color:#1e2d4e;font-weight:500;margin-top:3px">Fecha solicitada: '+fechaSol+'</div>':'')
+        +'</div>'
+        +badge
+        +'</div>'
+        +(p.precioNegociado?'<div style="font-size:12px;color:#1e2d4e;font-weight:600;margin-top:2px">Precio acordado: '+peso(p.precioNegociado)+'</div>':'')
+        +contactoHtml
+        +accionesHtml
+        +'</div>';
+    }).join('');
+  }catch(e){
+    if(el) el.innerHTML='<div style="font-size:12px;color:#9CA3AF;padding:8px 0">Sin solicitudes aún.</div>';
+    if(cnt) cnt.textContent='0';
+  }
+ }
+
+ function formatPrecioProp(el){
+  var raw=el.value.replace(/[^0-9]/g,'');
+  el.dataset.raw=raw;
+  el.value=raw===''?'':'$'+parseInt(raw,10).toLocaleString('es-CL');
+ }
+
+ async function responderSolicitud(retornoId,propuestaId,accion){
+  var precioEl=document.getElementById('precio-prop-'+propuestaId);
+  var precio=precioEl?parseInt(precioEl.dataset.raw||'0',10)||null:null;
+  if(accion==='aceptar'&&!precio){toast('Ingresa el precio final antes de aceptar','err');return;}
+  var acc=document.getElementById('acc-'+propuestaId);
+  if(acc) acc.innerHTML='<div style="font-size:12px;color:#6B7280">Procesando...</div>';
+  try{
+    // Endpoint correcto: POST /api/propuestas/:propuestaId/responder
+    var r=await api('/api/propuestas/'+propuestaId+'/responder','POST',{
+      accion: accion,
+      precioNegociado: accion==='aceptar'?precio:null
+    });
+    if(r&&r.ok){
+      toast(accion==='aceptar'?'✅ Solicitud aceptada. Se revelaron los datos de contacto.':'Solicitud rechazada.');
+      cargarSolicitudes(retornoId);
+    } else {
+      toast((r&&r.data&&r.data.error)||'Error al procesar','err');
+      cargarSolicitudes(retornoId);
+    }
+  }catch(e){
+    toast('Error de conexión','err');
+    cargarSolicitudes(retornoId);
+  }
+ }
+
+ function abrirEditar(id){
+  var mios=window._todosRetornos||[];
+  var r=mios.find(function(x){return x.id===id;});
+  if(!r) return;
+  document.getElementById('ciudad-origen').value=r.ciudadOrigen||'';
+  document.getElementById('ciudad-destino').value=r.ciudadDestino||'';
+  document.getElementById('fecha-desde').value=r.fechaDesde||'';
+  document.getElementById('fecha-hasta').value=r.fechaHasta||'';
+  document.getElementById('capacidad-retorno').value=r.capacidad||'';
+  document.getElementById('descripción-retorno').value=r.descripción||'';
+  if(r.precio){var el=document.getElementById('precio-retorno');el.dataset.raw=String(r.precio);el.value='$'+parseInt(r.precio,10).toLocaleString('es-CL');}
+  var selEq=document.getElementById('equipo-retorno');
+  var optsVals=Array.from(selEq.options).map(function(o){return o.value;});
+  if(r.equipo&&optsVals.includes(r.equipo)){selEq.value=r.equipo;}
+  else if(r.equipo){selEq.value='otro';document.getElementById('equipo-otro').value=r.equipo;document.getElementById('equipo-otro').style.display='block';}
+  var cardHdr=document.querySelector('#form-retorno-card .card-title');
+  if(cardHdr) cardHdr.textContent='Editar retorno';
+  var btnPub=document.getElementById('btn-publicar');
+  if(btnPub){btnPub.textContent='Guardar cambios';btnPub.onclick=function(){editarRetorno(id);};}
+  var card=document.getElementById('form-retorno-card');
+  var btnFlot=document.getElementById('btn-publicar-retorno');
+  if(card){card.style.display='block';}
+  if(btnFlot){btnFlot.style.display='none';}
+  card.scrollIntoView({behavior:'smooth',block:'start'});
+ }
+
+ async function editarRetorno(id){
+  var origen=document.getElementById('ciudad-origen').value.trim();
+  var destino=document.getElementById('ciudad-destino').value.trim();
+  var equipoSel=document.getElementById('equipo-retorno').value;
+  var equipoOtro=document.getElementById('equipo-otro').value.trim();
+  var equipo=equipoSel==='otro'?equipoOtro:equipoSel;
+  var capacidad=document.getElementById('capacidad-retorno').value.trim();
+  if(!origen){toast('Ciudad de origen es obligatoria','err');return;}
+  if(!destino){toast('Ciudad de destino es obligatoria','err');return;}
+  if(!equipo){toast('Selecciona o describe el equipo','err');return;}
+  var elP=document.getElementById('precio-retorno');
+  var precio=parseInt(elP.dataset.raw||elP.value.replace(/[^0-9]/g,''),10)||null;
+  if(!precio){toast('El precio es obligatorio','err');return;}
+  var btn=document.getElementById('btn-publicar');
+  btn.disabled=true;btn.textContent='Guardando...';
+  var r=await api('/api/retornos/'+id,'PUT',{
+   ciudadOrigen:origen,ciudadDestino:destino,
+   fechaDesde:document.getElementById('fecha-desde').value||null,
+   fechaHasta:document.getElementById('fecha-hasta').value||null,
+   equipo:equipo,capacidad:capacidad,precio:precio,
+   descripción:document.getElementById('descripción-retorno').value.trim(),
+  });
+  btn.disabled=false;btn.textContent='Guardar cambios';
+  if(r&&r.ok){toast('Retorno actualizado');cerrarFormRetorno();cargarRetornos();}
+  else{toast((r&&r.data&&r.data.error)||'Error al editar','err');}
+ }
+
+ function cerrarFormRetorno(){
+   limpiarForm();
+   var card=document.getElementById('form-retorno-card');
+   var btn=document.getElementById('btn-publicar-retorno');
+   if(card) card.style.display='none';
+   if(btn) btn.style.display='inline-flex';
+   window.scrollTo({top:0,behavior:'smooth'});
+ }
+
+ function limpiarForm(){
+    ['ciudad-origen','ciudad-destino','capacidad-retorno','descripción-retorno','fecha-desde','fecha-hasta','equipo-otro','precio-retorno'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    document.getElementById('equipo-retorno').value = '';
+    document.getElementById('equipo-otro').style.display = 'none';
+  }
+
+ function toggleOtroEquipo(val) {
+    var otroInput = document.getElementById('equipo-otro');
+    otroInput.style.display = val === 'otro' ? 'block' : 'none';
+    if (val !== 'otro') otroInput.value = '';
+  }
+
+  async function publicarRetorno(){
+    var origen   = document.getElementById('ciudad-origen').value.trim();
+    var destino  = document.getElementById('ciudad-destino').value.trim();
+    var fechaDesde = document.getElementById('fecha-desde').value;
+    var fechaHasta = document.getElementById('fecha-hasta').value;
+    var equipoSel  = document.getElementById('equipo-retorno').value;
+    var equipoOtro = document.getElementById('equipo-otro').value.trim();
+    var equipo     = equipoSel === 'otro' ? equipoOtro : equipoSel;
+    var capacidad  = document.getElementById('capacidad-retorno').value.trim();
+
+    if (!origen)   { toast('Ciudad de origen es obligatoria', 'err'); return; }
+    if (!destino)  { toast('Ciudad de destino es obligatoria', 'err'); return; }
+    if (!equipo)   { toast('Selecciona o describe el equipo disponible', 'err'); return; }
+    if (equipoSel === 'otro' && !equipoOtro) { toast('Describe el tipo de equipo', 'err'); return; }
+    if (!capacidad){ toast('La capacidad de carga es obligatoria', 'err'); return; }
+    var precio = document.getElementById('precio-retorno').value;
+    if (!precio || precio <= 0){ toast('El precio es obligatorio', 'err'); return; }
+
+    var btn = document.getElementById('btn-publicar');
+    btn.disabled = true; btn.innerHTML = 'Publicando...';
+
+    var r = await api('/api/retornos', 'POST', {
+      ciudadOrigen:  origen,
+      ciudadDestino: destino,
+      fechaDesde:    fechaDesde || null,
+      fechaHasta:    fechaHasta || null,
+      equipo:        equipo,
+      capacidad:     capacidad,
+      precio:        (function(){ var el=document.getElementById('precio-retorno'); return parseInt(el.dataset.raw||el.value.replace(/[^0-9]/g,''),10)||null; })(),
+      descripción:   document.getElementById('descripción-retorno').value.trim(),
+    });
+
+    btn.disabled = false; btn.innerHTML = 'Publicar retorno';
+
+    if (r && r.ok) {
+      limpiarForm();
+      cargarRetornos();
+      var card = document.getElementById('form-retorno-card');
+      var btn  = document.getElementById('btn-publicar-retorno');
+      if(card){
+        card.style.display='block';
+        if(btn) btn.style.display='none';
+        card.innerHTML = '<div style="padding:48px 24px;text-align:center">'+
+          '<div style="width:48px;height:48px;border-radius:50%;background:#F0FDF4;border:2px solid #16a34a;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">'+
+          '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>'+
+          '<div style="font-size:18px;font-weight:700;color:#1e2d4e;margin-bottom:8px">Retorno publicado</div>'+
+          '<div style="font-size:14px;color:#6B7280;margin-bottom:28px">Los clientes ya pueden ver tu disponibilidad de viaje de regreso.</div>'+
+          '<button class="btn btn-orange" onclick="location.reload()" style="margin:0 auto">Ver mis retornos</button>'+
+          '</div>';
+        card.scrollIntoView({behavior:'smooth', block:'start'});
+      }
+    } else {
+      toast((r && r.data && r.data.error) || 'Error al publicar', 'err');
+    }
+  }
+
+ async function desactivar(id){
+ if(!confirm('¿Desactivar este retorno?'))return;
+ // Marcar como no disponible
+ toast('Retorno desactivado');
+ cargarRetornos();
+ }
+
+  
+
+  
+
+  function toggleUserMenu(e){
+    e.stopPropagation();
+    var m=document.getElementById('user-menu');
+    var isOpen=m&&m.style.display==='block';
+    closeAllPanels();
+    if(!isOpen&&m) m.style.display='block';
+  }
+  document.addEventListener('click',function(){ closeAllPanels(); });
+
+// ── Mini-calendario de retornos ───────────────────────────────────────────
+var calRetFecha = new Date();
+calRetFecha.setDate(1);
+
+function calRetNav(dir){
+  if(dir === 0){ calRetFecha = new Date(); calRetFecha.setDate(1); }
+  else calRetFecha.setMonth(calRetFecha.getMonth() + dir);
+  renderCalRet();
+}
+
+function renderCalRet(){
+  var hoy = new Date();
+  var anio = calRetFecha.getFullYear();
+  var mes  = calRetFecha.getMonth();
+  var tit = new Date(anio, mes, 1).toLocaleDateString('es-CL',{month:'long',year:'numeric'});
+  var elTit = document.getElementById('cal-ret-titulo');
+  if(elTit) elTit.textContent = tit.charAt(0).toUpperCase()+tit.slice(1);
+  var primerDia = (new Date(anio, mes, 1).getDay() + 6) % 7;
+  var diasMes = new Date(anio, mes+1, 0).getDate();
+  var diasAnt = new Date(anio, mes, 0).getDate();
+  var misRetornos = window._retornosData || [];
+  var eventosPorDia = {};
+  var estadoClase = {disponible:'cal-evt-disponible',reservado:'cal-evt-reservado',confirmado:'cal-evt-confirmado',completado:'cal-evt-completado',inactivo:'cal-evt-inactivo'};
+  misRetornos.forEach(function(r){
+    var desde = r.fechaDesde ? new Date(r.fechaDesde+'T12:00:00') : (r.fecha ? new Date(r.fecha+'T12:00:00') : null);
+    var hasta = r.fechaHasta ? new Date(r.fechaHasta+'T12:00:00') : desde;
+    if(!desde) return;
+    var d = new Date(desde.getTime());
+    while(d <= hasta){
+      if(d.getFullYear()===anio && d.getMonth()===mes){
+        var k = d.getDate();
+        if(!eventosPorDia[k]) eventosPorDia[k] = [];
+        eventosPorDia[k].push(r);
+      }
+      d.setDate(d.getDate()+1);
+    }
+  });
+  var html = '<div class="cal-dow">LUN</div><div class="cal-dow">MAR</div><div class="cal-dow">MIE</div><div class="cal-dow">JUE</div><div class="cal-dow">VIE</div><div class="cal-dow">SAB</div><div class="cal-dow">DOM</div>';
+  for(var i = primerDia - 1; i >= 0; i--)
+    html += '<div class="cal-day other-month"><div class="cal-day-num">'+(diasAnt-i)+'</div></div>';
+  for(var d2 = 1; d2 <= diasMes; d2++){
+    var esHoy = d2===hoy.getDate() && mes===hoy.getMonth() && anio===hoy.getFullYear();
+    var evts = eventosPorDia[d2] || [];
+    html += '<div class="cal-day'+(esHoy?' today':'')+'"><div class="cal-day-num">'+d2+'</div>'+
+      evts.slice(0,2).map(function(r){ var cls=estadoClase[r.estado]||'cal-evt-disponible'; return '<div class="cal-evt '+cls+'">'+r.ciudadOrigen+' \u2192 '+r.ciudadDestino+'</div>'; }).join('')+
+      (evts.length>2?'<div style="font-size:10px;color:#9CA3AF">+'+(evts.length-2)+' m\u00e1s</div>':'')+
+    '</div>';
+  }
+  var totalCeldas = primerDia + diasMes;
+  var resto = totalCeldas % 7 === 0 ? 0 : 7 - (totalCeldas % 7);
+  for(var j = 1; j <= resto; j++)
+    html += '<div class="cal-day other-month"><div class="cal-day-num">'+j+'</div></div>';
+  var grid = document.getElementById('cal-ret-grid');
+  if(grid) grid.innerHTML = html;
+}
+
+function formatPrecioRetorno(el){
+  var raw=el.value.replace(/[^0-9]/g,'');
+  el.dataset.raw=raw;
+  el.value=raw===''?'':'$'+parseInt(raw,10).toLocaleString('es-CL');
+}
+</script>
+
+<footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <!-- Logo -->
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px">T</div>
+        <span style="font-weight:700;color:#fff;font-size:15px">Trans<span style="color:#ff8904">Match</span></span>
+      </div>
+      <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+    </div>
+    <!-- Links -->
+    <div style="display:flex;gap:32px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <a href="/términos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Términos y condiciones</a>
+          <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Política de privacidad</a>
+          <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Centro de ayuda</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;color:#CBD5E1"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d4b7bbbaa0b5b7a0bb94a0a6b5baa7b9b5a0b7bcfab7b8">[email&#160;protected]</a></span>
+          <span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <span>© 2026 TransMatch SpA. 

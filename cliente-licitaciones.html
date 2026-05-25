@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch -- Mis licitaciones</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f7fb;min-height:100vh;display:flex;flex-direction:column}
+#auth-guard{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:9999}
+.spinner{width:32px;height:32px;border:3px solid #e8eaf0;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#app{display:none;flex-direction:column;min-height:100vh}
+.nav{background:#1e2d4e;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+.nav-icon{background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+.nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#ff8904}
+.nav-links{display:flex;gap:2px}
+.nav-link{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+.nav-link:hover,.nav-link.active{color:#fff;background:rgba(255,255,255,.12)}
+.nav-avatar{width:30px;height:30px;border-radius:50%;background:#ff8904;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;cursor:pointer}
+.nav-user{font-size:13px;color:#fff;font-weight:500}
+.nav-sub{font-size:11px;color:#93C5FD}
+.um-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:background .15s}
+.um-item:hover{background:#f9fafb}
+.um-danger{color:#DC2626}.um-danger:hover{background:#FEF2F2}
+main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
+.grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+@media(max-width:700px){.grid-4{grid-template-columns:repeat(2,1fr)}}
+.stat{background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);padding:16px 18px}
+.stat-label{font-size:12px;color:#6B7280;margin-bottom:6px}
+.stat-val{font-size:26px;font-weight:600}
+.card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);overflow:hidden}
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px}
+.badge-orange{background:#FFF7ED;color:#92400E}
+.badge-blue{background:#eef1f8;color:#1e2d4e}
+.badge-green{background:#F0FDF4;color:#14532D}
+.badge-gray{background:#f8f9fc;color:#6B7280;border:0.5px solid #E5E7EB}
+.badge-red{background:#FEF2F2;color:#991B1B}
+.pill{padding:5px 14px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e8eaf0;background:#fff;color:#6B7280;transition:all .15s;user-select:none;white-space:nowrap;font-family:inherit}
+.pill.active{background:#1e2d4e;border-color:#1e2d4e;color:#fff}
+.pill-todas,.pill-revision,.pill-abierta,.pill-cotiz,.pill-adj,.pill-comp,.pill-rech{border-color:#e8eaf0;background:#fff;color:#6B7280}
+.pill-todas.active,.pill-revision.active,.pill-abierta.active,.pill-cotiz.active,.pill-adj.active,.pill-comp.active,.pill-rech.active{background:#1e2d4e;border-color:#1e2d4e;color:#fff}
+.sel-mes{padding:5px 10px;border:1.5px solid #E5E7EB;border-radius:999px;font-size:12px;font-weight:600;background:#fff;color:#6B7280;cursor:pointer}
+.sel-mes:focus{outline:none;border-color:#1e2d4e}
+.filter-bar{padding:12px 16px;border-bottom:0.5px solid #f3f4f6;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.lic-item{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);margin-bottom:10px;display:flex;align-items:center;gap:14px;padding:14px 18px;cursor:pointer;transition:box-shadow .15s,border-color .15s}
+.lic-item:hover{box-shadow:0 4px 16px rgba(30,45,78,.10);border-color:#c7d0e8}
+.lic-code{font-size:10px;font-weight:700;font-family:monospace;background:#eef1f8;color:#1e2d4e;padding:3px 7px;border-radius:5px;flex-shrink:0;white-space:nowrap;align-self:center}
+.lic-body{flex:1;min-width:0}
+.lic-title{font-size:13px;font-weight:700;color:#1e2d4e;margin-bottom:3px}
+.lic-meta{font-size:12px;color:#6B7280}
+.lic-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;justify-content:center}
+.pmenu-wrap{position:relative;display:inline-block}
+.pmenu-btn{width:28px;height:28px;border-radius:6px;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:#6B7280;transition:background .15s}
+.pmenu-btn:hover{background:#f5f7fb}
+.pmenu-dd{display:none;position:absolute;top:32px;right:0;background:#fff;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.12);border:0.5px solid #E5E7EB;min-width:170px;z-index:50;overflow:hidden}
+.pmenu-dd.open{display:block}
+.pmenu-item{display:flex;align-items:center;padding:10px 14px;font-size:13px;cursor:pointer;border:none;background:none;width:100%;text-align:left;color:#374151;transition:background .1s}
+.pmenu-item:hover{background:#f5f7fb}
+.pmenu-item.danger{color:#DC2626}
+.pmenu-item.danger:hover{background:#FEF2F2}
+.empty{text-align:center;padding:48px;color:#9CA3AF;font-size:14px}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:24px;max-width:520px;width:100%;max-height:85vh;overflow-y:auto}
+.modal-btns{display:flex;gap:8px;margin-top:16px}
+.modal-btns .btn{flex:1;justify-content:center}
+.btn{padding:9px 18px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.btn:hover{opacity:.88}
+.btn-orange{background:#FF8904;color:#fff}
+.btn-outline{background:transparent;border:0.5px solid #E5E7EB;color:#374151}
+.btn-green{background:#16a34a;color:#fff}
+.cotiz-card{border:0.5px solid #E5E7EB;border-radius:10px;padding:14px;margin-bottom:10px}
+.cotiz-card.winner{border-color:#1ED24E;border-width:1.5px;background:#f8fffc}
+.score-bar{height:4px;background:#E5E7EB;border-radius:2px;margin-top:8px}
+.score-fill{height:100%;border-radius:2px;background:#1e2d4e}
+.val-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid #F3F4F6}
+.star{width:28px;height:28px;border-radius:6px;border:0.5px solid #E5E7EB;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .15s}
+.star.active{background:#FF8904;border-color:#FF8904}
+#toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none}
+</style>
+<script>
+var API='https://transmatch.transmatchcl.workers.dev';
+(async function(){
+var token=localStorage.getItem('tm_token');
+var role=localStorage.getItem('tm_role');
+if(!token){window.location.replace('/index.html');return}
+if(role==='admin'){window.location.replace('/admin.html');return}
+if(role==='transportista'){window.location.replace('/transportista.html');return}
+try{
+var res=await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+token}});
+if(res.status===401){localStorage.clear();window.location.replace('/index.html');return}
+if(res.ok){var d=await res.json();if(d.user.role!=='cliente'){window.location.replace('/index.html');return}localStorage.setItem('tm_plan',d.user.plan||'')}
+}catch(e){}
+document.getElementById('auth-guard').style.display='none';
+var app=document.getElementById('app');app.style.display='flex';
+window._authOk=true;
+document.dispatchEvent(new Event('_authReady'));
+})();
+</script>
+</head>
+<body>
+<div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:20px"><div style="background:#ff8904;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff">T</div><span style="font-size:20px;font-weight:700;color:#1e2d4e">Trans<span style="color:#ff8904">Match</span></span></div><div class="spinner" style="margin:0 auto"></div></div></div>
+
+<div id="app">
+<nav class="nav">
+<div style="display:flex;align-items:center;gap:16px">
+<a href="/cliente.html" class="nav-logo"><div class="nav-icon">T</div><span class="nav-name">Trans<span>Match</span></span></a>
+<div class="nav-links">
+<a href="/cliente.html" class="nav-link">Inicio</a>
+<a href="/cliente-licitaciones.html" class="nav-link active">Licitaciones</a>
+<a href="/cliente-retornos.html" id="nav-retornos" class="nav-link">Retornos</a>
+<a href="/cliente-transporte.html" class="nav-link">Transportes</a>
+<a href="/cliente-facturacion.html" class="nav-link">Facturacion</a>
+<a href="/cliente-calendario.html" class="nav-link">Calendario</a>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<div style="text-align:right"><div class="nav-user" id="nav-nombre">--</div><div class="nav-sub" id="nav-empresa">--</div></div>
+<div style="display:flex;align-items:center;gap:8px">
+<div id="notif-btn" onclick="toggleNotifs(event)" style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+<span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center"></span>
+</div>
+<div style="position:relative">
+<div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div>
+<div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:220px;z-index:999;overflow:hidden">
+<div style="padding:14px 16px;border-bottom:1px solid #f3f4f6"><div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div><div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div></div>
+<a href="/cliente-perfil.html" class="um-item">Configuracion</a>
+<a href="/ayuda.html" class="um-item">Ayuda</a>
+<a href="/landing-servicios.html" class="um-item">Planes y precios</a>
+<div style="border-top:1px solid #f3f4f6"><button onclick="cerrarSesion()" class="um-item um-danger">Cerrar sesion</button></div>
+</div>
+</div>
+</div>
+<div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:320px;background:#fff;border-radius:12px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.12);z-index:9000;max-height:440px;overflow:hidden;flex-direction:column">
+<div style="padding:12px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:8px">
+<span style="font-size:14px;font-weight:600;color:#111827">Notificaciones</span>
+<button onclick="event.stopPropagation();marcarTodasLeidas()" style="font-size:11px;color:#1e2d4e;background:none;border:none;cursor:pointer;white-space:nowrap">Marcar todas leidas</button>
+</div>
+<div id="notif-list" style="overflow-y:auto;max-height:380px"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div>
+</div>
+</div>
+</nav>
+
+<main>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+<div><div style="font-size:20px;font-weight:600;color:#1e2d4e">Mis licitaciones</div><div style="font-size:14px;color:#6B7280;margin-top:2px">Gestiona y revisa todas tus solicitudes de transporte</div></div>
+<a href="/cliente-nueva.html" class="btn btn-orange">+ Nueva licitacion</a>
+</div>
+
+<div class="grid-4">
+<div class="stat"><div class="stat-label">Abiertas</div><div id="st-abiertas" class="stat-val" style="color:#92400E">--</div></div>
+<div class="stat"><div class="stat-label">Adjudicadas</div><div id="st-adjudicadas" class="stat-val" style="color:#14532D">--</div></div>
+<div class="stat"><div class="stat-label">Completadas</div><div id="st-completadas" class="stat-val" style="color:#1ED24E">--</div></div>
+<div class="stat"><div class="stat-label">Total licitaciones</div><div id="st-total" class="stat-val" style="color:#1e2d4e">--</div></div>
+</div>
+
+<div class="card">
+<div class="filter-bar">
+<span class="pill pill-todas active" onclick="togglePill(this,'')">Todas</span>
+<span class="pill pill-revision" onclick="togglePill(this,'pendiente_admin')">En revision</span>
+<span class="pill pill-abierta" onclick="togglePill(this,'abierta')">Abiertas</span>
+<span class="pill pill-cotiz" onclick="togglePill(this,'cerrada')">Con cotizaciones</span>
+<span class="pill pill-adj" onclick="togglePill(this,'adjudicada')">Adjudicadas</span>
+<span class="pill pill-comp" onclick="togglePill(this,'completada')">Completadas</span>
+<span class="pill pill-rech" onclick="togglePill(this,'rechazada')">Rechazadas</span>
+<span class="pill pill-rech" onclick="togglePill(this,'anulada')">Anuladas</span>
+<select class="sel-mes" id="fil-mes" onchange="aplicarFiltros()"><option value="">Todos los meses</option></select>
+</div>
+<div id="lista-licitaciones" style="max-width:820px;margin:0 auto"><div style="padding:40px;text-align:center"><div class="spinner" style="margin:0 auto"></div></div></div>
+</div>
+</main>
+</div>
+
+<!-- Modal eliminar -->
+<div class="modal-bg" id="modal-eliminar">
+<div class="modal" style="max-width:400px">
+<div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:6px">Eliminar licitacion?</div>
+<div style="font-size:13px;color:#6B7280;margin-bottom:16px">Esta accion no se puede deshacer.</div>
+<div class="modal-btns">
+<button class="btn btn-outline" onclick="document.getElementById('modal-eliminar').classList.remove('open')">Cancelar</button>
+<button class="btn" style="background:#DC2626;color:#fff" onclick="ejecutarEliminar()">Si, eliminar</button>
+</div>
+</div>
+</div>
+
+<!-- Modal anular -->
+<div class="modal-bg" id="modal-anular">
+<div class="modal" style="max-width:400px">
+<div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:6px">Anular licitacion</div>
+<div style="font-size:13px;color:#6B7280;margin-bottom:14px">La licitacion quedara anulada. Quedara registro de la solicitud.</div>
+<label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Motivo <span style="color:#EF4444">*</span></label>
+<textarea id="motivo-anulacion" placeholder="Ej: Ya no se requiere el servicio..." style="width:100%;padding:9px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;min-height:72px;margin-bottom:14px"></textarea>
+<div class="modal-btns">
+<button class="btn btn-outline" onclick="document.getElementById('modal-anular').classList.remove('open')">Cancelar</button>
+<button class="btn" style="background:#DC2626;color:#fff" onclick="ejecutarAnular()">Anular</button>
+</div>
+</div>
+</div>
+
+<!-- Modal adjudicar -->
+<div class="modal-bg" id="modal-adj">
+<div class="modal" style="max-width:400px">
+<div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:6px">Confirmar adjudicacion</div>
+<div style="font-size:13px;color:#6B7280;margin-bottom:12px">Adjudicaras esta licitacion a:</div>
+<div id="modal-adj-info" style="background:#F0FDF4;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;color:#14532D"></div>
+<div style="font-size:12px;color:#6B7280;margin-bottom:4px">Al confirmar, los datos de contacto del transportista seran revelados.</div>
+<div class="modal-btns">
+<button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+<button class="btn btn-orange" onclick="confirmarAdj()">Confirmar</button>
+</div>
+</div>
+</div>
+
+<!-- Modal detalle licitacion -->
+<div class="modal-bg" id="modal-det" onclick="if(event.target===this)this.classList.remove('open')">
+<div class="modal">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;gap:12px">
+<div style="flex:1;min-width:0">
+<div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:4px" id="det-titulo">--</div>
+<div style="font-size:13px;color:#6B7280;display:none" id="det-meta"></div>
+</div>
+<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+<span id="det-badge"></span>
+<div class="pmenu-wrap" id="det-menu-wrap" style="display:none">
+<button class="pmenu-btn" onclick="togglePanelMenu(event,'det-pmenu')">&#8943;</button>
+<div class="pmenu-dd" id="det-pmenu">
+<button class="pmenu-item" id="det-btn-editar" onclick="closePanelMenu();editarLicitacion()">Editar licitacion</button>
+<button class="pmenu-item danger" id="det-btn-eliminar" onclick="closePanelMenu();confirmarEliminar()">Eliminar licitacion</button>
+<button class="pmenu-item danger" id="det-btn-anular" style="display:none" onclick="closePanelMenu();confirmarAnular()">Anular licitacion</button>
+</div>
+</div>
+<button onclick="document.getElementById('modal-det').classList.remove('open')" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6B7280;line-height:1">&times;</button>
+</div>
+</div>
+<div id="det-contenido"></div>
+</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+var API='https://transmatch.transmatchcl.workers.dev';
+var allLicitaciones=[];
+var estadosFiltro=new Set();
+var _eliminarId=null,_anularId=null,_selectedId=null,_selectedLic=null;
+var pendingCotizId=null,valoraciones={},_cotizMap={};
+
+function toast(msg,type){
+var el=document.getElementById('toast');
+el.textContent=msg;el.style.background=type==='err'?'#EF4444':'#1ED24E';
+el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(function(){el.style.opacity='0'},3500);
+}
+
+function peso(n){return new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n)}
+
+function desde(iso){
+var d=(Date.now()-new Date(iso).getTime())/60000;
+if(d<60)return 'hace '+Math.floor(d)+'m';
+if(d<1440)return 'hace '+Math.floor(d/60)+'h';
+return 'hace '+Math.floor(d/1440)+'d';
+}
+
+function bdg(e){
+var m={pendiente_admin:['badge-gray','En revision'],abierta:['badge-orange','Abierta'],cerrada:['badge-blue','Con cotizaciones'],adjudicada:['badge-green','Adjudicada'],completada:['badge-green','Completada'],rechazada:['badge-red','Rechazada'],anulada:['badge-red','Anulada']};
+var cl=m[e]||['badge-gray',e];
+return '<span class="badge '+cl[0]+'">'+cl[1]+'</span>';
+}
+
+function togglePill(el,estado){
+var pt=document.querySelector('.pill-todas');
+if(estado===''){
+estadosFiltro.clear();
+document.querySelectorAll('.pill').forEach(function(p){p.classList.remove('active')});
+pt.classList.add('active');
+}else{
+pt.classList.remove('active');
+if(estadosFiltro.has(estado)){estadosFiltro.delete(estado);el.classList.remove('active');}
+else{estadosFiltro.add(estado);el.classList.add('active');}
+if(estadosFiltro.size===0)pt.classList.add('active');
+}
+aplicarFiltros();
+}
+
+function aplicarFiltros(){
+var mes=document.getElementById('fil-mes').value;
+var lista=allLicitaciones;
+if(estadosFiltro.size>0)lista=lista.filter(function(l){return estadosFiltro.has(l.estado)});
+if(mes)lista=lista.filter(function(l){return l.createdAt&&l.createdAt.substring(0,7)===mes});
+renderLista(lista);
+}
+
+function poblarFiltroMes(){
+var meses={};
+allLicitaciones.forEach(function(l){if(l.createdAt)meses[l.createdAt.substring(0,7)]=true});
+var sel=document.getElementById('fil-mes');
+sel.innerHTML='<option value="">Todos los meses</option>';
+var labels=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+Object.keys(meses).sort().reverse().forEach(function(k){
+var p=k.split('-');var opt=document.createElement('option');
+opt.value=k;opt.textContent=labels[parseInt(p[1])-1]+' '+p[0];
+sel.appendChild(opt);
+});
+}
+
+function iconoTipo(l){
+if(!l.tipoLicitacion||l.tipoLicitacion==='maquinaria') return '&#9881;';
+return '&#128666;';
+}
+
+function renderLista(lista){
+var ll=document.getElementById('lista-licitaciones');if(!ll)return;
+if(!lista.length){
+ll.innerHTML='<div class="empty">Sin licitaciones<br><a href="/cliente-nueva.html" class="btn btn-orange" style="margin-top:14px;display:inline-flex">+ Nueva licitacion</a></div>';
+return;
+}
+ll.innerHTML=lista.map(function(l){
+var cod=l.codigo?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+l.codigo+'</span>':'';
+var nombre=l.tipoEquipo+(l.marca?' -- '+l.marca:'');
+var tieneMenu=(l.estado==='pendiente_admin'||l.estado==='abierta'||l.estado==='cerrada');
+var menuHtml='';
+if(tieneMenu){
+menuHtml='<div class="pmenu-wrap" onclick="event.stopPropagation()">'
++'<button class="pmenu-btn" onclick="togglePanelMenu(event,\'pm-'+l.id+'\')">&#8943;</button>'
++'<div class="pmenu-dd" id="pm-'+l.id+'">';
+if(l.estado==='pendiente_admin'){
+menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();editarLicitacionId(\''+l.id+'\')">Editar licitacion</button>';
+menuHtml+='<button class="pmenu-item danger" onclick="closePanelMenu();confirmarEliminarId(\''+l.id+'\')">Eliminar licitacion</button>';
+}else{
+menuHtml+='<button class="pmenu-item danger" onclick="closePanelMenu();confirmarAnularId(\''+l.id+'\')">Anular licitacion</button>';
+}
+menuHtml+='</div></div>';
+}
+return '<div class="lic-item" onclick="abrirDetalle(\''+l.id+'\')">'+
+'<div class="lic-code">'+(l.codigo||l.código||'LIC')+'</div>'+
+'<div class="lic-body">'+
+'<div class="lic-title">'+nombre+'</div>'+
+'<div class="lic-meta">'+l.origen+' → '+l.destino+' · '+desde(l.createdAt)+'</div>'+
+'</div>'+
+'<div class="lic-right">'+
+(tieneMenu ? menuHtml : '')+
+bdg(l.estado)+
+'</div>'+
+'</div>';
+}).join('');
+}
+
+async function api(path,method,body){
+method=method||'GET';
+var o={method:method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}};
+if(body)o.body=JSON.stringify(body);
+try{
+var r=await fetch(API+path,o);
+if(r.status===401){localStorage.clear();window.location.replace('/index.html');return null}
+return{ok:r.ok,data:await r.json()};
+}catch(e){return null}
+}
+
+async function descargarArchivo(id,nombre){
+var r=await api('/api/archivos/'+id);
+if(!r||!r.ok){toast('Error al descargar','err');return}
+var link=document.createElement('a');
+link.href='data:'+(r.data.tipo||'application/octet-stream')+';base64,'+r.data.base64;
+link.download=nombre;link.click();
+}
+
+function abrirDetalle(id){
+var l=allLicitaciones.find(function(x){return x.id===id});
+if(!l)return;
+_selectedId=id;_selectedLic=l;
+document.getElementById('det-titulo').textContent=(l.codigo?l.codigo+' -- ':'')+l.tipoEquipo+(l.marca?' -- '+l.marca:'');
+document.getElementById('det-meta').textContent='';
+document.getElementById('det-badge').innerHTML=bdg(l.estado);
+
+// Menu opciones
+var menuWrap=document.getElementById('det-menu-wrap');
+var tieneMenu=(l.estado==='pendiente_admin'||l.estado==='abierta'||l.estado==='cerrada');
+menuWrap.style.display=tieneMenu?'block':'none';
+document.getElementById('det-btn-editar').style.display=l.estado==='pendiente_admin'?'flex':'none';
+document.getElementById('det-btn-eliminar').style.display=l.estado==='pendiente_admin'?'flex':'none';
+document.getElementById('det-btn-anular').style.display=(l.estado==='abierta'||l.estado==='cerrada')?'flex':'none';
+
+renderDetalle(l);
+document.getElementById('modal-det').classList.add('open');
+}
+
+function renderDetalle(l){
+var cotiz=l.cotizaciones||[];
+var plan=localStorage.getItem('tm_plan')||'basico';
+var h='';
+
+// Info basica
+h+='<div style="background:#eef1f8;border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px">';
+h+='<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:0.5px solid rgba(30,45,78,.1);flex-wrap:wrap"><span style="color:#6B7280">Plazo cotizaciones</span><span style="font-weight:500;text-align:right">'+(l.plazo||'24')+'h</span></div>';
+h+='<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:0.5px solid rgba(30,45,78,.1);flex-wrap:wrap"><span style="color:#6B7280">Fecha de carga</span><span style="font-weight:500;text-align:right">'+(l.fechaCarga||'--')+'</span></div>';
+h+='<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:0.5px solid rgba(30,45,78,.1);flex-wrap:wrap"><span style="color:#6B7280">Ruta</span><span style="font-weight:500;text-align:right">'+l.origen+' - '+l.destino+'</span></div>';
+h+='<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;flex-wrap:wrap"><span style="color:#6B7280">Equipo solicitado</span><span style="font-weight:500;text-align:right">'+(l.tipoEquipoRequerido||'--')+'</span></div>';
+h+='</div>';
+
+if(l.archivoId){
+h+='<div style="margin-bottom:14px"><button onclick="descargarArchivo(\''+l.archivoId+'\',\''+(l.archivoNombre||'especificaciones')+'\')" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#EFF6FF;color:#1e2d4e;border:0.5px solid #BFDBFE;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">Descargar especificaciones</button></div>';
+}
+
+// Transportista adjudicado
+if((l.estado==='adjudicada'||l.estado==='completada')&&l.adjudicadaA){
+h+='<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:14px;margin-bottom:14px">';
+h+='<div style="font-size:13px;font-weight:600;color:#14532D;margin-bottom:8px">Transportista adjudicado</div>';
+h+='<div style="font-size:13px;color:#374151;margin-bottom:3px"><strong>'+l.adjudicadaA.transportistaEmpresa+'</strong></div>';
+h+='<div style="font-size:13px;color:#374151;margin-bottom:3px">'+l.adjudicadaA.transportistaNombre+'</div>';
+if(l.adjudicadaA.transportistaTelefono)h+='<div style="font-size:13px;color:#374151;margin-bottom:3px">'+l.adjudicadaA.transportistaTelefono+'</div>';
+h+='<div style="font-size:14px;font-weight:700;color:#1e2d4e;margin-top:6px">'+peso(l.adjudicadaA.precio)+'</div>';
+h+='</div>';
+}
+
+// Estado mensaje
+if(l.estado==='pendiente_admin'){
+h+='<div style="background:#eef1f8;border-radius:8px;padding:11px 14px;font-size:12px;color:#1e40af;margin-bottom:14px">Tu licitacion esta siendo revisada. Sera publicada pronto.</div>';
+}else if(l.estado==='anulada'){
+h+='<div style="background:#FEF2F2;border-radius:8px;padding:11px 14px;font-size:13px;color:#991B1B;margin-bottom:14px">'+(l.motivoAnulacion?'Motivo: '+l.motivoAnulacion:'Licitacion anulada')+'</div>';
+}
+
+// Cotizaciones
+if((l.estado==='abierta'||l.estado==='cerrada')&&cotiz.length===0){
+h+='<div style="background:#eef1f8;border-radius:8px;padding:11px 14px;font-size:12px;color:#1e40af;margin-bottom:14px">'+(l.estado==='cerrada'?'Seleccionando las mejores cotizaciones para ti.':'Los transportistas estan preparando sus cotizaciones.')+'</div>';
+}
+
+if(cotiz.length>0){
+if(l.estado==='cerrada')h+='<div style="background:#F0FDF4;border-radius:8px;padding:11px 14px;font-size:13px;color:#14532D;font-weight:500;margin-bottom:10px">Tienes cotizaciones listas. Revisa y adjudica la que prefieras.</div>';
+h+='<div style="font-size:13px;font-weight:500;color:#374151;margin-bottom:10px">'+cotiz.length+' cotizacion'+(cotiz.length>1?'es':'')+' disponibles</div>';
+var top3=cotiz.slice(0,3);
+top3.forEach(function(c,i){
+var sc=Math.round((c.score||0)*100);
+_cotizMap[i]={id:c.id,empresa:c.transportistaEmpresa||c.transportistaLabel||'Transportista Verificado',precio:c.precio};
+h+='<div class="cotiz-card '+(i===0?'winner':'')+'">';
+if(i===0)h+='<div style="background:#F0FDF4;color:#14532D;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;display:inline-block;margin-bottom:8px">Mejor propuesta</div>';
+h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
+h+='<div><div style="font-size:14px;font-weight:600;color:#111827">'+(c.transportistaEmpresa||c.transportistaLabel||'Transportista Verificado')+'</div>';
+h+='<div style="font-size:12px;color:#FF8904;margin-top:2px">&#9733; '+(c.transportistaRating||5)+' &middot; '+(c.transportistaTransportes||0)+' transportes</div></div>';
+h+='<div style="text-align:right"><div style="font-size:22px;font-weight:700;color:#1e2d4e">'+peso(c.precio)+'</div><div style="font-size:11px;color:#9CA3AF">IVA incluido</div></div></div>';
+if(c.tiempoEntrega)h+='<span style="font-size:11px;background:#f5f7fb;color:#6B7280;padding:2px 8px;border-radius:4px;margin-right:4px;display:inline-block;margin-bottom:8px">'+c.tiempoEntrega+'</span>';
+if(c.archivoId)h+='<button onclick="descargarArchivo(\''+c.archivoId+'\',\''+(c.archivoNombre||'propuesta')+'\')" style="display:block;margin-bottom:8px;padding:5px 12px;background:#EFF6FF;color:#1e2d4e;border:0.5px solid #BFDBFE;border-radius:6px;font-size:11px;font-weight:500;cursor:pointer">Ver propuesta del transportista</button>';
+h+='<div class="score-bar"><div class="score-fill" style="width:'+sc+'%"></div></div>';
+h+='<div style="display:flex;justify-content:space-between;font-size:11px;color:#9CA3AF;margin-top:3px;margin-bottom:10px"><span>Score TransMatch</span><span>'+sc+'%</span></div>';
+h+='<button style="width:100%;justify-content:center;padding:9px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:#FF8904;color:#fff" onclick="adjudicarPorIdx(this)" data-idx="'+i+'" data-precio="'+c.precio+'">Adjudicar esta cotizacion</button>';
+h+='</div>';
+});
+var extras=cotiz.slice(3);
+if(extras.length>0&&!['pro','enterprise'].includes(plan)){
+h+='<div style="padding:14px;border:1.5px dashed #E5E7EB;border-radius:10px;text-align:center;margin-top:4px"><div style="font-size:13px;font-weight:500;color:#374151;margin-bottom:4px">'+extras.length+' cotizacion'+(extras.length>1?'es adicionales':' adicional')+'</div><div style="font-size:12px;color:#9CA3AF">Plan Pro o Enterprise para verlas</div></div>';
+}
+}
+
+// Valoracion
+if(l.estado==='adjudicada'&&!l.valoracion){
+h+='<div style="margin-top:16px;padding-top:16px;border-top:0.5px solid #E5E7EB"><div style="font-size:14px;font-weight:600;color:#111827;margin-bottom:14px">Valora el servicio</div>';
+[['cumplimiento','Cumplimiento'],['seriedad','Seriedad'],['comunicacion','Comunicacion'],['estadoEquipo','Estado del equipo'],['documentacion','Documentacion'],['velocidad','Velocidad de respuesta']].forEach(function(kl){
+h+='<div class="val-row"><span style="font-size:13px;color:#374151">'+kl[1]+'</span><div style="display:flex;gap:4px" id="stars-'+kl[0]+'">';
+[1,2,3,4,5].forEach(function(n){h+='<div class="star" onclick="setStar(\''+kl[0]+'\','+n+')"></div>'});
+h+='</div></div>';
+});
+h+='<button style="width:100%;margin-top:14px;padding:9px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:#16a34a;color:#fff" onclick="enviarValoracion(\''+l.id+'\')">Enviar valoracion</button></div>';
+}
+if(l.estado==='completada'&&l.valoracion){
+h+='<div style="margin-top:12px;padding:12px;background:#F0FDF4;border-radius:8px;font-size:13px;font-weight:500;color:#14532D">Valoracion enviada -- Promedio: '+l.valoracion.promedio+'</div>';
+}
+
+document.getElementById('det-contenido').innerHTML=h;
+valoraciones={};
+}
+
+function adjudicarPorIdx(btn){
+var idx=parseInt(btn.getAttribute('data-idx'));
+var precio=btn.getAttribute('data-precio');
+var entry=_cotizMap[idx]||{};
+abrirAdj(entry.id||('cotiz_'+idx),entry.empresa||'Transportista Verificado',parseFloat(precio)||0);
+}
+
+function abrirAdj(cotizId,empresa,precio){
+pendingCotizId=cotizId;
+document.getElementById('modal-adj-info').innerHTML='<strong>'+empresa+'</strong><br>'+peso(precio);
+document.getElementById('modal-adj').classList.add('open');
+}
+
+function closeModal(){document.getElementById('modal-adj').classList.remove('open');pendingCotizId=null}
+
+function setStar(campo,val){
+valoraciones[campo]=val;
+document.querySelectorAll('#stars-'+campo+' .star').forEach(function(s,i){s.classList.toggle('active',i<val)});
+}
+
+async function enviarValoracion(licitacionId){
+var campos=['cumplimiento','seriedad','comunicacion','estadoEquipo','documentacion','velocidad'];
+for(var i=0;i<campos.length;i++){if(!valoraciones[campos[i]]){toast('Completa todos los criterios','err');return}}
+var prom=Math.round(Object.values(valoraciones).reduce(function(a,b){return a+b},0)/campos.length*10)/10;
+var r=await api('/api/valoraciones','POST',{licitacionId:licitacionId,scores:valoraciones,promedio:prom});
+if(r&&r.ok){toast('Valoracion enviada');document.getElementById('modal-det').classList.remove('open');await cargarLicitaciones();}
+else toast((r&&r.data&&r.data.error)||'Error al enviar','err');
+}
+
+async function confirmarAdj(){
+if(!pendingCotizId||!_selectedId)return;
+var cotizId=pendingCotizId;closeModal();
+var r=await api('/api/licitaciones/'+_selectedId+'/adjudicar','POST',{cotizacionId:cotizId});
+if(r&&r.ok){toast('Adjudicada. Datos del transportista revelados.');document.getElementById('modal-det').classList.remove('open');await cargarLicitaciones();}
+else toast((r&&r.data&&r.data.error)||'Error al adjudicar','err');
+}
+
+function editarLicitacion(){window.location.href='/cliente-nueva.html?editar='+_selectedId;}
+function editarLicitacionId(id){window.location.href='/cliente-nueva.html?editar='+id;}
+
+function confirmarEliminar(){_eliminarId=_selectedId;document.getElementById('modal-eliminar').classList.add('open');}
+function confirmarEliminarId(id){_eliminarId=id;document.getElementById('modal-det').classList.remove('open');document.getElementById('modal-eliminar').classList.add('open');}
+
+async function ejecutarEliminar(){
+if(!_eliminarId)return;
+document.getElementById('modal-eliminar').classList.remove('open');
+var r=await api('/api/licitaciones/'+_eliminarId,'DELETE');
+if(r&&r.ok){toast('Licitacion eliminada');_eliminarId=null;await cargarLicitaciones();}
+else toast((r&&r.data&&r.data.error)||'Error al eliminar','err');
+}
+
+function confirmarAnular(){_anularId=_selectedId;document.getElementById('motivo-anulacion').value='';document.getElementById('modal-anular').classList.add('open');}
+function confirmarAnularId(id){_anularId=id;document.getElementById('modal-det').classList.remove('open');document.getElementById('motivo-anulacion').value='';document.getElementById('modal-anular').classList.add('open');}
+
+async function ejecutarAnular(){
+if(!_anularId)return;
+var motivo=document.getElementById('motivo-anulacion').value.trim();
+if(!motivo){document.getElementById('motivo-anulacion').style.borderColor='#EF4444';return;}
+document.getElementById('modal-anular').classList.remove('open');
+var r=await api('/api/licitaciones/'+_anularId+'/anular','POST',{motivo:motivo});
+if(r&&r.ok){toast('Licitacion anulada');_anularId=null;await cargarLicitaciones();}
+else toast((r&&r.data&&r.data.error)||'Error al anular','err');
+}
+
+async function cargarLicitaciones(){
+var r=await api('/api/licitaciones');
+allLicitaciones=(r&&r.ok)?(r.data.licitaciones||[]):[];
+// Stats
+document.getElementById('st-abiertas').textContent=allLicitaciones.filter(function(l){return l.estado==='abierta'||l.estado==='cerrada'}).length;
+document.getElementById('st-adjudicadas').textContent=allLicitaciones.filter(function(l){return l.estado==='adjudicada'}).length;
+document.getElementById('st-completadas').textContent=allLicitaciones.filter(function(l){return l.estado==='completada'}).length;
+document.getElementById('st-total').textContent=allLicitaciones.length;
+poblarFiltroMes();
+aplicarFiltros();
+}
+
+function togglePanelMenu(e,id){
+e.stopPropagation();
+var dd=document.getElementById(id);
+var isOpen=dd.classList.contains('open');
+closePanelMenu();
+if(!isOpen)dd.classList.add('open');
+}
+function closePanelMenu(){document.querySelectorAll('.pmenu-dd.open').forEach(function(d){d.classList.remove('open')})}
+
+async function initApp(){
+var n=localStorage.getItem('tm_nombre')||'';
+var e=localStorage.getItem('tm_empresa')||'';
+var p=localStorage.getItem('tm_plan')||'basico';
+var nn=document.getElementById('nav-nombre');if(nn)nn.textContent=n;
+var ns=document.getElementById('nav-empresa');if(ns)ns.textContent=e;
+var av=document.getElementById('nav-avatar');if(av&&n)av.textContent=n[0].toUpperCase();
+var un=document.getElementById('um-nombre');if(un)un.textContent=n;
+var ue=document.getElementById('um-empresa');if(ue)ue.textContent=e;
+if(p==='basico'){var nr=document.getElementById('nav-retornos');if(nr)nr.style.display='none';}
+cargarNotificaciones();
+await cargarLicitaciones();
+// Abrir detalle si viene ?id= en la URL
+var _urlId = new URLSearchParams(window.location.search).get('id');
+if(_urlId) setTimeout(function(){ abrirDetalle(_urlId); }, 200);
+}
+
+if(window._authOk)initApp();
+else document.addEventListener('_authReady',initApp);
+
+function closeAllPanels(){
+var m=document.getElementById('user-menu');var p=document.getElementById('notif-panel');
+if(m)m.style.display='none';if(p)p.style.display='none';
+closePanelMenu();
+}
+function toggleUserMenu(e){
+e.stopPropagation();var m=document.getElementById('user-menu');
+var isOpen=m.style.display==='block';closeAllPanels();if(!isOpen)m.style.display='block';
+}
+function toggleNotifs(e){
+if(e)e.stopPropagation();var p=document.getElementById('notif-panel');
+var isOpen=p.style.display==='flex';closeAllPanels();
+if(!isOpen){p.style.display='flex';cargarNotificaciones();}
+}
+document.addEventListener('click',function(){closeAllPanels();});
+function cerrarSesion(){localStorage.clear();window.location.replace('/index.html');}
+
+async function cargarNotificaciones(){
+try{
+var token=localStorage.getItem('tm_token');
+var r=await fetch(API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+var data=r.ok?await r.json():{};
+var notifs=data.notificaciones||[];
+var noLeidas=notifs.filter(function(n){return !n.leida}).length;
+var badge=document.getElementById('notif-count');
+if(badge){badge.style.display=noLeidas>0?'flex':'none';badge.textContent=noLeidas;}
+var list=document.getElementById('notif-list');if(!list)return;
+if(!notifs.length){list.innerHTML='<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Sin notificaciones</div>';return;}
+var iconMap={licitacion_aprobada:'&#9989;',licitacion_rechazada:'&#10060;',cotizaciones_disponibles:'&#127919;',cuenta_aprobada:'&#9989;',adjudicacion:'&#127942;',licitacion_cerrada:'&#128203;'};
+list.innerHTML=notifs.slice(0,20).map(function(n){
+var icono=iconMap[n.tipo]||'&#128276;';
+var bg=!n.leida?'background:#f0f4ff':'';
+var ts=n.createdAt?new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'
++'<div style="font-size:18px;flex-shrink:0;margin-top:1px">'+icono+'</div>'
++'<div style="flex:1;min-width:0"><div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4">'+n.mensaje+'</div><div style="font-size:11px;color:#9CA3AF">'+ts+'</div></div>'
++(!n.leida?'<button onclick="event.stopPropagation();marcarUnaLeida(this.dataset.nid)" data-nid="'+n.id+'" style="background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6">&#10003;</button>':'')
++'</div>';
+}).join('');
+}catch(e){}
+}
+
+async function marcarTodasLeidas(){
+try{
+var token=localStorage.getItem('tm_token');
+var r=await fetch(API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+var data=r.ok?await r.json():{};
+var notifs=(data.notificaciones||[]).filter(function(n){return !n.leida});
+for(var i=0;i<notifs.length;i++){await fetch(API+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:notifs[i].id})});}
+var badge=document.getElementById('notif-count');if(badge)badge.style.display='none';
+await cargarNotificaciones();
+}catch(e){}
+}
+
+async function marcarUnaLeida(id){
+try{
+var token=localStorage.getItem('tm_token');
+await fetch(API+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:id})});
+await cargarNotificaciones();
+}catch(e){}
+}
+</script>
+
+<footer style="background:#1e2d4e;margin-top:40px;padding:28px 24px 20px">
+<div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px">T</div><span style="font-weight:700;color:#fff;font-size:15px">Trans<span style="color:#ff8904">Match</span></span></div><div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div></div>
+<div style="display:flex;gap:32px;flex-wrap:wrap">
+<div><div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div><div style="display:flex;flex-direction:column;gap:6px"><a href="/terminos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Terminos y condiciones</a><a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Politica de privacidad</a><a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Centro de ayuda</a></div></div>
+<div><div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div><div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span><span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span></div></div>
+</div>
+</div>
+<div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B">(c) 2026 TransMatch SpA.</div>
+</footer>
+</body></html>

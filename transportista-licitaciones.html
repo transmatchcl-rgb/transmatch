@@ -1,0 +1,950 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>TransMatch — Licitaciónes disponibles</title><style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#ffffff;display:flex;flex-direction:column;min-height:100vh}
+#auth-guard{position:fixed;inset:0;background:#ffffff;display:flex;align-items:center;justify-content:center;z-index:9999}
+.spinner{width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+#app{display:none}#app.shown{display:flex;flex-direction:column;min-height:100vh}
+.nav{background:#1e2d4e;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.nav-left{display:flex;align-items:center;gap:16px}
+.nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+.nav-icon{background:#FF8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+.nav-name{font-weight:700;color:#fff;font-size:15px}
+.nav-name span{color:#FF8904}
+.nav-links{display:flex;gap:2px}
+.nav-link{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+.nav-link:hover,.nav-link.active{color:#fff;background:rgba(255,255,255,.18)}
+.avatar{width:30px;height:30px;border-radius:50%;background:#FF8904;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;cursor:pointer}
+main{max-width:1100px;margin:0 auto;padding:24px 20px;min-height:calc(100vh - 52px);flex:1}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:700px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.05);padding:14px 16px}
+.stat-card .sc-label{font-size:11px;color:#6B7280;margin-bottom:6px}
+.stat-card .sc-val{font-size:24px;font-weight:700;line-height:1}
+.stat-card .sc-sub{font-size:11px;color:#9CA3AF;margin-top:4px}
+.filter-chip{padding:6px 16px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e8eaf0;background:#fff;color:#6B7280;transition:all .15s;user-select:none;display:inline-flex;align-items:center}
+.filter-chip.active{background:#1e2d4e;color:#fff;border-color:#1e2d4e}
+.licit-card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);margin-bottom:10px;overflow:hidden}
+.licit-hdr{padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;transition:background .12s}
+.licit-hdr:hover{background:#f5f7fb}
+.li-code{font-size:10px;font-weight:700;font-family:monospace;background:#eef1f8;color:#1e2d4e;padding:2px 7px;border-radius:4px;flex-shrink:0;white-space:nowrap}
+.li-body{flex:1;min-width:0}
+.li-name{font-size:13px;font-weight:700;color:#1e2d4e;margin-bottom:3px}
+.li-meta{font-size:12px;color:#6B7280}
+.li-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.li-precio{font-size:13px;font-weight:700;color:#1e2d4e}
+.li-badge{margin-top:0}
+.li-arr{font-size:16px;color:#9CA3AF;transition:transform .2s;flex-shrink:0}
+.licit-body{display:none;border-top:0.5px solid #f3f4f6}
+.licit-body.open{display:block}
+.card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);overflow:hidden}
+.badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px}
+.badge-orange{background:#FFF7ED;color:#92400E}
+.badge-green{background:#F0FDF4;color:#14532D}
+.badge-blue{background:#eef1f8;color:#1e2d4e}
+.badge-gray{background:#f8f9fc;color:#6B7280;border:0.5px solid #E5E7EB}
+.b-pendiente{background:#FFF7ED;color:#92400E}
+.b-enviada{background:#F0FDF4;color:#14532D}
+.btn{padding:9px 18px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.btn:hover{opacity:.88}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:#1d4ed8;color:#fff}
+.btn-orange{background:#FF8904;color:#fff}
+.btn-green{background:#1ED24E;color:#fff}
+.btn-outline{background:transparent;border:0.5px solid #E5E7EB;color:#374151}
+.btn-sm{padding:6px 14px;font-size:12px}
+.btn-full{width:100%;justify-content:center}
+.tag{font-size:11px;background:#ffffff;color:#6B7280;padding:3px 9px;border-radius:4px}
+.form-group{margin-bottom:14px}
+label{display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:5px}
+.required{color:#EF4444;margin-left:2px}
+input,textarea{width:100%;padding:10px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;color:#111827;font-family:inherit}
+input:focus,textarea:focus{outline:none;border-color:#1d4ed8;box-shadow:0 0 0 3px rgba(30,45,78,.08)}
+textarea{resize:vertical;min-height:80px}
+.hint{font-size:11px;color:#9CA3AF;margin-top:4px}
+.check-list{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.check-item{display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;cursor:pointer}
+.check-item input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:#1e2d4e}
+.info-box{background:#eef1f8;border-radius:8px;padding:11px 14px;font-size:12px;color:#1e40af;display:flex;gap:8px;margin:10px 18px}
+.warn-box{background:#FFF7ED;border-radius:8px;padding:11px 14px;font-size:12px;color:#92400E;display:flex;gap:8px;margin:10px 18px}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:24px;max-width:500px;width:100%;margin:auto}
+.modal-title{font-size:16px;font-weight:600;color:#111827;margin-bottom:4px}
+.modal-sub{font-size:13px;color:#6B7280;margin-bottom:18px}
+#toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none}
+.upload-zone{border:2px dashed #E5E7EB;border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;background:#FAFAFA}
+.upload-zone:hover,.upload-zone.drag-over{border-color:#1d4ed8;background:#EFF6FF}
+.upload-zone.has-file{border-color:#1ED24E;background:#F0FDF4;border-style:solid}
+.file-preview{display:none;align-items:center;gap:10px;background:#F0FDF4;border-radius:8px;padding:10px 12px;margin-top:8px}
+.file-preview.show{display:flex}
+.file-remove{margin-left:auto;background:none;border:none;cursor:pointer;color:#EF4444;font-size:18px;padding:0 4px}
+</style><script>
+const API='https://transmatch.transmatchcl.workers.dev';
+(async function(){
+const token=localStorage.getItem('tm_token');
+const role=localStorage.getItem('tm_role');
+if(!token){window.location.replace('/index.html');return}
+if(role==='admin'){window.location.replace('/admin.html');return}
+if(role==='cliente'){window.location.replace('/cliente.html');return}
+try{
+const res=await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+token}});
+if(res.status===401){localStorage.clear();window.location.replace('/index.html');return}
+if(res.ok){const{user}=await res.json();if(user.role!=='transportista'){window.location.replace('/index.html');return}}
+}catch(e){}
+document.getElementById('auth-guard').style.display='none';
+var appEl=document.getElementById('app');appEl.style.display='flex';appEl.style.flexDirection='column';appEl.style.minHeight='100vh';
+cargarNotificaciones();
+initApp();
+})();
+async function cargarNotificaciones(){
+try {
+var token = localStorage.getItem('tm_token');
+var r = await fetch(API + '/api/notificaciones', { headers: {'Authorization':'Bearer '+token} });
+var data = await r.json();
+var notifs = data.notificaciones || [];
+var noLeidas = notifs.filter(function(n){ return !n.leida; }).length;
+var badge = document.getElementById('notif-count');
+if(badge){ badge.textContent = noLeidas > 9 ? '9+' : noLeidas; badge.style.display = noLeidas > 0 ? 'flex' : 'none'; }
+var list = document.getElementById('notif-list');
+if(!list) return;
+if(notifs.length === 0){
+list.innerHTML = '<div style="padding:32px 20px;text-align:center"><div style="font-size:28px;margin-bottom:8px">🔔</div><div style="font-size:14px;font-weight:500;color:#374151;margin-bottom:4px">Sin notificaciones</div><div style="font-size:12px;color:#9CA3AF">Te avisaremos cuando haya novedades</div></div>';
+return;
+}
+var iconMap = { adjudicacion:'🏆', licitacion_aprobada:'✅', licitacion_rechazada:'❌', licitacion_cerrada:'📋', cotizaciones_disponibles:'🎯', nueva_licitacion:'📣', cobro_pendiente:'💰', cobro_pagado:'✅', cuenta_aprobada:'✅' };
+list.innerHTML = notifs.slice(0,20).map(function(n){
+var icono = iconMap[n.tipo] || '🔔';
+var bg = !n.leida ? 'background:#f0f4ff' : '';
+var ts = n.createdAt ? new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'+
+'<div style="font-size:18px;flex-shrink:0;margin-top:1px">'+icono+'</div>'+
+'<div style="flex:1;min-width:0">'+
+'<div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4">'+n.mensaje+'</div>'+
+'<div style="font-size:11px;color:#9CA3AF">'+ts+'</div>'+
+'</div>'+
+(!n.leida
+? '<button onclick="marcarUnaLeida(\'' + n.id + '\')" title="Marcar como leída" style="background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0;margin-top:2px;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">✓</button>'
+: '') +
+'</div>';
+}).join('');
+cargarPrefsConfig();
+} catch(e){}
+}
+function toggleConfigNotif(){
+var cfg      = document.getElementById('notif-config');
+var list     = document.getElementById('notif-list');
+var hMain    = document.getElementById('notif-header-main');
+var hConfig  = document.getElementById('notif-header-config');
+var isOpen   = cfg && cfg.style.display !== 'none';
+if(isOpen){
+if(cfg)     cfg.style.display     = 'none';
+if(list)    list.style.display    = 'block';
+if(hMain)   hMain.style.display   = 'flex';
+if(hConfig) hConfig.style.display = 'none';
+} else {
+if(cfg)     cfg.style.display     = 'block';
+if(list)    list.style.display    = 'none';
+if(hMain)   hMain.style.display   = 'none';
+if(hConfig) hConfig.style.display = 'flex';
+cargarPrefsConfig();
+}
+}
+function cargarPrefsConfig(){
+try {
+var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+var ec = document.getElementById('notif-email-chk');
+var wc = document.getElementById('notif-wa-chk');
+if(ec) ec.checked = prefs.notifEmail !== false;
+if(wc) wc.checked = !!prefs.notifWhatsapp;
+if(wc && wc.checked){ var wi=document.getElementById('wa-input'); if(wi) wi.style.display='block'; }
+var waNum = document.getElementById('wa-numero');
+if(waNum && prefs.whatsapp) waNum.value = prefs.whatsapp;
+['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
+var el = document.getElementById('pref-'+id);
+if(el) el.checked = prefs['pref_'+id] !== false;
+});
+} catch(e){}
+}
+async function guardarPrefsDetalle(){
+try {
+var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
+var el = document.getElementById('pref-'+id);
+if(el) prefs['pref_'+id] = el.checked;
+});
+localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+} catch(e){}
+}
+function toggleWA(){
+var wc = document.getElementById('notif-wa-chk');
+var wi = document.getElementById('wa-input');
+if(wi) wi.style.display = (wc && wc.checked) ? 'block' : 'none';
+guardarPrefs();
+}
+function closeAllPanels(){
+var m=document.getElementById('user-menu');
+var p=document.getElementById('notif-panel');
+if(m) m.style.display='none';
+if(p) p.style.display='none';
+}
+function toggleNotifs(e){
+if(e) e.stopPropagation();
+var panel=document.getElementById('notif-panel');
+if(!panel) return;
+var isOpen=panel.style.display==='flex';
+closeAllPanels();
+if(!isOpen){panel.style.display='flex';cargarNotificaciones();}
+}
+async function marcarUnaLeida(id){
+try {
+await api('/api/notificaciones/leer', 'POST', { id: id });
+await cargarNotificaciones();
+} catch(e){}
+}
+async function marcarTodasLeidas(){
+try {
+const r = await api('/api/notificaciones');
+if(!r || !r.ok) return;
+const notifs = r.data.notificaciones || [];
+const noLeidas = notifs.filter(function(n){ return !n.leida; });
+for(var i=0; i<noLeidas.length; i++){
+await api('/api/notificaciones/leer', 'POST', { id: noLeidas[i].id });
+}
+const badge = document.getElementById('notif-count');
+if(badge) badge.style.display = 'none';
+await cargarNotificaciones();
+} catch(e){}
+}
+</script></head><body><div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px"><div style="background:#FF8904;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:16px">T</div><div style="font-size:20px;font-weight:700;color:#1e2d4e">Trans<span style="color:#FF8904">Match</span></div></div><div class="spinner"></div></div></div><div id="app"><nav class="nav"><div class="nav-left"><a href="/transportista.html" class="nav-logo"><div class="nav-icon">T</div><span class="nav-name">Trans<span>Match</span></span></a><div class="nav-links"><a href="/transportista.html" class="nav-link">Inicio</a><a href="/transportista-retornos.html" class="nav-link">Retornos</a><a href="/transportista-licitaciones.html" class="nav-link active">Licitaciones</a><a href="/transportista-transporte.html" class="nav-link">Transportes</a><a href="/transportista-cobros.html" class="nav-link">Facturacion</a><a href="/transportista-calendario.html" class="nav-link">Calendario</a><a href="/transportista-historial.html" class="nav-link">Historial</a></div></div><div style="display:flex;align-items:center;gap:12px;"><div style="text-align:right"><div style="font-size:13px;color:#fff;font-weight:500" id="nav-nombre">--</div><div style="font-size:11px;color:#93C5FD" id="nav-empresa">--</div></div><div style="display:flex;align-items:center;gap:8px;"><div id="notif-btn" onclick="toggleNotifs(event)" style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;"></span></div><div style="position:relative"><div class="avatar" id="nav-avatar" onclick="toggleUserMenu(event)" style="cursor:pointer">?</div><div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:240px;z-index:999;overflow:hidden"><div style="padding:14px 16px;border-bottom:1px solid #f3f4f6"><div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div><div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div><div id="um-plan" style="font-size:11px;color:#9CA3AF;margin-top:3px"></div></div><a href="/transportista-perfil.html" class="um-item" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+Mi perfil y equipos
+</a><a href="/transportista-historial.html" class="um-item" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4.5"/><polyline points="3 3 3 9 9 9"/></svg>
+Historial
+</a><a href="/ayuda.html" class="um-item" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+Ayuda
+</a><div style="border-top:1px solid #f3f4f6"><button onclick="localStorage.clear();window.location.replace('/index.html')" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#DC2626;background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:background .15s" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background=''"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+Cerrar sesión
+</button></div></div></div></div></div></nav><div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:360px;background:#fff;border-radius:14px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.14);z-index:500;overflow:hidden;max-height:520px;flex-direction:column"><div id="notif-header-main" style="padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-shrink:0"><span style="font-size:14px;font-weight:700;color:#1e2d4e">Notificaciones</span><div style="display:flex;align-items:center;gap:8px"><button onclick="marcarTodasLeidas()" style="font-size:11px;color:#6B7280;background:none;border:none;cursor:pointer;padding:3px 6px;border-radius:5px" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">Marcar leídas</button><button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;color:#6B7280" title="Configurar notificaciones" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></div></div><div id="notif-header-config" style="display:none;padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:none;align-items:center;gap:10px;flex-shrink:0"><button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;color:#1e2d4e;font-size:13px;font-weight:500;padding:4px 8px;border-radius:6px" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+Volver
+</button><span style="font-size:14px;font-weight:700;color:#1e2d4e">Configuración</span></div><div id="notif-config" style="display:none;border-bottom:0.5px solid #E5E7EB;background:#f8f9fc;flex-shrink:0"><div style="padding:14px 16px"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Canal de notificaciones</div><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"><label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:13px;color:#374151">✉️ Por email</span><input type="checkbox" id="notif-email-chk" onchange="guardarPrefs()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label><label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:13px;color:#374151">💬 Por WhatsApp</span><input type="checkbox" id="notif-wa-chk" onchange="toggleWA()" style="width:16px;height:16px;accent-color:#25D366;cursor:pointer"/></label><div id="wa-input" style="display:none;margin-top:4px"><input id="wa-numero" type="tel" placeholder="+56 9 XXXX XXXX" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:7px;font-size:13px"/><button onclick="guardarPrefs()" style="margin-top:6px;width:100%;padding:7px;background:#25D366;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer">Guardar número</button></div></div><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Sobre licitaciones</div><div style="display:flex;flex-direction:column;gap:0"><label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Nueva licitación disponible</span><input type="checkbox" id="pref-nueva-licit" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label><label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Licitación cerrada sin adjudicación</span><input type="checkbox" id="pref-licit-cerrada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label><label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Licitación adjudicada a mí</span><input type="checkbox" id="pref-adjudicada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label></div><div style="font-size:12px;font-weight:600;color:#374151;margin:10px 0;text-transform:uppercase;letter-spacing:.06em">Sobre retornos</div><label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;cursor:pointer"><span style="font-size:13px;color:#374151">Solicitudes en retornos publicados</span><input type="checkbox" id="pref-retornos" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label></div></div><div id="notif-list" style="overflow-y:auto;flex:1"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div></div><main><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><div><div style="font-size:20px;font-weight:600;color:#1e2d4e">Licitaciones</div><div style="font-size:14px;color:#6B7280;margin-top:2px">Solicitudes de transporte abiertas para cotizar</div></div></div><div class="stat-grid"><div class="stat-card"><div class="sc-label">Disponibles</div><div class="sc-val" id="sc-disponibles" style="color:#1e2d4e">—</div><div class="sc-sub">Sin cotizar aún</div></div><div class="stat-card"><div class="sc-label">Cotizaciones enviadas</div><div class="sc-val" id="sc-enviadas" style="color:#1d4ed8">—</div><div class="sc-sub">En espera de respuesta</div></div><div class="stat-card"><div class="sc-label">Adjudicaciones totales</div><div class="sc-val" id="sc-adjudicadas" style="color:#16a34a">—</div><div class="sc-sub">Transportes ganados</div></div><div class="stat-card"><div class="sc-label">Tasa de adjudicación</div><div class="sc-val" id="sc-tasa" style="color:#ff8904">—</div><div class="sc-sub">De cotizaciones ganadas</div></div></div><div class="card" style="overflow:visible"><div style="padding:10px 12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><div class="filter-chip active" onclick="setTabChip('todas',this)">Todas</div><div class="filter-chip" onclick="setTabChip('pendientes',this)">Disponibles</div><div class="filter-chip" onclick="setTabChip('enviadas',this)">Cot. enviada</div><div class="filter-chip" onclick="setTabChip('adjudicadas',this)">Adjudicadas</div><div class="filter-chip" onclick="setTabChip('no-adjudicadas',this)">No adjudicadas</div><div class="filter-chip" onclick="setTabChip('completadas',this)">Completadas</div></div><div style="height:0.5px;background:#E5E7EB;margin:0 12px"></div><div style="padding:10px 16px;border-bottom:0.5px solid #E5E7EB"><input style="width:100%;padding:7px 10px;border:0.5px solid #E5E7EB;border-radius:7px;font-size:12px" placeholder="Buscar por equipo o ruta..." id="buscador" oninput="filtrar()"/></div><div id="lista-licitaciones" style="padding:8px 12px"><div style="padding:32px;text-align:center"><div class="spinner"></div></div></div></div></main></div><div class="modal-bg" id="modal-detalle"><div class="modal" style="max-width:560px"><div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px"><div id="modal-detalle-titulo" style="font-size:16px;font-weight:700;color:#1e2d4e;padding-right:12px"></div><button onclick="cerrarDetalle()" style="background:none;border:none;cursor:pointer;font-size:20px;color:#9CA3AF;flex-shrink:0;line-height:1">✕</button></div><div id="modal-detalle-body"></div></div></div>
+<div class="modal-bg" id="modal-cotizar"><div class="modal"><div class="modal-title">Enviar cotización</div><div class="modal-sub" id="modal-licit-nombre">—</div>
+
+<div id="cotiz-terminos-box" style="background:#f8f9fc;border:1px solid #e8eaf0;border-radius:8px;padding:12px 14px;margin-bottom:14px;transition:border-color .2s,background .2s">
+  <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+    <input type="checkbox" id="cotiz-terminos" style="width:16px;height:16px;flex-shrink:0;accent-color:#1e2d4e;cursor:pointer"/>
+    <span style="font-size:13px;color:#374151">Acepto los términos de la licitación</span>
+  </label>
+</div>
+
+<div style="margin-bottom:14px">
+
+<div style="margin-bottom:14px">
+  <button onclick="descargarPlantilla()" style="display:inline-flex;align-items:center;gap:8px;padding:9px 16px;background:#fff;color:#1e2d4e;border:1.5px solid #1e2d4e;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;width:100%;justify-content:center">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Descargar planilla de cotización (.xlsx)
+  </button>
+  <div style="font-size:11px;color:#9CA3AF;margin-top:5px;text-align:center">Descarga, completa y sube la planilla firmada</div>
+</div>
+
+<div class="form-group"><label>Precio del flete <span class="required">*</span></label><input type="text" id="cotiz-precio" placeholder="Ej: $2.850.000" inputmode="numeric" oninput="formatPrecioInput(this)" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:7px;font-size:13px"/><div class="hint">En pesos chilenos, IVA incluido</div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+  <div class="form-group" style="margin-bottom:0"><label>Fecha de carga <span class="required">*</span></label><input type="date" id="cotiz-carga" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:7px;font-size:13px;color:#374151"/></div>
+  <div class="form-group" style="margin-bottom:0"><label>Fecha de entrega <span class="required">*</span></label><input type="date" id="cotiz-entrega" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:7px;font-size:13px;color:#374151"/></div>
+</div>
+<div class="form-group"><label>Descripción y condiciones</label><textarea id="cotiz-descripción" placeholder="Detalla tu propuesta: tipo de equipo disponible, experiencia con este tipo de carga, garantías, etc."></textarea></div>
+
+<div class="form-group">
+  <label>Planilla de cotización <span class="required">*</span></label>
+  <div class="upload-zone" id="cotiz-upload-zone" onclick="document.getElementById('cotiz-archivo-input').click()" ondragover="event.preventDefault();document.getElementById('cotiz-upload-zone').classList.add('drag-over')" ondragleave="document.getElementById('cotiz-upload-zone').classList.remove('drag-over')" ondrop="handleCotizDrop(event)">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    <div style="font-size:13px;font-weight:500;color:#374151" id="cotiz-upload-label">Sube la planilla completada (.xlsx)</div>
+    <div style="font-size:11px;color:#9CA3AF;margin-top:2px">Solo Excel · Máx 8 MB</div>
+  </div>
+  <input type="file" id="cotiz-archivo-input" accept=".xlsx,.xls" style="display:none" onchange="handleCotizFiles(this.files)"/>
+  <div class="file-preview" id="cotiz-file-preview">
+    <div style="flex:1;min-width:0"><div id="cotiz-file-name" style="font-size:13px;font-weight:500;color:#111827"></div></div>
+    <button class="file-remove" onclick="removeCotizFile(event)">✕</button>
+  </div>
+</div>
+
+<div class="form-group">
+  <label>Cotización en formato propio <span style="font-size:11px;color:#9CA3AF;font-weight:400">(opcional)</span></label>
+  <div class="upload-zone" id="cotiz-pdf-zone" onclick="document.getElementById('cotiz-pdf-input').click()" ondragover="event.preventDefault();document.getElementById('cotiz-pdf-zone').classList.add('drag-over')" ondragleave="document.getElementById('cotiz-pdf-zone').classList.remove('drag-over')" ondrop="handlePdfDrop(event)">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    <div style="font-size:13px;font-weight:500;color:#374151" id="cotiz-pdf-label">Sube tu cotización en tu propio formato</div>
+    <div style="font-size:11px;color:#9CA3AF;margin-top:2px">PDF, Word o imagen · Máx 8 MB</div>
+  </div>
+  <input type="file" id="cotiz-pdf-input" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="display:none" onchange="handlePdfFile(this.files)"/>
+  <div class="file-preview" id="cotiz-pdf-preview" style="display:none">
+    <div style="flex:1;min-width:0"><div id="cotiz-pdf-name" style="font-size:13px;font-weight:500;color:#111827"></div></div>
+    <button class="file-remove" onclick="removePdfFile(event)">✕</button>
+  </div>
+</div>
+
+<div style="display:flex;gap:8px">
+  <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="closeModal()">Cancelar</button>
+  <button class="btn btn-orange" style="flex:1;justify-content:center" id="btn-cotizar" onclick="enviarCotizacion()">Cotizar</button>
+</div>
+</div></div><div id="toast"></div><script>
+const nombre=localStorage.getItem('tm_nombre')||'';
+const empresa=localStorage.getItem('tm_empresa')||'';
+document.getElementById('nav-avatar').textContent=(nombre[0]||'U').toUpperCase();
+var nn=document.getElementById('nav-nombre');if(nn)nn.textContent=nombre;
+var ne=document.getElementById('nav-empresa');if(ne)ne.textContent=empresa;
+let allLicitaciones=[],selectedId=null,misCotizaciones=new Set();
+var userId='';
+var tabActual="todas";
+var historialNoGanadas={};
+var licitacionesGanadas=new Set();
+function toast(msg,type='ok'){
+const el=document.getElementById('toast');
+el.textContent=msg;el.style.background=type==='ok'?'#1ED24E':'#EF4444';
+el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0'},3500);
+}
+function peso(n){return new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n)}
+function desde(iso){
+const d=(Date.now()-new Date(iso).getTime())/60000;
+if(d<60)return`hace ${Math.floor(d)}m`;
+if(d<1440)return`hace ${Math.floor(d/60)}h`;
+return`hace ${Math.floor(d/1440)}d`;
+}
+async function api(path,method='GET',body=null){
+const o={method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}};
+if(body)o.body=JSON.stringify(body);
+try{const r=await fetch(API+path,o);if(r.status===401){localStorage.clear();window.location.replace('/index.html');return null}return{ok:r.ok,data:await r.json()}}
+catch(e){return null}
+}
+async function initApp(){
+await cargarLicitaciones();
+}
+async function cargarLicitaciones(){
+document.getElementById('lista-licitaciones').innerHTML='<div style="padding:32px;text-align:center"><div class="spinner"></div></div>';
+const r=await api('/api/licitaciones');
+allLicitaciones=(r&&r.ok)?(r.data.licitaciones||[]):[];
+const token=localStorage.getItem('tm_token');
+try{
+const me=await api('/api/auth/me');
+if(me&&me.ok)userId=me.data.user.id;
+}catch(e){}
+misCotizaciones=new Set();
+allLicitaciones.forEach(l=>{
+if((l.cotizaciones||[]).find(c=>c.transportistaId===userId))misCotizaciones.add(l.id);
+});
+try {
+const hist = await api('/api/transportista/historial');
+if (hist && hist.ok) {
+(hist.data.licitaciones || []).forEach(function(lh) {
+if (lh.miCotizacion) misCotizaciones.add(lh.id);
+if (lh.gane) licitacionesGanadas.add(lh.id);
+if (lh.miCotizacion && !lh.gane && (lh.estado === 'adjudicada' || lh.estado === 'completada')) {
+historialNoGanadas[lh.id] = lh;
+if (!allLicitaciones.find(function(x){ return x.id === lh.id; })) {
+allLicitaciones.push(lh);
+}
+}
+});
+}
+} catch(e) {}
+filtrar();
+var _urlId=new URLSearchParams(window.location.search).get('id');
+if(_urlId){selectLicitacion(_urlId);}
+}
+function setTabChip(tab,el){
+document.querySelectorAll('.filter-chip').forEach(function(b){b.classList.remove('active');});
+el.classList.add('active');
+setTab(tab);
+}
+function setTab(tab){
+tabActual = tab;
+filtrar();
+}
+function filtrar(){
+const q=(document.getElementById('buscador').value||'').toLowerCase();
+var base=q?allLicitaciones.filter(l=>(l.tipoEquipo+l.origen+l.destino+l.marca).toLowerCase().includes(q)):allLicitaciones;
+const lista=base.filter(function(l){
+if(tabActual==='pendientes')    return !misCotizaciones.has(l.id) && l.estado==='abierta';
+if(tabActual==='enviadas')      return misCotizaciones.has(l.id) && l.estado==='abierta';
+if(tabActual==='adjudicadas')   return licitacionesGanadas.has(l.id);
+if(tabActual==='no-adjudicadas') return misCotizaciones.has(l.id) && !licitacionesGanadas.has(l.id) && (l.estado==='adjudicada'||l.estado==='completada');
+if(tabActual==='completadas')   return licitacionesGanadas.has(l.id) && l.estado==='completada';
+return true;
+});
+if(lista.length===0){
+document.getElementById('lista-licitaciones').innerHTML='<div style="padding:40px;text-align:center;color:#9CA3AF"><div style="font-size:32px;margin-bottom:10px"></div><div style="font-size:14px">Sin licitaciones disponibles</div></div>';
+return;
+}
+document.getElementById('lista-licitaciones').innerHTML=lista.map(function(l){
+var yaCotize = misCotizaciones.has(l.id);
+var badgeHtml = yaCotize
+  ? '<span class="badge badge-green">Cotizacion enviada</span>'
+  : '<span class="badge badge-orange">Disponible</span>';
+var miCotiz = (l.cotizaciones||[]).find(function(c){ return c.transportistaId===userId; });
+var precioMostrar = miCotiz ? miCotiz.precio : (l.presupuesto||null);
+// Detalle inline
+var detalleHtml = renderDetalleInline(l, yaCotize, miCotiz);
+return '<div class="licit-card" id="licit-card-'+l.id+'">'+
+  '<div class="licit-hdr" onclick="toggleLicit(\''+l.id+'\')">' +
+    '<div class="li-code">'+(l.código||l.codigo||'LIC')+'</div>'+
+    '<div class="li-body">'+
+      '<div class="li-name">'+(l.código?'<span style="font-size:10px;font-family:monospace;color:#9CA3AF;margin-right:6px">'+l.código+'</span>':'')+l.tipoEquipo+(l.marca?' — '+l.marca:'')+'</div>'+
+      '<div class="li-meta">'+l.origen+' → '+l.destino+' · '+desde(l.createdAt)+'</div>'+
+    '</div>'+
+    '<div class="li-right">'+
+      (precioMostrar?'<div class="li-precio">'+peso(precioMostrar)+'</div>':'')+
+      '<div class="li-badge">'+badgeHtml+'</div>'+
+    '</div>'+
+    '<span class="li-arr" id="li-arr-'+l.id+'">›</span>'+
+  '</div>'+
+  '<div class="licit-body" id="licit-body-'+l.id+'">'+detalleHtml+'</div>'+
+'</div>';
+}).join('');
+}
+function toggleLicit(id){
+  var body=document.getElementById('licit-body-'+id);
+  var arr=document.getElementById('li-arr-'+id);
+  if(!body) return;
+  var open=body.classList.contains('open');
+  body.classList.toggle('open',!open);
+  if(arr) arr.style.transform=open?'':'rotate(90deg)';
+  if(!open){
+    // Cargar detalle si no se ha cargado aún
+    const l=allLicitaciones.find(x=>x.id===id);
+    if(l&&body.innerHTML.trim()===''){
+      const yaCotize=misCotizaciones.has(l.id);
+      const miCotiz=(l.cotizaciones||[]).find(function(c){return c.transportistaId===userId;});
+      body.innerHTML=renderDetalleInline(l,yaCotize,miCotiz);
+    }
+  }
+}
+function selectLicitacion(id){
+  selectedId=id;
+  const card=document.getElementById('licit-card-'+id);
+  const body=document.getElementById('licit-body-'+id);
+  const arr=document.getElementById('li-arr-'+id);
+  if(body&&!body.classList.contains('open')){
+    body.classList.add('open');
+    if(arr) arr.style.transform='rotate(90deg)';
+    const l=allLicitaciones.find(x=>x.id===id);
+    if(l&&body.innerHTML.trim()===''){
+      const yaCotize=misCotizaciones.has(l.id);
+      const miCotiz=(l.cotizaciones||[]).find(function(c){return c.transportistaId===userId;});
+      body.innerHTML=renderDetalleInline(l,yaCotize,miCotiz);
+    }
+  }
+  if(card) card.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function cerrarDetalle(){var m=document.getElementById('modal-detalle');if(m)m.classList.remove('open');}
+function renderDetalleInline(l,yaCotize,miCotiz){
+if(yaCotize===undefined) yaCotize=misCotizaciones.has(l.id);
+if(miCotiz===undefined) miCotiz=(l.cotizaciones||[]).find(function(c){return c.transportistaId===userId;});
+let h='';
+h+=`<div style="padding-bottom:12px;margin-bottom:12px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:13px;color:#6B7280;margin-bottom:8px">${l.origen} → ${l.destino}</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+${yaCotize?'<span class="badge badge-green">Cotizacion enviada</span>':'<span class="badge badge-orange">Abierta</span>'}
+${l.fechaCarga?`<span class="tag">Carga: ${new Date(l.fechaCarga+'T12:00:00').toLocaleDateString('es-CL')}</span>`:''}
+${l.fechaEntrega?`<span class="tag">Entrega: ${new Date(l.fechaEntrega+'T12:00:00').toLocaleDateString('es-CL')}</span>`:''}
+${l.peso?`<span class="tag">${l.peso} ton</span>`:''}
+${l.dimensiones?`<span class="tag">${l.dimensiones}</span>`:''}
+${l.plazo?`<span class="tag">Plazo: ${l.plazo}h</span>`:''}
+${l.presupuesto?`<span class="tag">Máx. ${peso(l.presupuesto)}</span>`:''}
+</div></div>`;
+if(l.descripción){
+h+=`<div style="padding:14px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Condiciones especiales</div><div style="font-size:13px;color:#6B7280;line-height:1.6">${l.descripción}</div></div>`;
+}
+if(l.archivoId){
+h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Descargar especificaciones técnicas</div><button onclick="descargarArchivo('${l.archivoId}','${l.archivoNombre||'especificaciónes'}')"
+style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+${l.archivoNombre||'especificaciónes técnicas'}
+</button><div style="font-size:11px;color:#9CA3AF;margin-top:5px">Revisa el documento antes de cotizar</div></div>`;
+}
+if(l.tipoEquipoRequerido && l.tipoEquipoRequerido !== 'cualquiera'){
+h+=`<div style="padding:10px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:2px">Equipo requerido</div><div style="font-size:13px;color:#374151">${l.tipoEquipoRequerido}</div></div>`;
+}
+if(yaCotize){
+const histData = historialNoGanadas[l.id];
+const esGanador = licitacionesGanadas.has(l.id);
+const estaAdjudicada = l.estado === 'adjudicada' || l.estado === 'completada';
+if(esGanador && estaAdjudicada){
+h+=`<div style="padding:16px 18px"><div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:16px;text-align:center"><div style="font-size:15px;font-weight:700;color:#14532D;margin-bottom:4px">Ganaste esta licitación</div><div style="font-size:12px;color:#6B7280">El cliente te seleccionó. Coordina los detalles directamente.</div></div></div>`;
+} else if(!esGanador && estaAdjudicada && histData && histData.miCotizacion){
+const mc = histData.miCotizacion;
+const total = histData.totalCotizaciones || '?';
+const precio = mc.precio;
+const entrega = mc.tiempoEntrega || '—';
+h+=`<div style="padding:16px 18px">
+<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:16px;margin-bottom:12px;text-align:center">
+<div style="font-size:20px;margin-bottom:4px"></div>
+<div style="font-size:14px;font-weight:600;color:#991B1B;margin-bottom:2px">Esta licitación fue adjudicada a otro transportista</div>
+<div style="font-size:12px;color:#6B7280">Revisa tu posición para mejorar en próximas licitaciones</div>
+</div>
+<div style="background:#f8f9fc;border-radius:10px;padding:14px;border:0.5px solid #E5E7EB">
+<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em">Tu posición vs. la competencia</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;justify-content:space-between">
+<div style="font-size:13px;color:#374151;display:flex;align-items:center;gap:6px">
+Precio
+</div>
+<div style="text-align:right">
+<span style="font-size:15px;font-weight:700;color:#1e2d4e" id="pos-precio-${l.id}">—</span>
+<span style="font-size:11px;color:#9CA3AF"> de ${typeof total === 'number' ? total : '?'}</span>
+<div style="font-size:11px;color:#6B7280">${new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(precio)}</div>
+</div>
+</div>
+<div style="height:1px;background:#E5E7EB"></div>
+<div style="display:flex;align-items:center;justify-content:space-between">
+<div style="font-size:13px;color:#374151;display:flex;align-items:center;gap:6px">
+Tiempo de entrega
+</div>
+<div style="text-align:right">
+<span style="font-size:15px;font-weight:700;color:#1e2d4e" id="pos-entrega-${l.id}">—</span>
+<span style="font-size:11px;color:#9CA3AF"> de ${typeof total === 'number' ? total : '?'}</span>
+<div style="font-size:11px;color:#6B7280">${entrega}</div>
+</div>
+</div>
+<div style="height:1px;background:#E5E7EB"></div>
+<div style="display:flex;align-items:center;justify-content:space-between">
+<div style="font-size:13px;color:#374151;display:flex;align-items:center;gap:6px">
+Valoración histórica
+</div>
+<div style="text-align:right">
+<span style="font-size:15px;font-weight:700;color:#1e2d4e" id="pos-valoracion-${l.id}">—</span>
+<span style="font-size:11px;color:#9CA3AF"> de ${typeof total === 'number' ? total : '?'}</span>
+</div>
+</div>
+</div>
+</div>
+<div style="background:#EFF6FF;border-radius:8px;padding:10px 14px;margin-top:10px;font-size:12px;color:#1e40af">
+Las posiciones 1/N son las mejores (más barato, más rápido, mejor valorado)
+</div>
+</div>`;
+setTimeout(function(){ cargarPosiciones('${l.id}'); }, 100);
+} else if(estaAdjudicada){
+h+=`<div style="padding:16px 18px"><div style="background:#F3F4F6;border-radius:8px;padding:14px;text-align:center"><div style="font-size:14px;color:#6B7280">Esta licitación ya fue adjudicada</div></div></div>`;
+} else {
+const mc = (l.cotizaciones||[]).find(function(c){ return c.transportistaId===userId; });
+const precioFmt = mc ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(mc.precio) : '—';
+const entregaFmt = mc ? (mc.tiempoEntrega||'—') : '—';
+h+=`<div style="padding:16px 18px">
+<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:14px;margin-bottom:12px">
+<div style="font-size:13px;font-weight:600;color:#14532D;margin-bottom:10px">Tu cotización enviada</div>
+<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:0.5px solid #dcfce7">
+<span style="color:#6B7280">Precio</span>
+<span style="font-weight:700;color:#1e2d4e">${precioFmt}</span>
+</div>
+<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0">
+<span style="color:#6B7280">Fecha de entrega</span>
+<span style="font-weight:500;color:#1e2d4e">${entregaFmt}</span>
+</div>
+</div>
+<div style="display:flex;gap:8px">
+${mc && mc.archivoId ? `<button class="btn btn-outline btn-sm" onclick="verArchivoCotiz('${mc.archivoId}','${mc.archivoNombre||'propuesta'}')">Ver propuesta</button>` : ''}
+${l.estado === 'abierta' ? `
+<button class="btn btn-outline btn-sm" onclick="abrirEditarCotiz('${l.id}','${(l.tipoEquipo+' '+(l.marca||'')).replace(/'/g,"\'")}')">Editar</button>
+<button class="btn btn-sm" style="background:#FEF2F2;color:#991B1B;border:1px solid #FECACA" onclick="eliminarCotizacion('${l.id}')">Eliminar</button>
+` : ''}
+</div>
+</div>`;
+}
+} else {
+const cierre=new Date(l.cierreAt);
+const horasRestantes=Math.max(0,Math.round((cierre-Date.now())/3600000));
+h+=`<div style="padding:16px 18px">
+${horasRestantes<6?`<div class="warn-box" style="margin:0 0 12px"><span>!</span><span>Cierra en ${horasRestantes} horas. ¡Date prisa!</span></div>`:''}
+<button class="btn btn-orange btn-full" onclick="abrirModal('${l.id}','${(l.tipoEquipo+' '+(l.marca||'')).replace(/'/g,"\\'")}')">
+Cotizar
+</button><div style="font-size:11px;color:#9CA3AF;text-align:center;margin-top:8px">Responde rápido — la velocidad afecta tu score</div></div>`;
+}
+document.getElementById('modal-detalle-titulo').innerHTML = (l.código?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 6px;border-radius:4px;margin-right:6px">'+l.código+'</span>':'')+l.tipoEquipo+(l.marca?' — '+l.marca:'');
+// Título de la licitación en el header de la card (ya visible), solo retornamos el body
+return '<div style="padding:16px 18px">'+'<div style="margin-bottom:12px"><span style="font-size:13px;font-weight:700;color:#1e2d4e">'+(l.código?'<span style="font-size:11px;font-family:monospace;color:#9CA3AF;background:#f5f7fb;padding:1px 6px;border-radius:4px;margin-right:6px">'+l.código+'</span>':'')+l.tipoEquipo+(l.marca?' — '+l.marca:'')+'</span><br><span style="font-size:12px;color:#6B7280">'+l.origen+' → '+l.destino+'</span></div>'+h+'</div>';
+}
+async function descargarArchivo(id,nombre){
+try{
+const r=await api('/api/archivos/'+id);
+if(!r||!r.ok){toast('Error al descargar','err');return}
+const{base64,tipo}=r.data;
+const link=document.createElement('a');
+link.href='data:'+(tipo||'application/octet-stream')+';base64,'+base64;
+link.download=nombre;link.click();
+}catch(e){toast('Error al descargar','err')}
+}
+var cotizArchivosData=[];
+function handleCotizDrop(e) {
+e.preventDefault();
+document.getElementById('cotiz-upload-zone').classList.remove('drag-over');
+if(e.dataTransfer.files.length>0) handleCotizFiles(e.dataTransfer.files);
+}
+function handleCotizFile(file) {
+if(!file) return;
+const permitidos = ['xlsx','xls','pdf','docx','doc'];
+const ext = file.name.split('.').pop().toLowerCase();
+if(!permitidos.includes(ext)) { toast('Usa Excel, PDF o Word', 'err'); return; }
+if(file.size > 8*1024*1024) { toast('El archivo supera 8 MB', 'err'); return; }
+const reader = new FileReader();
+reader.onload = e => {
+cotizArchivosData=[{nombre:file.name,tipo:file.type,base64:e.target.result.split(',')[1]}];
+const iconMap = { xlsx:'', xls:'', pdf:'', docx:'', doc:'' };
+document.getElementById('cotiz-file-icon').textContent = iconMap[ext] || '';
+document.getElementById('cotiz-file-name').textContent = file.name;
+document.getElementById('cotiz-file-size').textContent = formatBytes(file.size);
+document.getElementById('cotiz-file-preview').classList.add('show');
+document.getElementById('cotiz-upload-zone').classList.add('has-file');
+document.getElementById('cotiz-upload-label').textContent = '¡Archivo listo!';
+};
+reader.readAsDataURL(file);
+}
+function removeCotizFile(e) {
+e.stopPropagation();
+cotizArchivosData = [];
+document.getElementById('cotiz-archivo-input').value = '';
+document.getElementById('cotiz-file-preview').classList.remove('show');
+document.getElementById('cotiz-upload-zone').classList.remove('has-file');
+document.getElementById('cotiz-upload-label').textContent = 'Adjunta tu propuesta detallada';
+var termEl=document.getElementById('cotiz-terminos'); if(termEl) termEl.checked=false;
+}
+function formatBytes(b) {
+if(b < 1024) return b+' B';
+if(b < 1024*1024) return (b/1024).toFixed(1)+' KB';
+return (b/(1024*1024)).toFixed(1)+' MB';
+}
+function abrirModal(id,nombre){
+  selectedId=id;
+  const l=allLicitaciones.find(x=>x.id===id);
+  if(l){ abrirModalCotizar(l); }
+  else {
+    document.getElementById('modal-licit-nombre').textContent=nombre;
+    document.getElementById('modal-cotizar').classList.add('open');
+  }
+}
+// Variables para archivos
+var cotizPdfData = null;
+
+function closeModal(){document.getElementById('modal-cotizar').classList.remove('open');}
+
+function descargarPlantilla(){
+  var b64='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';
+  var arr=new Uint8Array(atob(b64).split('').map(function(c){return c.charCodeAt(0);}));
+  var blob=new Blob([arr],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  a.download='Plantilla_Cotizacion_TransMatch.xlsx';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function handlePdfDrop(event){
+  event.preventDefault();
+  document.getElementById('cotiz-pdf-zone').classList.remove('drag-over');
+  var files = event.dataTransfer.files;
+  if(files && files.length > 0) handlePdfFile(files);
+}
+
+function handlePdfFile(files){
+  if(!files || files.length === 0) return;
+  var file = files[0];
+  var allowed = ['.pdf','.doc','.docx','.jpg','.jpeg','.png'];
+  var ext = '.'+file.name.split('.').pop().toLowerCase();
+  if(!allowed.includes(ext)){ toast('Formato no permitido. Usa PDF, Word o imagen','err'); return; }
+  if(file.size > 8*1024*1024){ toast('El PDF supera 8 MB','err'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e){
+    cotizPdfData = { nombre: file.name, tipo: file.type, base64: e.target.result.split(',')[1] };
+    document.getElementById('cotiz-pdf-zone').classList.add('has-file');
+    document.getElementById('cotiz-pdf-label').textContent = '✓ ' + file.name;
+    var prev = document.getElementById('cotiz-pdf-preview');
+    document.getElementById('cotiz-pdf-name').textContent = file.name;
+    prev.style.display = 'flex';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removePdfFile(event){
+  event.stopPropagation();
+  cotizPdfData = null;
+  document.getElementById('cotiz-pdf-zone').classList.remove('has-file');
+  document.getElementById('cotiz-pdf-label').textContent = 'Sube tu cotización en PDF (formato propio)';
+  document.getElementById('cotiz-pdf-preview').style.display = 'none';
+  document.getElementById('cotiz-pdf-name').textContent = '';
+  document.getElementById('cotiz-pdf-input').value = '';
+}
+
+function poblarInfoModal(l){
+  // Fecha hoy
+  var hoy = new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'});
+  var el = document.getElementById('info-fecha'); if(el) el.textContent = hoy;
+  // ID licitación
+  var elId = document.getElementById('info-idlicit'); if(elId) elId.textContent = l.codigo||l.id||'—';
+  // Ruta
+  var elRuta = document.getElementById('info-ruta'); if(elRuta) elRuta.textContent = (l.origen||'')+(l.destino?' → '+l.destino:'');
+}
+
+function abrirModalCotizar(l){
+  document.getElementById('modal-licit-nombre').textContent = l.tipoEquipo+(l.marca?' — '+l.marca:'');
+  document.getElementById('cotiz-precio').value='';
+  document.getElementById('cotiz-carga').value='';
+  document.getElementById('cotiz-entrega').value='';
+  document.getElementById('cotiz-descripción').value='';
+  cotizArchivosData=[];cotizPdfData=null;
+  var uz=document.getElementById('cotiz-upload-zone'); if(uz) uz.classList.remove('has-file');
+  var pz=document.getElementById('cotiz-pdf-zone'); if(pz) pz.classList.remove('has-file');
+  var ul=document.getElementById('cotiz-upload-label'); if(ul) ul.textContent='Sube la planilla completada (.xlsx)';
+  var pl=document.getElementById('cotiz-pdf-label'); if(pl) pl.textContent='Sube tu cotización en PDF (formato propio)';
+  var fp=document.getElementById('cotiz-file-preview'); if(fp) fp.style.display='none';
+  var pp=document.getElementById('cotiz-pdf-preview'); if(pp) pp.style.display='none';
+  var tc=document.getElementById('cotiz-terminos'); if(tc) tc.checked=false;
+  document.getElementById('btn-cotizar').textContent='Cotizar';
+  document.getElementById('btn-cotizar').onclick=enviarCotizacion;
+  poblarInfoModal(l);
+  document.getElementById('modal-cotizar').classList.add('open');
+  setTimeout(()=>document.getElementById('cotiz-precio').focus(),100);
+}
+async function enviarCotizacion(){
+const termEl=document.getElementById('cotiz-terminos');
+const termBox=document.getElementById('cotiz-terminos-box');
+if(!termEl||!termEl.checked){
+  toast('Debes aceptar los términos de la licitación','err');
+  if(termBox){ termBox.style.borderColor='#EF4444'; termBox.style.background='#FEF2F2'; }
+  if(termEl) termEl.onchange=function(){ if(this.checked && termBox){ termBox.style.borderColor='#e8eaf0'; termBox.style.background='#f8f9fc'; } };
+  return;
+}
+const precio=getPrecioValue(document.getElementById('cotiz-precio'));
+const carga=document.getElementById('cotiz-carga').value.trim();
+const entrega=document.getElementById('cotiz-entrega').value.trim();
+if(!precio||precio<=0){toast('Ingresa el precio del flete','err');return}
+if(!carga){toast('Ingresa la fecha de carga','err');return}
+if(!entrega){toast('Ingresa la fecha de entrega','err');return}
+if(!cotizArchivosData||cotizArchivosData.length===0){
+toast('Debes adjuntar la planilla de cotización (.xlsx)','err');
+document.getElementById('cotiz-upload-zone').style.borderColor='#EF4444';
+setTimeout(function(){document.getElementById('cotiz-upload-zone').style.borderColor='';},2000);
+return;
+}
+const incluye=[];
+const btn=document.getElementById('btn-cotizar');
+btn.disabled=true;btn.innerHTML='Subiendo archivo...';
+let archivoId=null,archivoNombre=null;
+try{
+for(var ai=0;ai<cotizArchivosData.length;ai++){
+const resA=await fetch(API+'/api/archivos/upload',{
+method:'POST',
+headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+body:JSON.stringify({nombre:cotizArchivosData[ai].nombre,tipo:cotizArchivosData[ai].tipo,base64:cotizArchivosData[ai].base64})
+});
+const dataA=await resA.json();
+if(!resA.ok){toast(dataA.error||'Error al subir archivo','err');btn.disabled=false;btn.innerHTML='Cotizar';return;}
+if(ai===0){archivoId=dataA.id;archivoNombre=cotizArchivosData[ai].nombre;}
+}
+}catch(e){toast('Error al subir archivo','err');btn.disabled=false;btn.innerHTML='Cotizar';return;}
+btn.innerHTML='Enviando cotizacion...';
+let archivoPdfId=null,archivoPdfNombre=null;
+if(cotizPdfData){
+  try{
+    const resP=await fetch(API+'/api/archivos/upload',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({nombre:cotizPdfData.nombre,tipo:cotizPdfData.tipo,base64:cotizPdfData.base64})});
+    const dataP=await resP.json();
+    if(resP.ok){archivoPdfId=dataP.id;archivoPdfNombre=cotizPdfData.nombre;}
+  }catch(e){}
+}
+const r=await api('/api/cotizaciones','POST',{
+licitacionId:selectedId,
+precio:parseFloat(precio),
+tiempoEntrega:entrega,
+fechaCargaISO:carga,
+fechaEntregaISO:entrega,
+descripción:document.getElementById('cotiz-descripción').value.trim(),
+incluye,
+archivoId,
+archivoNombre:cotizArchivosData[0]?cotizArchivosData[0].nombre:null,
+archivoPdfId,
+archivoPdfNombre,
+});
+btn.disabled=false;btn.innerHTML='Cotizar';
+if(r&&r.ok){
+closeModal();
+toast(' Cotizacion enviada. El cliente la verá en las próximas horas.');
+await cargarLicitaciones();
+const l=allLicitaciones.find(x=>x.id===selectedId);
+if(l)renderPanel(l);
+} else {
+toast((r?.data?.error)||'Error al enviar','err');
+}
+}
+function toggleUserMenu(e){
+e.stopPropagation();
+var m=document.getElementById('user-menu');
+var isOpen=m&&m.style.display==='block';
+closeAllPanels();
+if(!isOpen&&m) m.style.display='block';
+}
+document.addEventListener('click',function(){ closeAllPanels(); });
+async function cargarPosiciones(licitacionId) {
+try {
+const notifRes = await api('/api/notificaciones');
+if (!notifRes || !notifRes.ok) return;
+const notifs = notifRes.data.notificaciones || [];
+const notif = notifs.find(function(n){
+return n.tipo === 'licitacion_cerrada' && n.datos && n.datos.licitacionId === licitacionId;
+});
+if (!notif || !notif.datos || !notif.datos.feedback) return;
+const fb = notif.datos.feedback;
+var elP = document.getElementById('pos-precio-' + licitacionId);
+var elE = document.getElementById('pos-entrega-' + licitacionId);
+var elV = document.getElementById('pos-valoracion-' + licitacionId);
+if (elP) elP.textContent = fb.posPrecio + '/' + fb.total;
+if (elE) elE.textContent = fb.posEntrega + '/' + fb.total;
+if (elV) elV.textContent = fb.posValoracion + '/' + fb.total;
+[
+[elP, fb.posPrecio],
+[elE, fb.posEntrega],
+[elV, fb.posValoracion],
+].forEach(function(pair) {
+var el = pair[0]; var pos = pair[1]; var tot = fb.total;
+if (!el) return;
+if (pos === 1) el.style.color = '#14532D';         
+else if (pos <= Math.ceil(tot/3)) el.style.color = '#92400E'; 
+else el.style.color = '#991B1B';                   
+});
+} catch(e) {}
+}
+async function verArchivoCotiz(archivoId, nombre){
+try{
+const r=await api('/api/archivos/'+archivoId);
+if(!r||!r.ok){toast('Error al descargar','err');return}
+const {base64,tipo}=r.data;
+const link=document.createElement('a');
+link.href='data:'+(tipo||'application/octet-stream')+';base64,'+base64;
+link.download=nombre; link.click();
+}catch(e){toast('Error al descargar','err')}
+}
+function abrirEditarCotiz(licitacionId, nombre){
+selectedId = licitacionId;
+const mc = (allLicitaciones.find(x=>x.id===licitacionId)?.cotizaciones||[]).find(c=>c.transportistaId===userId);
+document.getElementById('modal-licit-nombre').textContent = nombre;
+const precioEl = document.getElementById('cotiz-precio');
+if(mc && mc.precio){ precioEl.dataset.raw=String(mc.precio); precioEl.value='$'+mc.precio.toLocaleString('es-CL'); }
+else { precioEl.value=''; }
+const entregaEl = document.getElementById('cotiz-entrega');
+if(mc && mc.tiempoEntrega) entregaEl.value = mc.tiempoEntrega;
+else entregaEl.value = '';
+const descEl = document.getElementById('cotiz-descripción');
+if(descEl) descEl.value = mc ? (mc.descripcion||'') : '';
+const termEl = document.getElementById('cotiz-terminos');
+if(termEl) termEl.checked = false;
+cotizArchivosData=[];
+document.getElementById('cotiz-archivo-input').value='';
+// Mostrar archivo existente si hay uno
+if(mc && mc.archivoNombre){
+  document.getElementById('cotiz-upload-zone').classList.add('has-file');
+  document.getElementById('cotiz-upload-label').textContent='Archivo actual: '+mc.archivoNombre;
+  var nameEl=document.getElementById('cotiz-file-name');
+  if(nameEl) nameEl.textContent=mc.archivoNombre;
+  document.getElementById('cotiz-file-preview').classList.add('show');
+} else {
+  document.getElementById('cotiz-file-preview').classList.remove('show');
+  document.getElementById('cotiz-upload-zone').classList.remove('has-file');
+  document.getElementById('cotiz-upload-label').textContent='Adjunta tu propuesta actualizada (opcional)';
+}
+document.getElementById('btn-cotizar').textContent = 'Guardar cambios';
+document.getElementById('btn-cotizar').onclick = function(){ editarCotizacion(licitacionId, mc ? mc.id : null); };
+document.getElementById('modal-cotizar').classList.add('open');
+}
+async function editarCotizacion(licitacionId, cotizacionId){
+const precio = getPrecioValue(document.getElementById('cotiz-precio'));
+const entrega = document.getElementById('cotiz-entrega').value.trim();
+if(!precio||precio<=0){toast('Ingresa el precio','err');return;}
+if(!entrega){toast('Ingresa la fecha de entrega','err');return;}
+var _termEl=document.getElementById('cotiz-terminos'); if(_termEl&&!_termEl.checked){toast('Debes aceptar los términos de la licitación','err');return;}
+const btn = document.getElementById('btn-cotizar');
+btn.disabled=true; btn.textContent='Guardando...';
+let archivoId=null, archivoNombre=null;
+if(cotizArchivosData&&cotizArchivosData.length>0){
+try{
+const resA=await fetch(API+'/api/archivos/upload',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({nombre:cotizArchivosData[0].nombre,tipo:cotizArchivosData[0].tipo,base64:cotizArchivosData[0].base64})});
+const dataA=await resA.json();
+if(resA.ok){archivoId=dataA.id;archivoNombre=cotizArchivosData[0].nombre;}
+}catch(e){}
+}
+const r=await api('/api/cotizaciones/editar','POST',{
+licitacionId, cotizacionId,
+precio, tiempoEntrega:entrega,
+descripcion:document.getElementById('cotiz-descripción').value.trim(),
+...(archivoId?{archivoId,archivoNombre}:{})
+});
+btn.disabled=false; btn.textContent='Guardar cambios';
+if(r&&r.ok){
+closeModal();
+toast('Cotización actualizada correctamente');
+await cargarLicitaciones();
+const l=allLicitaciones.find(x=>x.id===selectedId);
+if(l) renderPanel(l);
+} else { toast((r?.data?.error)||'Error al editar','err'); }
+}
+async function eliminarCotizacion(licitacionId){
+if(!confirm('¿Eliminar tu cotización? Esta acción no se puede deshacer.')) return;
+const r=await api('/api/cotizaciones/eliminar','POST',{licitacionId});
+if(r&&r.ok){
+toast('Cotización eliminada');
+await cargarLicitaciones();
+const l=allLicitaciones.find(x=>x.id===selectedId);
+if(l) renderPanel(l);
+} else { toast((r?.data?.error)||'Error al eliminar','err'); }
+}
+
+function formatPrecioInput(el){
+  var raw=el.value.replace(/[^0-9]/g,'');
+  el.dataset.raw=raw;
+  el.value=raw===''?'':'$'+parseInt(raw,10).toLocaleString('es-CL');
+}
+function getPrecioValue(el){
+  return parseInt(el.dataset.raw||el.value.replace(/[^0-9]/g,''),10)||0;
+}
+
+var cotizArchivosData=[];
+
+function handleCotizFiles(files){
+  cotizArchivosData=[];
+  var permitidos=['xlsx','xls','pdf','docx','doc'];
+  var lista=Array.from(files).slice(0,2);
+  for(var i=0;i<lista.length;i++){
+    var file=lista[i];
+    var ext=file.name.split('.').pop().toLowerCase();
+    if(!permitidos.includes(ext)){toast('Usa Excel, PDF o Word','err');return;}
+    if(file.size>8*1024*1024){toast('Cada archivo máx 8 MB','err');return;}
+    (function(f){
+      var reader=new FileReader();
+      reader.onload=function(e){
+        cotizArchivosData.push({nombre:f.name,tipo:f.type,tamaño:f.size,base64:e.target.result.split(',')[1]});
+        actualizarPreviewArchivos();
+      };
+      reader.readAsDataURL(f);
+    })(file);
+  }
+}
+
+function actualizarPreviewArchivos(){
+  var iconMap={xlsx:'📊',xls:'📊',pdf:'📄',docx:'📝',doc:'📝'};
+  var preview=document.getElementById('cotiz-file-preview');
+  var zone=document.getElementById('cotiz-upload-zone');
+  var label=document.getElementById('cotiz-upload-label');
+  if(cotizArchivosData.length===0){
+    if(preview) preview.classList.remove('show');
+    if(zone) zone.classList.remove('has-file');
+    if(label) label.textContent='Adjunta tu propuesta detallada';
+    return;
+  }
+  if(zone) zone.classList.add('has-file');
+  if(label) label.textContent=cotizArchivosData.length+' archivo'+(cotizArchivosData.length>1?'s':'')+' seleccionado'+(cotizArchivosData.length>1?'s':'');
+  if(preview){
+    var nombres=cotizArchivosData.map(function(a){
+      var ext=a.nombre.split('.').pop().toLowerCase();
+      return (iconMap[ext]||'📎')+' '+a.nombre;
+    }).join('<br>');
+    var nameEl=document.getElementById('cotiz-file-name');
+    if(nameEl) nameEl.innerHTML=nombres;
+    preview.classList.add('show');
+  }
+}
+
+</script>
+<footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px"><div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap"><div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px">T</div><span style="font-weight:700;color:#fff;font-size:15px">Trans<span style="color:#ff8904">Match</span></span></div><div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div></div><div style="display:flex;gap:32px;flex-wrap:wrap"><div><div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div><div style="display:flex;flex-direction:column;gap:6px"><a href="/términos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Términos y condiciones</a><a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Política de privacidad</a><a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Centro de ayuda</a></div></div><div><div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div><div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:#CBD5E1"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c3a0acadb7a2a0b7ac83b7b1a2adb0aea2b7a0abeda0af">[email&#160;protected]</a></span><span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span></div></div></div></div><div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px"><span>© 2026 TransMatch SpA. </span></div></footer></body></html>

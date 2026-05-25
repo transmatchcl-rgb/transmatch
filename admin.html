@@ -1,0 +1,775 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>TransMatch — Panel Admin</title><style>
+ *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#ffffff; ;display:flex;flex-direction:column;min-height:100vh}
+ .nav{background:#1e2d4e;padding:0 24px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+ .nav-left{display:flex;align-items:center;gap:16px}
+ .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+ .nav-icon{background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+ .nav-name{font-weight:700;color:#fff;font-size:15px}
+ .nav-name span{color:#ff8904}
+ .nav-badge{background:rgba(255,255,255,.15);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px}
+ .nav-tabs{display:flex;gap:2px}
+ .nav-tab{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+ .nav-tab:hover,.nav-tab.active{color:#fff;background:rgba(255,255,255,.12)}
+ .logout-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer}
+ .logout-btn { background: rgba(255,255,255,.15); border: none; color: #fff; padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+ .logout-btn:hover { background: rgba(255,255,255,.25); }
+
+ main { max-width: 1200px; margin: 0 auto; padding: 24px 20px; ;flex:1}
+
+ .section { display: none; }
+ .section.active { display: block; }
+
+ .page-hdr { margin-bottom: 20px; }
+ .page-title { font-size: 20px; font-weight: 600; color: #111827; }
+ .page-sub { font-size: 14px; color: #6B7280; margin-top: 3px; }
+
+ .grid-4 { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; margin-bottom: 20px; }
+ .grid-2 { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+ .grid-3 { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin-bottom: 16px; }
+ @media(max-width:900px) { .grid-4{grid-template-columns:repeat(2,1fr);} .grid-2{grid-template-columns:1fr;} .grid-3{grid-template-columns:1fr 1fr;} }
+ @media(max-width:600px) { .grid-4{grid-template-columns:1fr 1fr;} .grid-3{grid-template-columns:1fr;} }
+
+ .stat { background: #fff; border-radius: 10px; border: 0.5px solid #E5E7EB; padding: 16px 18px; }
+ .stat-label { font-size: 12px; color: #6B7280; margin-bottom: 6px; }
+ .stat-val { font-size: 30px; font-weight: 700; }
+ .stat-sub { font-size: 12px; color: #9CA3AF; margin-top: 3px; }
+
+ .card { background: #fff; border-radius: 10px; border: 0.5px solid #E5E7EB; margin-bottom: 16px; overflow: hidden; }
+ .card-hdr { padding: 14px 18px; border-bottom: 0.5px solid #E5E7EB; display: flex; align-items: center; justify-content: space-between; }
+ .card-title { font-size: 15px; font-weight: 500; color: #111827; }
+ .card-body { padding: 16px 18px; }
+
+ .row { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 0.5px solid #F3F4F6; }
+ .row:last-child { border-bottom: none; }
+ .row:hover { background: #FAFAFA; }
+ .row-body { flex: 1; min-width: 0; }
+ .row-name { font-size: 13px; font-weight: 500; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+ .row-meta { font-size: 11px; color: #6B7280; margin-top: 2px; }
+ .row-right { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
+
+ .btn { padding: 8px 16px; border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: opacity .15s; display: inline-flex; align-items: center; gap: 6px; }
+ .btn:hover { opacity: .85; }
+ .btn-primary { background: #1e2d4e; color: #fff; }
+ .btn-green { background: #1ED24E; color: #fff; }
+ .btn-red { background: #EF4444; color: #fff; }
+ .btn-orange { background: #FF8904; color: #fff; }
+ .btn-outline { background: transparent; border: 0.5px solid #E5E7EB; color: #374151; }
+ .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+ .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 9px; border-radius: 999px; }
+ .badge-blue { background: #EFF6FF; color: #1e40af; }
+ .badge-green { background: #F0FDF4; color: #14532D; }
+ .badge-orange { background: #FFF7ED; color: #92400E; }
+ .badge-red { background: #FEF2F2; color: #991B1B; }
+ .badge-gray { background:#f8f9fc; color: #6B7280; border: 0.5px solid #E5E7EB; }
+
+ .alert-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+ .dot-red { background: #EF4444; }
+ .dot-orange { background: #FF8904; }
+ .dot-blue { background: #1e2d4e; }
+
+ .avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: #fff; flex-shrink: 0; }
+
+ .input { width: 100%; padding: 9px 12px; border: 1px solid #E5E7EB; border-radius: 7px; font-size: 13px; color: #111827; }
+ .input:focus { outline: none; border-color: #1e2d4e; }
+ .select { padding: 8px 12px; border: 0.5px solid #E5E7EB; border-radius: 7px; font-size: 13px; color: #374151; background: #fff; cursor: pointer; }
+
+ .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+
+ .empty { text-align: center; padding: 48px 20px; color: #9CA3AF; }
+ .empty-icon { font-size: 36px; margin-bottom: 10px; }
+ .spinner-wrap { text-align: center; padding: 40px; color: #9CA3AF; }
+ .spinner { display: inline-block; width: 28px; height: 28px; border: 2px solid #E5E7EB; border-top-color: #1e2d4e; border-radius: 50%; animation: spin .7s linear infinite; }
+ @keyframes spin { to { transform: rotate(360deg); } }
+
+ .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+ .modal-bg.open { display: flex; }
+ .modal { background: #fff; border-radius: 14px; padding: 24px; max-width: 420px; width: 100%; }
+ .modal-title { font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 6px; }
+ .modal-sub { font-size: 13px; color: #6B7280; margin-bottom: 18px; }
+ .modal-btns { display: flex; gap: 8px; margin-top: 18px; }
+ .modal-btns .btn { flex: 1; justify-content: center; }
+
+
+ /* Auth guard — bloquea contenido hasta verificar */
+ #auth-guard {
+ position: fixed; inset: 0; background: #1e2d4e;
+ display: flex; align-items: center; justify-content: center;
+ z-index: 9999;
+ }
+  #app { display: none; }
+ .guard-spinner { width:36px;height:36px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:gspin .7s linear infinite; }
+ @keyframes gspin { to { transform:rotate(360deg); } }
+ .cotiz-row-admin { border:0.5px solid #E5E7EB;border-radius:8px;padding:12px 14px;margin-bottom:8px; }
+ .cotiz-row-admin.top { border-color:#1ED24E;background:#FAFFFE; }
+ .score-mini { height:4px;background:#E5E7EB;border-radius:2px;margin-top:6px; }
+ .score-mini-fill { height:100%;border-radius:2px;background:#1e2d4e; }
+ #toast { position: fixed; bottom: 24px; right: 24px; z-index: 999; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #fff; opacity: 0; transition: opacity .3s; pointer-events: none; max-width: 320px; }
+</style></head><body><div id="auth-guard"><div style="text-align:center;"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px;"><div style="background:#FF8904;border-radius:7px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:15px;">T</div><span style="font-weight:700;color:#fff;font-size:18px;">Trans<span style="color:#FF8904;">Match</span></span></div><div class="guard-spinner" style="margin:0 auto;"></div></div></div><div id="app" style="display:none"><!-- NAV -->  <nav class="nav">
+    <div class="nav-left">
+      <a href="/admin.html" class="nav-logo">
+        <div class="nav-icon">T</div>
+        <span class="nav-name">Trans<span>Match</span></span>
+        <span class="nav-badge">ADMIN</span>
+      </a>
+            <div class="nav-tabs">
+        <a href="/admin.html" class="nav-tab active">Dashboard</a>
+        <a href="/admin-licitaciones.html" class="nav-tab">Licitaciones</a>
+        <a href="/admin-cotizaciones.html" class="nav-tab">Cotizaciones</a>
+        <a href="/admin-transportes.html" class="nav-tab">Transportes</a>
+        <a href="/admin-clientes.html" class="nav-tab">Clientes</a>
+        <a href="/admin-transportistas.html" class="nav-tab">Transportistas</a>
+        <a href="/admin-cobros.html" class="nav-tab">Facturación</a>
+        <a href="/admin-reportes.html" class="nav-tab">Reportes</a>
+      </div>
+      </div>
+    <button class="logout-btn" onclick="localStorage.clear();window.location.replace('/admin-login.html')">Cerrar sesion</button>
+  </nav><main><!-- ── DASHBOARD ─────────────────────────────────────── --><div id="s-dashboard" class="section active"><div class="page-hdr"><div><div class="page-title">Dashboard</div><div class="page-sub" id="dash-fecha">Cargando...</div></div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="exportarTodo()">Exportar CSV</button></div></div><div class="grid-4" id="dash-stats"><div class="stat"><div class="stat-label">Cargando...</div></div></div><div class="grid-2"><div><!-- Alertas rápidas --><div class="card"><div class="card-hdr"><div class="card-title">Alertas activas</div><span id="alertas-count" class="badge badge-red">0</span></div><div id="dash-alertas"><div class="spinner-wrap"><div class="spinner"></div></div></div></div><!-- Licitaciones pendientes de aprobación --><div class="card"><div class="card-hdr"><div class="card-title">Licitaciones pendientes de aprobación</div><button class="btn btn-outline btn-sm" onclick="showSection('licitaciones',document.querySelectorAll('.nav-tab')[1])">Ver todas →</button></div><div id="dash-pendientes"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><div><!-- Licitaciónes activas --><div class="card"><div class="card-hdr"><div class="card-title">Licitaciones abiertas</div><button class="btn btn-outline btn-sm" onclick="showSection('licitaciones',document.querySelectorAll('.nav-tab')[1])">Ver todas →</button></div><div id="dash-licitaciones"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div></div></div><!-- ── LICITACIONES ───────────────────────────────────── --><div id="s-licitaciones" class="section"><div class="page-hdr"><div class="page-title">Licitaciones</div><div class="page-sub">Todas las licitaciones en tiempo real</div></div><div class="filter-bar"><select class="select" id="fil-estado" onchange="filtrarLicitaciones()"><option value="">Todos los estados</option><option value="pendiente_admin">Pendientes aprobación</option><option value="abierta">Abiertas (cotizando)</option><option value="cerrada">En revisión cliente</option><option value="adjudicada">Adjudicadas</option><option value="completada">Completadas</option><option value="rechazada">Rechazadas</option></select><input class="input" style="max-width:280px;" placeholder=" Buscar empresa, equipo o ruta..." id="fil-buscar" oninput="filtrarLicitaciones()"/><button class="btn btn-outline btn-sm" onclick="exportarLicitaciones()">CSV</button></div><div class="card"><div id="lista-licitaciones"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── TRANSPORTISTAS ─────────────────────────────────── --><div id="s-transportistas" class="section"><div class="page-hdr"><div class="page-title">Transportistas</div><div class="page-sub">Gestión de proveedores de la red</div></div><div class="filter-bar"><select class="select" id="fil-t-estado" onchange="filtrarTransportistas()"><option value="">Todos</option><option value="pendiente">Pendientes</option><option value="activo">Activos</option><option value="suspendido">Suspendidos</option><option value="rechazado">Rechazados</option></select><input class="input" style="max-width:240px;" placeholder="Buscar nombre o empresa..." id="fil-t-buscar" oninput="filtrarTransportistas()"/></div><div class="card"><div id="lista-transportistas"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── CLIENTES ───────────────────────────────────────── --><div id="s-clientes" class="section"><div class="page-hdr"><div class="page-title">Clientes</div><div class="page-sub">Empresas registradas en la plataforma</div></div><div class="filter-bar"><select class="select" id="fil-c-plan" onchange="filtrarClientes()"><option value="">Todos los planes</option><option value="básico">Básico</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select><input class="input" style="max-width:240px;" placeholder="Buscar empresa o email..." id="fil-c-buscar" oninput="filtrarClientes()"/></div><div class="card"><div id="lista-clientes"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── ALERTAS ────────────────────────────────────────── --><div id="s-alertas" class="section"><div class="page-hdr"><div class="page-title">Alertas y posibles fraudes</div><div class="page-sub">Licitaciónes adjudicadas sin confirmar por más de 7 días</div></div><div class="card"><div id="lista-alertas"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── RETORNOS ─────────────────────────────────────── -->
+<div id="s-retornos" class="section">
+  <div class="page-hdr">
+    <div class="page-title">Retornos disponibles</div>
+    <div class="page-sub">Transportistas con disponibilidad de regreso</div>
+  </div>
+  <div class="filter-bar">
+    <input class="input" style="max-width:280px;" placeholder="Buscar origen, destino o empresa..." id="fil-ret-buscar" oninput="filtrarRetornos()"/>
+  </div>
+  <div class="card"><div id="lista-retornos"><div class="spinner-wrap"><div class="spinner"></div></div></div></div>
+</div>
+</main><!-- Modal detalle licitación --><div class="modal-bg" id="modal-licit"><div class="modal" style="max-width:640px;max-height:90vh;overflow-y:auto;"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;"><div><div class="modal-title" id="ml-titulo">—</div><div id="ml-badge" style="margin-top:6px;"></div></div><button onclick="closeModalLicit()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6B7280;padding:0;">×</button></div><!-- Info principal --><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;" id="ml-info"></div><!-- Descripción --><div id="ml-descripcion-wrap" style="display:none;margin-bottom:14px;"><div style="font-size:11px;font-weight:700;color:#FF8904;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">Condiciones especiales</div><div id="ml-descripcion" style="font-size:13px;color:#374151;background:#f8f9fc;border-radius:8px;padding:12px;line-height:1.6;"></div></div><!-- Archivo --><div id="ml-archivo-wrap" style="display:none;margin-bottom:16px;"><div style="font-size:11px;font-weight:700;color:#FF8904;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">Archivo adjunto</div><button id="ml-archivo-btn" onclick="" style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;background:#EFF6FF;color:#1e2d4e;border:0.5px solid #BFDBFE;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;">
+ Descargar específicaciónes técnicas
+ </button></div><!-- Cotizaciones recibidas --><div id="ml-cotizaciones-wrap" style="display:none;margin-bottom:16px;"><div style="font-size:11px;font-weight:700;color:#FF8904;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Cotizaciones recibidas (ordenadas por score)</div><div id="ml-cotizaciones"></div></div><!-- Motivo rechazo si fue rechazada --><div id="ml-rechazo-wrap" style="display:none;margin-bottom:14px;"><div style="background:#FEF2F2;border-radius:8px;padding:12px;font-size:13px;color:#991B1B;" id="ml-rechazo"></div></div><!-- Botones de acción --><div id="ml-acciones" style="display:flex;gap:10px;padding-top:14px;border-top:0.5px solid #E5E7EB;flex-wrap:wrap;"></div></div></div><!-- Modal gestiónar usuario --><div class="modal-bg" id="modal-usuario"><div class="modal"><div class="modal-title" id="modal-titulo">Gestiónar usuario</div><div class="modal-sub" id="modal-info"></div><div style="margin-bottom:10px;"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px;">Plan</label><select class="select" id="modal-plan" style="width:100%;"><option value="básico">Básico</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select></div><div style="margin-bottom:10px;"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px;">Estado</label><select class="select" id="modal-estado" style="width:100%;"><option value="activo">Activo</option><option value="suspendido">Suspendido</option></select></div><div id="modal-oc-wrap" style="margin-bottom:10px;display:none"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:8px">Ordenes de Compra</label><label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#374151"><input type="checkbox" id="modal-oc" style="width:15px;height:15px;accent-color:#1e2d4e"> El cliente genera sus propias OC</label></div><div class="modal-btns"><button class="btn btn-outline" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" onclick="guardarUsuario()">Guardar cambios</button></div></div></div><!-- Toast --><div id="toast"></div></div><script>
+ const API = 'https://transmatch.transmatchcl.workers.dev';
+ let allLicitaciones = [];
+ let allTransportistas = [];
+ let allClientes = [];
+ let modalEmail = '';
+
+ // ── Auth ────────────────────────────────────────────────
+ function logout() {
+ localStorage.clear();
+ window.location.href = '/admin-login.html';
+ }
+
+ async function checkAuth() {
+ const token = localStorage.getItem('tm_token');
+ const role = localStorage.getItem('tm_role');
+ if (!token || role !== 'admin') {
+ window.location.href = '/admin-login.html';
+ return false;
+ }
+ // Verificar token con el Worker
+ try {
+ const res = await fetch(API + '/api/auth/me', {
+ headers: { 'Authorization': 'Bearer ' + token }
+ });
+ if (!res.ok) { window.location.href = '/admin-login.html'; return false; }
+ const data = await res.json();
+ if (data.user.role !== 'admin') { window.location.href = '/admin-login.html'; return false; }
+ } catch(e) {
+ // Error de red — continuar con sesión local
+ }
+ return true;
+ }
+
+ // ── Navigation ──────────────────────────────────────────
+ function showSection(id, tabEl) {
+ document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+ document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+ document.getElementById('s-' + id).classList.add('active');
+ if (tabEl && tabEl.classList) tabEl.classList.add('active');
+ loadSection(id);
+ }
+
+ // ── Toast ───────────────────────────────────────────────
+ function toast(msg, type='ok') {
+ const el = document.getElementById('toast');
+ el.textContent = msg;
+ el.style.background = type==='ok' ? '#1ED24E' : type==='err' ? '#EF4444' : '#FF8904';
+ el.style.opacity = '1';
+ clearTimeout(el._t);
+ el._t = setTimeout(() => { el.style.opacity = '0'; }, 3500);
+ }
+
+ // ── API call ────────────────────────────────────────────
+ async function api(path, method='GET', body=null) {
+ const opts = { method, headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+localStorage.getItem('tm_token') } };
+ if (body) opts.body = JSON.stringify(body);
+ const res = await fetch(API + path, opts);
+ return { ok: res.ok, data: await res.json() };
+ }
+
+ // ── Badges ──────────────────────────────────────────────
+ function estadoBadge(e) {
+ const m = {
+ pendiente_admin: ['badge-red',' Pendiente revisión'],
+ abierta: ['badge-orange','Abierta'],
+ cerrada: ['badge-blue','En revisión cliente'],
+ adjudicada: ['badge-blue','Adjudicada'],
+ completada: ['badge-green','Completada'],
+ rechazada: ['badge-red','Rechazada'],
+ pendiente: ['badge-orange','Pendiente'],
+ activo: ['badge-green','Activo'],
+ suspendido: ['badge-red','Suspendido'],
+ };
+ const [cls, label] = m[e] || ['badge-gray', e];
+ return `<span class="badge ${cls}">${label}</span>`;
+ }
+
+ function planBadge(p) {
+ const m = { basico:['badge-gray','Básico'], pro:['badge-blue','Pro'], enterprise:['badge-orange','Enterprise'] };
+ const [cls, label] = m[p] || ['badge-gray', p||'-'];
+ return `<span class="badge ${cls}">${label}</span>`;
+ }
+
+ function avatar(nombre, color='#1e2d4e') {
+ const ini = (nombre||'?')[0].toUpperCase();
+ return `<div class="avatar" style="background:${color};">${ini}</div>`;
+ }
+
+ function formatPeso(n) {
+ if (!n) return '-';
+ return new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n);
+ }
+
+ function timeAgo(iso) {
+ const d = (Date.now()-new Date(iso).getTime())/60000;
+ if (d<60) return `hace ${Math.floor(d)}m`;
+ if (d<1440) return `hace ${Math.floor(d/60)}h`;
+ return `hace ${Math.floor(d/1440)}d`;
+ }
+
+ // ── Load sections ────────────────────────────────────────
+
+ async function loadSection(id) {
+ if (id==='dashboard') loadDashboard();
+ if (id==='licitaciones') loadLicitaciones();
+ if (id==='transportistas') loadTransportistas();
+ if (id==='clientes') loadClientes();
+ if (id==='alertas') loadAlertas();
+ }
+
+ // DASHBOARD
+ async function loadDashboard() {
+ document.getElementById('dash-fecha').textContent = 'Actualizado: ' + new Date().toLocaleString('es-CL');
+
+ const empty = (id, msg) => { document.getElementById(id).innerHTML = `<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:14px;">${msg}</div>`; };
+
+ // Stats
+ try {
+ const s = await api('/api/admin/stats');
+ if (s && s.ok) {
+ const d = s.data;
+ document.getElementById('dash-stats').innerHTML = `
+ <div class="stat"><div class="stat-label">Pendientes aprobación</div><div class="stat-val" style="color:#EF4444;">${d.pendiente_admin||0}</div></div><div class="stat"><div class="stat-label">Abiertas (cotizando)</div><div class="stat-val" style="color:#FF8904;">${d.abiertas||0}</div></div><div class="stat"><div class="stat-label">En revisión cliente</div><div class="stat-val" style="color:#1e2d4e;">${(d.cerradas||0)+(d.adjudicadas||0)}</div></div><div class="stat"><div class="stat-label">Ingresos (fees 4%)</div><div class="stat-val" style="color:#111827;font-size:20px;">${formatPeso((d.comisionPendiente||0)+(d.comisionFacturada||0))}</div></div>
+ `;
+ const alertas = d.alertas || [];
+ document.getElementById('alertas-count').textContent = alertas.length;
+ document.getElementById('dash-alertas').innerHTML = alertas.length === 0
+ ? `<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:14px;">Sin alertas activas </div>`
+ : alertas.map(a => `
+ <div class="row"><div class="alert-dot dot-red"></div><div class="row-body"><div class="row-name">Posible bypass — sin confirmar hace ${a.dias} días</div><div class="row-meta">ID: ${a.licitacionId}</div></div></div>`).join('');
+ } else {
+ document.getElementById('dash-stats').innerHTML = `
+ <div class="stat"><div class="stat-label">Total licitaciones</div><div class="stat-val" style="color:#1e2d4e;">0</div></div><div class="stat"><div class="stat-label">Abiertas ahora</div><div class="stat-val" style="color:#FF8904;">0</div></div><div class="stat"><div class="stat-label">Completadas</div><div class="stat-val" style="color:#1ED24E;">0</div></div><div class="stat"><div class="stat-label">Ingresos (fees 4%)</div><div class="stat-val" style="font-size:20px;">$0</div></div>
+ `;
+ empty('dash-alertas', 'Sin alertas ');
+ }
+ } catch(e) {
+ document.getElementById('dash-stats').innerHTML = `
+ <div class="stat"><div class="stat-label">Total licitaciones</div><div class="stat-val">0</div></div><div class="stat"><div class="stat-label">Abiertas ahora</div><div class="stat-val">0</div></div><div class="stat"><div class="stat-label">Completadas</div><div class="stat-val">0</div></div><div class="stat"><div class="stat-label">Ingresos</div><div class="stat-val">$0</div></div>
+ `;
+ empty('dash-alertas', 'Sin alertas ');
+ }
+
+ // Licitaciones pendientes de aprobacion
+ try {
+   const lp = await api('/api/licitaciones');
+   if (lp && lp.ok) {
+     const pendL = (lp.data.licitaciones||[]).filter(x => x.estado === 'pendiente_admin');
+     document.getElementById('dash-pendientes').innerHTML = pendL.length === 0
+       ? '<div style="padding:16px;text-align:center;color:#9CA3AF;font-size:14px;">Sin licitaciones pendientes</div>'
+       : pendL.slice(0,5).map(function(l) {
+           return '<div class="row" style="cursor:pointer" onclick="verDetalleLicit(\''+l.id+'\')">'+
+           '<div class="row-body">'+
+           '<div class="row-name">'+(l.código?'<span style="font-size:10px;font-family:monospace;color:#9CA3AF;margin-right:4px">'+l.código+'</span>':'')+l.tipoEquipo+(l.marca?' - '+l.marca:'')+'</div>'+
+           '<div class="row-meta">'+(l.clienteEmpresa||'--')+' · '+l.origen+' -> '+l.destino+'</div>'+
+           '</div>'+
+           '<div style="display:flex;gap:6px;flex-shrink:0">'+
+           '<button class="btn btn-green btn-sm" onclick="event.stopPropagation();aprobarLicitacion(\''+l.id+'\')">Aprobar</button>'+
+           '<button class="btn btn-red btn-sm" onclick="event.stopPropagation();rechazarLicitacionModal(\''+l.id+'\')">Rechazar</button>'+
+           '</div></div>';
+         }).join('');
+   } else {
+     empty('dash-pendientes', 'Sin licitaciones pendientes');
+   }
+ } catch(e) {
+   empty('dash-pendientes', 'Sin licitaciones pendientes');
+ }
+
+ // Licitaciones abiertas
+ try {
+ const l = await api('/api/licitaciones');
+ if (l && l.ok) {
+ const abiertas = (l.data.licitaciones||[]).filter(x=>x.estado==='abierta');
+ document.getElementById('dash-licitaciones').innerHTML = abiertas.length === 0
+ ? `<div style="padding:16px;text-align:center;color:#9CA3AF;font-size:14px;">Sin licitaciones abiertas </div>`
+ : abiertas.slice(0,5).map(l => `
+ <div class="row" style="cursor:pointer" onclick="verDetalleLicit('${l.id}')"><div style="font-size:14px;color:#9CA3AF">▶</div><div class="row-body"><div class="row-name">${l.código?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+ l.código +'</span>':''}${l.tipoEquipo}${l.marca?' — '+l.marca:''}</div><div class="row-meta">${l.clienteEmpresa||'-'} · ${l.origen} → ${l.destino} · ${(l.cotizaciones||[]).length} cotizaciones</div></div>
+ ${estadoBadge(l.estado)}
+ </div>`).join('');
+ } else {
+ empty('dash-licitaciones', 'Sin licitaciones abiertas ');
+ }
+ } catch(e) {
+ empty('dash-licitaciones', 'Sin licitaciones abiertas ');
+ }
+ }
+
+ // LICITACIONES
+ async function loadLicitaciones() {
+ document.getElementById('lista-licitaciones').innerHTML = `<div class="spinner-wrap"><div class="spinner"></div></div>`;
+ try {
+ const r = await api('/api/licitaciones');
+ allLicitaciones = (r && r.ok) ? (r.data.licitaciones || []) : [];
+ } catch(e) { allLicitaciones = []; }
+ filtrarLicitaciones();
+ }
+
+ function filtrarLicitaciones() {
+ const estado = document.getElementById('fil-estado').value;
+ const buscar = (document.getElementById('fil-buscar').value||'').toLowerCase();
+ let lista = allLicitaciones;
+ if (estado) lista = lista.filter(l => l.estado === estado);
+ if (buscar) lista = lista.filter(l => (l.clienteEmpresa+l.tipoEquipo+l.origen+l.destino).toLowerCase().includes(buscar));
+
+ document.getElementById('lista-licitaciones').innerHTML = lista.length === 0
+ ? `<div class="empty"><div class="empty-icon"></div>Sin licitaciones</div>`
+ : lista.map(l => {
+ const nCotiz = (l.cotizaciones||[]).length;
+ const acciones = [];
+ if (l.estado==='pendiente_admin') {
+ acciones.push(`<button class="btn btn-green btn-sm" onclick="aprobarLicitacion('${l.id}')"> Aprobar</button>`);
+ acciones.push(`<button class="btn btn-red btn-sm" onclick="rechazarLicitacion('${l.id}')"> Rechazar</button>`);
+ }
+ if (l.estado==='abierta' && nCotiz>0) {
+ acciones.push(`<button class="btn btn-primary btn-sm" onclick="cerrarYEnviar('${l.id}',${nCotiz})">Enviar TOP 3 →</button>`);
+ }
+ return `<div class="row" style="cursor:pointer;" onclick="verDetalleLicit('${l.id}')"><div style="font-size:20px;flex-shrink:0;"></div><div class="row-body"><div class="row-name">${l.código?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+ l.código +'</span>':''}${l.tipoEquipo}${l.marca?' — '+l.marca:''}</div><div class="row-meta">${l.clienteEmpresa||'-'} · ${l.origen}→${l.destino} · ${timeAgo(l.createdAt)}</div>
+ ${acciones.length>0?`<div style="display:flex;gap:6px;margin-top:6px" onclick="event.stopPropagation()">${acciones.join('')}</div>`:''}
+ </div><div class="row-right" style="display:flex;align-items:center;gap:8px;">
+ ${nCotiz>0?`<span style="font-size:12px;color:#FF8904;font-weight:500;">${nCotiz} cotiz.</span>`:''}
+ ${estadoBadge(l.estado)}
+ <span style="font-size:18px;color:#9CA3AF;">›</span></div></div>`;
+ }).join('');
+ }
+
+ // TRANSPORTISTAS
+ async function loadTransportistas() {
+ document.getElementById('lista-transportistas').innerHTML = `<div class="spinner-wrap"><div class="spinner"></div></div>`;
+ try {
+ const r = await api('/api/admin/usuarios');
+ allTransportistas = (r && r.ok) ? (r.data.usuarios||[]).filter(u => u.role === 'transportista') : [];
+ } catch(e) { allTransportistas = []; }
+ filtrarTransportistas();
+ }
+
+ function filtrarTransportistas() {
+ const estado = document.getElementById('fil-t-estado').value;
+ const buscar = (document.getElementById('fil-t-buscar').value||'').toLowerCase();
+ let lista = allTransportistas;
+ if (estado) lista = lista.filter(t => t.estado === estado);
+ if (buscar) lista = lista.filter(t => (t.nombre+t.empresa+t.email).toLowerCase().includes(buscar));
+
+ document.getElementById('lista-transportistas').innerHTML = lista.length === 0
+ ? `<div class="empty"><div class="empty-icon"></div>Sin transportistas</div>`
+ : lista.map(t => `
+ <div class="row">
+ ${avatar(t.nombre, t.estado==='pendiente' ? '#FF8904' : '#1e2d4e')}
+ <div class="row-body"><div class="row-name">${t.nombre}</div><div class="row-meta">${t.empresa} · ${t.email} · ${t.rating||5} · ${t.totalTransportes||0} transportes</div></div><div class="row-right">
+ ${estadoBadge(t.estado)}
+ ${t.estado==='pendiente' ? `
+ <button class="btn btn-green btn-sm" onclick="aprobar('${t.email}','aprobar')">Aprobar</button><button class="btn btn-red btn-sm" onclick="aprobar('${t.email}','rechazar')">Rechazar</button>
+ ` : `
+ <button class="btn btn-outline btn-sm" onclick="openModal('${t.email}','${t.nombre}',null,'${t.estado}')">Gestionar</button>
+ `}
+ </div></div>`).join('');
+ }
+
+ // CLIENTES
+ async function loadClientes() {
+ document.getElementById('lista-clientes').innerHTML = `<div class="spinner-wrap"><div class="spinner"></div></div>`;
+ try {
+ const r = await api('/api/admin/usuarios');
+ allClientes = (r && r.ok) ? (r.data.usuarios||[]).filter(u => u.role === 'cliente') : [];
+ } catch(e) { allClientes = []; }
+ filtrarClientes();
+ }
+
+ function filtrarClientes() {
+ const plan = document.getElementById('fil-c-plan').value;
+ const buscar = (document.getElementById('fil-c-buscar').value||'').toLowerCase();
+ let lista = allClientes;
+ if (plan) lista = lista.filter(c => c.plan === plan);
+ if (buscar) lista = lista.filter(c => (c.empresa+c.email+c.nombre).toLowerCase().includes(buscar));
+
+ document.getElementById('lista-clientes').innerHTML = lista.length === 0
+ ? `<div class="empty"><div class="empty-icon"></div>Sin clientes</div>`
+ : lista.map(c => `
+ <div class="row">
+ ${avatar(c.empresa||c.nombre, '#1ED24E')}
+ <div class="row-body"><div class="row-name">${c.empresa || c.nombre}</div><div class="row-meta">${c.nombre} · ${c.email} · Desde ${new Date(c.createdAt).toLocaleDateString('es-CL')}</div></div><div class="row-right">
+ ${planBadge(c.plan)}
+ ${estadoBadge(c.estado)}
+ <button class="btn btn-outline btn-sm" onclick="openModal('${c.email}','${c.empresa||c.nombre}','${c.plan}','${c.estado}',${!!c.genera_oc_propia})">Gestionar</button></div></div>`).join('');
+ }
+
+ // ALERTAS
+ async function loadAlertas() {
+ document.getElementById('lista-alertas').innerHTML = `<div class="spinner-wrap"><div class="spinner"></div></div>`;
+ let alertas = [];
+ try {
+ const r = await api('/api/admin/stats');
+ alertas = (r && r.ok) ? (r.data.alertas || []) : [];
+ } catch(e) { alertas = []; }
+
+ document.getElementById('lista-alertas').innerHTML = alertas.length === 0
+ ? `<div class="empty"><div class="empty-icon"></div>Sin alertas activas</div>`
+ : alertas.map(a => `
+ <div class="row"><div class="alert-dot dot-red"></div><div class="row-body"><div class="row-name">Posible bypass — sin confirmar hace ${a.dias} días</div><div class="row-meta">ID Licitacion: ${a.licitacionId}</div></div><span class="badge badge-red">! Revisar</span></div>`).join('');
+ }
+
+ // ── Acciones ─────────────────────────────────────────────
+
+ async function aprobar(email, accion) {
+ const r = await api('/api/admin/aprobar-transportista', 'POST', { email, accion });
+ if (r.ok) {
+ toast(accion==='aprobar' ? ' Transportista aprobado' : ' Transportista rechazado', accion==='aprobar'?'ok':'err');
+ loadDashboard();
+ loadTransportistas();
+ } else {
+ toast('Error: ' + (r.data.error||'intenta nuevamente'), 'err');
+ }
+ }
+
+ function openModal(email, nombre, plan, estado) {
+ modalEmail = email;
+ document.getElementById('modal-titulo').textContent = 'Gestionar: ' + nombre;
+ document.getElementById('modal-info').textContent = email;
+ if (plan) document.getElementById('modal-plan').value = plan;
+ if (estado) document.getElementById('modal-estado').value = estado;
+ // Ocultar plan si es transportista
+ document.getElementById('modal-plan').parentElement.style.display = plan ? 'block' : 'none';
+ document.getElementById('modal-usuario').classList.add('open');
+ }
+
+ function closeModal() {
+ document.getElementById('modal-usuario').classList.remove('open');
+ modalEmail = '';
+ }
+
+ async function guardarUsuario() {
+ const plan = document.getElementById('modal-plan').value;
+ const estado = document.getElementById('modal-estado').value;
+ const r = await api('/api/admin/gestionar-usuario', 'POST', { email: modalEmail, plan, estado });
+ if (r.ok) {
+ toast(' Usuario actualizado');
+ closeModal();
+ loadClientes();
+ loadTransportistas();
+ } else {
+ toast('Error: ' + (r.data.error||'intenta nuevamente'), 'err');
+ }
+ }
+
+ // ── Exportar CSV ─────────────────────────────────────────────
+
+ function exportarCSV(rows, filename) {
+    const esc = v => '"' + String(v||'').split('"').join('""') + '"';
+    const csv = rows.map(r => r.map(esc).join(',')).join('\n');
+    const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function exportarLicitaciones() {
+    const rows = [['ID','Codigo','Empresa','Equipo','Origen','Destino','Estado','Cotizaciones','Fecha']];
+    allLicitaciones.forEach(l => {
+      rows.push([l.id, l.código||'', l.clienteEmpresa||'', (l.tipoEquipo||'')+(l.marca?' - '+l.marca:''),
+        l.origen||'', l.destino||'', l.estado||'', (l.cotizaciones||[]).length,
+        (l.createdAt||'').split('T')[0]]);
+    });
+    exportarCSV(rows, 'TransMatch_Licitaciones_'+new Date().toISOString().split('T')[0]+'.csv');
+    toast('Licitaciones exportadas');
+  }
+
+  async function exportarTodo() {
+    await exportarLicitaciones();
+    const ru = await api('/api/admin/usuarios');
+    if (ru && ru.ok) {
+      const rows2 = [['Nombre','Empresa','Email','Rol','Plan','Estado','Transportes','Rating','Registro']];
+      (ru.data.usuarios||[]).forEach(u => {
+        rows2.push([u.nombre||'', u.empresa||'', u.email||'', u.role||'', u.plan||'', u.estado||'',
+          u.totalTransportes||0, u.rating||5, (u.createdAt||'').split('T')[0]]);
+      });
+      exportarCSV(rows2, 'TransMatch_Usuarios_'+new Date().toISOString().split('T')[0]+'.csv');
+    }
+    toast('Exportacion completa - 2 archivos CSV');
+  }
+
+  async function loadRetornos() {
+    const el = document.getElementById('lista-retornos');
+    if (!el) return;
+    el.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
+    const r = await api('/api/retornos');
+    if (!r || !r.ok) { el.innerHTML = '<div style="padding:32px;text-align:center;color:#9CA3AF;font-size:13px">Sin datos</div>'; return; }
+    const lista = r.data.retornos || [];
+    if (!lista.length) { el.innerHTML = '<div style="padding:32px;text-align:center;color:#9CA3AF;font-size:13px">Sin retornos disponibles</div>'; return; }
+    el.innerHTML = '<table class="table"><thead><tr><th>Transportista</th><th>Empresa</th><th>Origen</th><th>Destino</th><th>Fecha</th><th>Precio</th><th>Estado</th></tr></thead><tbody>'
+      + lista.map(x => '<tr><td style="font-weight:500">'+(x.transportistaNombre||'--')+'</td><td style="font-size:12px;color:#6B7280">'+(x.empresa||'--')+'</td><td>'+(x.origen||'--')+'</td><td>'+(x.destino||'--')+'</td><td style="font-size:12px">'+(x.fechaDisponible?new Date(x.fechaDisponible).toLocaleDateString('es-CL'):'--')+'</td><td style="font-weight:600;color:#1d4ed8">'+(x.precio?new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(x.precio):'A convenir')+'</td><td><span class="badge '+(x.estado==='disponible'?'badge-green':'badge-gray')+'">'+(x.estado||'disponible')+'</span></td></tr>').join('')
+      + '</tbody></table>';
+  }
+
+  // ── Init — auth guard ───────────────────────────────────────
+  (async function() {
+    const token = localStorage.getItem('tm_token');
+    const role  = localStorage.getItem('tm_role');
+
+    if (!token || role !== 'admin') {
+      window.location.replace('/admin-login.html');
+      return;
+    }
+
+    document.getElementById('auth-guard').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';document.getElementById('app').style.flexDirection='column';document.getElementById('app').style.minHeight='100vh';
+    loadDashboard();
+
+    try {
+      const res = await fetch(API + '/api/auth/me', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (res.status === 401) {
+        localStorage.clear();
+        window.location.replace('/admin-login.html');
+      }
+    } catch(e) {}
+  })();
+
+  // ── Modal detalle licitacion ─────────────────────────────────
+
+  async function verDetalleLicit(id) {
+    let l = allLicitaciones.find(x => x.id === id);
+    if (!l) {
+      const r = await api('/api/licitaciones/'+id);
+      if (!r || !r.ok) { toast('Error al cargar', 'err'); return; }
+      l = r.data.licitacion || r.data;
+    }
+
+    // Titulo
+    document.getElementById('ml-titulo').innerHTML =
+      (l.código ? '<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 6px;border-radius:4px;margin-right:8px">'+l.código+'</span>' : '')
+      + (l.tipoEquipo||'') + (l.marca ? ' — '+l.marca : '');
+
+    // Badge estado
+    document.getElementById('ml-badge').innerHTML = estadoBadge(l.estado);
+
+    // Info grid
+    const infoItems = [
+      ['Codigo', l.código||'--'],
+      ['Cliente', l.clienteEmpresa || l.clienteEmail],
+      ['Contacto', l.clienteNombre||'--'],
+      ['Email', l.estado === 'adjudicada' || l.estado === 'completada' ? l.clienteEmail : 'Oculto hasta adjudicar'],
+      ['Origen', l.origen||'--'],
+      ['Destino', l.destino||'--'],
+      ['Fecha de carga', l.fechaCarga ? new Date(l.fechaCarga).toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'}) : '--'],
+      ['Fecha entrega', l.fechaEntrega ? new Date(l.fechaEntrega).toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'}) : '--'],
+      ['Peso', l.peso ? l.peso+' ton' : '--'],
+      ['Dimensiones', l.dimensiones||'--'],
+      ['Plazo cotizaciones', (l.plazo||'24')+' horas'],
+      ['Cotizaciones', (l.cotizaciones||[]).length+' recibidas'],
+    ];
+    document.getElementById('ml-info').innerHTML = infoItems.map(([k,v]) =>
+      '<div style="background:#f8f9fc;border-radius:8px;padding:10px 12px;">' +
+      '<div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">'+k+'</div>' +
+      '<div style="font-size:13px;color:#111827;font-weight:500;word-break:break-all;">'+v+'</div></div>'
+    ).join('');
+
+    // Descripción
+    if (l.descripción) {
+      document.getElementById('ml-descripcion-wrap').style.display = 'block';
+      document.getElementById('ml-descripcion').textContent = l.descripción;
+    } else {
+      document.getElementById('ml-descripcion-wrap').style.display = 'none';
+    }
+
+    // Archivo
+    if (l.archivoId) {
+      document.getElementById('ml-archivo-wrap').style.display = 'block';
+      document.getElementById('ml-archivo-btn').onclick = () => descargarArchivo(l.archivoId, l.archivoNombre||'especificaciónes');
+      document.getElementById('ml-archivo-btn').textContent = 'Descargar ' + (l.archivoNombre||'especificaciónes');
+    } else {
+      document.getElementById('ml-archivo-wrap').style.display = 'none';
+    }
+
+    // Cotizaciones
+    const cotizaciones = l.cotizaciones || [];
+    if (cotizaciones.length > 0) {
+      const precios = cotizaciones.map(x => x.precio).filter(Boolean);
+      const precioMin = Math.min(...precios);
+      const precioMax = Math.max(...precios);
+      document.getElementById('ml-cotizaciones-wrap').style.display = 'block';
+      document.getElementById('ml-cotizaciones').innerHTML = cotizaciones
+        .sort((a,b) => (b.score||0)-(a.score||0))
+        .map(cotiz => {
+          const sc = Math.round((cotiz.score||0)*100);
+          return '<div style="background:#f8f9fc;border-radius:8px;padding:12px;margin-bottom:8px;">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">' +
+            '<div style="font-size:13px;font-weight:600;color:#111827">' +
+              (cotiz.código ? '<span style="font-size:10px;font-family:monospace;color:#9CA3AF;margin-right:4px">'+cotiz.código+'</span>' : '') +
+              (cotiz.transportistaNombre||'—')+' — '+(cotiz.transportistaEmpresa||'—') +
+            '</div>' +
+            '<div style="font-size:16px;font-weight:700;color:#1d4ed8">' + formatPeso(cotiz.precio) + '</div>' +
+            '</div>' +
+            '<div style="font-size:12px;color:#6B7280;margin-bottom:4px">Entrega: '+cotiz.tiempoEntrega+
+            ' &nbsp;·&nbsp; Resp. '+(cotiz.tiempoRespuesta||0)+'min'+
+            ' &nbsp;·&nbsp; <span style="color:#FF8904">★ '+(cotiz.transportistaRating||5)+'</span></div>' +
+            (cotiz.descripción ? '<div style="font-size:12px;color:#6B7280;margin-bottom:6px;">'+cotiz.descripción+'</div>' : '') +
+            (cotiz.archivoId ? '<button onclick="descargarArchivo(this.dataset.id,this.dataset.nombre)" data-id="'+cotiz.archivoId+'" data-nombre="'+(cotiz.archivoNombre||'propuesta')+'" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:#eef1f8;color:#1e2d4e;border:none;border-radius:6px;font-size:12px;cursor:pointer">Descargar propuesta</button>' : '') +
+            '<div style="height:4px;background:#E5E7EB;border-radius:2px;margin-top:8px;"><div style="height:100%;width:'+sc+'%;background:#1e2d4e;border-radius:2px;"></div></div>' +
+            '<div style="display:flex;justify-content:space-between;font-size:11px;color:#9CA3AF;margin-top:2px"><span>Score (Precio 50% · Fecha 30% · Val. 20%)</span><span>'+sc+'%</span></div>' +
+            '</div>';
+        }).join('');
+    } else {
+      document.getElementById('ml-cotizaciones-wrap').style.display = 'none';
+    }
+
+    // Motivo rechazo
+    if (l.estado === 'rechazada' && l.motivoRechazo) {
+      document.getElementById('ml-rechazo-wrap').style.display = 'block';
+      document.getElementById('ml-rechazo').textContent = 'Motivo: ' + l.motivoRechazo;
+    } else {
+      document.getElementById('ml-rechazo-wrap').style.display = 'none';
+    }
+
+    // Botones de accion
+    const acciones = [];
+    if (l.estado === 'pendiente_admin') {
+      acciones.push('<button class="btn btn-green" onclick="aprobarLicitacion(this.dataset.id)" data-id="'+l.id+'">Aprobar y publicar</button>');
+      acciones.push('<button class="btn btn-red" onclick="rechazarLicitacionModal(this.dataset.id)" data-id="'+l.id+'">Rechazar</button>');
+    }
+    if (l.estado === 'abierta' && (l.cotizaciones||[]).length > 0) {
+      acciones.push('<button class="btn btn-primary" onclick="cerrarLicitacion(this.dataset.id)" data-id="'+l.id+'">Cerrar y enviar TOP 3</button>');
+    }
+    if ((l.estado === 'adjudicada') && !l.cobro) {
+      acciones.push('<button class="btn btn-orange" onclick="generarCobro(this.dataset.id)" data-id="'+l.id+'">Generar cobro fee 4%</button>');
+    }
+    acciones.push('<button class="btn btn-outline" onclick="closeModalLicit()">Cerrar</button>');
+    document.getElementById('ml-acciones').innerHTML = acciones.join('');
+
+    document.getElementById('modal-licit').classList.add('open');
+  }
+
+  function closeModalLicit() {
+    document.getElementById('modal-licit').classList.remove('open');
+  }
+
+  async function descargarArchivo(id, nombre) {
+    const r = await api('/api/archivos/'+id);
+    if (!r || !r.ok) { toast('Error al descargar', 'err'); return; }
+    const { base64, mimeType, nombre: n } = r.data;
+    const byteStr = atob(base64);
+    const arr = new Uint8Array(byteStr.length);
+    for (let i=0; i<byteStr.length; i++) arr[i] = byteStr.charCodeAt(i);
+    const blob = new Blob([arr], {type: mimeType||'application/octet-stream'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = nombre||n||'archivo'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function aprobarLicitacion(id) {
+    const r = await api('/api/admin/licitacion/'+id+'/aprobar', 'POST', {});
+    if (r && r.ok) {
+      toast('Licitacion publicada a transportistas');
+      closeModalLicit();
+      await loadLicitaciones();
+      await loadDashboard();
+    } else {
+      toast((r && r.data && r.data.error)||'Error al aprobar', 'err');
+    }
+  }
+
+  async function rechazarLicitacionModal(id) {
+    const motivo = prompt('Motivo del rechazo (opcional):') || '';
+    rechazarLicitacion(id, motivo);
+  }
+
+  async function rechazarLicitacion(id, motivo) {
+    const r = await api('/api/admin/licitacion/'+id+'/rechazar', 'POST', { motivo });
+    if (r && r.ok) {
+      toast('Licitacion rechazada');
+      closeModalLicit();
+      await loadLicitaciones();
+      await loadDashboard();
+    } else {
+      toast('Error al rechazar', 'err');
+    }
+  }
+
+  async function cerrarLicitacion(id) {
+    const r = await api('/api/admin/licitacion/'+id+'/cerrar', 'POST', {});
+    if (r && r.ok) {
+      toast('TOP 3 enviado al cliente');
+      closeModalLicit();
+      await loadLicitaciones();
+    } else {
+      toast((r && r.data && r.data.error)||'Error', 'err');
+    }
+  }
+
+  async function generarCobro(licitacionId) {
+    const r = await api('/api/cobros/generar', 'POST', { licitacionId });
+    if (r && r.ok) {
+      toast('Cobro generado: ' + formatPeso(r.data.cobro.fee));
+      closeModalLicit();
+    } else {
+      toast((r && r.data && r.data.error)||'Error al generar cobro', 'err');
+    }
+  }
+
+
+</script>
+
+<footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <!-- Logo -->
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px">T</div>
+        <span style="font-weight:700;color:#fff;font-size:15px">Trans<span style="color:#ff8904">Match</span></span>
+      </div>
+      <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+    </div>
+    <!-- Links -->
+    <div style="display:flex;gap:32px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <a href="/términos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Términos y condiciones</a>
+          <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Política de privacidad</a>
+          <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Centro de ayuda</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;color:#CBD5E1"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="1d7e7273697c7e69725d696f7c736e707c697e75337e71">[email&#160;protected]</a></span>
+          <span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <span>© 2026 TransMatch SpA. 

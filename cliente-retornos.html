@@ -1,0 +1,944 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>TransMatch — Retornos disponibles</title><style>
+ *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#ffffff;display:flex;flex-direction:column;min-height:100vh}
+ #auth-guard{position:fixed;inset:0;background:#ffffff;display:flex;align-items:center;justify-content:center;z-index:9999}
+ .spinner{width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+ @keyframes spin{to{transform:rotate(360deg)}}
+ #app{display:none}#app.shown{display:flex;flex-direction:column;min-height:100vh}
+ .nav{background:#1e2d4e;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+ .nav-left{display:flex;align-items:center;gap:16px}
+ .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+ .nav-icon{background:#FF8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+ .nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#FF8904}
+ .nav-links{display:flex;gap:2px}
+ .nav-link{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+ .nav-link:hover,.nav-link.active{color:#fff;background:rgba(255,255,255,.18)}
+ .avatar{width:30px;height:30px;border-radius:50%;background:#FF8904;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;cursor:pointer}
+ main{max-width:900px;margin:0 auto;padding:24px 20px;min-height:calc(100vh - 52px);flex:1}
+ .card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);overflow:hidden;margin-bottom:16px}
+ .card-hdr{padding:16px 20px;border-bottom:0.5px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between}
+ .card-title{font-size:15px;font-weight:600;color:#111827}
+ .btn{padding:9px 18px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s;display:inline-flex;align-items:center;gap:6px}
+ .btn:hover{opacity:.88}
+ .btn:disabled{opacity:.5;cursor:not-allowed}
+ .btn-orange{background:#FF8904;color:#fff}
+ .btn-outline{background:transparent;border:0.5px solid #E5E7EB;color:#374151}
+ .btn-sm{padding:5px 12px;font-size:12px}
+ .badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px}
+ .badge-green{background:#F0FDF4;color:#14532D}
+ .badge-blue{background:#EFF6FF;color:#1e3a8a}
+ .info-box{background:#eef1f8;border-radius:10px;padding:16px;margin-bottom:20px;display:flex;gap:12px;align-items:flex-start}
+ .fil-btn{padding:5px 14px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e8eaf0;background:#fff;color:#6B7280;transition:all .15s;font-family:inherit}
+ .fil-btn.active{background:#1e2d4e;color:#fff;border-color:#1e2d4e}
+ /* Retorno cards — igual que transportista */
+ .ret-card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);margin-bottom:10px;overflow:hidden}
+ .ret-card:hover{box-shadow:0 4px 16px rgba(30,45,78,.10);border-color:#c7d0e8}
+ .ret-hdr{padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none}
+ .ret-hdr:hover{background:#f5f7fb}
+ .ret-info{flex:1;min-width:0}
+ .ret-title{font-size:14px;font-weight:600;color:#1e2d4e}
+ .ret-meta{font-size:11px;color:#6B7280;margin-top:2px}
+ .ret-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+ .ret-precio{font-size:13px;font-weight:700;color:#1e2d4e}
+ .ret-body{display:none;border-top:0.5px solid #f3f4f6;padding:16px 18px}
+ .ret-body.open{display:block}
+ .ret-arr{font-size:16px;color:#9CA3AF;transition:transform .2s;flex-shrink:0}
+ /* Modal */
+ .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px}
+ .modal-bg.open{display:flex}
+ .modal{background:#fff;border-radius:14px;padding:24px;max-width:440px;width:100%}
+ input[type=text],input[type=email]{width:100%;padding:8px 12px;border:0.5px solid #E5E7EB;border-radius:7px;font-size:13px;font-family:inherit}
+ #toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none}
+ .nav-user{font-size:13px;color:#fff;font-weight:500}
+ .nav-sub{font-size:11px;color:#93C5FD}
+ .um-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:background .15s}
+ .um-item:hover{background:#f9fafb}
+ .um-danger{color:#DC2626}.um-danger:hover{background:#FEF2F2}
+ .empty{text-align:center;padding:48px 20px;color:#9CA3AF;font-size:14px}
+ /* Calendario — mismo diseño que transportista */
+ .cal-mini{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);overflow:hidden}
+ .cal-mini-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:0.5px solid #f3f4f6}
+ .cal-mini-title{font-size:15px;font-weight:600;color:#1e2d4e}
+ .cal-mini-nav{display:flex;gap:6px}
+ .cal-mini-btn{width:28px;height:28px;border-radius:6px;border:0.5px solid #e8eaf0;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+ .cal-mini-btn:hover{background:#f5f7fb}
+ .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:12px 16px;gap:2px}
+ .cal-dow{font-size:10px;font-weight:600;color:#9CA3AF;text-align:center;padding:4px 0;text-transform:uppercase}
+ .cal-day{min-height:52px;border-radius:7px;padding:4px;position:relative;cursor:default}
+ .cal-day.other-month .cal-day-num{color:#D1D5DB}
+ .cal-day.today .cal-day-num{background:#ff8904;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+ .cal-day-num{font-size:12px;font-weight:500;color:#374151;width:22px;height:22px;display:flex;align-items:center;justify-content:center;margin-bottom:2px}
+ .cal-evt{font-size:10px;font-weight:600;padding:2px 5px;border-radius:4px;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .cal-evt-disponible{background:#DBEAFE;color:#1e3a8a}
+ .cal-evt-pendiente{background:#FEF9C3;color:#713F12}
+ .cal-evt-aceptada{background:#DCFCE7;color:#14532D}
+ .fil-btn{padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e8eaf0;background:#fff;color:#6B7280;transition:all .15s;font-family:inherit}
+ .fil-btn:hover{border-color:#1e2d4e;color:#1e2d4e}
+ .fil-btn.active{background:#1e2d4e;color:#fff;border-color:#1e2d4e}
+</style></head><body>
+
+<div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px"><div style="background:#FF8904;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:16px">T</div><div style="font-size:20px;font-weight:700;color:#1e2d4e">Trans<span style="color:#FF8904">Match</span></div></div><div class="spinner"></div></div></div>
+
+<div id="app">
+<nav class="nav">
+  <div class="nav-left">
+    <a href="/cliente.html" class="nav-logo"><div class="nav-icon">T</div><span class="nav-name">Trans<span>Match</span></span></a>
+    <div class="nav-links">
+      <a href="/cliente.html" class="nav-link">Inicio</a>
+      <a href="/cliente-licitaciones.html" class="nav-link">Licitaciones</a>
+      <a href="/cliente-retornos.html" class="nav-link active">Retornos</a>
+      <a href="/cliente-transporte.html" class="nav-link">Transportes</a>
+      <a href="/cliente-facturacion.html" class="nav-link">Facturacion</a>
+      <a href="/cliente-calendario.html" class="nav-link">Calendario</a>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div style="text-align:right"><div class="nav-user" id="nav-nombre">—</div><div class="nav-sub" id="nav-empresa">—</div></div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div id="notif-btn" onclick="toggleNotifs(event)" style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;"></span>
+      </div>
+      <div style="position:relative">
+        <div class="avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div>
+        <div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:220px;z-index:999;overflow:hidden">
+          <div style="padding:14px 16px;border-bottom:1px solid #f3f4f6"><div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div><div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div></div>
+          <a href="/cliente-perfil.html" class="um-item">Configuracion</a>
+          <a href="/ayuda.html" class="um-item">Ayuda</a>
+          <div style="border-top:1px solid #f3f4f6"><button onclick="cerrarSesion()" class="um-item um-danger">Cerrar sesion</button></div>
+        </div>
+      </div>
+    </div>
+    <div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:340px;background:#fff;border-radius:12px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.12);z-index:500;max-height:420px;overflow-y:auto">
+      <div style="padding:12px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:8px"><span style="font-size:14px;font-weight:600;color:#111827">Notificaciones</span><button onclick="event.stopPropagation();marcarTodasLeidas()" style="font-size:11px;color:#1e2d4e;background:none;border:none;cursor:pointer;white-space:nowrap;flex-shrink:0">Marcar todas leídas</button></div>
+      <div id="notif-list" style="overflow-y:auto;max-height:380px;"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <!-- Encabezado -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+    <div>
+      <div style="font-size:20px;font-weight:600;color:#1e2d4e">Retornos disponibles</div>
+      <div style="font-size:14px;color:#6B7280;margin-top:2px">Transportistas con disponibilidad de regreso — precios reducidos</div>
+    </div>
+  </div>
+
+  <!-- Info box -->
+  <div class="info-box" style="margin-bottom:20px">
+    <div style="font-size:20px;flex-shrink:0">↺</div>
+    <div style="font-size:13px;color:#1e2d4e;line-height:1.6">
+      <strong>¿Cómo funcionan los retornos?</strong><br>
+      Los transportistas publican su disponibilidad de viaje de regreso a precios reducidos. Puedes tomar el tramo completo o proponer un tramo parcial.
+    </div>
+  </div>
+
+  <!-- Calendario de retornos -->
+  <div class="cal-mini" style="margin-bottom:16px">
+    <div class="cal-mini-hdr">
+      <span class="cal-mini-title" id="cal-ret-titulo">—</span>
+      <div class="cal-mini-nav">
+        <button class="cal-mini-btn" onclick="calNav(-1)">‹</button>
+        <button class="cal-mini-btn" onclick="calNav(0)" style="font-size:11px;width:auto;padding:0 8px">Hoy</button>
+        <button class="cal-mini-btn" onclick="calNav(1)">›</button>
+      </div>
+    </div>
+    <div class="cal-grid" id="cal-ret-grid"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;padding:10px 16px 14px;border-top:0.5px solid #f3f4f6">
+      <span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:10px;height:10px;border-radius:3px;background:#DBEAFE;border:1px solid #93C5FD;display:inline-block"></span>Retorno disponible</span>
+      <span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:10px;height:10px;border-radius:3px;background:#FEF9C3;border:1px solid #FDE68A;display:inline-block"></span>Propuesta enviada</span>
+      <span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:10px;height:10px;border-radius:3px;background:#DCFCE7;border:1px solid #86EFAC;display:inline-block"></span>Aceptada</span>
+    </div>
+  </div>
+
+  <!-- Filtros y búsqueda -->
+  <div id="lista-retornos-wrap">
+    <div class="card">
+      <div class="card-hdr" style="flex-direction:column;align-items:flex-start;gap:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+          <span class="card-title">Retornos publicados</span>
+          <span id="retornos-count" class="badge badge-green">—</span>
+        </div>
+        <!-- Fila 1: búsqueda de texto + fecha -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;width:100%">
+          <input type="text" id="fil-ret" placeholder="Ciudad de origen o destino..." oninput="filtrarRet()" style="flex:1;min-width:180px;padding:7px 12px;border:0.5px solid #E5E7EB;border-radius:7px;font-size:13px;background:#fff"/>
+          <input type="date" id="fil-fecha" onchange="filtrarRet()" title="Filtrar por fecha disponible" style="padding:7px 10px;border:0.5px solid #E5E7EB;border-radius:7px;font-size:13px;background:#fff;color:#374151;cursor:pointer"/>
+        </div>
+        <!-- Fila 2: filtros por estado -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;width:100%">
+          <span style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;margin-right:2px">Estado</span>
+          <button class="fil-btn active" id="fbtn-todos"      onclick="setFiltroEstado('todos',this)">Todos</button>
+          <button class="fil-btn"        id="fbtn-sin"        onclick="setFiltroEstado('sin',this)">Sin propuesta</button>
+          <button class="fil-btn"        id="fbtn-pendiente"  onclick="setFiltroEstado('pendiente',this)">Propuesta enviada</button>
+          <button class="fil-btn"        id="fbtn-aceptada"   onclick="setFiltroEstado('aceptada',this)">Aceptadas</button>
+          <button class="fil-btn"        id="fbtn-rechazada"  onclick="setFiltroEstado('rechazada',this)">Rechazadas</button>
+          <button onclick="limpiarFiltros()" style="margin-left:auto;font-size:12px;border:0.5px solid #e8eaf0;border-radius:6px;padding:4px 10px;background:#fff;cursor:pointer;color:#6B7280">Limpiar</button>
+        </div>
+      </div>
+      <div id="lista-ret" style="padding:16px 20px"><div style="text-align:center"><div class="spinner" style="width:24px;height:24px;border-width:2px"></div></div></div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- Modal: Proponer tramo -->
+<div class="modal-bg" id="modal-propuesta">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:16px;font-weight:600;color:#111827">Proponer tramo</div>
+      <button onclick="document.getElementById('modal-propuesta').classList.remove('open')" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6B7280">×</button>
+    </div>
+    <div id="modal-ret-info" style="margin-bottom:14px"></div>
+
+    <!-- Opción 1: Tomar retorno completo -->
+    <div id="opcion-completo" style="border:2px solid #E5E7EB;border-radius:10px;padding:14px;margin-bottom:10px;cursor:pointer" onclick="seleccionarOpcion('completo')" onmouseover="this.style.borderColor='#1e2d4e'" onmouseout="if(!this.classList.contains('sel')) this.style.borderColor='#E5E7EB'">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div id="radio-completo" style="width:18px;height:18px;border-radius:50%;border:2px solid #E5E7EB;flex-shrink:0"></div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#1e2d4e">Tomar el retorno completo</div>
+          <div style="font-size:12px;color:#6B7280;margin-top:2px">Al mismo origen y destino del transportista, al precio publicado</div>
+        </div>
+      </div>
+      <!-- Fecha para tramo completo -->
+      <div id="fecha-completo-wrap" style="display:none;margin-top:12px">
+        <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:4px;font-weight:600">¿Qué fecha necesitas? <span style="color:#EF4444">*</span></label>
+        <input type="date" id="fecha-completo" style="width:100%;padding:8px 12px;border:0.5px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:inherit;color:#374151"/>
+        <div id="fecha-completo-hint" style="font-size:11px;color:#9CA3AF;margin-top:4px"></div>
+      </div>
+    </div>
+
+    <!-- Opción 2: Proponer tramo parcial -->
+    <div id="opcion-tramo" style="border:2px solid #E5E7EB;border-radius:10px;padding:14px;margin-bottom:14px;cursor:pointer" onclick="seleccionarOpcion('tramo')" onmouseover="this.style.borderColor='#FF8904'" onmouseout="if(!this.classList.contains('sel')) this.style.borderColor='#E5E7EB'">
+      <div style="display:flex;align-items:center;gap:10px" id="tramo-header">
+        <div id="radio-tramo" style="width:18px;height:18px;border-radius:50%;border:2px solid #E5E7EB;flex-shrink:0"></div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#1e2d4e">Proponer tramo parcial</div>
+          <div style="font-size:12px;color:#6B7280;margin-top:2px">Indica tu ruta específica — el precio será menor y se negocia</div>
+        </div>
+      </div>
+      <div id="tramo-fields" style="display:none;margin-top:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <div><label style="font-size:11px;color:#6B7280;display:block;margin-bottom:4px">Tu ciudad de origen</label><input type="text" id="mi-origen" placeholder="Ej: La Serena" onclick="event.stopPropagation()"/></div>
+          <div><label style="font-size:11px;color:#6B7280;display:block;margin-bottom:4px">Tu ciudad de destino</label><input type="text" id="mi-destino" placeholder="Ej: Calama" onclick="event.stopPropagation()"/></div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:4px;font-weight:600">¿Qué fecha necesitas? <span style="color:#EF4444">*</span></label>
+          <input type="date" id="fecha-tramo" style="width:100%;padding:8px 12px;border:0.5px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:inherit;color:#374151" onclick="event.stopPropagation()"/>
+          <div id="fecha-tramo-hint" style="font-size:11px;color:#9CA3AF;margin-top:4px"></div>
+        </div>
+        <div style="font-size:11px;color:#9CA3AF;margin-top:8px">Los datos de contacto se revelan al cerrar la negociación.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline" style="flex:1" onclick="document.getElementById('modal-propuesta').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-orange" style="flex:1" id="btn-enviar-propuesta" onclick="enviarPropuesta()" disabled>Continuar →</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px">T</div>
+        <span style="font-weight:700;color:#fff;font-size:15px">Trans<span style="color:#ff8904">Match</span></span>
+      </div>
+      <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+    </div>
+    <div style="display:flex;gap:32px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <a href="/términos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Términos y condiciones</a>
+          <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Política de privacidad</a>
+          <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Centro de ayuda</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span>
+          <span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B">© 2026 TransMatch SpA.</div>
+</footer>
+
+<script>
+ const API = 'https://transmatch.transmatchcl.workers.dev';
+
+ function peso(n){ return n ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '$0'; }
+
+ function toast(msg, tipo){
+   var el = document.getElementById('toast');
+   el.textContent = msg;
+   el.style.background = tipo==='err' ? '#EF4444' : '#1ED24E';
+   el.style.opacity = '1';
+   clearTimeout(el._t);
+   el._t = setTimeout(function(){ el.style.opacity='0'; }, 3500);
+ }
+
+ function closeAllPanels(){
+   var m=document.getElementById('user-menu');
+   var p=document.getElementById('notif-panel');
+   if(m) m.style.display='none';
+   if(p) p.style.display='none';
+ }
+ function toggleUserMenu(e){
+   e.stopPropagation();
+   var m=document.getElementById('user-menu');
+   var isOpen=m&&m.style.display==='block';
+   closeAllPanels();
+   if(!isOpen&&m) m.style.display='block';
+ }
+ function toggleNotifs(e){
+   if(e) e.stopPropagation();
+   var p=document.getElementById('notif-panel');
+   var isOpen=p&&p.style.display==='flex';
+   closeAllPanels();
+   if(!isOpen&&p){ p.style.display='flex'; cargarNotificaciones(); }
+ }
+ document.addEventListener('click',function(){ closeAllPanels(); });
+ function cerrarSesion(){ localStorage.clear(); window.location.replace('/index.html'); }
+
+ /* ── Render retornos (cards estilo transportista) ── */
+ function renderRetornos(lista){
+   var el = document.getElementById('lista-ret');
+   var cnt = document.getElementById('retornos-count');
+   if(cnt) cnt.textContent = lista.length + (lista.length===1?' retorno':' retornos');
+   if(!lista||!lista.length){
+     el.innerHTML='<div class="empty"><div style="font-size:15px;font-weight:600;color:#374151;margin-bottom:6px">Sin retornos disponibles</div><div style="font-size:13px;color:#9CA3AF">No hay transportistas con retornos publicados en este momento.</div></div>';
+     return;
+   }
+   el.innerHTML = lista.map(function(r,i){
+     var fDesde=(r.fechaDesde||r.fecha)?new Date((r.fechaDesde||r.fecha)+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}):'—';
+     var fHasta=r.fechaHasta?' — '+new Date(r.fechaHasta+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}):'';
+     var dataR=JSON.stringify(r).replace(/"/g,'&quot;');
+     var detalle=
+       '<div class="ret-body" id="rdet-'+i+'">'
+       +'<div style="background:#f8f9fc;border-radius:8px;padding:12px 14px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+       +'<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Disponibilidad</div><div style="font-size:12px;color:#374151">'+fDesde+fHasta+'</div></div>'
+       +'<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Precio referencial</div><div style="font-size:13px;font-weight:700;color:#1e2d4e">'+peso(r.precio)+'</div></div>'
+       +(r.equipo?'<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Equipo</div><div style="font-size:12px;color:#374151">'+r.equipo+'</div></div>':'')
+       +(r.capacidad?'<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Capacidad</div><div style="font-size:12px;color:#374151">'+r.capacidad+'</div></div>':'')
+       +'</div>'
+       +((r.descripcion)?'<div style="font-size:12px;color:#6B7280;margin-bottom:12px">'+r.descripcion+'</div>':'')
+       +'<div id="estado-prop-'+r.id+'" style="margin-bottom:12px"></div>'
+       +'<div id="accion-prop-'+r.id+'">'
+       +'<div style="background:#FFF7ED;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#92400E"><strong>¿Necesitas solo parte del tramo?</strong> Puedes proponerlo y el precio será menor.</div>'
+       +'<button onclick="event.stopPropagation();abrirPropuesta(JSON.parse(this.dataset.r))" data-r="'+dataR+'" class="btn btn-orange" style="width:auto;padding:8px 20px;font-size:13px">Me interesa este retorno</button>'
+       +'</div>'
+       +'</div>';
+     return '<div class="ret-card">'
+       +'<div class="ret-hdr" onclick="toggleRetCard('+i+',\''+r.id+'\')">'
+       +'<div class="ret-info">'
+       +'<div class="ret-title">'+r.ciudadOrigen+' → '+r.ciudadDestino+'</div>'
+       +'<div class="ret-meta">'+(r.equipo||'Sin equipo especificado')+' · '+fDesde+fHasta+'</div>'
+       +'</div>'
+       +'<div class="ret-right" style="align-items:flex-end">'
+       +'<span class="ret-precio">'+peso(r.precio)+'</span>'
+       +'<span id="badge-hdr-'+r.id+'"></span>'
+       +'</div>'
+       +'<span class="ret-arr" id="rarr-'+i+'">›</span>'
+       +'</div>'
+       +detalle
+       +'</div>';
+   }).join('');
+ }
+
+ function toggleRetCard(i, retornoId){
+   var det=document.getElementById('rdet-'+i);
+   var arr=document.getElementById('rarr-'+i);
+   if(!det) return;
+   var open=det.classList.contains('open');
+   det.classList.toggle('open',!open);
+   if(arr) arr.style.transform=open?'':'rotate(90deg)';
+   if(!open && retornoId) cargarEstadoPropuesta(retornoId);
+ }
+
+ async function cargarEstadoPropuesta(retornoId){
+   var el=document.getElementById('estado-prop-'+retornoId);
+   if(!el) return;
+   try{
+     // Endpoint correcto: GET /api/retornos/:id/mi-propuesta
+     var r=await fetch(API+'/api/retornos/'+retornoId+'/mi-propuesta',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+     if(!r.ok){ el.innerHTML=''; return; }
+     var data=await r.json();
+     var p=data.propuesta;
+     if(!p||!p.estado){ el.innerHTML=''; return; }
+     var configs={
+       pendiente:{pillBg:'#FEF9C3',pillColor:'#713F12',titulo:'Propuesta enviada',desc:'Esperando respuesta del transportista.'},
+       aceptada: {pillBg:'#DCFCE7',pillColor:'#14532D',titulo:'Aceptada',desc:''},
+       rechazada:{pillBg:'#FEE2E2',pillColor:'#991B1B',titulo:'No disponible',desc:'El transportista no puede realizar este tramo.'}
+     };
+     var cfg=configs[p.estado]||configs['pendiente'];
+
+     // Tramo info
+     var tramoTexto=p.esTramoParcial
+       ?'Tramo parcial: '+p.origenPropuesto+' → '+p.destinoPropuesto
+       :'Tramo completo';
+
+     var contactoHtml='';
+     if(p.estado==='aceptada'){
+       var precioMostrar=p.precioNegociado||p.precio;
+       var ct=p.contactoTransportista||{};
+       if(ct.nombre||ct.email){
+         contactoHtml='<div style="margin-top:10px;background:#f0fdf4;border-radius:8px;padding:10px 12px;font-size:12px;color:#166534">'
+           +'<div style="font-weight:600;margin-bottom:4px">Datos de contacto del transportista</div>'
+           +(ct.nombre?'<div>'+ct.nombre+'</div>':'')
+           +(ct.empresa?'<div>'+ct.empresa+'</div>':'')
+           +(ct.email?'<div><a href="mailto:'+ct.email+'" style="color:#14532D">'+ct.email+'</a></div>':'')
+           +(ct.telefono?'<div>'+ct.telefono+'</div>':'')
+           +(precioMostrar?'<div style="font-weight:600;margin-top:6px">Precio acordado: '+peso(precioMostrar)+'</div>':'')
+           +'</div>';
+       } else {
+         contactoHtml='<div style="margin-top:8px;font-size:12px;color:#166534">Los datos de contacto estarán disponibles en breve.'+(precioMostrar?' Precio acordado: '+peso(precioMostrar):'')+'</div>';
+       }
+     }
+     var fechaSolHtml='';
+     if(p.fechaSolicitada){
+       var fs=new Date(p.fechaSolicitada+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});
+       fechaSolHtml='<div style="font-size:11px;color:#6B7280;margin-top:2px">Fecha solicitada: '+fs+'</div>';
+     }
+     // Badge a la derecha, sin fondo completo amarillo
+     el.innerHTML='<div style="border:0.5px solid #e8eaf0;border-radius:8px;padding:12px 14px;background:#fff">'
+       +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
+       +'<div>'
+       +'<div style="font-size:13px;font-weight:600;color:#1e2d4e">Tu propuesta · '+tramoTexto+'</div>'
+       +(cfg.desc?'<div style="font-size:12px;color:#6B7280;margin-top:2px">'+cfg.desc+'</div>':'')
+       +fechaSolHtml
+       +'</div>'
+       +'<span style="background:'+cfg.pillBg+';color:'+cfg.pillColor+';font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap;flex-shrink:0">'+cfg.titulo+'</span>'
+       +'</div>'
+       +contactoHtml
+       +'</div>';
+
+     // Badge en header de card cerrada
+     var badgeHdr=document.getElementById('badge-hdr-'+retornoId);
+     if(badgeHdr){
+       var cfgH={
+         pendiente:{bg:'#FEF9C3',color:'#713F12',label:'Propuesta enviada'},
+         aceptada: {bg:'#DCFCE7',color:'#14532D',label:'Aceptada'},
+         rechazada:{bg:'#FEE2E2',color:'#991B1B',label:'No disponible'}
+       }[p.estado]||{bg:'#FEF9C3',color:'#713F12',label:'Propuesta enviada'};
+       badgeHdr.innerHTML='<span style="background:'+cfgH.bg+';color:'+cfgH.color+';font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap">'+cfgH.label+'</span>';
+     }
+
+     // Controlar zona de acción según estado
+     var accionEl=document.getElementById('accion-prop-'+retornoId);
+     if(accionEl){
+       if(p.estado==='pendiente'){
+         // Puede editar si aún no fue vista (no tenemos ese dato, pero sí podemos permitir editar en pendiente)
+         var dataRet=window._retornos?window._retornos.find(function(x){return x.id===retornoId;}):null;
+         var dataRetStr=dataRet?JSON.stringify(dataRet).replace(/"/g,'&quot;'):'{}';
+         accionEl.innerHTML='<button onclick="event.stopPropagation();editarPropuesta(\''+retornoId+'\',\''+p.id+'\')" class="btn btn-outline" style="font-size:12px;padding:6px 14px">Editar propuesta</button>';
+       } else {
+         // Aceptada o rechazada: ocultar botón
+         accionEl.innerHTML='';
+       }
+     }
+   }catch(e){ if(el) el.innerHTML=''; }
+ }
+
+ var _filtroEstadoRet = 'todos';
+
+ function setFiltroEstado(val, btn){
+   _filtroEstadoRet = val;
+   document.querySelectorAll('.fil-btn').forEach(function(b){ b.classList.remove('active'); });
+   if(btn) btn.classList.add('active');
+   filtrarRet();
+ }
+
+ function limpiarFiltros(){
+   document.getElementById('fil-ret').value='';
+   document.getElementById('fil-fecha').value='';
+   _filtroEstadoRet='todos';
+   document.querySelectorAll('.fil-btn').forEach(function(b){ b.classList.remove('active'); });
+   var btnTodos=document.getElementById('fbtn-todos'); if(btnTodos) btnTodos.classList.add('active');
+   filtrarRet();
+ }
+
+ function filtrarRet(){
+   var q=(document.getElementById('fil-ret').value||'').toLowerCase();
+   var fecha=document.getElementById('fil-fecha').value; // 'YYYY-MM-DD'
+   var propMap={};
+   (window._misPropuestas||[]).forEach(function(p){ propMap[p.retornoId]=p; });
+
+   var lista=(window._retornos||[]).filter(function(r){
+     // Filtro texto
+     if(q && !(r.ciudadOrigen+r.ciudadDestino+(r.equipo||'')).toLowerCase().includes(q)) return false;
+
+     // Filtro fecha: el retorno debe cubrir la fecha seleccionada
+     if(fecha){
+       var fd=new Date(fecha+'T12:00:00');
+       var desde=r.fechaDesde?new Date(r.fechaDesde+'T12:00:00'):null;
+       var hasta=r.fechaHasta?new Date(r.fechaHasta+'T12:00:00'):desde;
+       if(!desde) return false;
+       if(fd<desde||fd>hasta) return false;
+     }
+
+     // Filtro estado de propuesta
+     if(_filtroEstadoRet!=='todos'){
+       var prop=propMap[r.id];
+       var estadoProp=prop?prop.estado:'sin';
+       if(_filtroEstadoRet==='sin' && estadoProp!=='sin') return false;
+       if(_filtroEstadoRet==='pendiente' && estadoProp!=='pendiente') return false;
+       if(_filtroEstadoRet==='aceptada' && estadoProp!=='aceptada') return false;
+       if(_filtroEstadoRet==='rechazada' && estadoProp!=='rechazada') return false;
+     }
+     return true;
+   });
+
+   renderRetornos(lista);
+
+   // Re-aplicar badges tras render
+   setTimeout(function(){ aplicarBadgesHdr(); }, 0);
+ }
+
+ /* ── Modal propuesta ── */
+ var _retornoActual = null;
+ var _opcionSeleccionada = null;
+
+ function abrirPropuesta(r){
+   _retornoActual = r;
+   document.getElementById('mi-origen').value = '';
+   document.getElementById('mi-destino').value = '';
+   document.getElementById('fecha-completo').value = '';
+   document.getElementById('fecha-tramo').value = '';
+
+   // Setear rango de fechas disponibles
+   var minDate = r.fechaDesde || r.fecha || '';
+   var maxDate = r.fechaHasta || r.fechaDesde || r.fecha || '';
+   ['fecha-completo','fecha-tramo'].forEach(function(id){
+     var el=document.getElementById(id);
+     if(el){ el.min=minDate; el.max=maxDate; }
+   });
+   var fDesde = minDate ? new Date(minDate+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'}) : '—';
+   var fHasta = maxDate && maxDate!==minDate ? ' al '+new Date(maxDate+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'}) : '';
+   var hintText = minDate ? 'Disponible del '+fDesde+fHasta : '';
+   ['fecha-completo-hint','fecha-tramo-hint'].forEach(function(id){
+     var el=document.getElementById(id); if(el) el.textContent=hintText;
+   });
+
+   var fechaDisplay = minDate ? fDesde+fHasta : '—';
+   document.getElementById('modal-ret-info').innerHTML =
+     '<div style="background:#f8f9fc;border-radius:8px;padding:12px;font-size:13px;margin-bottom:2px">'
+     +'<div style="font-weight:600;color:#111827;margin-bottom:4px">↺ '+r.ciudadOrigen+' → '+r.ciudadDestino+'</div>'
+     +'<div style="color:#6B7280">Disponible: '+fechaDisplay+'</div>'
+     +(r.equipo?'<div style="color:#6B7280">'+r.equipo+'</div>':'')
+     +(r.precio?'<div style="color:#1e2d4e;font-weight:600;margin-top:4px">Precio ref.: '+peso(r.precio)+'</div>':'')
+     +'</div>';
+   _opcionSeleccionada = null;
+   var btn=document.getElementById('btn-enviar-propuesta'); if(btn){btn.disabled=true;}
+   ['opcion-completo','opcion-tramo'].forEach(function(id){
+     var el=document.getElementById(id); if(el){el.classList.remove('sel');el.style.borderColor='#E5E7EB';}
+   });
+   var rc=document.getElementById('radio-completo'); if(rc){rc.style.background='';rc.style.borderColor='#E5E7EB';}
+   var rt=document.getElementById('radio-tramo'); if(rt){rt.style.background='';rt.style.borderColor='#E5E7EB';}
+   var tf=document.getElementById('tramo-fields'); if(tf) tf.style.display='none';
+   var fw=document.getElementById('fecha-completo-wrap'); if(fw) fw.style.display='none';
+   document.getElementById('modal-propuesta').classList.add('open');
+ }
+
+ function seleccionarOpcion(opcion){
+   _opcionSeleccionada = opcion;
+   var cEl=document.getElementById('opcion-completo');
+   var tEl=document.getElementById('opcion-tramo');
+   var rC=document.getElementById('radio-completo');
+   var rT=document.getElementById('radio-tramo');
+   var tf=document.getElementById('tramo-fields');
+   var fw=document.getElementById('fecha-completo-wrap');
+   var btn=document.getElementById('btn-enviar-propuesta');
+   cEl.classList.remove('sel'); cEl.style.borderColor='#E5E7EB';
+   tEl.classList.remove('sel'); tEl.style.borderColor='#E5E7EB';
+   rC.style.background=''; rC.style.borderColor='#E5E7EB';
+   rT.style.background=''; rT.style.borderColor='#E5E7EB';
+   if(opcion==='completo'){
+     cEl.classList.add('sel'); cEl.style.borderColor='#1e2d4e';
+     rC.style.background='#1e2d4e'; rC.style.borderColor='#1e2d4e';
+     tf.style.display='none';
+     fw.style.display='block';
+   } else {
+     tEl.classList.add('sel'); tEl.style.borderColor='#FF8904';
+     rT.style.background='#FF8904'; rT.style.borderColor='#FF8904';
+     tf.style.display='block';
+     fw.style.display='none';
+   }
+   if(btn){ btn.disabled=false; }
+ }
+
+ async function enviarPropuesta(){
+   var r=_retornoActual;
+   if(!r||!_opcionSeleccionada) return;
+
+   var esParcial=_opcionSeleccionada==='tramo';
+   var fecha='', origen='', destino='';
+
+   if(!esParcial){
+     fecha=document.getElementById('fecha-completo').value;
+     if(!fecha){ toast('Selecciona la fecha que necesitas','err'); return; }
+     origen=r.ciudadOrigen; destino=r.ciudadDestino;
+   } else {
+     origen=document.getElementById('mi-origen').value.trim();
+     destino=document.getElementById('mi-destino').value.trim();
+     fecha=document.getElementById('fecha-tramo').value;
+     if(!origen||!destino){ toast('Ingresa tu ciudad de origen y destino','err'); return; }
+     if(!fecha){ toast('Selecciona la fecha que necesitas','err'); return; }
+   }
+
+   // Cerrar modal y deshabilitar botón mientras procesa
+   document.getElementById('modal-propuesta').classList.remove('open');
+
+   var res=null;
+   try {
+     var resp=await fetch(API+'/api/retornos/'+r.id+'/propuesta',{
+       method:'POST',
+       headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+       body:JSON.stringify({origenPropuesto:origen,destinoPropuesto:destino,esTramoParcial:esParcial,fechaSolicitada:fecha})
+     });
+     res=await resp.json();
+   } catch(e){}
+
+   toast(esParcial?'Propuesta de tramo enviada. El transportista responderá con un precio.':'Solicitud enviada. El transportista confirmará y recibirás sus datos de contacto.');
+
+   // Actualizar estado inmediatamente sin refresh
+   // Inyectamos la propuesta localmente para mostrar el estado al instante
+   var propuestaLocal={
+     id:(res&&res.propuestaId)||'local',
+     retornoId:r.id,
+     esTramoParcial:esParcial,
+     origenPropuesto:origen,
+     destinoPropuesto:destino,
+     fechaSolicitada:fecha,
+     estado:'pendiente',
+     precioNegociado:null,
+     contactoTransportista:null,
+     createdAt:new Date().toISOString()
+   };
+   mostrarEstadoPropuestaLocal(r.id, propuestaLocal);
+
+   _opcionSeleccionada=null;
+ }
+
+ // Muestra el estado localmente sin llamar a la API (para respuesta inmediata)
+ function mostrarEstadoPropuestaLocal(retornoId, p){
+   var el=document.getElementById('estado-prop-'+retornoId);
+   var accionEl=document.getElementById('accion-prop-'+retornoId);
+   var badgeHdr=document.getElementById('badge-hdr-'+retornoId);
+   if(!el) return;
+
+   var tramoTexto=p.esTramoParcial
+     ?'Tramo parcial: '+p.origenPropuesto+' → '+p.destinoPropuesto
+     :'Tramo completo';
+   var fechaSolHtml='';
+   if(p.fechaSolicitada){
+     var fs=new Date(p.fechaSolicitada+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});
+     fechaSolHtml='<div style="font-size:11px;color:#6B7280;margin-top:2px">Fecha solicitada: '+fs+'</div>';
+   }
+   el.innerHTML='<div style="border:0.5px solid #e8eaf0;border-radius:8px;padding:12px 14px;background:#fff">'
+     +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
+     +'<div>'
+     +'<div style="font-size:13px;font-weight:600;color:#1e2d4e">Tu propuesta · '+tramoTexto+'</div>'
+     +'<div style="font-size:12px;color:#6B7280;margin-top:2px">Esperando respuesta del transportista.</div>'
+     +fechaSolHtml
+     +'</div>'
+     +'<span style="background:#FEF9C3;color:#713F12;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap;flex-shrink:0">Propuesta enviada</span>'
+     +'</div>'
+     +'</div>';
+
+   // Badge en header de card cerrada
+   if(badgeHdr) badgeHdr.innerHTML='<span style="background:#FEF9C3;color:#713F12;font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap">Propuesta enviada</span>';
+
+   // Reemplazar botón por "Editar propuesta"
+   if(accionEl){
+     accionEl.innerHTML='<button onclick="event.stopPropagation();editarPropuesta(\''+retornoId+'\',\''+p.id+'\')" class="btn btn-outline" style="font-size:12px;padding:6px 14px">Editar propuesta</button>';
+   }
+
+   // Actualizar calendario
+   if(!window._misPropuestas) window._misPropuestas=[];
+   var idx=window._misPropuestas.findIndex(function(x){ return x.retornoId===retornoId; });
+   if(idx>=0) window._misPropuestas[idx]=p; else window._misPropuestas.push(p);
+   renderCal();
+ }
+
+ // Editar propuesta: abre el modal prellenado
+ function editarPropuesta(retornoId, propuestaId){
+   var ret=window._retornos?window._retornos.find(function(x){return x.id===retornoId;}):null;
+   if(!ret) return;
+   _retornoActual=ret;
+   _propuestaEditId=propuestaId;
+   // Reusar el modal de propuesta con modo edición
+   abrirPropuesta(ret);
+   // Cambiar título del modal
+   var titulo=document.querySelector('#modal-propuesta .modal div');
+   if(titulo) titulo.style.color='#1e2d4e';
+   var tituloEl=document.querySelector('#modal-propuesta .modal > div > div:first-child');
+   if(tituloEl) tituloEl.textContent='Editar propuesta';
+   // Cambiar botón
+   var btn=document.getElementById('btn-enviar-propuesta');
+   if(btn){ btn.textContent='Guardar cambios'; btn.onclick=guardarEdicionPropuesta; }
+ }
+
+ var _propuestaEditId=null;
+
+ async function guardarEdicionPropuesta(){
+   var r=_retornoActual;
+   if(!r) return;
+   var esParcial=_opcionSeleccionada==='tramo';
+   var fecha='', origen='', destino='';
+   if(!esParcial){
+     fecha=document.getElementById('fecha-completo').value;
+     if(!fecha){ toast('Selecciona la fecha que necesitas','err'); return; }
+     origen=r.ciudadOrigen; destino=r.ciudadDestino;
+   } else {
+     origen=document.getElementById('mi-origen').value.trim();
+     destino=document.getElementById('mi-destino').value.trim();
+     fecha=document.getElementById('fecha-tramo').value;
+     if(!origen||!destino){ toast('Ingresa tu ciudad de origen y destino','err'); return; }
+     if(!fecha){ toast('Selecciona la fecha que necesitas','err'); return; }
+   }
+   document.getElementById('modal-propuesta').classList.remove('open');
+   // El backend no tiene endpoint PUT propuesta, así que actualizamos localmente
+   // y recargamos el estado real desde la API
+   toast('Propuesta actualizada.');
+   var propuestaLocal={
+     id:_propuestaEditId||'local', retornoId:r.id,
+     esTramoParcial:esParcial, origenPropuesto:origen, destinoPropuesto:destino,
+     fechaSolicitada:fecha, estado:'pendiente', precioNegociado:null,
+     contactoTransportista:null, createdAt:new Date().toISOString()
+   };
+   mostrarEstadoPropuestaLocal(r.id, propuestaLocal);
+   _propuestaEditId=null;
+   _opcionSeleccionada=null;
+   // Restaurar botón al original
+   var btn=document.getElementById('btn-enviar-propuesta');
+   if(btn){ btn.textContent='Continuar →'; btn.onclick=enviarPropuesta; }
+ }
+
+ /* ── Cargar retornos desde API ── */
+ async function initApp(){
+   var nombre=localStorage.getItem('tm_nombre')||'';
+   var empresa=localStorage.getItem('tm_empresa')||'';
+   var el=document.getElementById('nav-nombre'); if(el) el.textContent=nombre;
+   var el2=document.getElementById('nav-empresa'); if(el2) el2.textContent=empresa;
+   var av=document.getElementById('nav-avatar'); if(av&&nombre) av.textContent=nombre[0].toUpperCase();
+   var un=document.getElementById('um-nombre'); if(un) un.textContent=nombre;
+   var ue=document.getElementById('um-empresa'); if(ue) ue.textContent=empresa;
+
+   var plan=localStorage.getItem('tm_plan')||'basico';
+   if(!['pro','enterprise'].includes(plan)){
+     document.getElementById('lista-ret').innerHTML=
+       '<div class="empty"><div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:8px">Función exclusiva Pro y Enterprise</div>'
+       +'<div style="font-size:14px;color:#6B7280;max-width:360px;margin:0 auto">Los retornos disponibles te permiten contratar transportistas a precios reducidos.</div>'
+       +'</div>';
+     var cnt=document.getElementById('retornos-count'); if(cnt) cnt.textContent='0 retornos';
+     return;
+   }
+
+   try {
+     var res=await fetch(API+'/api/retornos',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+     if(!res.ok) throw new Error();
+     var data=await res.json();
+     var retornos=(data.retornos||[]).filter(function(r){ return r.estado==='disponible'; });
+     window._retornos=retornos;
+     renderRetornos(retornos);
+     renderCal();
+     // Cargar propuestas del cliente para mostrar badges en cards cerradas
+     try {
+       var rP=await fetch(API+'/api/propuestas',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+       if(rP.ok){
+         var dP=await rP.json();
+         window._misPropuestas=dP.propuestas||[];
+         aplicarBadgesHdr();
+         renderCal(); // re-render con propuestas
+       }
+     } catch(e){}
+   } catch(e){
+     document.getElementById('lista-ret').innerHTML='<div class="empty">Error al cargar retornos. <button onclick="initApp()" style="color:#1e2d4e;background:none;border:none;cursor:pointer;text-decoration:underline">Reintentar</button></div>';
+   }
+ }
+
+ // Poner badge en header de cada card según propuesta existente
+ function aplicarBadgesHdr(){
+   var props=window._misPropuestas||[];
+   props.forEach(function(p){
+     var badgeEl=document.getElementById('badge-hdr-'+p.retornoId);
+     if(!badgeEl) return;
+     var cfg={
+       pendiente:{bg:'#FEF9C3',color:'#713F12',label:'Propuesta enviada'},
+       aceptada: {bg:'#DCFCE7',color:'#14532D',label:'Aceptada'},
+       rechazada:{bg:'#FEE2E2',color:'#991B1B',label:'No disponible'}
+     }[p.estado]||{bg:'#FEF9C3',color:'#713F12',label:'Propuesta enviada'};
+     badgeEl.innerHTML='<span style="background:'+cfg.bg+';color:'+cfg.color+';font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap">'+cfg.label+'</span>';
+   });
+ }
+
+ // ── Calendario ────────────────────────────────────────────
+ var _calFecha=new Date(); _calFecha.setDate(1);
+
+ function calNav(dir){
+   if(dir===0){ _calFecha=new Date(); _calFecha.setDate(1); }
+   else _calFecha.setMonth(_calFecha.getMonth()+dir);
+   renderCal();
+ }
+
+ function renderCal(){
+   var hoy=new Date();
+   var anio=_calFecha.getFullYear();
+   var mes=_calFecha.getMonth();
+   var tit=new Date(anio,mes,1).toLocaleDateString('es-CL',{month:'long',year:'numeric'});
+   var elTit=document.getElementById('cal-ret-titulo');
+   if(elTit) elTit.textContent=tit.charAt(0).toUpperCase()+tit.slice(1);
+
+   var primerDia=(new Date(anio,mes,1).getDay()+6)%7;
+   var diasMes=new Date(anio,mes+1,0).getDate();
+   var diasAnt=new Date(anio,mes,0).getDate();
+
+   var retornos=window._retornos||[];
+   var props=window._misPropuestas||[];
+   var propMap={};
+   props.forEach(function(p){ propMap[p.retornoId]=p; });
+
+   // Construir eventos por día
+   // Cada día puede tener: retornos disponibles (azul) y fecha solicitada por cliente (amarillo/verde)
+   var eventosPorDia={}; // dia -> [{label, cls}]
+
+   // Retornos disponibles → rango fechaDesde-fechaHasta
+   retornos.forEach(function(r){
+     var desde=r.fechaDesde?new Date(r.fechaDesde+'T12:00:00'):null;
+     var hasta=r.fechaHasta?new Date(r.fechaHasta+'T12:00:00'):desde;
+     if(!desde) return;
+     var prop=propMap[r.id];
+     var d=new Date(desde.getTime());
+     while(d<=hasta){
+       if(d.getFullYear()===anio&&d.getMonth()===mes){
+         var k=d.getDate();
+         if(!eventosPorDia[k]) eventosPorDia[k]=[];
+         // Si tiene propuesta en este retorno, colorear según estado
+         if(prop){
+           var cls=prop.estado==='aceptada'?'cal-evt-aceptada':'cal-evt-pendiente';
+           var lbl=prop.estado==='aceptada'?'Aceptada':'Propuesta';
+           // Solo agregar si no hay ya uno igual
+           if(!eventosPorDia[k].find(function(e){ return e.cls===cls; }))
+             eventosPorDia[k].push({label:r.ciudadOrigen+'→'+r.ciudadDestino,cls:cls});
+         } else {
+           if(!eventosPorDia[k].find(function(e){ return e.cls==='cal-evt-disponible'; }))
+             eventosPorDia[k].push({label:r.ciudadOrigen+'→'+r.ciudadDestino,cls:'cal-evt-disponible'});
+         }
+       }
+       d.setDate(d.getDate()+1);
+     }
+   });
+
+   // Fecha solicitada por el cliente (día exacto) — marca especial
+   props.forEach(function(p){
+     if(!p.fechaSolicitada) return;
+     var fd=new Date(p.fechaSolicitada+'T12:00:00');
+     if(fd.getFullYear()===anio&&fd.getMonth()===mes){
+       var k=fd.getDate();
+       if(!eventosPorDia[k]) eventosPorDia[k]=[];
+       var cls=p.estado==='aceptada'?'cal-evt-aceptada':'cal-evt-pendiente';
+       // Marcar como fecha solicitada si no hay ya evento de esa propuesta
+       var ret=retornos.find(function(r){ return r.id===p.retornoId; });
+       var lbl=(ret?ret.ciudadOrigen+'→'+ret.ciudadDestino:'Retorno')+' · solicitado';
+       // Reemplazar o agregar
+       var idx=eventosPorDia[k].findIndex(function(e){ return e.cls===cls||e.cls==='cal-evt-disponible'; });
+       if(idx>=0) eventosPorDia[k][idx]={label:lbl,cls:cls};
+       else eventosPorDia[k].push({label:lbl,cls:cls});
+     }
+   });
+
+   var html='';
+   ['LUN','MAR','MIE','JUE','VIE','SAB','DOM'].forEach(function(d){
+     html+='<div class="cal-dow">'+d+'</div>';
+   });
+   for(var i=primerDia-1;i>=0;i--)
+     html+='<div class="cal-day other-month"><div class="cal-day-num">'+(diasAnt-i)+'</div></div>';
+   for(var d2=1;d2<=diasMes;d2++){
+     var esHoy=d2===hoy.getDate()&&mes===hoy.getMonth()&&anio===hoy.getFullYear();
+     var evts=eventosPorDia[d2]||[];
+     html+='<div class="cal-day'+(esHoy?' today':'')+'"><div class="cal-day-num">'+d2+'</div>'
+       +evts.slice(0,2).map(function(e){ return '<div class="cal-evt '+e.cls+'">'+e.label+'</div>'; }).join('')
+       +(evts.length>2?'<div style="font-size:10px;color:#9CA3AF">+'+(evts.length-2)+' más</div>':'')
+       +'</div>';
+   }
+   var totalCeldas=primerDia+diasMes;
+   var resto=totalCeldas%7===0?0:7-(totalCeldas%7);
+   for(var j=1;j<=resto;j++)
+     html+='<div class="cal-day other-month"><div class="cal-day-num">'+j+'</div></div>';
+   var grid=document.getElementById('cal-ret-grid');
+   if(grid) grid.innerHTML=html;
+ }
+
+ /* ── Notificaciones ── */
+ async function cargarNotificaciones(){
+   try {
+     var token=localStorage.getItem('tm_token');
+     var r=await fetch(API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+     var data=r.ok?await r.json():{};
+     var notifs=data.notificaciones||[];
+     var noLeidas=notifs.filter(function(n){ return !n.leida; }).length;
+     var badge=document.getElementById('notif-count');
+     if(badge){ badge.style.display=noLeidas>0?'flex':'none'; badge.textContent=noLeidas; }
+     var list=document.getElementById('notif-list');
+     if(!list) return;
+     if(!notifs.length){ list.innerHTML='<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Sin notificaciones</div>'; return; }
+     list.innerHTML=notifs.slice(0,20).map(function(n){
+       var bg=!n.leida?'background:#f0f4ff':'';
+       return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'
+         +'<div style="flex:1;min-width:0"><div style="font-size:13px;color:#111827;margin-bottom:2px">'+n.mensaje+'</div></div>'
+         +(!n.leida?'<button onclick="marcarUnaLeida(\''+n.id+'\')" style="background:none;border:none;cursor:pointer;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6">✓</button>':'')
+         +'</div>';
+     }).join('');
+   } catch(e){}
+ }
+
+ async function marcarTodasLeidas(){
+   try {
+     var token=localStorage.getItem('tm_token');
+     var r=await fetch(API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+     var data=r.ok?await r.json():{};
+     var notifs=(data.notificaciones||[]).filter(function(n){ return !n.leida; });
+     for(var i=0;i<notifs.length;i++){
+       await fetch(API+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:notifs[i].id})});
+     }
+     var badge=document.getElementById('notif-count'); if(badge) badge.style.display='none';
+     await cargarNotificaciones();
+   } catch(e){}
+ }
+
+ async function marcarUnaLeida(id){
+   try {
+     var token=localStorage.getItem('tm_token');
+     await fetch(API+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:id})});
+     await cargarNotificaciones();
+   } catch(e){}
+ }
+
+ /* ── Auth guard ── */
+ (async function(){
+   var token=localStorage.getItem('tm_token');
+   var role=localStorage.getItem('tm_role');
+   if(!token){ window.location.replace('/index.html'); return; }
+   if(role==='admin'){ window.location.replace('/admin.html'); return; }
+   if(role==='transportista'){ window.location.replace('/transportista.html'); return; }
+   try {
+     var res=await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+token}});
+     if(res.status===401){ localStorage.clear(); window.location.replace('/index.html'); return; }
+     if(res.ok){ var d=await res.json(); localStorage.setItem('tm_plan',d.user.plan||''); }
+   } catch(e){}
+   document.getElementById('auth-guard').style.display='none';
+   var appEl=document.getElementById('app');
+   appEl.style.display='flex';appEl.style.flexDirection='column';appEl.style.minHeight='100vh';
+   cargarNotificaciones();
+   initApp();
+ })();
+</script>
+</body></html>

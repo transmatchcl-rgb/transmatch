@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch -- Mi perfil</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f7fb;min-height:100vh;display:flex;flex-direction:column}
+#auth-guard{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:9999}
+.spinner{width:32px;height:32px;border:3px solid #e8eaf0;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#app{display:none;flex-direction:column;min-height:100vh}
+.nav{background:#1e2d4e;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+.nav-icon{background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+.nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#ff8904}
+.nav-links{display:flex;gap:2px}
+.nav-link{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,.12)}
+.nav-avatar{width:30px;height:30px;border-radius:50%;background:#ff8904;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;cursor:pointer}
+.nav-user{font-size:13px;color:#fff;font-weight:500}
+.nav-sub{font-size:11px;color:#93C5FD}
+.um-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:background .15s}
+.um-item:hover{background:#f9fafb}
+.um-danger{color:#DC2626}.um-danger:hover{background:#FEF2F2}
+main{max-width:660px;margin:0 auto;padding:32px 20px;flex:1}
+.card{background:#fff;border-radius:16px;border:0.5px solid #e8eaf0;box-shadow:0 2px 12px rgba(30,45,78,.08);overflow:hidden}
+.card-hdr{padding:18px 24px;border-bottom:0.5px solid #e8eaf0;display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:16px;font-weight:600;color:#1e2d4e}
+.close-btn{width:32px;height:32px;border-radius:8px;border:0.5px solid #e8eaf0;background:#fff;cursor:pointer;font-size:16px;color:#6B7280;display:flex;align-items:center;justify-content:center}
+.close-btn:hover{background:#f5f7fb}
+.tabs{display:flex;border-bottom:0.5px solid #e8eaf0;padding:0}
+.tab{flex:1;padding:12px 8px;font-size:13px;font-weight:500;color:#6B7280;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;text-align:center}
+.tab.active{color:#1e2d4e;border-bottom-color:#1e2d4e}
+.tab-pane{display:none;padding:24px}
+.tab-pane.active{display:block}
+/* Barra de progreso — dentro de la card */
+.progreso-wrap{padding:16px 24px;border-bottom:0.5px solid #e8eaf0}
+.progreso-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.progreso-label{font-size:12px;font-weight:600;color:#1e2d4e}
+.progreso-pct{font-size:12px;font-weight:700}
+.progreso-track{background:#e8eaf0;border-radius:999px;height:6px;overflow:hidden}
+.progreso-fill{height:100%;border-radius:999px;transition:width .4s ease;background:#ff8904}
+.progreso-hint{font-size:11px;color:#9CA3AF;margin-top:5px}
+.prof-hdr{display:flex;align-items:center;gap:16px;margin-bottom:24px}
+.prof-av{width:60px;height:60px;border-radius:50%;background:#1e2d4e;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:22px;flex-shrink:0}
+.prof-name{font-size:17px;font-weight:600;color:#1e2d4e}
+.prof-email{font-size:13px;color:#6B7280;margin-top:2px}
+.plan-pill{display:inline-flex;align-items:center;gap:4px;margin-top:6px;background:#eef1f8;color:#1e2d4e;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:500px){.grid2{grid-template-columns:1fr}}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg.full{grid-column:span 2}
+@media(max-width:500px){.fg.full{grid-column:span 1}}
+label{font-size:12px;font-weight:500;color:#374151}
+input,textarea{padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:14px;color:#1e2d4e;font-family:inherit;width:100%}
+input:focus,textarea:focus{outline:none;border-color:#1e2d4e;box-shadow:0 0 0 3px rgba(30,45,78,.08)}
+input:disabled{background:#f8f9fc;color:#9CA3AF}
+textarea{resize:vertical;min-height:80px}
+.btn{padding:10px 20px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s}
+.btn:hover{opacity:.88}
+.btn-green{background:#16a34a;color:#fff}
+.btn-red{background:#FEF2F2;color:#DC2626;border:0.5px solid #FECACA}
+.alert-ok{background:#F0FDF4;color:#14532D;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:12px;display:none}
+.sec-row{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:0.5px solid #f3f4f6;gap:16px}
+.sec-row:last-child{border-bottom:none}
+.sec-label{font-size:13px;font-weight:500;color:#374151}
+.sec-sub{font-size:12px;color:#9CA3AF;margin-top:3px}
+.plan-card{border:1.5px solid #e8eaf0;border-radius:10px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.plan-card.active{border-color:#1e2d4e;background:#f8f9fc}
+.plan-name{font-size:14px;font-weight:600;color:#1e2d4e}
+.plan-feat{font-size:12px;color:#6B7280;margin-top:3px}
+</style>
+<script>
+var API='https://transmatch.transmatchcl.workers.dev';
+document.addEventListener('DOMContentLoaded',async function(){
+var token=localStorage.getItem('tm_token');
+var role=localStorage.getItem('tm_role');
+if(!token){window.location.replace('/index.html');return}
+if(role==='admin'){window.location.replace('/admin.html');return}
+if(role==='transportista'){window.location.replace('/transportista-perfil.html');return}
+try{
+var res=await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+token}});
+if(res.status===401){localStorage.clear();window.location.replace('/index.html');return}
+var d=await res.json();
+window._U=d.user||{};
+}catch(e){window._U={};}
+document.getElementById('auth-guard').style.display='none';
+var app=document.getElementById('app');app.style.display='flex';
+window._authOk=true;
+document.dispatchEvent(new Event('_authReady'));
+});
+</script>
+</head>
+<body>
+<div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:20px"><div style="background:#ff8904;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff">T</div><span style="font-size:20px;font-weight:700;color:#1e2d4e">Trans<span style="color:#ff8904">Match</span></span></div><div class="spinner" style="margin:0 auto"></div></div></div>
+
+<div id="app">
+<nav class="nav">
+<div style="display:flex;align-items:center;gap:16px">
+<a href="/cliente.html" class="nav-logo"><div class="nav-icon">T</div><span class="nav-name">Trans<span>Match</span></span></a>
+<div class="nav-links">
+<a href="/cliente.html" class="nav-link">Inicio</a>
+<a href="/cliente-licitaciones.html" class="nav-link">Licitaciones</a>
+<a href="/cliente-retornos.html" id="nav-retornos" class="nav-link">Retornos</a>
+<a href="/cliente-transporte.html" class="nav-link">Transportes</a>
+<a href="/cliente-facturacion.html" class="nav-link">Facturacion</a>
+<a href="/cliente-calendario.html" class="nav-link">Calendario</a>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<div style="text-align:right"><div class="nav-user" id="nav-nombre">--</div><div class="nav-sub" id="nav-empresa">--</div></div>
+<div style="display:flex;align-items:center;gap:8px">
+<div id="notif-btn" onclick="toggleNotifs(event)" style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+<span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center"></span>
+</div>
+<div style="position:relative">
+<div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div>
+<div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:220px;z-index:999;overflow:hidden">
+<div style="padding:14px 16px;border-bottom:1px solid #f3f4f6"><div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div><div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div></div>
+<a href="/cliente-perfil.html" class="um-item">Configuracion</a>
+<a href="/ayuda.html" class="um-item">Ayuda</a>
+<a href="/landing-servicios.html" class="um-item">Planes y precios</a>
+<div style="border-top:1px solid #f3f4f6"><button onclick="cerrarSesion()" class="um-item um-danger">Cerrar sesion</button></div>
+</div>
+</div>
+</div>
+<div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:320px;background:#fff;border-radius:12px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.12);z-index:9000;max-height:440px;overflow:hidden;flex-direction:column">
+<div style="padding:12px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:8px">
+<span style="font-size:14px;font-weight:600;color:#111827">Notificaciones</span>
+<button onclick="event.stopPropagation();marcarTodasLeidas()" style="font-size:11px;color:#1e2d4e;background:none;border:none;cursor:pointer;white-space:nowrap">Marcar todas leidas</button>
+</div>
+<div id="notif-list" style="overflow-y:auto;max-height:380px"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div>
+</div>
+</div>
+</nav>
+
+<main>
+<div class="card">
+<div class="card-hdr">
+<div class="card-title">Configuracion de cuenta</div>
+<button class="close-btn" onclick="window.location.href='/cliente.html'">x</button>
+</div>
+<!-- Barra de progreso — dentro de la card -->
+<div class="progreso-wrap" id="progreso-banner" style="display:none">
+  <div class="progreso-header">
+    <span class="progreso-label">Completitud del perfil</span>
+    <span class="progreso-pct" id="progreso-pct">0%</span>
+  </div>
+  <div class="progreso-track"><div class="progreso-fill" id="progreso-bar" style="width:0%"></div></div>
+  <div class="progreso-hint" id="progreso-hint"></div>
+</div>
+<div class="tabs">
+<div class="tab active" onclick="showTab('perfil',this)">Perfil</div>
+<div class="tab" onclick="showTab('empresa',this)">Empresa</div>
+<div class="tab" onclick="showTab('facturacion',this)">Facturación</div>
+<div class="tab" onclick="showTab('cuenta',this)">Mi Cuenta</div>
+<div class="tab" id="tab-usuarios" style="display:none" onclick="showTab('usuarios',this)">Usuarios</div>
+</div>
+
+<!-- PERFIL -->
+<div class="tab-pane active" id="pane-perfil">
+<div class="prof-hdr">
+<div class="prof-av" id="prof-av">?</div>
+<div>
+<div class="prof-name" id="prof-nombre">--</div>
+<div class="prof-email" id="prof-email">--</div>
+<div class="plan-pill" id="prof-plan">Plan Activo</div>
+</div>
+</div>
+<div class="grid2">
+<div class="fg"><label>Nombre completo</label><input type="text" id="inp-nombre" placeholder="Tu nombre completo"/></div>
+<div class="fg"><label>Correo electronico</label><input type="email" id="inp-email" disabled/></div>
+<div class="fg"><label>Telefono / WhatsApp</label><input type="tel" id="inp-telefono" placeholder="+56 9 XXXX XXXX"/></div>
+<div class="fg"><label>Ciudad</label><input type="text" id="inp-ciudad" placeholder="Santiago"/></div>
+<div class="fg"><label>RUT personal</label><input type="text" id="inp-rut" placeholder="12.345.678-9" oninput="formatRut(this)"/></div>
+<div class="fg"><label>Cargo en la empresa</label><input type="text" id="inp-cargo" placeholder="Gerente de operaciones"/></div>
+</div>
+<div id="alok-perfil" class="alert-ok">Perfil actualizado correctamente</div>
+<div style="margin-top:16px"><button class="btn btn-green" id="btn-guardar-perfil" onclick="guardarPerfil()">Guardar perfil</button></div>
+</div>
+
+<!-- EMPRESA -->
+<div class="tab-pane" id="pane-empresa">
+<div class="grid2">
+<div class="fg full"><label>Razon social</label><input type="text" id="inp-empresa" placeholder="Minera Atacama SpA"/></div>
+<div class="fg"><label>RUT empresa</label><input type="text" id="inp-rut-empresa" placeholder="76.123.456-7" oninput="formatRut(this)"/></div>
+<div class="fg"><label>Giro / Industria</label><input type="text" id="inp-giro" placeholder="Mineria, Construccion..."/></div>
+<div class="fg"><label>Telefono empresa</label><input type="tel" id="inp-tel-empresa" placeholder="+56 2 XXXX XXXX"/></div>
+<div class="fg"><label>Ciudad</label><input type="text" id="inp-ciudad-empresa" placeholder="Santiago"/></div>
+<div class="fg"><label>Direccion</label><input type="text" id="inp-direccion" placeholder="Av. Apoquindo 1234, Of. 501"/></div>
+<div class="fg full"><label>Sitio web</label><input type="text" id="inp-web" placeholder="www.miempresa.cl"/></div>
+<div class="fg full"><label>Descripcion del negocio</label><textarea id="inp-desc" placeholder="Breve descripcion de tu empresa y sus actividades..."></textarea></div>
+</div>
+<div id="alok-empresa" class="alert-ok">Empresa actualizada correctamente</div>
+<div style="margin-top:16px"><button class="btn btn-green" onclick="guardarEmpresa()">Guardar empresa</button></div>
+</div>
+
+<!-- FACTURACIÓN (Etapa 2) -->
+<div class="tab-pane" id="pane-facturacion">
+<div class="grid2">
+<div class="fg full"><label>Razón social (facturación)</label><input type="text" id="inp-rs-fact" placeholder="Nombre legal para facturas"/></div>
+<div class="fg"><label>RUT empresa</label><input type="text" id="inp-rut-fact" placeholder="76.123.456-7" oninput="formatRut(this)"/></div>
+<div class="fg"><label>Giro tributario</label><input type="text" id="inp-giro-fact" placeholder="Ej: Servicios de minería"/></div>
+<div class="fg full"><label>Dirección fiscal</label><input type="text" id="inp-dir-fact" placeholder="Calle, número, comuna, ciudad"/></div>
+<div class="fg"><label>Email de facturación</label><input type="email" id="inp-email-fact" placeholder="facturas@empresa.cl"/></div>
+<div class="fg"><label>Teléfono área facturación</label><input type="tel" id="inp-tel-fact" placeholder="+56 2 XXXX XXXX"/></div>
+<div class="fg"><label>Nombre contacto facturación</label><input type="text" id="inp-contacto-fact" placeholder="María González"/></div>
+<div class="fg"><label>Cargo contacto facturación</label><input type="text" id="inp-cargo-fact" placeholder="Jefa de finanzas"/></div>
+</div>
+<div id="alok-facturacion" class="alert-ok">Datos de facturación guardados correctamente</div>
+<div style="margin-top:16px"><button class="btn btn-green" onclick="guardarFacturacion()">Guardar datos de facturación</button></div>
+</div>
+
+<!-- MI CUENTA -->
+<div class="tab-pane" id="pane-cuenta">
+<div style="font-size:13px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px">Seguridad</div>
+<div class="sec-row">
+<div><div class="sec-label">Contrasena</div><div class="sec-sub">Para cambiarla, cierra sesion y usa "Recuperar contrasena" en el inicio de sesion</div></div>
+</div>
+<div class="sec-row">
+<div><div class="sec-label">Sesion activa</div><div class="sec-sub" id="sesion-info">--</div></div>
+<button class="btn btn-red" onclick="cerrarSesion()">Cerrar sesion</button>
+</div>
+<div class="sec-row">
+<div><div class="sec-label">Eliminar cuenta</div><div class="sec-sub">Contacta a contacto@transmatch.cl para solicitar la eliminacion de tu cuenta</div></div>
+</div>
+</div>
+
+<!-- USUARIOS -->
+<div class="tab-pane" id="pane-usuarios">
+<div id="usuarios-contenido"><div style="text-align:center;padding:20px;color:#9CA3AF;font-size:13px">Cargando...</div></div>
+</div>
+</main>
+</div>
+
+<script>
+var API='https://transmatch.transmatchcl.workers.dev';
+var U={};
+
+function showTab(id,el){
+document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+document.querySelectorAll('.tab-pane').forEach(function(t){t.classList.remove('active')});
+el.classList.add('active');
+document.getElementById('pane-'+id).classList.add('active');
+}
+
+function render(){
+var nombre=U.nombre||'';
+var empresa=U.empresa||'';
+var inicial=(nombre||empresa||'?')[0].toUpperCase();
+var planRaw=(U.plan||'basico').toLowerCase();var planKey=planRaw.replace('?','a').replace('?','e').replace('?','o').replace('?','i').replace('?','u');
+var planLabels={basico:'Plan Basico',pro:'Plan Pro',enterprise:'Enterprise'};
+
+document.getElementById('nav-avatar').textContent=inicial;
+document.getElementById('prof-av').textContent=inicial;
+document.getElementById('prof-nombre').textContent=nombre||'--';
+document.getElementById('prof-email').textContent=U.email||'--';
+document.getElementById('prof-plan').textContent=planLabels[planKey]||'Plan Activo';
+document.getElementById('sesion-info').textContent='Conectado como '+(U.email||'');
+var nn=document.getElementById('nav-nombre');if(nn)nn.textContent=nombre;
+var ne=document.getElementById('nav-empresa');if(ne)ne.textContent=empresa;
+var un=document.getElementById('um-nombre');if(un)un.textContent=nombre;
+var ue=document.getElementById('um-empresa');if(ue)ue.textContent=empresa;
+
+document.getElementById('inp-nombre').value=U.nombre||'';
+document.getElementById('inp-email').value=U.email||'';
+document.getElementById('inp-telefono').value=U.telefono||U.tel||'';
+document.getElementById('inp-ciudad').value=U.ciudad||'';
+document.getElementById('inp-rut').value=U.rut||'';
+document.getElementById('inp-cargo').value=U.cargo||'';
+document.getElementById('inp-empresa').value=U.empresa||'';
+document.getElementById('inp-rut-empresa').value=U.rutEmpresa||'';
+document.getElementById('inp-giro').value=U.giro||'';
+document.getElementById('inp-tel-empresa').value=U.telEmpresa||'';
+document.getElementById('inp-ciudad-empresa').value=U.ciudadEmpresa||'';
+document.getElementById('inp-direccion').value=U.direccion||'';
+document.getElementById('inp-web').value=U.web||'';
+document.getElementById('inp-desc').value=U.descripcion||'';
+
+// Facturación
+var fact = U.facturacion||{};
+document.getElementById('inp-rs-fact').value=fact.razonSocial||U.empresa||'';
+document.getElementById('inp-rut-fact').value=fact.rut||U.rutEmpresa||'';
+document.getElementById('inp-giro-fact').value=fact.giro||U.giro||'';
+document.getElementById('inp-dir-fact').value=fact.direccion||'';
+document.getElementById('inp-email-fact').value=fact.email||'';
+document.getElementById('inp-tel-fact').value=fact.telefono||'';
+document.getElementById('inp-contacto-fact').value=fact.contactoNombre||'';
+document.getElementById('inp-cargo-fact').value=fact.contactoCargo||'';
+
+localStorage.setItem('tm_genera_oc_propia','true');
+
+// Barra de progreso
+renderProgreso(U);
+
+// Mostrar tab Usuarios solo si es admin de empresa y tiene max_usuarios > 0
+var esAdminEmpresa = !U.esSubusuario;
+var maxU = U.max_usuarios||0;
+var tabU = document.getElementById('tab-usuarios');
+if(tabU && esAdminEmpresa && maxU > 0) { tabU.style.display=''; cargarUsuarios(); }
+}
+
+function calcularCompletitudCliente(u){
+  var puntos = 0;
+  // Etapa 1 — datos personales (40%)
+  if(u.nombre)      puntos += 10;
+  if(u.empresa)     puntos += 10;
+  if(u.rutEmpresa)  puntos += 7;
+  if(u.cargo)       puntos += 7;
+  if(u.telefono)    puntos += 6;
+  // Etapa 2 — datos empresa (30%)
+  if(u.giro)        puntos += 10;
+  if(u.direccion)   puntos += 10;
+  if(u.ciudad||u.ciudadEmpresa) puntos += 10;
+  // Etapa 3 — facturación (30%)
+  var f = u.facturacion||{};
+  if(f.email)           puntos += 10;
+  if(f.contactoNombre)  puntos += 10;
+  if(f.rut||u.rutEmpresa) puntos += 10;
+  return Math.min(100, puntos);
+}
+
+function renderProgreso(u){
+  var pct = calcularCompletitudCliente(u);
+  var banner = document.getElementById('progreso-banner');
+  var bar = document.getElementById('progreso-bar');
+  var pctEl = document.getElementById('progreso-pct');
+  var hint = document.getElementById('progreso-hint');
+  if(!banner) return;
+  banner.style.display = pct < 100 ? 'block' : 'none';
+  bar.style.width = pct+'%';
+  bar.style.background = pct < 50 ? '#EF4444' : pct < 80 ? '#ff8904' : '#16a34a';
+  pctEl.textContent = pct+'%';
+  pctEl.style.color = pct < 50 ? '#EF4444' : pct < 80 ? '#ff8904' : '#16a34a';
+  var fact = u.facturacion||{};
+  if(pct < 40) hint.textContent = 'Completa tus datos personales y de empresa para comenzar';
+  else if(!u.giro||!u.direccion) hint.textContent = 'Siguiente: completa los datos de tu empresa en la pestaña Empresa';
+  else if(!fact.email||!fact.contactoNombre) hint.textContent = 'Siguiente: agrega tus datos de facturación en la pestaña Facturación';
+  else hint.textContent = 'Perfil casi completo';
+}
+
+async function guardarPerfil(){
+var btn=document.getElementById('btn-guardar-perfil');
+btn.disabled=true;btn.textContent='Guardando...';
+var body={nombre:document.getElementById('inp-nombre').value.trim(),telefono:document.getElementById('inp-telefono').value.trim(),ciudad:document.getElementById('inp-ciudad').value.trim(),rut:document.getElementById('inp-rut').value.trim(),cargo:document.getElementById('inp-cargo').value.trim()};
+var res=await fetch(API+'/api/perfil',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(body)});
+if(res.ok){Object.assign(U,body);localStorage.setItem('tm_nombre',body.nombre);renderProgreso(U);render();var el=document.getElementById('alok-perfil');el.style.display='block';setTimeout(function(){el.style.display='none'},3000);}
+btn.disabled=false;btn.textContent='Guardar perfil';
+}
+
+async function guardarEmpresa(){
+var body={
+empresa:document.getElementById('inp-empresa').value.trim(),
+rutEmpresa:document.getElementById('inp-rut-empresa').value.trim(),
+giro:document.getElementById('inp-giro').value.trim(),
+telEmpresa:document.getElementById('inp-tel-empresa').value.trim(),
+ciudadEmpresa:document.getElementById('inp-ciudad-empresa').value.trim(),
+ciudad:document.getElementById('inp-ciudad-empresa').value.trim(),
+direccion:document.getElementById('inp-direccion').value.trim(),
+web:document.getElementById('inp-web').value.trim(),
+descripcion:document.getElementById('inp-desc').value.trim()};
+var res=await fetch(API+'/api/perfil',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(body)});
+if(res.ok){Object.assign(U,body);localStorage.setItem('tm_empresa',body.empresa);renderProgreso(U);var el=document.getElementById('alok-empresa');el.style.display='block';setTimeout(function(){el.style.display='none'},3000);}
+}
+
+async function guardarOcConfig(){
+var checked=document.getElementById('toggle-oc').checked;
+var dot=document.getElementById('toggle-oc-dot');var span=document.getElementById('toggle-oc-span');
+dot.style.transform=checked?'translateX(20px)':'';span.style.background=checked?'#1e2d4e':'#E5E7EB';
+var res=await fetch(API+'/api/perfil',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({genera_oc_propia:checked})});
+if(res.ok){localStorage.setItem('tm_genera_oc_propia',checked?'true':'false');var el=document.getElementById('alok-oc');el.style.display='block';setTimeout(function(){el.style.display='none'},3000);}
+}
+
+function initApp(){
+U=window._U||{};
+render();
+cargarNotificaciones();
+var p=localStorage.getItem('tm_plan')||'basico';
+if(p==='basico'){var nr=document.getElementById('nav-retornos');if(nr)nr.style.display='none';}
+}
+if(window._authOk)initApp();
+else document.addEventListener('_authReady',initApp);
+
+function closeAllPanels(){var m=document.getElementById('user-menu');var p=document.getElementById('notif-panel');if(m)m.style.display='none';if(p)p.style.display='none';}
+function toggleUserMenu(e){e.stopPropagation();var m=document.getElementById('user-menu');var isOpen=m.style.display==='block';closeAllPanels();if(!isOpen)m.style.display='block';}
+function toggleNotifs(e){if(e)e.stopPropagation();var p=document.getElementById('notif-panel');var isOpen=p.style.display==='flex';closeAllPanels();if(!isOpen){p.style.display='flex';cargarNotificaciones();}}
+document.addEventListener('click',function(){closeAllPanels();});
+function cerrarSesion(){localStorage.clear();window.location.replace('/index.html');}
+
+async function cargarNotificaciones(){
+try{
+var token=localStorage.getItem('tm_token');
+var r=await fetch(API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+var data=r.ok?await r.json():{};
+var notifs=data.notificaciones||[];
+var noLeidas=notifs.filter(function(n){return !n.leida}).length;
+var badge=document.getElementById('notif-count');
+if(badge){badge.style.display=noLeidas>0?'flex':'none';badge.textContent=noLeidas;}
+var list=document.getElementById('notif-list');if(!list)return;
+if(!notifs.length){list.innerHTML='<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Sin notificaciones</div>';return;}
+list.innerHTML=notifs.slice(0,20).map(function(n){
+var bg=!n.leida?'background:#f0f4ff':'';
+var ts=n.createdAt?new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'
++'<div style="flex:1;min-width:0"><div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4">'+n.mensaje+'</div><div style="font-size:11px;color:#9CA3AF">'+ts+'</div></div>'
++(!n.leida?'<button onclick="event.stopPropagation();marcarUnaLeida(this.dataset.nid)" data-nid="'+n.id+'" style="background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6">v</button>':'')
++'</div>';
+}).join('');
+}catch(e){}
+}
+async function marcarTodasLeidas(){
+try{
+var token=localStorage.getItem('tm_token');
+var r=await fetch(API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+var data=r.ok?await r.json():{};
+var notifs=(data.notificaciones||[]).filter(function(n){return !n.leida});
+for(var i=0;i<notifs.length;i++){await fetch(API+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:notifs[i].id})})}
+var badge=document.getElementById('notif-count');
+if(badge)badge.style.display='none';
+await cargarNotificaciones();
+}catch(e){}
+}
+function togglePlanDetalle(card){
+var preview=card.querySelector('.plan-preview');
+var full=card.querySelector('.plan-full');
+var isOpen=full.style.display!=='none';
+full.style.display=isOpen?'none':'block';
+preview.style.display=isOpen?'block':'none';
+}
+
+function formatRut(input){var v=input.value.replace(/[^0-9kK]/g,"").toUpperCase();if(v.length<=1){input.value=v;return;}var dv=v.slice(-1);var num=v.slice(0,-1);var fmt="";var c=0;for(var i=num.length-1;i>=0;i--){fmt=num[i]+fmt;c++;if(c%3===0&&i!==0)fmt="."+fmt;}input.value=fmt+"-"+dv;}
+
+async function marcarUnaLeida(id){
+try{var token=localStorage.getItem('tm_token');await fetch(API+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:id})});await cargarNotificaciones();}catch(e){}
+}
+
+async function guardarFacturacion(){
+  var body={facturacion:{
+    razonSocial:document.getElementById('inp-rs-fact').value.trim(),
+    rut:document.getElementById('inp-rut-fact').value.trim(),
+    giro:document.getElementById('inp-giro-fact').value.trim(),
+    direccion:document.getElementById('inp-dir-fact').value.trim(),
+    email:document.getElementById('inp-email-fact').value.trim(),
+    telefono:document.getElementById('inp-tel-fact').value.trim(),
+    contactoNombre:document.getElementById('inp-contacto-fact').value.trim(),
+    contactoCargo:document.getElementById('inp-cargo-fact').value.trim(),
+  }};
+  var res=await fetch(API+'/api/perfil',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(body)});
+  if(res.ok){
+    Object.assign(U,body);
+    renderProgreso(U);
+    var el=document.getElementById('alok-facturacion');el.style.display='block';
+    setTimeout(function(){el.style.display='none'},3000);
+  }
+}
+
+// ── GESTIÓN DE USUARIOS ────────────────────────────────────────
+var _usuariosData = [];
+
+// Solo trazabilidad como permiso adicional
+var PERMISOS_CLIENTE = [
+  {
+    key:'trazabilidad',
+    label:'Ver trazabilidad de acciones',
+    tooltip:'Permite ver quién realizó cada acción en la empresa: quién creó una licitación, quién adjudicó, quién subió documentos, etc.'
+  },
+];
+
+async function cargarUsuarios(){
+  var el = document.getElementById('usuarios-contenido');
+  if(!el) return;
+  try {
+    var res = await fetch(API+'/api/mi-empresa/usuarios', {headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    if(!res.ok){ el.innerHTML='<div style="text-align:center;padding:20px;color:#9CA3AF;font-size:13px">Error al cargar usuarios</div>'; return; }
+    var data = await res.json();
+    _usuariosData = data.miembros||[];
+    var max = data.max_usuarios||0;
+    renderUsuarios(_usuariosData, max);
+  } catch(e){ el.innerHTML='<div style="text-align:center;padding:20px;color:#9CA3AF;font-size:13px">Error de conexión</div>'; }
+}
+
+function renderUsuarios(miembros, max){
+  var el = document.getElementById('usuarios-contenido');
+  if(!el) return;
+  var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
+    +'<div style="font-size:13px;color:#6B7280">'+miembros.length+' de '+max+' usuarios extra activos</div>'
+    +(miembros.length < max ? '<button class="btn btn-orange btn-sm" onclick="abrirModalInvitar()">+ Invitar usuario</button>' : '<span style="font-size:12px;color:#9CA3AF">Límite alcanzado</span>')
+    +'</div>';
+  if(miembros.length === 0){
+    html += '<div style="text-align:center;padding:32px;background:#f8f9fc;border-radius:10px;border:0.5px solid #e8eaf0">'
+      +'<div style="font-size:14px;font-weight:600;color:#374151;margin-bottom:6px">Sin usuarios extra aún</div>'
+      +'<div style="font-size:13px;color:#9CA3AF">Invita a personas de tu empresa para que puedan acceder a la plataforma con los permisos que definas.</div>'
+      +'</div>';
+  } else {
+    html += miembros.map(function(m){
+      var perms = m.permisos||{};
+      var permLabels = PERMISOS_CLIENTE.filter(function(p){ return perms[p.key]; }).map(function(p){ return p.label; });
+      return '<div style="border:0.5px solid #e8eaf0;border-radius:10px;padding:14px 16px;margin-bottom:10px;background:#fff">'
+        +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px">'
+        +'<div>'
+        +'<div style="font-size:13px;font-weight:600;color:#1e2d4e">'+m.nombre+'</div>'
+        +'<div style="font-size:12px;color:#6B7280;margin-top:2px">'+m.email+'</div>'
+        +'</div>'
+        +'<div style="display:flex;gap:6px;flex-shrink:0">'
+        +'<button class="btn btn-outline btn-sm" onclick="abrirModalPermisos(\''+m.email+'\',\''+m.nombre+'\')">Editar permisos</button>'
+        +'<button onclick="eliminarUsuario(\''+m.email+'\',\''+m.nombre+'\')" style="padding:5px 10px;font-size:12px;border-radius:6px;border:1px solid #FECACA;background:#FEF2F2;color:#DC2626;cursor:pointer">Eliminar</button>'
+        +'</div>'
+        +'</div>'
+        +(permLabels.length
+          ? '<div style="display:flex;flex-wrap:wrap;gap:5px">'+permLabels.map(function(l){ return '<span style="background:#eef1f8;color:#1e2d4e;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px">'+l+'</span>'; }).join('')+'</div>'
+          : '<div style="font-size:12px;color:#9CA3AF">Sin permisos asignados aún</div>')
+        +'</div>';
+    }).join('');
+  }
+  el.innerHTML = html;
+}
+
+function abrirModalInvitar(){
+  var modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  var inner = document.createElement('div');
+  inner.style.cssText = 'background:#fff;border-radius:16px;padding:28px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto';
+  var permsHtml = PERMISOS_CLIENTE.map(function(p){
+    return '<label style="display:flex;align-items:flex-start;gap:10px;padding:12px 0;border-bottom:0.5px solid #f3f4f6;cursor:pointer">'
+      +'<input type="checkbox" data-key="'+p.key+'" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer;margin-top:2px;flex-shrink:0"/>'
+      +'<div><span style="font-size:13px;color:#374151;font-weight:500">'+p.label+'</span>'
+      +(p.tooltip?'<span title="'+p.tooltip+'" style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#e8eaf0;color:#6B7280;font-size:10px;font-weight:700;cursor:help;margin-left:6px;flex-shrink:0">?</span>':'')
+      +(p.tooltip?'<div style="font-size:11px;color:#9CA3AF;margin-top:3px;line-height:1.4">'+p.tooltip+'</div>':'')
+      +'</div>'
+      +'</label>';
+  }).join('');
+  inner.innerHTML = '<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Invitar usuario</div>'
+    +'<div style="font-size:12px;color:#9CA3AF;margin-bottom:20px">El usuario recibirá un email para crear su contraseña y acceder a la plataforma.</div>'
+    +'<div style="margin-bottom:16px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Email del usuario *</label>'
+    +'<input type="email" id="inv-email" placeholder="correo@empresa.cl" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Permisos</div>'
+    +permsHtml
+    +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">'
+    +'<button id="inv-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
+    +'<button id="inv-save" style="padding:9px 18px;border-radius:8px;background:#ff8904;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Enviar invitación</button>'
+    +'</div>';
+  modal.appendChild(inner); document.body.appendChild(modal);
+  document.getElementById('inv-cancel').onclick = function(){ modal.remove(); };
+  document.getElementById('inv-save').onclick = function(){ enviarInvitacion(modal); };
+  modal.onclick = function(e){ if(e.target===modal) modal.remove(); };
+}
+
+async function enviarInvitacion(modal){
+  var email = (document.getElementById('inv-email').value||'').trim();
+  if(!email){ alert('Ingresa el email'); return; }
+  var permisos = {};
+  modal.querySelectorAll('input[type=checkbox][data-key]').forEach(function(cb){ permisos[cb.dataset.key] = cb.checked; });
+  var btn = document.getElementById('inv-save');
+  btn.disabled=true; btn.textContent='Enviando...';
+  try{
+    var res = await fetch(API+'/api/mi-empresa/invitar',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify({emailInvitado:email, permisos:permisos})
+    });
+    var d = await res.json();
+    if(res.ok){ modal.remove(); alert('Invitación enviada a '+email+'. El link expira en 48 horas.'); cargarUsuarios(); }
+    else{ alert(d.error||'Error al enviar'); btn.disabled=false; btn.textContent='Enviar invitación'; }
+  }catch(e){ alert('Error de conexión'); btn.disabled=false; btn.textContent='Enviar invitación'; }
+}
+
+function abrirModalPermisos(emailTarget, nombreTarget){
+  var usuario = _usuariosData.find(function(m){ return m.email===emailTarget; });
+  var permsActuales = usuario ? (usuario.permisos||{}) : {};
+  var modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  var inner = document.createElement('div');
+  inner.style.cssText = 'background:#fff;border-radius:16px;padding:28px;width:100%;max-width:440px';
+  var permsHtml = PERMISOS_CLIENTE.map(function(p){
+    return '<label style="display:flex;align-items:flex-start;gap:10px;padding:12px 0;border-bottom:0.5px solid #f3f4f6;cursor:pointer">'
+      +'<input type="checkbox" data-key="'+p.key+'" '+(permsActuales[p.key]?'checked':'')+' style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer;margin-top:2px;flex-shrink:0"/>'
+      +'<div><span style="font-size:13px;color:#374151;font-weight:500">'+p.label+'</span>'
+      +(p.tooltip?'<div style="font-size:11px;color:#9CA3AF;margin-top:3px;line-height:1.4">'+p.tooltip+'</div>':'')
+      +'</div>'
+      +'</label>';
+  }).join('');
+  inner.innerHTML = '<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Permisos de '+nombreTarget+'</div>'
+    +'<div style="font-size:12px;color:#9CA3AF;margin-bottom:16px">'+emailTarget+'</div>'
+    +permsHtml
+    +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">'
+    +'<button id="perm-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
+    +'<button id="perm-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar permisos</button>'
+    +'</div>';
+  modal.appendChild(inner); document.body.appendChild(modal);
+  document.getElementById('perm-cancel').onclick = function(){ modal.remove(); };
+  document.getElementById('perm-save').onclick = function(){ guardarPermisos(emailTarget, modal); };
+  modal.onclick = function(e){ if(e.target===modal) modal.remove(); };
+}
+
+async function guardarPermisos(emailTarget, modal){
+  var permisos = {};
+  modal.querySelectorAll('input[type=checkbox][data-key]').forEach(function(cb){ permisos[cb.dataset.key] = cb.checked; });
+  try{
+    var res = await fetch(API+'/api/mi-empresa/usuario/'+encodeURIComponent(emailTarget)+'/permisos',{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify({permisos:permisos})
+    });
+    if(res.ok){ modal.remove(); cargarUsuarios(); }
+    else{ var d=await res.json(); alert(d.error||'Error'); }
+  }catch(e){ alert('Error de conexión'); }
+}
+
+async function eliminarUsuario(emailTarget, nombre){
+  if(!confirm('¿Eliminar la cuenta de '+nombre+'? No podrá acceder a la plataforma.')) return;
+  try{
+    var res = await fetch(API+'/api/mi-empresa/usuario/'+encodeURIComponent(emailTarget),{
+      method:'DELETE',
+      headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}
+    });
+    if(res.ok) cargarUsuarios();
+    else{ var d=await res.json(); alert(d.error||'Error'); }
+  }catch(e){ alert('Error de conexión'); }
+}
+</script>
+
+<footer style="background:#1e2d4e;margin-top:40px;padding:28px 24px 20px">
+<div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px">T</div><span style="font-weight:700;color:#fff;font-size:15px">Trans<span style="color:#ff8904">Match</span></span></div><div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div></div>
+<div style="display:flex;gap:32px;flex-wrap:wrap">
+<div>
+<div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<a href="/terminos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Terminos y condiciones</a>
+<a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Politica de privacidad</a>
+<a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Centro de ayuda</a>
+</div></div>
+<div>
+<div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span>
+<span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span>
+</div></div>
+</div>
+</div>
+<div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B">(c) 2026 TransMatch SpA.</div>
+</footer>
+</body></html>

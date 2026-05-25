@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch — Iniciar sesion</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f7fb;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+  .logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;text-decoration:none}
+  .logo-icon{background:#ff8904;border-radius:10px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:20px}
+  .logo-name{font-size:24px;font-weight:700;color:#1e2d4e}
+  .logo-name span{color:#ff8904}
+  .card{background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(30,45,78,.08);padding:36px;width:100%;max-width:420px}
+  h1{font-size:22px;font-weight:700;color:#1e2d4e;margin-bottom:6px}
+  .sub{font-size:14px;color:#6B7280;margin-bottom:28px}
+  .field{margin-bottom:18px}
+  label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px}
+  input{width:100%;padding:11px 14px;border:1.5px solid #e8eaf0;border-radius:8px;font-size:14px;color:#374151;font-family:inherit;transition:border-color .15s;outline:none}
+  input:focus{border-color:#1e2d4e}
+  .btn{width:100%;padding:13px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .2s}
+  .btn-primary{background:#1d4ed8;color:#fff}
+  .btn-primary:hover{background:#1e40af}
+  .btn-primary:disabled{opacity:.6;cursor:not-allowed}
+  .divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:#9CA3AF;font-size:13px}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:#e8eaf0}
+  .btn-secondary{background:#ff8904;color:#fff;margin-bottom:12px}
+  .btn-secondary:hover{background:#e87900}
+  .link-btn{background:none;border:none;color:#1d4ed8;font-size:13px;cursor:pointer;font-family:inherit;text-decoration:underline;padding:0}
+  .alert{display:none;padding:11px 14px;border-radius:8px;font-size:13px;font-weight:500;margin-bottom:16px;background:#FEF2F2;color:#991B1B;border:1px solid #FECACA}
+  .footer-links{margin-top:16px;text-align:center;font-size:13px;color:#6B7280}
+  .footer-links a{color:#1e2d4e;font-weight:500;text-decoration:none}
+  .admin-link{margin-top:20px;text-align:center}
+  .admin-link a{font-size:12px;color:#9CA3AF;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+  .admin-link a:hover{color:#6B7280}
+</style>
+<script>
+function togglePass(id,btn){
+var inp=document.getElementById(id);
+var isPass=inp.type==="password";
+inp.type=isPass?"text":"password";
+btn.style.color=isPass?"#1e2d4e":"#9CA3AF";
+}
+</script>
+</head>
+<body>
+
+<a href="/index.html" class="logo">
+  <div class="logo-icon">T</div>
+  <span class="logo-name">Trans<span>Match</span></span>
+</a>
+
+<div class="card">
+  <h1>Bienvenido de vuelta</h1>
+  <p class="sub">Ingresa tu email y contrasena para continuar</p>
+
+  <div class="alert" id="alert-msg"></div>
+
+  <div class="field">
+    <label for="email">Email</label>
+    <input type="email" id="email" placeholder="correo@empresa.cl" autocomplete="email"/>
+  </div>
+  <div class="field">
+    <label for="password">Contrasena</label>
+    <div style="position:relative"><input type="password" id="password" placeholder="Tu contrasena" autocomplete="current-password" style="padding-right:42px"/><button type="button" onclick="togglePass('password',this)" tabindex="-1" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:16px;padding:0;line-height:1">&#128065;</button></div>
+  </div>
+
+  <button class="btn btn-primary" id="btn-login" onclick="doLogin()">Iniciar sesion</button>
+
+  <div class="divider">¿Eres nuevo?</div>
+
+  <button class="btn btn-secondary" onclick="window.location.href='/registro.html'">Crear cuenta</button>
+
+  <div class="footer-links">
+    <a href="/registro.html">Registrar empresa →</a>
+  </div>
+</div>
+
+<div class="admin-link">
+  <a href="/admin-login.html">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    Acceso administrador
+  </a>
+</div>
+
+<script>
+var API = 'https://transmatch.transmatchcl.workers.dev';
+
+  async function fetchWithRetry(url, options, retries) {
+    retries = retries || 2;
+    for (var i = 0; i <= retries; i++) {
+      try {
+        var controller = new AbortController();
+        var timeout = setTimeout(function(){ controller.abort(); }, 15000);
+        var res = await fetch(url, Object.assign({}, options, { signal: controller.signal }));
+        clearTimeout(timeout);
+        return res;
+      } catch(e) {
+        if (i === retries) throw e;
+        await new Promise(function(r){ setTimeout(r, 1000); });
+      }
+    }
+  }
+
+
+function showAlert(msg) {
+  var el = document.getElementById('alert-msg');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function hideAlert() {
+  document.getElementById('alert-msg').style.display = 'none';
+}
+
+async function doLogin() {
+  hideAlert();
+  var email    = document.getElementById('email').value.trim();
+  var password = document.getElementById('password').value;
+
+  if (!email || !password) { showAlert('Completa todos los campos'); return; }
+
+  var btn = document.getElementById('btn-login');
+  btn.disabled = true;
+  btn.textContent = 'Ingresando...';
+
+  try {
+    var res = await fetchWithRetry(API + '/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, password: password })
+    });
+    var data = await res.json();
+
+    if (res.ok) {
+      localStorage.setItem('tm_token',   data.token);
+      localStorage.setItem('tm_role',    data.role);
+      localStorage.setItem('tm_nombre',  data.nombre);
+      localStorage.setItem('tm_empresa', data.empresa);
+      localStorage.setItem('tm_email',   data.email);
+      localStorage.setItem('tm_plan',    data.plan || 'basico');
+
+      if (data.role === 'transportista') {
+        window.location.replace('/transportista.html');
+      } else if (data.role === 'admin') {
+        window.location.replace('/admin.html');
+      } else {
+        window.location.replace('/cliente.html');
+      }
+    } else {
+      var errMsg = data.error || 'Email o contrasena incorrectos';
+      if (errMsg.toLowerCase().includes('pendiente')) {
+        errMsg = 'Tu cuenta esta pendiente de aprobacion por TransMatch. Te avisaremos pronto.';
+      }
+      showAlert(errMsg);
+      btn.disabled = false;
+      btn.textContent = 'Iniciar sesion';
+    }
+  } catch(e) {
+    showAlert('Error de conexion. Intenta nuevamente.');
+    btn.disabled = false;
+    btn.textContent = 'Iniciar sesion';
+  }
+}
+
+// Enter key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doLogin();
+});
+
+// Redirect if already logged in
+(function(){
+  var token = localStorage.getItem('tm_token');
+  var role  = localStorage.getItem('tm_role');
+  if (!token) return;
+  if (role === 'transportista') window.location.replace('/transportista.html');
+  else if (role === 'admin') window.location.replace('/admin.html');
+  else window.location.replace('/cliente.html');
+})();
+</script>
+</body>
+</html>

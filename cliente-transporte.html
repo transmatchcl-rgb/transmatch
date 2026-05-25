@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch — Mis transportes</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f7fb;min-height:100vh;display:flex;flex-direction:column}
+  #auth-guard{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:9999}
+  .spinner{width:32px;height:32px;border:3px solid #e8eaf0;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #app{display:none}#app.shown{display:flex;flex-direction:column;min-height:100vh}
+  .nav{background:#1e2d4e;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .nav-left{display:flex;align-items:center;gap:16px}
+  .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+  .nav-icon{background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+  .nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#ff8904}
+  .nav-links{display:flex;gap:2px}
+  .nav-link{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+  .nav-link:hover,.nav-link.active{color:#fff;background:rgba(255,255,255,.12)}
+  .nav-avatar{width:30px;height:30px;border-radius:50%;background:#ff8904;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;cursor:pointer}
+  main{max-width:900px;margin:0 auto;padding:24px 20px;flex:1}
+  .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+  .hdr-title{font-size:20px;font-weight:700;color:#1e2d4e}
+  .hdr-sub{font-size:13px;color:#6B7280;margin-top:2px}
+  .grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px}
+  @media(max-width:500px){.grid-2{grid-template-columns:1fr}}
+  .stat{background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.05);padding:16px 18px}
+  .stat-label{font-size:12px;color:#6B7280;margin-bottom:6px}
+  .stat-val{font-size:26px;font-weight:700}
+  .stat-sub{font-size:12px;color:#9CA3AF;margin-top:4px}
+  .trn-card{background:#fff;border-radius:12px;border:1px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);margin-bottom:12px;overflow:hidden;cursor:pointer;transition:box-shadow .15s}
+  .trn-card:hover{box-shadow:0 4px 16px rgba(30,45,78,.1)}
+  .trn-hdr{padding:16px 20px;display:flex;align-items:center;gap:14px}
+  .trn-código{font-size:11px;font-weight:700;font-family:monospace;background:#eef1f8;color:#1e2d4e;padding:2px 8px;border-radius:4px}
+  .trn-info{flex:1}
+  .trn-title{font-size:14px;font-weight:600;color:#1e2d4e}
+  .trn-meta{font-size:12px;color:#6B7280;margin-top:2px}
+  .badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px}
+  .s-preparacion{background:#FEF9C3;color:#854D0E}
+  .s-en_ruta{background:#DBEAFE;color:#1e40af}
+  .s-carga_recogida{background:#EDE9FE;color:#5B21B6}
+  .s-en_destino{background:#FFF7ED;color:#92400E}
+  .s-entregado{background:#F0FDF4;color:#14532D}
+  .trn-body{display:none;border-top:1px solid #f3f4f6;padding:20px}
+  .trn-body.open{display:block}
+
+  .doc-section{background:#fff;border:1px solid #e8eaf0;border-radius:10px;padding:16px;margin-bottom:12px}
+  .doc-title{font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:4px}
+  .doc-sub{font-size:12px;color:#6B7280;margin-bottom:10px}
+  .doc-done{background:#F0FDF4;border-radius:8px;padding:10px 14px;font-size:13px;color:#14532D;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .doc-pending{background:#FFF7ED;border-radius:8px;padding:10px 14px;font-size:13px;color:#92400E}
+  .doc-waiting{background:#f8f9fc;border-radius:8px;padding:10px 14px;font-size:13px;color:#9CA3AF}
+  .info-card{background:#eef1f8;border-radius:10px;padding:14px 16px;margin-bottom:16px}
+  .info-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(30,45,78,.08);font-size:13px}
+  .info-row:last-child{border-bottom:none}
+  .info-label{color:#6B7280}
+  .info-val{font-weight:500;color:#1e2d4e}
+  .hist-item{display:flex;gap:10px;margin-bottom:10px}
+  .hist-dot{width:8px;height:8px;border-radius:50%;background:#1e2d4e;margin-top:5px;flex-shrink:0}
+  .hist-content{font-size:12px;color:#374151}
+  .hist-fecha{font-size:11px;color:#9CA3AF}
+  .btn{padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s}
+  .btn:hover{opacity:.88}
+  .btn-primary{background:#1e2d4e;color:#fff}
+  .btn-green{background:#16a34a;color:#fff}
+  .btn-outline{background:#fff;border:1px solid #e8eaf0;color:#374151}
+  .btn-sm{padding:6px 14px;font-size:12px}
+  .empty{text-align:center;padding:48px;color:#9CA3AF;font-size:14px}
+  #toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none}
+
+  .um-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:background .15s}
+  .um-item:hover{background:#f9fafb}
+  .um-danger{color:#DC2626}
+  .um-danger:hover{background:#FEF2F2}
+.nav-user { font-size: 13px; color: #fff; font-weight: 500; }
+ .nav-sub { font-size: 11px; color: #93C5FD; }
+</style>
+</head>
+<body>
+<div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:20px"><div style="background:#ff8904;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff">T</div><span style="font-size:20px;font-weight:700;color:#1e2d4e">Trans<span style="color:#ff8904">Match</span></span></div><div class="spinner" style="margin:0 auto"></div></div></div>
+
+<div id="app">
+  <nav class="nav"><div class="nav-logo"><a href="/cliente.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;"><div class="nav-icon">T</div><span class="nav-name">Trans<span>Match</span></span></a><div class="nav-links"><a href="/cliente.html" class="nav-link">Inicio</a><a href="/cliente-licitaciones.html" class="nav-link">Licitaciones</a><a href="/cliente-retornos.html" id="nav-retornos" class="nav-link">Retornos</a><a href="/cliente-transporte.html" class="nav-link active">Transportes</a><a href="/cliente-facturacion.html" class="nav-link">Facturacion</a><a href="/cliente-calendario.html" class="nav-link">Calendario</a></div></div><div class="nav-right"><div style="display:flex;align-items:center;gap:12px;"><div style="text-align:right"><div class="nav-user" id="nav-nombre">—</div><div class="nav-sub" id="nav-empresa">—</div></div><div style="display:flex;align-items:center;gap:8px;"><div id="notif-btn" onclick="toggleNotifs(event)" style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;"></span></div><div style="position:relative"><div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div><div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:220px;z-index:999;overflow:hidden"><div style="padding:14px 16px;border-bottom:1px solid #f3f4f6"><div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div><div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div></div><a href="/cliente-perfil.html" class="um-item">Configuracion</a><a href="/ayuda.html" class="um-item">Ayuda</a><a href="/landing-servicios.html" class="um-item">Planes y precios</a><div style="border-top:1px solid #f3f4f6"><button onclick="cerrarSesion()" class="um-item um-danger">Cerrar sesion</button></div></div></div></div><!-- Panel notificaciónes --><div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:320px;background:#fff;border-radius:12px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.12);z-index:9000;max-height:440px;overflow:hidden;flex-direction:column;"><div style="padding:12px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:8px"><span style="font-size:14px;font-weight:600;color:#111827">Notificaciónes</span><button onclick="event.stopPropagation();marcarTodasLeidas()" style="font-size:11px;color:#1e2d4e;background:none;border:none;cursor:pointer;white-space:nowrap;flex-shrink:0">Marcar todas leídas</button></div><div id="notif-list" style="overflow-y:auto;max-height:380px;"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div></div></div></div></nav>
+
+  <main>
+    <div class="hdr">
+      <div><div class="hdr-title">Mis transportes</div><div class="hdr-sub">Trazabilidad y documentos de cada transporte en curso</div></div>
+      
+    </div>
+    <div class="grid-2">
+      <div class="stat">
+        <div class="stat-label">Transportes en curso</div>
+        <div class="stat-val" id="st-curso" style="color:#1e2d4e">—</div>
+        <div class="stat-sub">Adjudicados actualmente</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Transportes completados</div>
+        <div class="stat-val" id="st-completados" style="color:#1ED24E">—</div>
+        <div class="stat-sub">Entregados con factura</div>
+      </div>
+    </div>
+    <div id="lista"><div class="spinner" style="margin:40px auto"></div></div>
+  </main>
+</div>
+<div id="toast"></div>
+
+<script>
+var API = 'https://transmatch.transmatchcl.workers.dev';
+var transportes = [];
+
+var ESTADO_LABELS = {preparacion:'En preparacion',en_ruta:'En ruta',carga_recogida:'Carga recogida',en_destino:'En destino',entregado:'Entregado'};
+function estadoLabel(e){ return ESTADO_LABELS[e]||e; }
+
+
+function fechaHora(iso){
+  if(!iso) return '--';
+  return new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+function peso(n){ return n ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '--'; }
+
+function toast(msg, type){
+  var el = document.getElementById('toast');
+  el.textContent = msg; el.style.background = type==='err'?'#EF4444':'#1ED24E';
+  el.style.opacity='1'; clearTimeout(el._t); el._t=setTimeout(function(){ el.style.opacity='0'; }, 3500);
+}
+
+async function cargar(){
+  document.getElementById('lista').innerHTML = '<div class="spinner" style="margin:40px auto"></div>';
+  try {
+    var res = await fetch(API+'/api/transportes', {headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    var d = await res.json();
+    transportes = d.transportes || [];
+    var enCurso     = transportes.filter(function(t){ return t.estado !== 'entregado'; }).length;
+    var completados = transportes.filter(function(t){ return t.factura; }).length;
+    document.getElementById('st-curso').textContent      = enCurso;
+    document.getElementById('st-completados').textContent = completados;
+    render();
+  } catch(e) {
+    document.getElementById('lista').innerHTML = '<div class="empty">Error al cargar</div>';
+  }
+}
+
+function render(){
+  if(transportes.length === 0){
+    document.getElementById('lista').innerHTML = '<div class="empty">Sin transportes en curso. Aparecen aquí cuando adjudicas una licitacion.</div>';
+    return;
+  }
+  document.getElementById('lista').innerHTML = transportes.map(function(t){
+    return '<div class="trn-card" id="card-'+t.id+'">' +
+      '<div class="trn-hdr" onclick="toggleCard(\''+t.id+'\')">' +
+        '<span class="trn-código">'+t.código+'</span>' +
+        '<div class="trn-info">' +
+          '<div class="trn-title">'+t.tipoEquipo+'</div>' +
+          '<div class="trn-meta">'+t.origen+' → '+t.destino+' · '+t.transportistaEmpresa+'</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">' +
+          '<span class="badge s-'+t.estado+'">'+estadoLabel(t.estado)+'</span>' +
+          (t.estadoDocumentos === 'oc_pendiente_factura' ? '<span class="badge" style="background:#FEF9C3;color:#854D0E">⚠️ Factura pendiente</span>' : '') +
+          '<span style="font-size:18px;color:#9CA3AF;transition:transform .2s" id="arr-'+t.id+'">›</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="trn-body" id="body-'+t.id+'">' + renderDetalle(t) + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderDetalle(t){
+  var h = '';
+
+  // ── CONTACTO DEL TRANSPORTISTA (se revela al adjudicar) ────
+  h += '<div style="border:0.5px solid #DCFCE7;border-radius:10px;padding:14px;margin-bottom:16px;background:#F0FDF4">';
+  h += '<div style="font-size:12px;font-weight:700;color:#1e2d4e;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Contacto del transportista</div>';
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
+  h += '<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Empresa</div><div style="font-size:13px;font-weight:500;color:#1e2d4e">'+(t.transportistaEmpresa||'—')+'</div></div>';
+  h += '<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Nombre</div><div style="font-size:13px;color:#374151">'+(t.transportistaNombre||'—')+'</div></div>';
+  h += '<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Teléfono</div><div style="font-size:13px;color:#374151">'+(t.transportistaTelefono||'—')+'</div></div>';
+  h += '<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Email</div><div style="font-size:13px;color:#374151">'+(t.transportistaEmail?'<a href="mailto:'+t.transportistaEmail+'" style="color:#14532D">'+t.transportistaEmail+'</a>':'—')+'</div></div>';
+  h += '<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Precio acordado</div><div style="font-size:13px;font-weight:700;color:#1e2d4e">'+peso(t.precio)+'</div></div>';
+  h += '</div>';
+  // Equipo asignado
+  if(t.equipoAsignado&&t.equipoAsignado.patente){
+    var eq=t.equipoAsignado;
+    h+='<div style="background:#fff;border-radius:7px;padding:8px 10px;margin-top:4px;font-size:12px;color:#374151">'
+      +'<strong>Equipo:</strong> '+(eq.tipo||'')
+      +(eq.marca?' '+eq.marca:'')+(eq.modelo?' '+eq.modelo:'')
+      +' · <strong style="font-family:monospace">'+eq.patente+'</strong>'
+      +'</div>';
+  }
+  // Contactos operacionales del transportista
+  var cOpsT=(t.contactosOperacionales||{}).transportista||[];
+  if(cOpsT.length){
+    h+='<div style="font-size:11px;font-weight:600;color:#14532D;margin:8px 0 6px">Contacto operacional en terreno</div>';
+    cOpsT.forEach(function(c){
+      h+='<div style="background:#fff;border-radius:7px;padding:8px 10px;margin-bottom:6px;font-size:12px;color:#374151">'
+        +(c.nombre?'<strong>'+c.nombre+'</strong>':'')
+        +(c.cargo?' · '+c.cargo:'')
+        +(c.telefono?'<div>'+c.telefono+'</div>':'')
+        +(c.email?'<div><a href="mailto:'+c.email+'" style="color:#14532D">'+c.email+'</a></div>':'')
+        +'</div>';
+    });
+  }
+  h+='</div>';
+
+  // ── DIRECCIONES ──────────────────────────────────────────────
+  var dirs=t.direcciones||{};
+  h+='<div style="border:0.5px solid #e8eaf0;border-radius:10px;padding:14px;margin-bottom:16px">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+  h+='<div style="font-size:12px;font-weight:700;color:#1e2d4e;text-transform:uppercase;letter-spacing:.04em">Puntos de carga y descarga</div>';
+  h+='<button class="btn btn-outline btn-sm" onclick="abrirModalDirecciones(\''+t.id+'\')">'+((dirs.carga&&dirs.carga.direccion)?'Editar':'Agregar')+'</button>';
+  h+='</div>';
+  // Carga
+  h+='<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:600;color:#6B7280;margin-bottom:4px">Punto de carga · '+t.origen+'</div>';
+  if(dirs.carga&&dirs.carga.direccion){
+    h+='<div style="font-size:13px;color:#1e2d4e;margin-bottom:2px">'+dirs.carga.direccion+'</div>';
+    if(dirs.carga.horario) h+='<div style="font-size:12px;color:#6B7280">Horario: '+dirs.carga.horario+'</div>';
+    if(dirs.carga.restricciones) h+='<div style="font-size:12px;color:#92400E">Restricciones: '+dirs.carga.restricciones+'</div>';
+    if(dirs.carga.notas) h+='<div style="font-size:12px;color:#6B7280">'+dirs.carga.notas+'</div>';
+    h+='<a href="https://www.google.com/maps/search/'+encodeURIComponent(dirs.carga.direccion)+'" target="_blank" style="font-size:12px;color:#1e2d4e;font-weight:500">Ver en Google Maps →</a>';
+  } else {
+    h+='<div style="font-size:12px;color:#9CA3AF">Dirección exacta pendiente.</div>';
+  }
+  h+='</div>';
+  // Descarga
+  h+='<div><div style="font-size:11px;font-weight:600;color:#6B7280;margin-bottom:4px">Punto de descarga · '+t.destino+'</div>';
+  if(dirs.descarga&&dirs.descarga.direccion){
+    h+='<div style="font-size:13px;color:#1e2d4e;margin-bottom:2px">'+dirs.descarga.direccion+'</div>';
+    if(dirs.descarga.horario) h+='<div style="font-size:12px;color:#6B7280">Horario: '+dirs.descarga.horario+'</div>';
+    if(dirs.descarga.restricciones) h+='<div style="font-size:12px;color:#92400E">Restricciones: '+dirs.descarga.restricciones+'</div>';
+    if(dirs.descarga.notas) h+='<div style="font-size:12px;color:#6B7280">'+dirs.descarga.notas+'</div>';
+    h+='<a href="https://www.google.com/maps/search/'+encodeURIComponent(dirs.descarga.direccion)+'" target="_blank" style="font-size:12px;color:#1e2d4e;font-weight:500">Ver en Google Maps →</a>';
+  } else {
+    h+='<div style="font-size:12px;color:#9CA3AF">Dirección exacta pendiente.</div>';
+  }
+  h+='</div></div>';
+
+  // ── CONTACTOS OPERACIONALES DEL CLIENTE ──────────────────────
+  var cOpsC=(t.contactosOperacionales||{}).cliente||[];
+  h+='<div style="border:0.5px solid #e8eaf0;border-radius:10px;padding:14px;margin-bottom:16px">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+  h+='<div style="font-size:12px;font-weight:700;color:#1e2d4e;text-transform:uppercase;letter-spacing:.04em">Tu contacto operacional</div>';
+  if(cOpsC.length<2) h+='<button class="btn btn-outline btn-sm" onclick="abrirModalContactoCliente(\''+t.id+'\')">+ Agregar contacto</button>';
+  h+='</div>';
+  if(cOpsC.length===0){
+    h+='<div style="font-size:12px;color:#9CA3AF">Agrega el contacto de quien estará en el punto de carga y/o descarga.</div>';
+  } else {
+    cOpsC.forEach(function(c,ci){
+      h+='<div style="background:#f8f9fc;border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px">';
+      h+='<div style="font-size:13px;color:#374151">'
+        +(c.nombre?'<strong style="color:#1e2d4e">'+c.nombre+'</strong>':'')
+        +(c.cargo?' <span style="font-size:11px;color:#6B7280">· '+c.cargo+'</span>':'')
+        +(c.telefono?'<div>'+c.telefono+'</div>':'')
+        +(c.email?'<div><a href="mailto:'+c.email+'" style="color:#1e2d4e">'+c.email+'</a></div>':'')
+        +'</div>';
+      h+='<button onclick="eliminarContactoCliente(\''+t.id+'\','+ci+')" style="background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:16px;padding:2px">×</button>';
+      h+='</div>';
+    });
+  }
+  h+='</div>';
+
+  // ── DOCUMENTOS ───────────────────────────────────────────────
+  h += '<div class="tl-title" style="margin-bottom:10px">Documentos</div>';
+
+  // OC — destacada, con llamada a la acción
+  h += '<div class="doc-section" style="border:0.5px solid '+(t.oc?'#BBF7D0':'#FDE68A')+';border-radius:10px;padding:14px;margin-bottom:10px;background:'+(t.oc?'#F0FDF4':'#FFFBEB')+'">';
+  h += '<div class="doc-title" style="color:#1e2d4e">Orden de compra <span style="font-size:10px;font-weight:400;color:#9CA3AF;margin-left:4px">— sube tu OC al inicio del transporte</span></div>';
+  if(t.oc){
+    h += '<div class="doc-done">OC disponible desde '+fechaHora(t.oc.subidoAt)+' <button class="btn btn-outline btn-sm" onclick="descargar(\''+t.oc.archivoId+'\',\''+t.oc.nombre+'\')">Descargar OC</button></div>';
+  } else {
+    h += '<div style="font-size:12px;color:#92400E;margin-bottom:8px">Sube tu Orden de Compra para que el transportista pueda descargarla.</div>'
+      + '<label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Seleccionar OC (PDF)</label>'
+      + '<input type="file" id="oc-file-'+t.id+'" accept=".pdf" style="font-size:13px;margin-bottom:8px"/>'
+      + '<button class="btn btn-orange btn-sm" onclick="subirOC(\''+t.id+'\')">Subir OC</button>';
+  }
+  h += '</div>';
+
+  // Factura
+  h += '<div class="doc-section"><div class="doc-title">Factura del transporte <span style="font-size:10px;font-weight:400;color:#EF4444;margin-left:4px">requerida para completar</span></div>';
+  if(t.factura){
+    h += '<div class="doc-done">Factura disponible desde '+fechaHora(t.factura.subidoAt)+' <button class="btn btn-outline btn-sm" onclick="descargar(\''+t.factura.archivoId+'\',\''+t.factura.nombre+'\')">Descargar factura</button></div>';
+  } else {
+    h += '<div class="doc-waiting">Pendiente — El transportista aún no ha subido la factura.</div>';
+  }
+  h += '</div>';
+
+  // Historial
+  var hist = t.historial || [];
+  if(hist.length > 0){
+    h += '<div style="margin-top:14px"><div class="tl-title">Historial de eventos</div>';
+    hist.slice().reverse().forEach(function(ev){
+      h += '<div class="hist-item"><div class="hist-dot"></div><div>'
+        + '<div class="hist-content"><strong>'+estadoLabel(ev.estado)+'</strong>'+(ev.nota?' — '+ev.nota:'')+'</div>'
+        + '<div class="hist-fecha">'+fechaHora(ev.fecha)+'</div>'
+        + '</div></div>';
+    });
+    h += '</div>';
+  }
+
+  return h;
+}
+
+function toggleCard(id){
+  var body = document.getElementById('body-'+id);
+  var arr  = document.getElementById('arr-'+id);
+  var isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  arr.style.transform = isOpen ? '' : 'rotate(90deg)';
+}
+
+async function subirOC(transporteId){
+  var fileInput = document.getElementById('oc-file-'+transporteId);
+  if(!fileInput || !fileInput.files[0]){ toast('Selecciona un archivo', 'err'); return; }
+  var file = fileInput.files[0];
+  var reader = new FileReader();
+  reader.onload = async function(e){
+    var base64 = e.target.result.split(',')[1];
+    try {
+      var res = await fetch(API+'/api/transportes/'+transporteId+'/subir-oc', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+        body: JSON.stringify({ base64: base64, mimeType: file.type, nombre: file.name })
+      });
+      var d = await res.json();
+      if(res.ok){ toast('OC subida correctamente.'); await cargar(); setTimeout(function(){ toggleCard(transporteId); }, 100); }
+      else toast(d.error || 'Error al subir', 'err');
+    } catch(e){ toast('Error de conexion', 'err'); }
+  };
+  reader.readAsDataURL(file);
+}
+
+
+
+function abrirModalDirecciones(transporteId){
+  var t=transportes.find(function(x){return x.id===transporteId;});
+  var dirs=(t&&t.direcciones)||{};
+  var modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto';
+  var inner=document.createElement('div');
+  inner.style.cssText='background:#fff;border-radius:16px;padding:28px;width:100%;max-width:520px';
+  var c=dirs.carga||{}; var d2=dirs.descarga||{};
+  inner.innerHTML='<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:20px">Puntos de carga y descarga</div>'
+    +'<div style="font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid #f3f4f6">Punto de carga · '+t.origen+'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Dirección exacta *</label><input type="text" id="dir-carga" value="'+(c.direccion||'')+'" placeholder="Ej: Av. Apoquindo 1234, Las Condes, Santiago" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Horario de atención</label><input type="text" id="dir-carga-horario" value="'+(c.horario||'')+'" placeholder="Ej: Lun-Vie 08:00-17:00" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Restricciones de acceso</label><input type="text" id="dir-carga-rest" value="'+(c.restricciones||'')+'" placeholder="Ej: No pasan camiones de más de 8m, requiere permiso" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Instrucciones adicionales</label><textarea id="dir-carga-notas" placeholder="Ej: Preguntar por Juan en portería, usar acceso lateral" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px;min-height:60px;resize:vertical;font-family:inherit">'+(c.notas||'')+'</textarea></div>'
+    +'</div>'
+    +'<div style="font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid #f3f4f6">Punto de descarga · '+t.destino+'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Dirección exacta *</label><input type="text" id="dir-desc" value="'+(d2.direccion||'')+'" placeholder="Ej: Ruta 5 Norte Km 1200, Antofagasta" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Horario de atención</label><input type="text" id="dir-desc-horario" value="'+(d2.horario||'')+'" placeholder="Ej: 24/7" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Restricciones de acceso</label><input type="text" id="dir-desc-rest" value="'+(d2.restricciones||'')+'" placeholder="Ej: Solo acceso con pase de seguridad" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Instrucciones adicionales</label><textarea id="dir-desc-notas" placeholder="Ej: Coordinar con operaciones antes de llegar" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px;min-height:60px;resize:vertical;font-family:inherit">'+(d2.notas||'')+'</textarea></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:10px;justify-content:flex-end">'
+    +'<button id="dir-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
+    +'<button id="dir-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar direcciones</button>'
+    +'</div>';
+  modal.appendChild(inner); document.body.appendChild(modal);
+  document.getElementById('dir-cancel').onclick=function(){ modal.remove(); };
+  document.getElementById('dir-save').onclick=function(){ guardarDirecciones(transporteId,modal); };
+  modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
+}
+
+async function guardarDirecciones(transporteId, modal){
+  var cargaDir=(document.getElementById('dir-carga').value||'').trim();
+  var descDir=(document.getElementById('dir-desc').value||'').trim();
+  if(!cargaDir||!descDir){ toast('Ingresa ambas direcciones','err'); return; }
+  var payload={
+    direcciones:{
+      carga:{
+        direccion:cargaDir,
+        horario:(document.getElementById('dir-carga-horario').value||'').trim(),
+        restricciones:(document.getElementById('dir-carga-rest').value||'').trim(),
+        notas:(document.getElementById('dir-carga-notas').value||'').trim(),
+        mapsUrl:'https://www.google.com/maps/search/'+encodeURIComponent(cargaDir)
+      },
+      descarga:{
+        direccion:descDir,
+        horario:(document.getElementById('dir-desc-horario').value||'').trim(),
+        restricciones:(document.getElementById('dir-desc-rest').value||'').trim(),
+        notas:(document.getElementById('dir-desc-notas').value||'').trim(),
+        mapsUrl:'https://www.google.com/maps/search/'+encodeURIComponent(descDir)
+      }
+    }
+  };
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/direcciones',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify(payload)
+    });
+    if(res.ok){ toast('Direcciones guardadas'); modal.remove(); await cargar(); setTimeout(function(){ toggleCard(transporteId); },100); }
+    else{ var d=await res.json(); toast(d.error||'Error','err'); }
+  }catch(e){ toast('Error de conexión','err'); }
+}
+
+function abrirModalContactoCliente(transporteId){
+  var t=transportes.find(function(x){return x.id===transporteId;});
+  var existentes = t ? ((t.contactosOperacionales||{}).cliente||[]) : [];
+  if(existentes.length>=2){ toast('Máximo 2 contactos por transporte'); return; }
+  var modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  var inner=document.createElement('div');
+  inner.style.cssText='background:#fff;border-radius:16px;padding:28px;width:100%;max-width:440px';
+  inner.innerHTML='<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Agregar contacto operacional</div>'
+    +'<div style="font-size:12px;color:#9CA3AF;margin-bottom:16px">Persona que estará en el punto de carga o descarga</div>'
+    +'<button onclick="autocompletarMisDatosCliente()" style="width:100%;padding:8px;border-radius:8px;border:0.5px solid #e8eaf0;background:#f8f9fc;font-size:12px;cursor:pointer;margin-bottom:14px;color:#1e2d4e;font-weight:500">Usar mis datos ('+( localStorage.getItem('tm_nombre')||'')+')</button>'
+    +'<div style="display:flex;flex-direction:column;gap:10px">'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Nombre *</label><input type="text" id="cc-nombre" placeholder="Nombre completo" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Cargo / Rol</label><input type="text" id="cc-cargo" placeholder="Ej: Jefe de patio, Supervisor" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Teléfono *</label><input type="tel" id="cc-telefono" placeholder="+56 9 XXXX XXXX" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Email</label><input type="email" id="cc-email" placeholder="opcional" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">'
+    +'<button id="cc-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
+    +'<button id="cc-save" style="padding:9px 18px;border-radius:8px;background:#ff8904;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar contacto</button>'
+    +'</div>';
+  modal.appendChild(inner); document.body.appendChild(modal);
+  document.getElementById('cc-cancel').onclick=function(){ modal.remove(); };
+  document.getElementById('cc-save').onclick=function(){ guardarContactoCliente(transporteId,modal); };
+  modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
+}
+
+function autocompletarMisDatosCliente(){
+  var n=document.getElementById('cc-nombre'); if(n) n.value=localStorage.getItem('tm_nombre')||'';
+  var t=document.getElementById('cc-telefono'); if(t) t.value=localStorage.getItem('tm_telefono')||'';
+  var e=document.getElementById('cc-email'); if(e) e.value=localStorage.getItem('tm_email')||'';
+}
+
+async function guardarContactoCliente(transporteId, modal){
+  var nombre=(document.getElementById('cc-nombre').value||'').trim();
+  var telefono=(document.getElementById('cc-telefono').value||'').trim();
+  if(!nombre||!telefono){ toast('Nombre y teléfono son requeridos','err'); return; }
+  var contacto={nombre:nombre,cargo:(document.getElementById('cc-cargo').value||'').trim(),telefono:telefono,email:(document.getElementById('cc-email').value||'').trim()};
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/contacto-operacional',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify({rol:'cliente',contacto:contacto})
+    });
+    if(res.ok){ toast('Contacto agregado'); modal.remove(); await cargar(); setTimeout(function(){ toggleCard(transporteId); },100); }
+    else{ var d=await res.json(); toast(d.error||'Error','err'); }
+  }catch(e){ toast('Error de conexión','err'); }
+}
+
+async function eliminarContactoCliente(transporteId, idx){
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/contacto-operacional/cliente/'+idx,{
+      method:'DELETE',
+      headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}
+    });
+    if(res.ok){ await cargar(); setTimeout(function(){ toggleCard(transporteId); },100); }
+  }catch(e){}
+}
+
+async function descargar(archivoId, nombre){
+  try {
+    var res = await fetch(API+'/api/archivos/'+archivoId, {headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    var d = await res.json();
+    var arr = new Uint8Array(atob(d.base64).split('').map(function(c){ return c.charCodeAt(0); }));
+    var blob = new Blob([arr], {type: d.mimeType||'application/octet-stream'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href=url; a.download=nombre||'archivo'; a.click();
+    URL.revokeObjectURL(url);
+  } catch(e){ toast('Error al descargar', 'err'); }
+}
+
+(async function(){
+  var token = localStorage.getItem('tm_token');
+  var role  = localStorage.getItem('tm_role');
+  if(!token || role !== 'cliente'){ window.location.replace('/index.html'); return; }
+  document.getElementById('nav-avatar').textContent = (localStorage.getItem('tm_nombre')||'?')[0].toUpperCase();
+  document.getElementById('auth-guard').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';document.getElementById('app').style.flexDirection='column';document.getElementById('app').style.minHeight='100vh';
+  cargarNotificaciones();
+  cargar();
+})();
+
+    function closeAllPanels(){
+    var m=document.getElementById('user-menu');
+    var p=document.getElementById('notif-panel');
+    if(m) m.style.display='none';
+    if(p) p.style.display='none';
+  }
+  function toggleUserMenu(e){
+    e.stopPropagation();
+    var m=document.getElementById('user-menu');
+    var isOpen=m.style.display==='block';
+    closeAllPanels();
+    if(!isOpen) m.style.display='block';
+  }
+  function toggleNotifs(e){
+    if(e) e.stopPropagation();
+    var p=document.getElementById('notif-panel');
+    var isOpen=p.style.display==='flex';
+    closeAllPanels();
+    if(!isOpen){ p.style.display='flex'; cargarNotificaciones(); }
+  }
+  document.addEventListener('click',function(){ closeAllPanels(); });
+  function cerrarSesion(){localStorage.clear();window.location.replace('/index.html');}
+  (function(){
+    var n  = localStorage.getItem('tm_nombre')  || '';
+    var em = localStorage.getItem('tm_empresa') || '';
+    var nn = document.getElementById('nav-nombre');
+    var ns = document.getElementById('nav-empresa');
+    var av = document.getElementById('nav-avatar');
+    var un = document.getElementById('um-nombre');
+    var ue = document.getElementById('um-empresa');
+    if(nn) nn.textContent = n;
+    if(ns) ns.textContent = em;
+    if(av && n) av.textContent = n[0].toUpperCase();
+    if(un) un.textContent = n;
+    if(ue) ue.textContent = em;
+  })();
+
+  
+
+  async function cargarNotificaciones(){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var r = await fetch((typeof API!=='undefined'?API:'https://transmatch-api.transmatch-66b.workers.dev')+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+      var data = r.ok ? await r.json() : {};
+      var notifs = data.notificaciones || [];
+      var noLeidas = notifs.filter(function(n){ return !n.leida; }).length;
+      var badge = document.getElementById('notif-count');
+      if(badge){ badge.style.display = noLeidas>0 ? 'flex' : 'none'; badge.textContent = noLeidas; }
+      var list = document.getElementById('notif-list');
+      if(!list) return;
+      if(!notifs.length){ list.innerHTML='<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Sin notificaciones</div>'; return; }
+      var iconMap = {licitacion_aprobada:'✅',licitacion_rechazada:'❌',cotizaciones_disponibles:'🎯',cuenta_aprobada:'✅',cobro_pendiente:'💰',cobro_pagado:'✅',adjudicacion:'🏆',licitacion_cerrada:'📋'};
+      list.innerHTML = notifs.slice(0,20).map(function(n){
+        var icono = iconMap[n.tipo]||'🔔';
+        var bg = !n.leida ? 'background:#f0f4ff' : '';
+        var ts = n.createdAt ? new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+        return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'+
+          '<div style="font-size:18px;flex-shrink:0;margin-top:1px">'+icono+'</div>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4">'+n.mensaje+'</div>'+
+            '<div style="font-size:11px;color:#9CA3AF">'+ts+'</div>'+
+          '</div>'+
+          (!n.leida?'<button onclick="event.stopPropagation();marcarUnaLeida(this.dataset.nid)" data-nid="'+n.id+'" title="Marcar como leída" style="background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0;margin-top:2px;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">✓</button>':'')+
+        '</div>';
+      }).join('');
+    } catch(e){}
+  }
+
+  async function marcarTodasLeidas(){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var API_URL = typeof API!=='undefined' ? API : 'https://transmatch-api.transmatch-66b.workers.dev';
+      var r = await fetch(API_URL+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+      var data = r.ok ? await r.json() : {};
+      var notifs = (data.notificaciones||[]).filter(function(n){ return !n.leida; });
+      for(var i=0;i<notifs.length;i++){
+        await fetch(API_URL+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:notifs[i].id})});
+      }
+      var badge = document.getElementById('notif-count');
+      if(badge) badge.style.display='none';
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+  async function marcarUnaLeida(id){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var API_URL = typeof API!=='undefined' ? API : 'https://transmatch-api.transmatch-66b.workers.dev';
+      await fetch(API_URL+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:id})});
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+</script>
+
+<footer style="background:#1e2d4e;margin-top:40px;padding:28px 24px 20px">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px">T</div>
+        <span style="font-weight:700;color:#fff;font-size:15px">Trans<span style="color:#ff8904">Match</span></span>
+      </div>
+      <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+    </div>
+    <div style="display:flex;gap:32px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <a href="/términos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Términos y condiciones</a>
+          <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Política de privacidad</a>
+          <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Centro de ayuda</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span>
+          <span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B">
+    © 2026 TransMatch SpA.
+  </div>
+</footer>
+</body></html>

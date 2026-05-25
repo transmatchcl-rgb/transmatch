@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch — Admin Transportes</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f7fb;display:flex;flex-direction:column;min-height:100vh}
+  #app{display:none;flex-direction:column;min-height:100vh}
+  #auth-guard{position:fixed;inset:0;background:#1e2d4e;display:flex;align-items:center;justify-content:center;z-index:9999}
+  .gs{width:36px;height:36px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* NAV */
+  .nav{background:#1e2d4e;padding:0 24px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .nav-left{display:flex;align-items:center;gap:16px}
+  .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+  .nav-icon{background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+  .nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#ff8904}
+  .nav-badge{background:rgba(255,255,255,.15);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px}
+  .nav-tabs{display:flex;gap:2px}
+  .nav-tab{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+  .nav-tab:hover,.nav-tab.active{color:#fff;background:rgba(255,255,255,.12)}
+  .logout-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer}
+  .logout-btn:hover{background:rgba(255,255,255,.25)}
+
+  main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1;width:100%}
+
+  /* STATS */
+  .stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:18px}
+  @media(max-width:700px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
+  .stat-card{background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.05);padding:14px 16px}
+  .sc-label{font-size:11px;color:#6B7280;margin-bottom:6px}
+  .sc-val{font-size:24px;font-weight:700;line-height:1}
+  .sc-sub{font-size:11px;color:#9CA3AF;margin-top:4px}
+
+  /* FILTROS */
+  .filter-wrap{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);margin-bottom:0}
+  .chips-row{padding:10px 14px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .filter-chip{padding:5px 14px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e8eaf0;background:#fff;color:#6B7280;transition:all .15s;user-select:none}
+  .filter-chip.active{background:#1e2d4e;color:#fff;border-color:#1e2d4e}
+  .search-row{padding:8px 14px 10px;border-top:0.5px solid #f3f4f6}
+  .srch{width:100%;padding:7px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;color:#374151;background:#f8f9fc}
+  .srch:focus{outline:none;border-color:#1e2d4e;background:#fff}
+
+  /* CARDS */
+  .lista-wrap{margin-top:12px}
+  .trn-card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);margin-bottom:10px;overflow:hidden}
+  .trn-hdr{padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;transition:background .12s}
+  .trn-hdr:hover{background:#f5f7fb}
+  .trn-code{font-size:10px;font-weight:700;font-family:monospace;background:#eef1f8;color:#1e2d4e;padding:3px 8px;border-radius:5px;flex-shrink:0;white-space:nowrap;min-width:72px;text-align:center}
+  .trn-body-hdr{flex:1;min-width:0}
+  .trn-name{font-size:13px;font-weight:700;color:#1e2d4e;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .trn-meta{font-size:12px;color:#6B7280}
+  .trn-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+  .trn-precio{font-size:13px;font-weight:700;color:#1d4ed8}
+  .trn-arr{font-size:16px;color:#9CA3AF;transition:transform .2s;flex-shrink:0}
+  .trn-detail{display:none;border-top:0.5px solid #f3f4f6}
+  .trn-detail.open{display:block}
+
+  /* BADGES */
+  .badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 9px;border-radius:999px}
+  .badge-orange{background:#FFF7ED;color:#92400E}
+  .badge-green{background:#F0FDF4;color:#14532D}
+  .badge-blue{background:#eef1f8;color:#1e2d4e}
+  .badge-gray{background:#f8f9fc;color:#6B7280;border:0.5px solid #E5E7EB}
+  .badge-red{background:#FEF2F2;color:#991B1B}
+  .badge-purple{background:#F5F3FF;color:#5B21B6}
+
+  /* DETALLE */
+  .det-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:16px 18px 0}
+  @media(max-width:600px){.det-grid{grid-template-columns:1fr}}
+  .det-cell{background:#f8f9fc;border-radius:8px;padding:10px 12px}
+  .det-label{font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+  .det-val{font-size:13px;color:#111827;font-weight:500;word-break:break-word}
+  .det-section-title{font-size:11px;font-weight:700;color:#ff8904;text-transform:uppercase;letter-spacing:.07em;padding:14px 18px 6px}
+
+  /* TIMELINE */
+  .timeline{padding:0 18px 14px}
+  .tl-item{display:flex;gap:12px;padding:8px 0;position:relative}
+  .tl-item:not(:last-child)::after{content:'';position:absolute;left:11px;top:28px;width:1.5px;height:calc(100% - 8px);background:#e8eaf0}
+  .tl-dot{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;margin-top:2px}
+  .tl-dot-ok{background:#1ED24E}
+  .tl-dot-cur{background:#ff8904}
+  .tl-dot-pend{background:#e8eaf0;color:#9CA3AF}
+  .tl-content{flex:1;min-width:0}
+  .tl-estado{font-size:12px;font-weight:600;color:#1e2d4e}
+  .tl-fecha{font-size:11px;color:#9CA3AF;margin-top:1px}
+  .tl-nota{font-size:12px;color:#6B7280;margin-top:2px}
+
+  /* DOCUMENTOS */
+  .docs-row{display:flex;gap:10px;flex-wrap:wrap;padding:0 18px 14px}
+  .doc-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:#f8f9fc;border:0.5px solid #e8eaf0;border-radius:8px;font-size:12px;font-weight:500;color:#374151;cursor:pointer;text-decoration:none;transition:background .1s}
+  .doc-pill:hover{background:#eef1f8;color:#1e2d4e}
+  .doc-pill.no-doc{color:#9CA3AF;cursor:default}
+  .doc-pill.no-doc:hover{background:#f8f9fc;color:#9CA3AF}
+
+  /* ACCIONES */
+  .det-actions{display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px 16px;border-top:0.5px solid #f3f4f6}
+  .btn{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:opacity .15s;display:inline-flex;align-items:center;gap:5px}
+  .btn:hover{opacity:.85}
+  .btn-primary{background:#1e2d4e;color:#fff}
+  .btn-green{background:#1ED24E;color:#fff}
+  .btn-red{background:#EF4444;color:#fff}
+  .btn-orange{background:#ff8904;color:#fff}
+  .btn-outline{background:#fff;border:0.5px solid #e8eaf0;color:#374151}
+  .btn-sm{padding:5px 10px;font-size:11px}
+
+  .empty{text-align:center;padding:48px 20px;color:#9CA3AF;font-size:13px}
+  .spinner{width:26px;height:26px;border:3px solid #e8eaf0;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite;margin:40px auto}
+
+  /* MODAL */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px}
+  .modal-bg.open{display:flex}
+  .modal{background:#fff;border-radius:14px;padding:24px;max-width:440px;width:100%;max-height:90vh;overflow-y:auto}
+  .modal-title{font-size:16px;font-weight:600;color:#1e2d4e;margin-bottom:4px}
+  .modal-sub{font-size:13px;color:#6B7280;margin-bottom:16px}
+  .modal-btns{display:flex;gap:8px;margin-top:18px}
+  .modal-btns .btn{flex:1;justify-content:center}
+  select.sel{width:100%;padding:9px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;color:#374151;background:#fff;margin-bottom:8px}
+  select.sel:focus{outline:none;border-color:#1e2d4e}
+  textarea.ta{width:100%;padding:9px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;color:#374151;resize:vertical;min-height:72px;font-family:inherit}
+  textarea.ta:focus{outline:none;border-color:#1e2d4e}
+
+  #toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none;max-width:320px}
+</style>
+</head>
+<body>
+
+<div id="auth-guard">
+  <div style="text-align:center">
+    <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px">
+      <div style="background:#ff8904;border-radius:7px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:15px">T</div>
+      <span style="font-weight:700;color:#fff;font-size:18px">Trans<span style="color:#ff8904">Match</span></span>
+    </div>
+    <div class="gs" style="margin:0 auto"></div>
+  </div>
+</div>
+
+<div id="app">
+  <nav class="nav">
+    <div class="nav-left">
+      <a href="/admin.html" class="nav-logo">
+        <div class="nav-icon">T</div>
+        <span class="nav-name">Trans<span>Match</span></span>
+        <span class="nav-badge">ADMIN</span>
+      </a>
+      <div class="nav-tabs">
+        <a href="/admin.html" class="nav-tab">Dashboard</a>
+        <a href="/admin-licitaciones.html" class="nav-tab">Licitaciones</a>
+        <a href="/admin-cotizaciones.html" class="nav-tab">Cotizaciones</a>
+        <a href="/admin-transportes.html" class="nav-tab active">Transportes</a>
+        <a href="/admin-clientes.html" class="nav-tab">Clientes</a>
+        <a href="/admin-transportistas.html" class="nav-tab">Transportistas</a>
+        <a href="/admin-cobros.html" class="nav-tab">Facturación</a>
+        <a href="/admin-reportes.html" class="nav-tab">Reportes</a>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="localStorage.clear();window.location.replace('/admin-login.html')">Cerrar sesión</button>
+  </nav>
+
+  <main>
+    <div style="margin-bottom:18px">
+      <div style="font-size:20px;font-weight:600;color:#1e2d4e">Transportes</div>
+      <div style="font-size:14px;color:#6B7280;margin-top:2px">Seguimiento de todos los transportes activos y completados</div>
+    </div>
+
+    <div class="stat-grid" id="stats">
+      <div class="stat-card"><div class="sc-label">Cargando...</div></div>
+    </div>
+
+    <div class="filter-wrap">
+      <div class="chips-row">
+        <div class="filter-chip active" onclick="setChip('',this)">Todos</div>
+        <div class="filter-chip" onclick="setChip('preparacion',this)">En preparación</div>
+        <div class="filter-chip" onclick="setChip('en_ruta',this)">En ruta</div>
+        <div class="filter-chip" onclick="setChip('carga_recogida',this)">Carga recogida</div>
+        <div class="filter-chip" onclick="setChip('en_destino',this)">En destino</div>
+        <div class="filter-chip" onclick="setChip('entregado',this)">Entregados</div>
+      </div>
+      <div class="search-row">
+        <input class="srch" id="buscador" placeholder="Buscar por código, cliente, transportista, ruta..." oninput="filtrar()"/>
+      </div>
+    </div>
+
+    <div class="lista-wrap" id="lista-transportes">
+      <div class="spinner"></div>
+    </div>
+  </main>
+
+  <footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px">
+    <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px">T</div>
+          <span style="font-weight:700;color:#fff;font-size:15px">Trans<span style="color:#ff8904">Match</span></span>
+        </div>
+        <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+      </div>
+      <div style="display:flex;gap:32px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <a href="/terminos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Términos y condiciones</a>
+            <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Política de privacidad</a>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:13px;color:#CBD5E1">hola@transmatch.cl</span>
+            <span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B">
+      © 2026 TransMatch SpA. Todos los derechos reservados.
+    </div>
+  </footer>
+</div>
+
+<!-- Modal cambio estado -->
+<div class="modal-bg" id="modal-estado">
+  <div class="modal">
+    <div class="modal-title">Cambiar estado del transporte</div>
+    <div class="modal-sub" id="modal-estado-info">—</div>
+    <select class="sel" id="modal-estado-sel">
+      <option value="preparacion">En preparación</option>
+      <option value="en_ruta">En ruta</option>
+      <option value="carga_recogida">Carga recogida</option>
+      <option value="en_destino">En destino</option>
+      <option value="entregado">Entregado</option>
+    </select>
+    <textarea class="ta" id="modal-estado-nota" placeholder="Nota del cambio (opcional)..."></textarea>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="cerrarModal('modal-estado')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEstado()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = 'https://transmatch.transmatchcl.workers.dev';
+let allTransportes = [];
+let filtroEstado = '';
+let modalTransporteId = '';
+
+// ── Utilidades ──────────────────────────────────────────────
+function peso(n){ return n ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '—'; }
+
+function timeAgo(iso){
+  if(!iso) return '—';
+  const d=(Date.now()-new Date(iso).getTime())/60000;
+  if(d<60) return 'hace '+Math.floor(d)+'m';
+  if(d<1440) return 'hace '+Math.floor(d/60)+'h';
+  return 'hace '+Math.floor(d/1440)+'d';
+}
+
+function fechaCorta(iso){
+  return iso ? new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+}
+
+function estadoLabel(e){
+  const m={
+    preparacion: ['badge-orange','En preparación'],
+    en_ruta:     ['badge-blue','En ruta'],
+    carga_recogida:['badge-blue','Carga recogida'],
+    en_destino:  ['badge-purple','En destino'],
+    entregado:   ['badge-green','Entregado'],
+  };
+  const [cls,lbl]=m[e]||['badge-gray',e];
+  return '<span class="badge '+cls+'">'+lbl+'</span>';
+}
+
+function docBadge(doc, label){
+  if(doc) return '<span class="badge badge-green" style="font-size:10px">✓ '+label+'</span>';
+  return '<span class="badge badge-gray" style="font-size:10px">— '+label+'</span>';
+}
+
+function toast(msg, type){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.style.background=type==='err'?'#EF4444':type==='warn'?'#ff8904':'#1ED24E';
+  el.style.opacity='1';
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>{el.style.opacity='0';},3500);
+}
+
+// ── API ─────────────────────────────────────────────────────
+async function api(path, method, body){
+  const opts={method:method||'GET',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}};
+  if(body) opts.body=JSON.stringify(body);
+  const r=await fetch(API+path,opts);
+  if(r.status===401){localStorage.clear();window.location.replace('/admin-login.html');return null;}
+  return{ok:r.ok,data:await r.json()};
+}
+
+// ── Carga ────────────────────────────────────────────────────
+async function cargar(){
+  document.getElementById('lista-transportes').innerHTML='<div class="spinner"></div>';
+  try{
+    const r=await api('/api/transportes');
+    if(!r||!r.ok){
+      document.getElementById('lista-transportes').innerHTML='<div class="empty">Error al cargar. <button onclick="cargar()" style="color:#1d4ed8;background:none;border:none;cursor:pointer">Reintentar</button></div>';
+      return;
+    }
+    allTransportes=r.data.transportes||[];
+    renderStats();
+    filtrar();
+  }catch(e){
+    document.getElementById('lista-transportes').innerHTML='<div class="empty">Error de conexión</div>';
+  }
+}
+
+function renderStats(){
+  const total=allTransportes.length;
+  const activos=allTransportes.filter(t=>!['entregado'].includes(t.estado)).length;
+  const entregados=allTransportes.filter(t=>t.estado==='entregado').length;
+  const sinDocs=allTransportes.filter(t=>!t.oc||!t.factura).length;
+  document.getElementById('stats').innerHTML=
+    '<div class="stat-card"><div class="sc-label">Total transportes</div><div class="sc-val" style="color:#1e2d4e">'+total+'</div><div class="sc-sub">Histórico completo</div></div>'+
+    '<div class="stat-card"><div class="sc-label">En curso</div><div class="sc-val" style="color:#ff8904">'+activos+'</div><div class="sc-sub">Sin entregar aún</div></div>'+
+    '<div class="stat-card"><div class="sc-label">Entregados</div><div class="sc-val" style="color:#1ED24E">'+entregados+'</div><div class="sc-sub">Completados</div></div>'+
+    '<div class="stat-card"><div class="sc-label">Docs pendientes</div><div class="sc-val" style="color:#EF4444">'+sinDocs+'</div><div class="sc-sub">OC o factura faltante</div></div>';
+}
+
+function setChip(estado, el){
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  filtroEstado=estado;
+  filtrar();
+}
+
+function filtrar(){
+  const q=(document.getElementById('buscador').value||'').toLowerCase();
+  let lista=allTransportes;
+  if(filtroEstado) lista=lista.filter(t=>t.estado===filtroEstado);
+  if(q) lista=lista.filter(t=>(
+    (t.codigo||'')+(t.tipoEquipo||'')+(t.origen||'')+(t.destino||'')+
+    (t.clienteEmpresa||'')+(t.transportistaNombre||'')+(t.transportistaEmpresa||'')
+  ).toLowerCase().includes(q));
+
+  if(lista.length===0){
+    document.getElementById('lista-transportes').innerHTML=
+      '<div class="empty"><div style="font-size:32px;margin-bottom:10px">🚛</div>Sin transportes para los filtros seleccionados</div>';
+    return;
+  }
+  document.getElementById('lista-transportes').innerHTML=lista.map(renderCard).join('');
+}
+
+// ── Render card ──────────────────────────────────────────────
+function renderCard(t){
+  var detId='det-'+t.id;
+  return '<div class="trn-card" id="trn-card-'+t.id+'">'+
+    '<div class="trn-hdr" onclick="toggleCard(\''+t.id+'\')">'+
+      '<div class="trn-code">'+(t.codigo||'TRN')+'</div>'+
+      '<div class="trn-body-hdr">'+
+        '<div class="trn-name">'+t.tipoEquipo+'</div>'+
+        '<div class="trn-meta">'+
+          '<strong style="color:#1e2d4e">'+(t.clienteEmpresa||'—')+'</strong>'+
+          ' → <strong style="color:#374151">'+(t.transportistaEmpresa||t.transportistaNombre||'—')+'</strong>'+
+          ' · '+t.origen+' → '+t.destino+
+          ' · '+timeAgo(t.adjudicadoAt)+
+        '</div>'+
+      '</div>'+
+      '<div class="trn-right">'+
+        '<div class="trn-precio">'+peso(t.precio)+'</div>'+
+        estadoLabel(t.estado)+
+      '</div>'+
+      '<span class="trn-arr" id="arr-'+t.id+'">›</span>'+
+    '</div>'+
+    '<div class="trn-detail" id="'+detId+'">'+renderDetalle(t)+'</div>'+
+  '</div>';
+}
+
+function toggleCard(id){
+  var body=document.getElementById('det-'+id);
+  var arr=document.getElementById('arr-'+id);
+  if(!body) return;
+  var open=body.classList.contains('open');
+  body.classList.toggle('open',!open);
+  if(arr) arr.style.transform=open?'':'rotate(90deg)';
+}
+
+// ── Render detalle ───────────────────────────────────────────
+function renderDetalle(t){
+  var html='';
+
+  // Grid info
+  var items=[
+    ['Código transporte', t.codigo||'—'],
+    ['Licitación asociada', t.licitacionCodigo||'—'],
+    ['Tipo de equipo', t.tipoEquipo||'—'],
+    ['Precio adjudicado', peso(t.precio)],
+    ['Cliente', t.clienteEmpresa||'—'],
+    ['Email cliente', t.clienteEmail||'—'],
+    ['Transportista', (t.transportistaNombre||'—')+' · '+(t.transportistaEmpresa||'—')],
+    ['Email transportista', t.transportistaEmail||'—'],
+    ['Teléfono transportista', t.transportistaTelefono||'—'],
+    ['Origen', t.origen||'—'],
+    ['Destino', t.destino||'—'],
+    ['Adjudicado', fechaCorta(t.adjudicadoAt)],
+    ['Entregado', t.entregadoAt?fechaCorta(t.entregadoAt):'—'],
+  ];
+  html+='<div class="det-grid">'+items.map(function(it){
+    return '<div class="det-cell"><div class="det-label">'+it[0]+'</div><div class="det-val">'+it[1]+'</div></div>';
+  }).join('')+'</div>';
+
+  // Documentos
+  html+='<div class="det-section-title">Documentos</div>';
+  html+='<div class="docs-row">';
+  if(t.oc && t.oc.archivoId){
+    html+='<span class="doc-pill" onclick="descargar(\''+t.oc.archivoId+'\',\''+(t.oc.nombre||'orden_de_compra')+'\')">📄 OC — '+(t.oc.nombre||'orden_de_compra.pdf')+'</span>';
+  } else {
+    html+='<span class="doc-pill no-doc">📄 OC — Sin subir</span>';
+  }
+  if(t.factura && t.factura.archivoId){
+    html+='<span class="doc-pill" onclick="descargar(\''+t.factura.archivoId+'\',\''+(t.factura.nombre||'factura')+'\')">🧾 Factura — '+(t.factura.nombre||'factura.pdf')+'</span>';
+  } else {
+    html+='<span class="doc-pill no-doc">🧾 Factura — Sin subir</span>';
+  }
+  if(t.guia && t.guia.archivoId){
+    html+='<span class="doc-pill" onclick="descargar(\''+t.guia.archivoId+'\',\''+(t.guia.nombre||'guia_despacho')+'\')">📦 Guía despacho — '+(t.guia.nombre||'guia.pdf')+'</span>';
+  }
+  html+='</div>';
+
+  // Timeline
+  var ESTADOS=['preparacion','en_ruta','carga_recogida','en_destino','entregado'];
+  var LABELS={'preparacion':'En preparación','en_ruta':'En ruta','carga_recogida':'Carga recogida','en_destino':'En destino','entregado':'Entregado'};
+  var historial=t.historial||[];
+  var idxActual=ESTADOS.indexOf(t.estado);
+
+  html+='<div class="det-section-title">Historial de estado</div>';
+  html+='<div class="timeline">';
+
+  // Mostrar historial real si existe
+  if(historial.length>0){
+    historial.slice().reverse().forEach(function(h,i){
+      var isLast=(i===0);
+      var dotCls=isLast?'tl-dot-cur':'tl-dot-ok';
+      html+='<div class="tl-item">'+
+        '<div class="tl-dot '+dotCls+'">'+(isLast?'●':'✓')+'</div>'+
+        '<div class="tl-content">'+
+          '<div class="tl-estado">'+(LABELS[h.estado]||h.estado)+'</div>'+
+          '<div class="tl-fecha">'+fechaCorta(h.fecha)+' · '+( h.actor||'Sistema')+'</div>'+
+          (h.nota?'<div class="tl-nota">'+h.nota+'</div>':'')+
+        '</div>'+
+      '</div>';
+    });
+  } else {
+    html+='<div style="padding:8px 0;font-size:13px;color:#9CA3AF">Sin historial registrado</div>';
+  }
+  html+='</div>';
+
+  // Acciones admin
+  html+='<div class="det-actions">';
+  if(t.estado!=='entregado'){
+    html+='<button class="btn btn-primary" onclick="event.stopPropagation();abrirModalEstado(\''+t.id+'\',\''+t.estado+'\',\''+t.codigo+'\')">Cambiar estado</button>';
+  }
+  html+='</div>';
+
+  return html;
+}
+
+// ── Descarga ─────────────────────────────────────────────────
+async function descargar(id, nombre){
+  try{
+    const r=await api('/api/archivos/'+id);
+    if(!r||!r.ok){toast('Error al descargar','err');return;}
+    const{base64,mimeType,nombre:n}=r.data;
+    const arr=new Uint8Array(atob(base64).split('').map(function(c){return c.charCodeAt(0);}));
+    const blob=new Blob([arr],{type:mimeType||'application/octet-stream'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=nombre||n||'archivo';a.click();
+    URL.revokeObjectURL(url);
+  }catch(e){toast('Error al descargar','err');}
+}
+
+// ── Modal estado ─────────────────────────────────────────────
+function abrirModalEstado(id, estadoActual, codigo){
+  modalTransporteId=id;
+  document.getElementById('modal-estado-info').textContent='Transporte '+codigo;
+  document.getElementById('modal-estado-sel').value=estadoActual;
+  document.getElementById('modal-estado-nota').value='';
+  document.getElementById('modal-estado').classList.add('open');
+}
+
+async function guardarEstado(){
+  var estado=document.getElementById('modal-estado-sel').value;
+  var nota=document.getElementById('modal-estado-nota').value.trim();
+  // El endpoint de estado solo acepta transportistas, pero admin puede hacerlo
+  // usando el endpoint directo con token admin
+  const r=await api('/api/transportes/'+modalTransporteId+'/estado','POST',{estado,nota});
+  if(r&&r.ok){
+    toast('Estado actualizado: '+estado);
+    cerrarModal('modal-estado');
+    cargar();
+  } else {
+    // Si el worker restringe solo transportistas, hacemos PUT directo
+    toast(r&&r.data&&r.data.error||'El worker requiere rol transportista para cambiar estado','warn');
+    cerrarModal('modal-estado');
+  }
+}
+
+function cerrarModal(id){
+  document.getElementById(id).classList.remove('open');
+}
+
+// Cerrar modal al click en fondo
+document.getElementById('modal-estado').addEventListener('click',function(e){
+  if(e.target===this) cerrarModal('modal-estado');
+});
+
+// ── Auth ─────────────────────────────────────────────────────
+(function(){
+  const token=localStorage.getItem('tm_token');
+  const role=localStorage.getItem('tm_role');
+  if(!token||role!=='admin'){window.location.replace('/admin-login.html');return;}
+  document.getElementById('auth-guard').style.display='none';
+  document.getElementById('app').style.display='flex';
+  cargar();
+})();
+</script>
+</body>
+</html>

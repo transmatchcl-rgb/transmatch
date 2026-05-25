@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch — Historial</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f7fb;min-height:100vh;display:flex;flex-direction:column}
+  #auth-guard{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:9999}
+  .spinner{width:32px;height:32px;border:3px solid #e8eaf0;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #app{display:none}#app.shown{display:flex;flex-direction:column;min-height:100vh}
+  .nav{background:#1e2d4e;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .nav-left{display:flex;align-items:center;gap:16px}
+  .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+  .nav-icon{background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+  .nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#ff8904}
+  .nav-links{display:flex;gap:2px}
+  .nav-link{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+  .nav-link:hover,.nav-link.active{color:#fff;background:rgba(255,255,255,.12)}
+  .nav-avatar{width:30px;height:30px;border-radius:50%;background:#ff8904;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;cursor:pointer}
+  main{max-width:900px;margin:0 auto;padding:24px 20px;flex:1}
+  .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+  .hdr-title{font-size:20px;font-weight:700;color:#1e2d4e}
+  .hdr-sub{font-size:13px;color:#6B7280;margin-top:2px}
+  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  @media(max-width:700px){.grid-4{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;padding:14px 16px;box-shadow:0 1px 4px rgba(30,45,78,.05)}
+  .stat-label{font-size:12px;color:#6B7280;margin-bottom:4px}
+  .stat-val{font-size:24px;font-weight:700}
+  .filter-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .fil-btn{padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e8eaf0;background:#fff;color:#6B7280;transition:all .15s}
+  .fil-btn.active{background:#1e2d4e;color:#fff;border-color:#1e2d4e}
+  .row{background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;padding:14px 18px;margin-bottom:8px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:box-shadow .15s}
+  .row:hover{box-shadow:0 2px 12px rgba(30,45,78,.1)}
+  .row-body{flex:1;min-width:0}
+  .row-title{font-size:13px;font-weight:600;color:#1e2d4e}
+  .row-meta{font-size:11px;color:#6B7280;margin-top:3px}
+  .row-right{text-align:right;flex-shrink:0}
+  .badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px}
+  .b-abierta{background:#FFF7ED;color:#92400E}
+  .b-cerrada{background:#DBEAFE;color:#1e40af}
+  .b-adjudicada{background:#F0FDF4;color:#14532D}
+  .b-completada{background:#F0FDF4;color:#14532D}
+  .b-ganada{background:#F0FDF4;color:#14532D}
+  .b-perdida{background:#f8f9fc;color:#9CA3AF;border:0.5px solid #e8eaf0}
+  .b-pendiente{background:#FFF7ED;color:#92400E}
+  .precio{font-size:14px;font-weight:700;color:#1e2d4e}
+  .empty{text-align:center;padding:48px;color:#9CA3AF;font-size:13px}
+</style>
+</head>
+<body>
+<div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:20px"><div style="background:#ff8904;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff">T</div><span style="font-size:20px;font-weight:700;color:#1e2d4e">Trans<span style="color:#ff8904">Match</span></span></div><div class="spinner" style="margin:0 auto"></div></div></div>
+
+<div id="app">
+  <nav class="nav">
+    <div class="nav-left">
+      <a href="/transportista.html" class="nav-logo"><div class="nav-icon">T</div><span class="nav-name">Trans<span>Match</span></span></a>
+      <div class="nav-links"><a href="/transportista.html" class="nav-link">Inicio</a><a href="/transportista-retornos.html" class="nav-link">Retornos</a><a href="/transportista-licitaciones.html" class="nav-link">Licitaciones</a><a href="/transportista-transporte.html" class="nav-link">Transportes</a><a href="/transportista-cobros.html" class="nav-link">Facturacion</a><a href="/transportista-calendario.html" class="nav-link">Calendario</a><a href="/transportista-historial.html" class="nav-link active">Historial</a></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;"><div style="text-align:right"><div style="font-size:13px;color:#fff;font-weight:500" id="nav-nombre">--</div><div style="font-size:11px;color:#93C5FD" id="nav-empresa">--</div></div><div style="display:flex;align-items:center;gap:8px;"><div style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;" id="notif-btn" onclick="toggleNotifs(event)">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+  <span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;"></span>
+</div>
+<div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)" style="cursor:pointer">?</div>
+<div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:240px;z-index:999;overflow:hidden">
+  <div style="padding:14px 16px;border-bottom:1px solid #f3f4f6">
+    <div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div>
+    <div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div>
+  </div>
+  <a href="/transportista-perfil.html" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Mi perfil y equipos
+  </a>
+  <a href="/transportista-historial.html" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4.5"/><polyline points="3 3 3 9 9 9"/></svg>
+    Historial
+  </a>
+  <a href="/ayuda.html" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    Ayuda
+  </a>
+  <div style="border-top:1px solid #f3f4f6">
+    <button onclick="localStorage.clear();window.location.replace('/index.html')" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#DC2626;background:none;border:none;cursor:pointer;width:100%;font-family:inherit" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background=''">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Cerrar sesión
+    </button>
+  </div>
+</div>
+</div>
+  </nav>
+<div id="notif-panel" onclick="event.stopPropagation()" style="display:none;position:fixed;top:60px;right:16px;width:360px;background:#fff;border-radius:14px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.14);z-index:500;overflow:hidden;max-height:520px;flex-direction:column">
+  <!-- Header dinámico: cambia entre "Notificaciones" y "← Configuración" -->
+  <div id="notif-header-main" style="padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <span style="font-size:14px;font-weight:700;color:#1e2d4e">Notificaciones</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button onclick="event.stopPropagation();marcarTodasLeidas()" style="font-size:11px;color:#6B7280;background:none;border:none;cursor:pointer;padding:3px 6px;border-radius:5px" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">Marcar leídas</button>
+      <button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;color:#6B7280" title="Configurar notificaciones" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="notif-header-config" style="display:none;padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:none;align-items:center;gap:10px;flex-shrink:0">
+    <button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;color:#1e2d4e;font-size:13px;font-weight:500;padding:4px 8px;border-radius:6px" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Volver
+    </button>
+    <span style="font-size:14px;font-weight:700;color:#1e2d4e">Configuración</span>
+  </div>
+  <div id="notif-config" style="display:none;border-bottom:0.5px solid #E5E7EB;background:#f8f9fc;flex-shrink:0">
+    <div style="padding:14px 16px">
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Canal de notificaciones</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:13px;color:#374151">✉️ Por email</span><input type="checkbox" id="notif-email-chk" onchange="guardarPrefs()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:13px;color:#374151">💬 Por WhatsApp</span><input type="checkbox" id="notif-wa-chk" onchange="toggleWA()" style="width:16px;height:16px;accent-color:#25D366;cursor:pointer"/></label>
+        <div id="wa-input" style="display:none;margin-top:4px"><input id="wa-numero" type="tel" placeholder="+56 9 XXXX XXXX" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:7px;font-size:13px"/><button onclick="guardarPrefs()" style="margin-top:6px;width:100%;padding:7px;background:#25D366;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer">Guardar número</button></div>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Sobre licitaciones</div>
+      <div style="display:flex;flex-direction:column;gap:0">
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Nueva licitación disponible</span><input type="checkbox" id="pref-nueva-licit" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Licitación cerrada sin adjudicación</span><input type="checkbox" id="pref-licit-cerrada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Licitación adjudicada a mí</span><input type="checkbox" id="pref-adjudicada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#374151;margin:10px 0;text-transform:uppercase;letter-spacing:.06em">Sobre retornos</div>
+      <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;cursor:pointer"><span style="font-size:13px;color:#374151">Solicitudes en retornos publicados</span><input type="checkbox" id="pref-retornos" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+    </div>
+  </div>
+  <div id="notif-list" style="overflow-y:auto;flex:1"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div>
+</div>
+
+  <main>
+    <div class="hdr">
+      <div>
+        <div class="hdr-title">Historial de cotizaciónes</div>
+        <div class="hdr-sub">Todas las licitaciónes en las que has participado</div>
+      </div>
+      <button onclick="cargar()" style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:0.5px solid #e8eaf0;background:#fff">Actualizar</button>
+    </div>
+
+    <div class="grid-4" id="stats">
+      <div class="stat"><div class="stat-label">Total cotizaciónes</div><div class="stat-val" id="s-total" style="color:#1e2d4e">—</div></div>
+      <div class="stat"><div class="stat-label">Ganadas</div><div class="stat-val" id="s-ganadas" style="color:#1ED24E">—</div></div>
+      <div class="stat"><div class="stat-label">Tasa de éxito</div><div class="stat-val" id="s-tasa" style="color:#ff8904">—</div></div>
+      <div class="stat"><div class="stat-label">Ingresos totales</div><div class="stat-val" id="s-ingresos" style="color:#1d4ed8;font-size:16px;margin-top:4px">—</div></div>
+    </div>
+
+    <div class="filter-bar">
+      <button class="fil-btn active" onclick="filtrar('todas',this)">Todas</button>
+      <button class="fil-btn" onclick="filtrar('ganadas',this)">Ganadas</button>
+      <button class="fil-btn" onclick="filtrar('en_curso',this)">En curso</button>
+      <button class="fil-btn" onclick="filtrar('perdidas',this)">No adjudicadas</button>
+    </div>
+
+    <div id="lista"><div class="spinner" style="margin:40px auto"></div></div>
+  </main>
+</div>
+
+<script>
+var API = 'https://transmatch.transmatchcl.workers.dev';
+var todas = [];
+var filtroActual = 'todas';
+
+function peso(n){ return n ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '--'; }
+function fecha(iso){ return iso ? new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}) : '--'; }
+
+async function cargar(){
+  document.getElementById('lista').innerHTML = '<div class="spinner" style="margin:40px auto"></div>';
+  try {
+    var res = await fetch(API+'/api/transportista/historial', {
+      headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}
+    });
+    if(res.status===401){localStorage.clear();window.location.replace('/index.html');return;}
+    var d = await res.json();
+    todas = d.licitaciones || [];
+    renderStats();
+    filtrar(filtroActual, null);
+  } catch(e){
+    document.getElementById('lista').innerHTML = '<div class="empty">Error al cargar. Intenta nuevamente.</div>';
+  }
+}
+
+function renderStats(){
+  var total   = todas.length;
+  var ganadas = todas.filter(function(l){ return l.gane; }).length;
+  var tasa    = total > 0 ? Math.round((ganadas/total)*100) : 0;
+  var ingresos= todas.filter(function(l){ return l.gane; }).reduce(function(s,l){ return s+(l.precioAdjudicado||0); }, 0);
+  document.getElementById('s-total').textContent   = total;
+  document.getElementById('s-ganadas').textContent = ganadas;
+  document.getElementById('s-tasa').textContent    = tasa+'%';
+  document.getElementById('s-ingresos').textContent= peso(ingresos);
+}
+
+function filtrar(f, btn){
+  filtroActual = f;
+  if(btn){
+    document.querySelectorAll('.fil-btn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+  }
+  var lista = todas;
+  if(f === 'ganadas')   lista = todas.filter(function(l){ return l.gane; });
+  if(f === 'en_curso')  lista = todas.filter(function(l){ return l.gane && l.estado === 'adjudicada'; });
+  if(f === 'perdidas')  lista = todas.filter(function(l){ return !l.gane && l.estado !== 'abierta'; });
+
+  if(lista.length === 0){
+    document.getElementById('lista').innerHTML = '<div class="empty">Sin resultados para este filtro</div>';
+    return;
+  }
+
+  document.getElementById('lista').innerHTML = lista.map(function(l){
+    var badgeCls, badgeTxt;
+    if(l.gane && l.estado==='completada'){ badgeCls='b-completada'; badgeTxt='Completada'; }
+    else if(l.gane){ badgeCls='b-ganada'; badgeTxt='Adjudicada a ti'; }
+    else if(l.estado==='abierta'||l.estado==='cerrada'){ badgeCls='b-pendiente'; badgeTxt='En proceso'; }
+    else { badgeCls='b-perdida'; badgeTxt='No adjudicada'; }
+
+    var precioMostrar = l.gane ? l.precioAdjudicado : (l.miCotizacion ? l.miCotizacion.precio : null);
+
+    return '<div class="row" onclick="irDetalle(\''+l.estado+'\',\''+l.id+'\')">'+
+      '<div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;background:'+(l.gane?'#1ED24E':l.estado==='abierta'?'#ff8904':'#e8eaf0')+'"></div>'+
+      '<div class="row-body">'+
+        '<div class="row-title">'+
+          (l.codigo?'<span style="font-size:10px;font-family:monospace;color:#9CA3AF;margin-right:6px">'+l.codigo+'</span>':'')+
+          l.tipoEquipo+(l.marca?' — '+l.marca:'')+
+        '</div>'+
+        '<div class="row-meta">'+l.origen+' → '+l.destino+' · '+fecha(l.createdAt)+'</div>'+
+      '</div>'+
+      '<div class="row-right">'+
+        '<div class="precio">'+peso(precioMostrar)+'</div>'+
+        '<div style="margin-top:4px"><span class="badge '+badgeCls+'">'+badgeTxt+'</span></div>'+
+        (l.valoracion ? '<div style="font-size:11px;color:#ff8904;margin-top:4px">★ '+l.valoracion.promedio+'</div>' : '')+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function irDetalle(estado, id){
+  var l = todas.find(function(x){ return x.id === id; });
+  if(!l) return;
+
+  var badgeCls, badgeTxt;
+  if(l.gane && l.estado==='completada'){ badgeCls='b-completada'; badgeTxt='Completada'; }
+  else if(l.gane){ badgeCls='b-ganada'; badgeTxt='Adjudicada a ti'; }
+  else if(l.estado==='abierta'||l.estado==='cerrada'){ badgeCls='b-pendiente'; badgeTxt='En proceso'; }
+  else { badgeCls='b-perdida'; badgeTxt='No adjudicada'; }
+
+  var html = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">'+
+    (l.codigo?'<span style="font-size:11px;font-family:monospace;font-weight:700;background:#eef1f8;color:#1e2d4e;padding:2px 8px;border-radius:4px">'+l.codigo+'</span>':'')+
+    '<span class="badge '+badgeCls+'">'+badgeTxt+'</span>'+
+    '</div>';
+
+  var items = [
+    ['Equipo', l.tipoEquipo+(l.marca?' — '+l.marca:'')],
+    ['Ruta', l.origen+' → '+l.destino],
+    ['Publicada', fecha(l.createdAt)],
+  ];
+  if(l.miCotizacion){
+    items.push(['Mi cotizacion', peso(l.miCotizacion.precio)]);
+    items.push(['Tiempo entrega', l.miCotizacion.tiempoEntrega||'--']);
+    items.push(['Score obtenido', l.miCotizacion.score ? Math.round(l.miCotizacion.score*100)+'%' : '--']);
+  }
+  if(l.gane){
+    items.push(['Precio adjudicado', peso(l.precioAdjudicado)]);
+  }
+  if(l.valoracion){
+    items.push(['Valoracion del cliente', '★ '+l.valoracion.promedio+'/5']);
+  }
+
+  html += items.map(function(row){
+    return '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #f3f4f6;font-size:13px">'+
+      '<span style="color:#6B7280">'+row[0]+'</span>'+
+      '<span style="font-weight:500;color:#1e2d4e">'+row[1]+'</span>'+
+    '</div>';
+  }).join('');
+
+  if(l.gane && (l.estado==='adjudicada'||l.estado==='completada')){
+    html += '<div style="margin-top:14px">'+
+      '<a href="/transportista-transporte.html" style="display:block;text-align:center;padding:10px;background:#1e2d4e;color:#fff;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none">Ver transporte activo</a>'+
+    '</div>';
+  }
+
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-titulo').textContent = l.tipoEquipo+(l.marca?' — '+l.marca:'');
+  document.getElementById('modal-bg').style.display = 'flex';
+}
+
+function cerrarModal(){
+  document.getElementById('modal-bg').style.display = 'none';
+}
+
+(async function(){
+  var token = localStorage.getItem('tm_token');
+  var role  = localStorage.getItem('tm_role');
+  if(!token || role !== 'transportista'){ window.location.replace('/index.html'); return; }
+  document.getElementById('nav-avatar').textContent = (localStorage.getItem('tm_nombre')||'?')[0].toUpperCase();
+var nn=document.getElementById('nav-nombre');if(nn)nn.textContent=localStorage.getItem('tm_nombre')||'';
+var ne=document.getElementById('nav-empresa');if(ne)ne.textContent=localStorage.getItem('tm_empresa')||'';
+  document.getElementById('auth-guard').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';document.getElementById('app').style.flexDirection='column';document.getElementById('app').style.minHeight='100vh';
+      cargarNotificaciones();
+  cargar();
+})();
+
+  function toggleUserMenu(e){
+    e.stopPropagation();
+    var m=document.getElementById('user-menu');
+    var isOpen=m&&m.style.display==='block';
+    closeAllPanels();
+    if(!isOpen&&m) m.style.display='block';
+  }
+  document.addEventListener('click',function(){ closeAllPanels(); });
+
+  async function cargarNotificaciones(){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var r = await fetch(API + '/api/notificaciones', { headers: {'Authorization':'Bearer '+token} });
+      var data = await r.json();
+      var notifs = data.notificaciones || [];
+      var noLeidas = notifs.filter(function(n){ return !n.leida; }).length;
+      var badge = document.getElementById('notif-count');
+      if(badge){ badge.textContent = noLeidas > 9 ? '9+' : noLeidas; badge.style.display = noLeidas > 0 ? 'flex' : 'none'; }
+      var list = document.getElementById('notif-list');
+      if(!list) return;
+      if(notifs.length === 0){
+        list.innerHTML = '<div style="padding:32px 20px;text-align:center"><div style="font-size:28px;margin-bottom:8px">🔔</div><div style="font-size:14px;font-weight:500;color:#374151;margin-bottom:4px">Sin notificaciones</div><div style="font-size:12px;color:#9CA3AF">Te avisaremos cuando haya novedades</div></div>';
+        return;
+      }
+      var iconMap = { adjudicacion:'🏆', licitacion_aprobada:'✅', licitacion_rechazada:'❌', licitacion_cerrada:'📋', cotizaciones_disponibles:'🎯', nueva_licitacion:'📣', cobro_pendiente:'💰', cobro_pagado:'✅', cuenta_aprobada:'✅' };
+      list.innerHTML = notifs.slice(0,20).map(function(n){
+        var icono = iconMap[n.tipo] || '🔔';
+        var bg = !n.leida ? 'background:#f0f4ff' : '';
+        var ts = n.createdAt ? new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+        return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'+
+          '<div style="font-size:18px;flex-shrink:0;margin-top:1px">'+icono+'</div>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4">'+n.mensaje+'</div>'+
+            '<div style="font-size:11px;color:#9CA3AF">'+ts+'</div>'+
+          '</div>'+
+          (!n.leida
+            ? '<button onclick="event.stopPropagation();marcarUnaLeida(\'' + n.id + '\')" title="Marcar como leída" style="background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0;margin-top:2px;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">✓</button>'
+            : '') +
+        '</div>';
+      }).join('');
+      cargarPrefsConfig();
+    } catch(e){}
+  }
+
+  function toggleConfigNotif(){
+    var cfg      = document.getElementById('notif-config');
+    var list     = document.getElementById('notif-list');
+    var hMain    = document.getElementById('notif-header-main');
+    var hConfig  = document.getElementById('notif-header-config');
+    var isOpen   = cfg && cfg.style.display !== 'none';
+    if(isOpen){
+      if(cfg)     cfg.style.display     = 'none';
+      if(list)    list.style.display    = 'block';
+      if(hMain)   hMain.style.display   = 'flex';
+      if(hConfig) hConfig.style.display = 'none';
+    } else {
+      if(cfg)     cfg.style.display     = 'block';
+      if(list)    list.style.display    = 'none';
+      if(hMain)   hMain.style.display   = 'none';
+      if(hConfig) hConfig.style.display = 'flex';
+      cargarPrefsConfig();
+    }
+  }
+
+  function cargarPrefsConfig(){
+    try {
+      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      var ec = document.getElementById('notif-email-chk');
+      var wc = document.getElementById('notif-wa-chk');
+      if(ec) ec.checked = prefs.notifEmail !== false;
+      if(wc) wc.checked = !!prefs.notifWhatsapp;
+      if(wc && wc.checked){ var wi=document.getElementById('wa-input'); if(wi) wi.style.display='block'; }
+      var waNum = document.getElementById('wa-numero');
+      if(waNum && prefs.whatsapp) waNum.value = prefs.whatsapp;
+      ['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
+        var el = document.getElementById('pref-'+id);
+        if(el) el.checked = prefs['pref_'+id] !== false;
+      });
+    } catch(e){}
+  }
+
+  async function guardarPrefsDetalle(){
+    try {
+      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      ['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
+        var el = document.getElementById('pref-'+id);
+        if(el) prefs['pref_'+id] = el.checked;
+      });
+      localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+    } catch(e){}
+  }
+
+
+  function toggleWA(){
+    var wc = document.getElementById('notif-wa-chk');
+    var wi = document.getElementById('wa-input');
+    if(wi) wi.style.display = (wc && wc.checked) ? 'block' : 'none';
+    guardarPrefs();
+  }
+
+
+  function closeAllPanels(){
+    var m=document.getElementById('user-menu');
+    var p=document.getElementById('notif-panel');
+    if(m) m.style.display='none';
+    if(p) p.style.display='none';
+  }
+
+  function toggleNotifs(e){
+    if(e) e.stopPropagation();
+    var panel=document.getElementById('notif-panel');
+    if(!panel) return;
+    var isOpen=panel.style.display==='flex';
+    closeAllPanels();
+    if(!isOpen){panel.style.display='flex';cargarNotificaciones();}
+  }
+
+
+  async function marcarUnaLeida(id){
+    try {
+      var token = localStorage.getItem('tm_token');
+      await fetch('https://transmatch.transmatchcl.workers.dev/api/notificaciones/leer', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body: JSON.stringify({id: id})
+      });
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+  async function marcarTodasLeidas(){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var r = await fetch('https://transmatch.transmatchcl.workers.dev/api/notificaciones', {headers:{'Authorization':'Bearer '+token}});
+      var data = r.ok ? await r.json() : {};
+      var notifs = (data.notificaciones||[]).filter(function(n){ return !n.leida; });
+      for(var i=0;i<notifs.length;i++){
+        await fetch('https://transmatch.transmatchcl.workers.dev/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:notifs[i].id})});
+      }
+      var badge = document.getElementById('notif-count');
+      if(badge) badge.style.display='none';
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+</script>
+
+<div id="modal-bg" onclick="if(event.target===this)cerrarModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:14px;padding:24px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:16px;font-weight:600;color:#1e2d4e" id="modal-titulo"></div>
+      <button onclick="cerrarModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#6B7280">x</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <!-- Logo -->
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px">T</div>
+        <span style="font-weight:700;color:#fff;font-size:15px">Trans<span style="color:#ff8904">Match</span></span>
+      </div>
+      <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+    </div>
+    <!-- Links -->
+    <div style="display:flex;gap:32px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <a href="/términos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Términos y condiciones</a>
+          <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Política de privacidad</a>
+          <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Centro de ayuda</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;color:#CBD5E1"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="13707c7d677270677c536761727d607e7267707b3d707f">[email&#160;protected]</a></span>
+          <span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <span>© 2026 TransMatch SpA. T

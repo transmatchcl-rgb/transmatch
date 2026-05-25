@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch — Admin Clientes</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff}
+  #app{display:none}
+  #auth-guard{position:fixed;inset:0;background:#1e2d4e;display:flex;align-items:center;justify-content:center;z-index:9999}
+  .gs{width:36px;height:36px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .nav{background:#1e2d4e;padding:0 24px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .nav-left{display:flex;align-items:center;gap:16px}
+  .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+  .nav-icon{background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+  .nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#ff8904}
+  .nav-badge{background:rgba(255,255,255,.15);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px}
+  .nav-tabs{display:flex;gap:2px}
+  .nav-tab{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+  .nav-tab:hover,.nav-tab.active{color:#fff;background:rgba(255,255,255,.12)}
+  .logout-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer}
+  main{max-width:1100px;margin:0 auto;padding:24px 20px;min-height:calc(100vh - 54px)}
+  .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+  .hdr-title{font-size:20px;font-weight:600;color:#1e2d4e}
+  .hdr-sub{font-size:14px;color:#6B7280;margin-top:2px}
+  .grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+  @media(max-width:700px){.grid-4{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);padding:16px 18px}
+  .stat-label{font-size:12px;color:#6B7280;margin-bottom:6px}
+  .stat-val{font-size:26px;font-weight:700}
+  .card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);overflow:hidden}
+  .filter-bar{display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px;border-bottom:0.5px solid #e8eaf0}
+  .sel{padding:8px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;background:#fff;color:#374151}
+  .srch{padding:8px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;flex:1;min-width:180px}
+  .sel:focus,.srch:focus{outline:none;border-color:#1e2d4e}
+  .row{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:0.5px solid #f3f4f6;transition:background .1s}
+  .row:hover{background:#f5f7fb}
+  .row:last-child{border-bottom:none}
+  .avatar{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:15px;flex-shrink:0}
+  .row-body{flex:1;min-width:0}
+  .row-name{font-size:13px;font-weight:500;color:#1e2d4e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row-meta{font-size:11px;color:#6B7280;margin-top:2px}
+  .badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px}
+  .badge-blue{background:#eef1f8;color:#1e2d4e}
+  .badge-orange{background:#FFF7ED;color:#92400E}
+  .badge-gray{background:#F9FAFB;color:#6B7280;border:0.5px solid #e8eaf0}
+  .btn{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s;display:inline-flex;align-items:center;gap:5px;text-decoration:none}
+  .btn:hover{opacity:.85}
+  .btn-primary{background:#1e2d4e;color:#fff}
+  .btn-outline{background:transparent;border:0.5px solid #e8eaf0;color:#374151}
+  .empty{text-align:center;padding:40px;color:#9CA3AF;font-size:13px}
+  .spinner{width:24px;height:24px;border:3px solid #e8eaf0;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite;margin:40px auto}
+</style>
+</head>
+<body>
+<div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px"><div style="background:#ff8904;border-radius:7px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:15px">T</div><span style="font-weight:700;color:#fff;font-size:18px">Trans<span style="color:#ff8904">Match</span></span></div><div class="gs" style="margin:0 auto"></div></div></div>
+
+<div id="app">
+  <nav class="nav">
+    <div class="nav-left">
+      <a href="/admin.html" class="nav-logo"><div class="nav-icon">T</div><span class="nav-name">Trans<span>Match</span></span><span class="nav-badge">ADMIN</span></a>
+            <div class="nav-tabs">
+        <a href="/admin.html" class="nav-tab">Dashboard</a>
+        <a href="/admin-licitaciones.html" class="nav-tab">Licitaciones</a>
+        <a href="/admin-cotizaciones.html" class="nav-tab">Cotizaciones</a>
+        <a href="/admin-transportes.html" class="nav-tab">Transportes</a>
+        <a href="/admin-clientes.html" class="nav-tab active">Clientes</a>
+        <a href="/admin-transportistas.html" class="nav-tab">Transportistas</a>
+        <a href="/admin-cobros.html" class="nav-tab">Facturación</a>
+        <a href="/admin-reportes.html" class="nav-tab">Reportes</a>
+      </div>
+      </div>
+    <button class="logout-btn" onclick="localStorage.clear();window.location.replace('/admin-login.html')">Cerrar sesion</button>
+  </nav>
+  <main>
+    <div class="hdr">
+      <div><div class="hdr-title">Clientes</div><div class="hdr-sub">Empresas registradas en la plataforma</div></div>
+      
+    </div>
+    <div class="grid-4">
+      <div class="stat"><div class="stat-label">Total clientes</div><div id="st-total" class="stat-val" style="color:#1e2d4e">--</div></div>
+      <div class="stat"><div class="stat-label">Plan Básico</div><div id="st-basico" class="stat-val" style="color:#6B7280">--</div></div>
+      <div class="stat"><div class="stat-label">Plan Pro</div><div id="st-pro" class="stat-val" style="color:#1d4ed8">--</div></div>
+      <div class="stat"><div class="stat-label">Enterprise</div><div id="st-ent" class="stat-val" style="color:#92400E">--</div></div>
+    </div>
+    <div class="card">
+      <div class="filter-bar">
+        <select class="sel" id="fil-plan" onchange="filtrar()">
+          <option value="">Todos los planes</option>
+          <option value="básico">Básico</option>
+          <option value="pro">Pro</option>
+          <option value="enterprise">Enterprise</option>
+        </select>
+        <input class="srch" id="fil-buscar" placeholder="Buscar empresa o email..." oninput="filtrar()"/>
+      </div>
+      <div id="lista-clientes"><div class="spinner"></div></div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const API = 'https://transmatch.transmatchcl.workers.dev';
+  let allC = [];
+
+  async function apiFetch(path,method,body){
+    const o={method:method||'GET',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}};
+    if(body) o.body=JSON.stringify(body);
+    try{const r=await fetch(API+path,o);if(r.status===401){localStorage.clear();window.location.replace('/admin-login.html');return null;}return{ok:r.ok,data:await r.json()};}catch(e){return null;}
+  }
+
+  function planBadge(p){
+    const m={basico:'<span class="badge badge-gray">Básico</span>',pro:'<span class="badge badge-blue">Pro</span>',enterprise:'<span class="badge badge-orange">Enterprise</span>'};
+    return m[p]||'--';
+  }
+
+  async function initPage(){
+    document.getElementById('lista-clientes').innerHTML='<div class="spinner"></div>';
+    try{
+      const r=await apiFetch('/api/admin/usuarios');
+      if(!r||!r.ok){document.getElementById('lista-clientes').innerHTML='<div class="empty">Error al cargar. <button onclick="initPage()" style="color:#1d4ed8;background:none;border:none;cursor:pointer">Reintentar</button></div>';return;}
+      allC=r.data.usuarios.filter(u=>u.role==='cliente');
+      document.getElementById('st-total').textContent=allC.length;
+      document.getElementById('st-basico').textContent=allC.filter(c=>c.plan==='basico').length;
+      document.getElementById('st-pro').textContent=allC.filter(c=>c.plan==='pro').length;
+      document.getElementById('st-ent').textContent=allC.filter(c=>c.plan==='enterprise').length;
+      filtrar();
+    }catch(e){document.getElementById('lista-clientes').innerHTML='<div class="empty">Error de conexión.</div>';}
+  }
+
+  function filtrar(){
+    const plan=document.getElementById('fil-plan').value;
+    const q=(document.getElementById('fil-buscar').value||'').toLowerCase();
+    let lista=allC;
+    if(plan) lista=lista.filter(c=>c.plan===plan);
+    if(q) lista=lista.filter(c=>(c.empresa+c.nombre+c.email).toLowerCase().includes(q));
+
+    const avColors=['#1ED24E','#1e2d4e','#ff8904','#7C3AED'];
+    document.getElementById('lista-clientes').innerHTML = lista.length===0
+      ? '<div class="empty">Sin resultados</div>'
+      : lista.map((c,i) =>
+          '<div class="row">' +
+            '<div class="avatar" style="background:'+avColors[i%avColors.length]+';border-radius:10px">'+(c.empresa||c.nombre||'?')[0].toUpperCase()+'</div>' +
+            '<div class="row-body">' +
+              '<div class="row-name">'+(c.empresa||c.nombre)+'</div>' +
+              '<div class="row-meta">'+c.nombre+' · '+c.email+' · Desde '+new Date(c.createdAt).toLocaleDateString('es-CL')+'</div>' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">' +
+              planBadge(c.plan) +
+              '<a href="/admin-perfil-usuario.html?email='+encodeURIComponent(c.email)+'" class="btn btn-outline" style="font-size:12px;padding:5px 10px">Ver perfil</a>' +
+              '<button onclick="eliminarUsuario(\''+c.email+'\')" style="padding:5px 10px;font-size:12px;border-radius:6px;border:1px solid #FCA5A5;background:#FEF2F2;color:#DC2626;cursor:pointer">Eliminar</button>' +
+            '</div>' +
+          '</div>'
+        ).join('');
+  }
+
+  (function(){
+    const token=localStorage.getItem('tm_token');
+    const role=localStorage.getItem('tm_role');
+    if(!token||role!=='admin'){window.location.replace('/admin-login.html');return;}
+    document.getElementById('auth-guard').style.display='none';
+    document.getElementById('app').style.display='block';
+    initPage();
+  })();
+
+  async function eliminarUsuario(email) {
+    if (!confirm('¿Eliminar al cliente ' + email + '? Esta acción no se puede deshacer.')) return;
+    const r = await apiFetch('/api/admin/usuario/' + encodeURIComponent(email), 'DELETE');
+    if (r && r.ok) { alert('Cliente eliminado'); initPage(); }
+    else alert('Error al eliminar');
+  }
+</script>
+
+<footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <!-- Logo -->
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px">T</div>
+        <span style="font-weight:700;color:#fff;font-size:15px">Trans<span style="color:#ff8904">Match</span></span>
+      </div>
+      <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+    </div>
+    <!-- Links -->
+    <div style="display:flex;gap:32px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <a href="/términos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Términos y condiciones</a>
+          <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Política de privacidad</a>
+          <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Centro de ayuda</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;color:#CBD5E1"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c5a6aaabb1a4a6b1aa85b1b7a4abb6a8a4b1a6adeba6a9">[email&#160;protected]</a></span>
+          <span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <span>© 2026 TransMatch SpA. T

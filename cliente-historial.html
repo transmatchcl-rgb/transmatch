@@ -1,0 +1,351 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>TransMatch — Historial</title><style>
+ *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#ffffff;display:flex;flex-direction:column;min-height:100vh}
+ #auth-guard{position:fixed;inset:0;background:#ffffff;display:flex;align-items:center;justify-content:center;z-index:9999}
+ .spinner{width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+ @keyframes spin{to{transform:rotate(360deg)}}
+ #app{display:none}#app.shown{display:flex;flex-direction:column;min-height:100vh}
+ .nav{background:#1e2d4e;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+ .nav-left{display:flex;align-items:center;gap:16px}
+ .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+ .nav-icon{background:#FF8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+ .nav-name{font-weight:700;color:#fff;font-size:15px}
+ .nav-name span{color:#FF8904}
+ .nav-links{display:flex;gap:2px}
+ .nav-link{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+ .nav-link:hover,.nav-link.active{color:#fff;background:rgba(255,255,255,.18)}
+ .avatar{width:30px;height:30px;border-radius:50%;background:#FF8904;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;cursor:pointer}
+ main{max-width:1000px;margin:0 auto;padding:24px 20px;flex:1}
+ .card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);overflow:hidden;margin-bottom:16px}
+ .card-hdr{padding:14px 18px;border-bottom:0.5px solid #e8eaf0;display:flex;align-items:center;justify-content:space-between}
+ .card-title{font-size:15px;font-weight:500;color:#111827}
+ .grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+ @media(max-width:700px){.grid-4{grid-template-columns:repeat(2,1fr)}}
+ .stat{background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);padding:16px 18px}
+ .stat-label{font-size:12px;color:#6B7280;margin-bottom:6px}
+ .stat-val{font-size:26px;font-weight:600}
+ .badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px}
+ .pill{padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid transparent;transition:all .15s;user-select:none;white-space:nowrap}
+ .pill-todas{border-color:#E5E7EB;background:#fff;color:#6B7280}
+ .pill-todas.active{background:#1e2d4e;border-color:#1e2d4e;color:#fff}
+ .pill-revision{border-color:#E5E7EB;background:#fff;color:#6B7280}
+ .pill-revision.active{background:#f8f9fc;border-color:#9CA3AF;color:#374151}
+ .pill-abierta{border-color:#FED7AA;background:#fff;color:#92400E}
+ .pill-abierta.active{background:#FFF7ED;border-color:#F97316;color:#92400E}
+ .pill-cotiz{border-color:#BFDBFE;background:#fff;color:#1e2d4e}
+ .pill-cotiz.active{background:#eef1f8;border-color:#1e2d4e;color:#1e2d4e}
+ .pill-adj{border-color:#BBF7D0;background:#fff;color:#14532D}
+ .pill-adj.active{background:#F0FDF4;border-color:#16a34a;color:#14532D}
+ .pill-comp{border-color:#BBF7D0;background:#fff;color:#14532D}
+ .pill-comp.active{background:#F0FDF4;border-color:#16a34a;color:#14532D}
+ .pill-rech{border-color:#FECACA;background:#fff;color:#991B1B}
+ .pill-rech.active{background:#FEF2F2;border-color:#EF4444;color:#991B1B}
+ .badge-green{background:#F0FDF4;color:#14532D}
+ .badge-blue{background:#eef1f8;color:#1e2d4e}
+ .badge-orange{background:#FFF7ED;color:#92400E}
+ .badge-red{background:#FEF2F2;color:#991B1B}
+ .badge-gray{background:#f8f9fc;color:#6B7280;border:0.5px solid #E5E7EB}
+ .btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+ .btn:hover{opacity:.88}
+ .btn-outline{background:transparent;border:0.5px solid #E5E7EB;color:#374151}
+ .btn-sm{padding:5px 12px;font-size:12px}
+ .filter-bar{display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px;border-bottom:0.5px solid #e8eaf0}
+ select.sel{padding:7px 10px;border:0.5px solid #E5E7EB;border-radius:7px;font-size:12px;background:#fff;color:#374151}
+ input.srch{padding:7px 12px;border:0.5px solid #E5E7EB;border-radius:7px;font-size:12px;flex:1;min-width:160px}
+ .licit-row{padding:14px 18px;border-bottom:0.5px solid #F3F4F6;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .1s}
+ .licit-row:hover{background:#f5f7fb}
+ .licit-row:last-child{border-bottom:none}
+ .lr-icon{width:38px;height:38px;border-radius:8px;background:#EFF6FF;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+ .lr-body{flex:1;min-width:0}
+ .lr-name{font-size:13px;font-weight:500;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .lr-meta{font-size:11px;color:#6B7280;margin-top:2px}
+ .lr-right{text-align:right;flex-shrink:0}
+ .lr-precio{font-size:13px;font-weight:600;color:#1e2d4e}
+ .stars{color:#FF8904;font-size:13px}
+ .empty{text-align:center;padding:48px 20px;color:#9CA3AF}
+ .empty-icon{font-size:40px;margin-bottom:12px}
+ /* Detalle modal */
+ .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px}
+ .modal-bg.open{display:flex}
+ .modal{background:#fff;border-radius:14px;padding:24px;max-width:560px;width:100%;max-height:88vh;overflow-y:auto}
+ .det-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid #F3F4F6;font-size:13px}
+ .det-row:last-child{border-bottom:none}
+ .det-key{color:#6B7280}
+ .det-val{color:#111827;font-weight:500;text-align:right;max-width:60%}
+
+  
+
+  .um-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:background .15s}
+  .um-item:hover{background:#f9fafb}
+  .um-danger{color:#DC2626}
+  .um-danger:hover{background:#FEF2F2}
+.nav-avatar{width:34px;height:34px;border-radius:50%;background:#FF8904;color:#fff;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.nav-user { font-size: 13px; color: #fff; font-weight: 500; }
+ .nav-sub { font-size: 11px; color: #93C5FD; }
+</style><script>
+ const API='https://transmatch.transmatchcl.workers.dev';
+ (async function(){
+ const token=localStorage.getItem('tm_token');
+ const role=localStorage.getItem('tm_role');
+ if(!token){window.location.replace('/index.html');return}
+ if(role==='admin'){window.location.replace('/admin.html');return}
+ if(role==='transportista'){window.location.replace('/transportista.html');return}
+ try{
+ const res=await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+token}});
+ if(res.status===401){localStorage.clear();window.location.replace('/index.html');return}
+ }catch(e){}
+ document.getElementById('auth-guard').style.display='none';
+ var appEl=document.getElementById('app');appEl.style.display='flex';appEl.style.flexDirection='column';appEl.style.minHeight='100vh';
+      cargarNotificaciones();
+ initApp();
+ })();
+</script></head><body><div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px"><div style="background:#FF8904;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:16px">T</div><div style="font-size:20px;font-weight:700;color:#1e2d4e">Trans<span style="color:#FF8904">Match</span></div></div><div class="spinner"></div></div></div><div id="app"><nav class="nav"><div class="nav-logo"><a href="/cliente.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;"><div class="nav-icon">T</div><span class="nav-name">Trans<span>Match</span></span></a><div class="nav-links"><a href="/cliente.html" class="nav-link">Inicio</a><a href="/cliente-licitaciones.html" class="nav-link">Licitaciones</a><a href="/cliente-retornos.html" id="nav-retornos" class="nav-link">Retornos</a><a href="/cliente-transporte.html" class="nav-link">Transportes</a><a href="/cliente-facturacion.html" class="nav-link">Facturacion</a><a href="/cliente-calendario.html" class="nav-link">Calendario</a><a href="/cliente-historial.html" class="nav-link active">Historial</a></div></div><div class="nav-right"><div style="display:flex;align-items:center;gap:12px;"><div style="text-align:right"><div class="nav-user" id="nav-nombre">—</div><div class="nav-sub" id="nav-empresa">—</div></div><div style="display:flex;align-items:center;gap:8px;"><div id="notif-btn" onclick="toggleNotifs(event)" style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;"></span></div><div style="position:relative"><div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div><div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:220px;z-index:999;overflow:hidden"><div style="padding:14px 16px;border-bottom:1px solid #f3f4f6"><div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div><div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div></div><a href="/cliente-perfil.html" class="um-item">Configuracion</a><a href="/ayuda.html" class="um-item">Ayuda</a><a href="/landing-servicios.html" class="um-item">Planes y precios</a><div style="border-top:1px solid #f3f4f6"><button onclick="cerrarSesion()" class="um-item um-danger">Cerrar sesion</button></div></div></div></div><!-- Panel notificaciónes --><div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:320px;background:#fff;border-radius:12px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.12);z-index:9000;max-height:440px;overflow:hidden;flex-direction:column;"><div style="padding:12px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:8px"><span style="font-size:14px;font-weight:600;color:#111827">Notificaciónes</span><button onclick="event.stopPropagation();marcarTodasLeidas()" style="font-size:11px;color:#1e2d4e;background:none;border:none;cursor:pointer;white-space:nowrap;flex-shrink:0">Marcar todas leídas</button></div><div id="notif-list" style="overflow-y:auto;max-height:380px;"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div></div></div></div></nav><main><div style="margin-bottom:20px"><div style="font-size:20px;font-weight:600;color:#1e2d4e">Historial de licitaciónes</div><div style="font-size:14px;color:#6B7280;margin-top:2px">Registro completo de todas tus solicitudes de transporte</div></div><div class="grid-4" style="grid-template-columns:repeat(3,1fr)"><div class="stat"><div class="stat-label">Total licitaciónes</div><div id="st-total" class="stat-val" style="color:#1e2d4e">—</div></div><div class="stat"><div class="stat-label">Completadas</div><div id="st-completadas" class="stat-val" style="color:#1ED24E">—</div></div><div class="stat"><div class="stat-label">Gasto total</div><div id="st-gasto" class="stat-val" style="font-size:18px;color:#111827">—</div></div></div><div class="card"><div class="filter-bar"><div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+<span class="pill pill-todas active" onclick="togglePillH(this,'')">Todas</span>
+<span class="pill pill-revision" onclick="togglePillH(this,'pendiente_admin')">En revision</span>
+<span class="pill pill-abierta" onclick="togglePillH(this,'abierta')">Abiertas</span>
+<span class="pill pill-cotiz" onclick="togglePillH(this,'cerrada')">Con cotizaciones</span>
+<span class="pill pill-adj" onclick="togglePillH(this,'adjudicada')">Adjudicadas</span>
+<span class="pill pill-comp" onclick="togglePillH(this,'completada')">Completadas</span>
+<span class="pill pill-rech" onclick="togglePillH(this,'rechazada')">Rechazadas</span>
+<span class="pill pill-rech" onclick="togglePillH(this,'anulada')">Anuladas</span>
+</div>
+<input type="hidden" id="fil-estado" value=""><select class="sel-mes" id="fil-mes" onchange="filtrar()" style="padding:5px 10px;border:1.5px solid #E5E7EB;border-radius:999px;font-size:12px;font-weight:600;background:#fff;color:#6B7280;cursor:pointer"><option value="">Todos los meses</option></select></div><div id="lista-historial"><div class="empty"><div class="spinner" style="width:24px;height:24px;border-width:2px;margin-bottom:0"></div></div></div></div></main></div><!-- Modal detalle --><div class="modal-bg" id="modal-det"><div class="modal"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><div style="font-size:16px;font-weight:600;color:#111827" id="det-titulo">—</div><button onclick="document.getElementById('modal-det').classList.remove('open')" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6B7280">×</button></div><div id="det-contenido"></div></div></div><script>
+ const nombre=localStorage.getItem('tm_nombre')||'';
+ document.getElementById('nav-avatar').textContent=(nombre[0]||'U').toUpperCase();
+ let allLicitaciones=[];
+
+ function peso(n){return n?new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n):'—'}
+ function fecha(iso){if(!iso)return'—';return new Date(iso+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'})}
+ function bdg(e){
+ const m={completada:['badge-green','Completada'],adjudicada:['badge-green','Adjudicada'],cerrada:['badge-blue','Con cotizaciones'],abierta:['badge-orange','Abierta'],pendiente_admin:['badge-gray','En revision'],rechazada:['badge-red','Rechazada'],anulada:['badge-red','Anulada']};
+ const[c,l]=m[e]||['badge-gray',e];return`<span class="badge ${c}">${l}</span>`;
+ }
+
+ async function initApp(){
+ const res=await fetch(API+'/api/licitaciones',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+ if(!res.ok)return;
+ const data=await res.json();
+ allLicitaciones=data.licitaciones||[];
+
+ // Stats
+ const completadas=allLicitaciones.filter(l=>l.estado==='completada');
+ const gastoTotal=allLicitaciones.filter(l=>l.adjudicadaA).reduce((s,l)=>s+(l.adjudicadaA.precio||0),0);
+ const ratings=allLicitaciones.filter(l=>l.valoracion).map(l=>l.valoracion.promedio);
+ const ratingProm=ratings.length?Math.round((ratings.reduce((a,b)=>a+b,0)/ratings.length)*10)/10:null;
+
+ document.getElementById('st-total').textContent=allLicitaciones.length;
+ document.getElementById('st-completadas').textContent=completadas.length;
+ document.getElementById('st-gasto').textContent=gastoTotal>0?peso(gastoTotal):'$0';
+ // poblar meses
+var meses={};
+allLicitaciones.forEach(function(l){if(l.createdAt)meses[l.createdAt.substring(0,7)]=true;});
+var sel=document.getElementById('fil-mes');
+sel.innerHTML='<option value="">Todos los meses</option>';
+var labels=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+Object.keys(meses).sort().reverse().forEach(function(k){var p=k.split('-');var opt=document.createElement('option');opt.value=k;opt.textContent=labels[parseInt(p[1])-1]+' '+p[0];sel.appendChild(opt);});
+
+ filtrar();
+ }
+
+ var estadosFiltroH = new Set();
+function togglePillH(el, estado){
+  var pt = document.querySelector('.pill-todas');
+  if(estado === ''){
+    estadosFiltroH.clear();
+    document.querySelectorAll('.pill').forEach(function(p){p.classList.remove('active')});
+    pt.classList.add('active');
+  } else {
+    pt.classList.remove('active');
+    if(estadosFiltroH.has(estado)){estadosFiltroH.delete(estado);el.classList.remove('active');}
+    else{estadosFiltroH.add(estado);el.classList.add('active');}
+    if(estadosFiltroH.size===0) pt.classList.add('active');
+  }
+  document.getElementById('fil-estado').value = estado;
+  filtrar();
+}
+function filtrar(){
+ const estado=document.getElementById('fil-estado').value;
+ const mes=document.getElementById('fil-mes').value;
+ let lista=allLicitaciones;
+ if(estado)lista=lista.filter(l=>l.estado===estado);
+ if(mes)lista=lista.filter(l=>l.createdAt&&l.createdAt.substring(0,7)===mes);
+
+ if(lista.length===0){
+ document.getElementById('lista-historial').innerHTML=`<div class="empty"><div class="empty-icon"></div><div style="font-size:14px">Sin licitaciones</div></div>`;
+ return;
+ }
+
+ document.getElementById('lista-historial').innerHTML=lista.map(l=>`
+ <div class="licit-row" onclick="verDetalle('${l.id}')"><div class="lr-icon"></div><div class="lr-body"><div class="lr-name">${l.código?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+ l.código +'</span>':''}${l.tipoEquipo}${l.marca?' — '+l.marca:''}</div><div class="lr-meta">${l.origen} → ${l.destino} · ${fecha(l.fechaCarga)}
+ ${l.adjudicadaA?` · <strong>${l.adjudicadaA.transportistaEmpresa}</strong>`:''}
+ </div></div><div class="lr-right">
+ ${bdg(l.estado)}
+ ${l.adjudicadaA?`<div class="lr-precio">${peso(l.adjudicadaA.precio)}</div>`:''}
+ ${l.valoracion?`<div class="stars"> ${l.valoracion.promedio}/5</div>`:(l.estado==='adjudicada'?`<a href="/cliente-valorar.html?id=${l.id}" onclick="event.stopPropagation()" style="background:#16a34a;color:#fff;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;display:inline-block">Valorar</a>`:'')}
+ </div></div>`).join('');
+ }
+
+ function verDetalle(id){
+ const l=allLicitaciones.find(x=>x.id===id);
+ if(!l)return;
+ document.getElementById('det-titulo').textContent=`${l.código?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+ l.código +'</span>':''}${l.tipoEquipo}${l.marca?' — '+l.marca:''}`;
+ const filas=[
+ ['Estado',bdg(l.estado)],
+ ['Origen',l.origen],
+ ['Destino',l.destino],
+ ['Fecha de carga',fecha(l.fechaCarga)],
+ ['Fecha de entrega',fecha(l.fechaEntrega)],
+ ['Peso',l.peso?l.peso+' ton':'—'],
+ ['Publicada',new Date(l.createdAt).toLocaleString('es-CL')],
+ ...(l.adjudicadaA?[
+ ['Transportista',l.adjudicadaA.transportistaEmpresa],
+ ['Contacto',l.adjudicadaA.transportistaNombre],
+ ['Email',l.adjudicadaA.transportistaEmail||'—'],
+ ['Telefono',l.adjudicadaA.transportistaTelefono||'—'],
+ ['Valor adjudicado',peso(l.adjudicadaA.precio)],
+ ]:[]),
+ ...(l.valoracion?[
+ ['Valoracion promedio',` ${l.valoracion.promedio}`],
+ ['Cumplimiento',` ${l.valoracion.cumplimiento}`],
+ ['Seriedad',` ${l.valoracion.seriedad}`],
+ ['Comunicación',` ${l.valoracion.comunicación}`],
+ ]:[]),
+ ];
+ document.getElementById('det-contenido').innerHTML=filas.map(([k,v])=>`
+ <div class="det-row"><span class="det-key">${k}</span><span class="det-val">${v}</span></div>`).join('');
+ document.getElementById('modal-det').classList.add('open');
+ }
+
+  
+
+  
+
+    function closeAllPanels(){
+    var m=document.getElementById('user-menu');
+    var p=document.getElementById('notif-panel');
+    if(m) m.style.display='none';
+    if(p) p.style.display='none';
+  }
+  function toggleUserMenu(e){
+    e.stopPropagation();
+    var m=document.getElementById('user-menu');
+    var isOpen=m.style.display==='block';
+    closeAllPanels();
+    if(!isOpen) m.style.display='block';
+  }
+  function toggleNotifs(e){
+    if(e) e.stopPropagation();
+    var p=document.getElementById('notif-panel');
+    var isOpen=p.style.display==='flex';
+    closeAllPanels();
+    if(!isOpen){ p.style.display='flex'; cargarNotificaciones(); }
+  }
+  document.addEventListener('click',function(){ closeAllPanels(); });
+  function cerrarSesion(){localStorage.clear();window.location.replace('/index.html');}
+  (function(){
+    var n  = localStorage.getItem('tm_nombre')  || '';
+    var em = localStorage.getItem('tm_empresa') || '';
+    var nn = document.getElementById('nav-nombre');
+    var ns = document.getElementById('nav-empresa');
+    var av = document.getElementById('nav-avatar');
+    var un = document.getElementById('um-nombre');
+    var ue = document.getElementById('um-empresa');
+    if(nn) nn.textContent = n;
+    if(ns) ns.textContent = em;
+    if(av && n) av.textContent = n[0].toUpperCase();
+    if(un) un.textContent = n;
+    if(ue) ue.textContent = em;
+  })();
+
+  
+
+  async function cargarNotificaciones(){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var r = await fetch((typeof API!=='undefined'?API:'https://transmatch-api.transmatch-66b.workers.dev')+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+      var data = r.ok ? await r.json() : {};
+      var notifs = data.notificaciones || [];
+      var noLeidas = notifs.filter(function(n){ return !n.leida; }).length;
+      var badge = document.getElementById('notif-count');
+      if(badge){ badge.style.display = noLeidas>0 ? 'flex' : 'none'; badge.textContent = noLeidas; }
+      var list = document.getElementById('notif-list');
+      if(!list) return;
+      if(!notifs.length){ list.innerHTML='<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Sin notificaciones</div>'; return; }
+      var iconMap = {licitacion_aprobada:'✅',licitacion_rechazada:'❌',cotizaciones_disponibles:'🎯',cuenta_aprobada:'✅',cobro_pendiente:'💰',cobro_pagado:'✅',adjudicacion:'🏆',licitacion_cerrada:'📋'};
+      list.innerHTML = notifs.slice(0,20).map(function(n){
+        var icono = iconMap[n.tipo]||'🔔';
+        var bg = !n.leida ? 'background:#f0f4ff' : '';
+        var ts = n.createdAt ? new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+        return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'+
+          '<div style="font-size:18px;flex-shrink:0;margin-top:1px">'+icono+'</div>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4">'+n.mensaje+'</div>'+
+            '<div style="font-size:11px;color:#9CA3AF">'+ts+'</div>'+
+          '</div>'+
+          (!n.leida?'<button onclick="event.stopPropagation();marcarUnaLeida(this.dataset.nid)" data-nid="'+n.id+'" title="Marcar como leída" style="background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0;margin-top:2px;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">✓</button>':'')+
+        '</div>';
+      }).join('');
+    } catch(e){}
+  }
+
+  async function marcarTodasLeidas(){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var API_URL = typeof API!=='undefined' ? API : 'https://transmatch-api.transmatch-66b.workers.dev';
+      var r = await fetch(API_URL+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+      var data = r.ok ? await r.json() : {};
+      var notifs = (data.notificaciones||[]).filter(function(n){ return !n.leida; });
+      for(var i=0;i<notifs.length;i++){
+        await fetch(API_URL+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:notifs[i].id})});
+      }
+      var badge = document.getElementById('notif-count');
+      if(badge) badge.style.display='none';
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+  async function marcarUnaLeida(id){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var API_URL = typeof API!=='undefined' ? API : 'https://transmatch-api.transmatch-66b.workers.dev';
+      await fetch(API_URL+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:id})});
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+</script>
+
+    
+</div>
+<footer style="background:#1e2d4e;margin-top:40px;padding:28px 24px 20px">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px">T</div>
+        <span style="font-weight:700;color:#fff;font-size:15px">Trans<span style="color:#ff8904">Match</span></span>
+      </div>
+      <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+    </div>
+    <div style="display:flex;gap:32px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <a href="/términos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Términos y condiciones</a>
+          <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Política de privacidad</a>
+          <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Centro de ayuda</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span>
+          <span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B">
+    © 2026 TransMatch SpA.
+  </div>
+</footer>
+</body></html>

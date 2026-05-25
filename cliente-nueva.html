@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch -- Nueva licitacion</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f7fb;display:flex;flex-direction:column;min-height:100vh}
+#auth-guard{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:9999}
+.spinner{width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+#app{display:none}
+.nav{background:#1e2d4e;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+.nav-icon{background:#FF8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+.nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#FF8904}
+.nav-links{display:flex;gap:2px}
+.nav-link{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+.nav-link:hover,.nav-link.active{color:#fff;background:rgba(255,255,255,.18)}
+.nav-avatar{width:30px;height:30px;border-radius:50%;background:#FF8904;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;cursor:pointer}
+.nav-user{font-size:13px;color:#fff;font-weight:500}
+.nav-sub{font-size:11px;color:#93C5FD}
+.um-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:background .15s}
+.um-item:hover{background:#f9fafb}
+.um-danger{color:#DC2626}.um-danger:hover{background:#FEF2F2}
+main{max-width:860px;margin:0 auto;padding:28px 32px;flex:1}
+.tipo-selector{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;width:680px;max-width:100%}
+@media(max-width:500px){.tipo-selector{grid-template-columns:1fr}}
+.tipo-card{background:#fff;border:1.5px solid #E5E7EB;border-radius:14px;padding:28px 20px;cursor:pointer;text-align:center;transition:all .2s;user-select:none}
+.tipo-card:hover{border-color:#1e2d4e;background:#f8f9fc;transform:translateY(-2px);box-shadow:0 4px 16px rgba(30,45,78,.10)}
+.tipo-card-icon{font-size:40px;margin-bottom:12px}
+.tipo-card-title{font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:6px}
+.tipo-card-desc{font-size:12px;color:#6B7280;line-height:1.5}
+.tipo-card-tags{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:10px}
+.tipo-tag{background:#f3f4f6;color:#6B7280;font-size:10px;font-weight:500;padding:2px 8px;border-radius:999px}
+.stepper{display:flex;align-items:center;margin-bottom:24px;width:680px;max-width:100%}
+.step{display:flex;align-items:center;gap:8px}
+.step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;transition:all .2s}
+.step-num.done{background:#1e2d4e;color:#fff}
+.step-num.active{background:#ff8904;color:#fff}
+.step-num.pending{background:#E5E7EB;color:#9CA3AF}
+.step-label{font-size:12px;font-weight:500;transition:color .2s}
+.step-label.active{color:#ff8904}
+.step-label.done{color:#1e2d4e}
+.step-label.pending{color:#9CA3AF}
+.step-line{flex:1;height:2px;background:#E5E7EB;margin:0 10px;border-radius:2px;transition:background .3s}
+.form-card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;padding:28px;margin-bottom:16px;display:none;box-shadow:0 1px 4px rgba(30,45,78,.06);width:680px;max-width:100%}
+.form-card.active{display:block}
+.card-title{font-size:15px;font-weight:600;color:#111827;margin-bottom:18px}
+.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media(max-width:600px){.grid-2{grid-template-columns:1fr}}
+.form-group{margin-bottom:16px}
+label{display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:5px}
+.required{color:#EF4444;margin-left:2px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;color:#111827;background:#fff;transition:border-color .15s;font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#1e2d4e}
+textarea{resize:vertical;min-height:90px}
+.hint{font-size:11px;color:#9CA3AF;margin-top:4px}
+.eq-lbl{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid #E5E7EB;border-radius:8px;cursor:pointer;font-size:14px;font-weight:400;transition:background .15s}
+.eq-lbl:hover{background:#f8f9fc}
+.upload-zone{width:100%;min-height:80px;padding:14px 12px;border:1px solid #E5E7EB;border-radius:8px;background:#fff;cursor:pointer;transition:all .15s;text-align:center}
+.upload-zone:hover,.upload-zone.drag-over{border-color:#1e2d4e;background:#f8faff}
+.upload-title{font-size:14px;color:#6B7280}
+.upload-sub{font-size:12px;color:#9CA3AF;margin-top:2px}
+.file-preview{display:none;align-items:center;gap:10px;padding:10px 12px;background:#f8faff;border:1px solid #BFDBFE;border-radius:8px;margin-top:8px}
+.file-preview.show{display:flex}
+.file-name{font-size:13px;font-weight:500;color:#1e2d4e}
+.file-size{font-size:11px;color:#9CA3AF;margin-top:2px}
+.file-remove{margin-left:auto;background:none;border:none;font-size:16px;color:#9CA3AF;cursor:pointer;padding:0 4px}
+.plazo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.plazo-btn{padding:10px;border-radius:8px;border:1.5px solid #E5E7EB;cursor:pointer;text-align:center;transition:all .15s;background:#fff}
+.plazo-btn.selected{border-color:#1e2d4e;background:#eef1f8}
+.plazo-val{font-size:16px;font-weight:700;color:#111827}
+.plazo-label{font-size:10px;color:#9CA3AF;margin-top:2px}
+.info-box{background:#EFF6FF;border-radius:8px;padding:12px 14px;font-size:13px;color:#1e40af;margin-bottom:16px}
+.btn-row{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:8px}
+.btn{padding:10px 20px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.btn:hover{opacity:.88}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:#1e2d4e;color:#fff}
+.btn-orange{background:#FF8904;color:#fff}
+.btn-outline{background:transparent;border:0.5px solid #E5E7EB;color:#374151}
+.resumen-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:0.5px solid #F3F4F6;font-size:14px}
+.resumen-row:last-child{border-bottom:none}
+.resumen-key{color:#6B7280;min-width:140px}
+.resumen-val{color:#111827;font-weight:500;text-align:right;flex:1}
+.success-screen{text-align:center;padding:40px 20px;display:none}
+.success-title{font-size:22px;font-weight:600;color:#111827;margin-bottom:8px}
+.success-sub{font-size:14px;color:#6B7280;margin-bottom:28px}
+#toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none}
+</style>
+<script>
+var API='https://transmatch.transmatchcl.workers.dev';
+var editId=new URLSearchParams(window.location.search).get('editar');
+(async function(){
+var token=localStorage.getItem('tm_token');
+var role=localStorage.getItem('tm_role');
+if(!token){window.location.replace('/index.html');return}
+if(role==='admin'){window.location.replace('/admin.html');return}
+if(role==='transportista'){window.location.replace('/transportista.html');return}
+try{
+var res=await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+token}});
+if(res.status===401){localStorage.clear();window.location.replace('/index.html');return}
+if(res.ok){var d=await res.json();if(d.user.role!=='cliente'){window.location.replace('/index.html');return}localStorage.setItem('tm_plan',d.user.plan||'')}
+}catch(e){}
+document.getElementById('auth-guard').style.display='none';
+var a=document.getElementById('app');a.style.display='flex';a.style.flexDirection='column';a.style.minHeight='100vh';
+var n=localStorage.getItem('tm_nombre')||'';
+var emp=localStorage.getItem('tm_empresa')||'';
+var av=document.getElementById('nav-avatar');if(av&&n)av.textContent=n[0].toUpperCase();
+var nn=document.getElementById('nav-nombre');if(nn)nn.textContent=n;
+var ne=document.getElementById('nav-empresa');if(ne)ne.textContent=emp;
+var p=localStorage.getItem('tm_plan')||'basico';
+if(p==='basico'){var nr=document.getElementById('nav-retornos');if(nr)nr.style.display='none';}
+setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
+})();
+</script>
+</head>
+<body>
+<div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:20px"><div style="background:#FF8904;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff">T</div><span style="font-size:20px;font-weight:700;color:#1e2d4e">Trans<span style="color:#FF8904">Match</span></span></div><div class="spinner"></div></div></div>
+
+<div id="app">
+<nav class="nav">
+<div style="display:flex;align-items:center;gap:16px">
+<a href="/cliente.html" class="nav-logo"><div class="nav-icon">T</div><span class="nav-name">Trans<span>Match</span></span></a>
+<div class="nav-links">
+<a href="/cliente.html" class="nav-link">Inicio</a>
+<a href="/cliente-licitaciones.html" class="nav-link active">Licitaciones</a>
+<a href="/cliente-retornos.html" id="nav-retornos" class="nav-link">Retornos</a>
+<a href="/cliente-transporte.html" class="nav-link">Transportes</a>
+<a href="/cliente-facturacion.html" class="nav-link">Facturacion</a>
+<a href="/cliente-calendario.html" class="nav-link">Calendario</a>
+<a href="/cliente-historial.html" class="nav-link">Historial</a>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<div style="text-align:right"><div class="nav-user" id="nav-nombre">--</div><div class="nav-sub" id="nav-empresa">--</div></div>
+<div style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center" id="notif-btn" onclick="toggleNotifs(event)">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+  <span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center"></span>
+</div>
+<div class="nav-avatar" id="nav-avatar" onclick="window.location.href='/cliente-perfil.html'">?</div>
+</div>
+<div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:360px;background:#fff;border-radius:14px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.14);z-index:500;overflow:hidden;max-height:520px;flex-direction:column">
+  <!-- Header dinámico: cambia entre "Notificaciones" y "← Configuración" -->
+  <div id="notif-header-main" style="padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <span style="font-size:14px;font-weight:700;color:#1e2d4e">Notificaciones</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button onclick="marcarTodasLeidas()" style="font-size:11px;color:#6B7280;background:none;border:none;cursor:pointer;padding:3px 6px;border-radius:5px" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">Marcar leídas</button>
+      <button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;color:#6B7280" title="Configurar notificaciones" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="notif-header-config" style="display:none;padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:none;align-items:center;gap:10px;flex-shrink:0">
+    <button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;color:#1e2d4e;font-size:13px;font-weight:500;padding:4px 8px;border-radius:6px" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Volver
+    </button>
+    <span style="font-size:14px;font-weight:700;color:#1e2d4e">Configuración</span>
+  </div>
+  <div id="notif-config" style="display:none;border-bottom:0.5px solid #E5E7EB;background:#f8f9fc;flex-shrink:0">
+    <div style="padding:14px 16px">
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Canal de notificaciones</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:13px;color:#374151">✉️ Por email</span><input type="checkbox" id="notif-email-chk" onchange="guardarPrefs()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:13px;color:#374151">💬 Por WhatsApp</span><input type="checkbox" id="notif-wa-chk" onchange="toggleWA()" style="width:16px;height:16px;accent-color:#25D366;cursor:pointer"/></label>
+        <div id="wa-input" style="display:none;margin-top:4px"><input id="wa-numero" type="tel" placeholder="+56 9 XXXX XXXX" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:7px;font-size:13px"/><button onclick="guardarPrefs()" style="margin-top:6px;width:100%;padding:7px;background:#25D366;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer">Guardar número</button></div>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Sobre licitaciones</div>
+      <div style="display:flex;flex-direction:column;gap:0">
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Nueva licitación disponible</span><input type="checkbox" id="pref-nueva-licit" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Licitación cerrada sin adjudicación</span><input type="checkbox" id="pref-licit-cerrada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Licitación adjudicada a mí</span><input type="checkbox" id="pref-adjudicada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#374151;margin:10px 0;text-transform:uppercase;letter-spacing:.06em">Sobre retornos</div>
+      <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;cursor:pointer"><span style="font-size:13px;color:#374151">Solicitudes en retornos publicados</span><input type="checkbox" id="pref-retornos" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+    </div>
+  </div>
+  <div id="notif-list" style="overflow-y:auto;flex:1"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div>
+</div>
+</nav>
+
+<main>
+<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px">
+  <div>
+    <div style="font-size:22px;font-weight:700;color:#1e2d4e;margin-bottom:4px" id="page-title">Nueva licitacion</div>
+    <div style="font-size:14px;color:#6B7280" id="page-sub">Completa los datos de tu solicitud de transporte</div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <div style="position:relative" id="tipo-selector-wrap">
+      <div id="tipo-elegido" style="display:none;font-size:13px;color:#6B7280;padding:6px 12px;background:#f3f4f6;border-radius:7px;cursor:pointer" onclick="volverPaso0()">
+        <span id="tipo-elegido-label"></span> <span style="color:#1e2d4e;font-weight:600">· Cambiar</span>
+      </div>
+    </div>
+    <a href="/cliente-licitaciones.html" class="btn btn-outline" style="font-size:13px">Cancelar</a>
+  </div>
+</div>
+
+<div id="paso0">
+  <div style="background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;padding:20px 24px;margin-bottom:20px;width:680px;max-width:100%">
+    <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:14px">¿Qué necesitas transportar?</div>
+    <div style="display:flex;gap:10px">
+      <button onclick="seleccionarTipo('maquinaria')" style="flex:1;padding:12px 16px;border-radius:9px;border:1.5px solid #e8eaf0;background:#fff;cursor:pointer;text-align:left;transition:all .15s;font-family:inherit" onmouseover="this.style.borderColor='#1e2d4e';this.style.background='#f8f9fc'" onmouseout="this.style.borderColor='#e8eaf0';this.style.background='#fff'">
+        <div style="font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:3px">Maquinaria pesada</div>
+        <div style="font-size:11px;color:#9CA3AF">Excavadoras, grúas, jumbos y equipos sobredimensionados</div>
+      </button>
+      <button onclick="seleccionarTipo('carga')" style="flex:1;padding:12px 16px;border-radius:9px;border:1.5px solid #e8eaf0;background:#fff;cursor:pointer;text-align:left;transition:all .15s;font-family:inherit" onmouseover="this.style.borderColor='#1e2d4e';this.style.background='#f8f9fc'" onmouseout="this.style.borderColor='#e8eaf0';this.style.background='#fff'">
+        <div style="font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:3px">Carga general</div>
+        <div style="font-size:11px;color:#9CA3AF">Maxi sacos, tambores, tubería y materiales de construcción</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="stepper" id="stepper" style="display:none">
+<div class="step"><div class="step-num active" id="sn1">1</div><div class="step-label active" id="sl1">Detalle</div></div>
+<div class="step-line"></div>
+<div class="step"><div class="step-num pending" id="sn2">2</div><div class="step-label pending" id="sl2">Ruta y fechas</div></div>
+<div class="step-line"></div>
+<div class="step"><div class="step-num pending" id="sn3">3</div><div class="step-label pending" id="sl3">Configuracion</div></div>
+<div class="step-line"></div>
+<div class="step"><div class="step-num pending" id="sn4">4</div><div class="step-label pending" id="sl4">Confirmar</div></div>
+</div>
+
+<div class="form-card" id="paso1-maquinaria">
+<div class="card-title">Tipo de equipo a transportar</div>
+<div class="form-group">
+<label>Tipo de equipo requerido <span class="required">*</span></label>
+<div id="equipo-requerido-list" style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Cama baja estandar (40 - 60 ton)" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Cama baja estandar (40 - 60 ton)</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Cama baja reforzada (60 - 100 ton)" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Cama baja reforzada (60 - 100 ton)</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Cama baja super reforzada / modular (+100 ton)" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Cama baja super reforzada / modular (+100 ton)</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Plataforma abierta" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Plataforma abierta</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Plataforma con baranda" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Plataforma con baranda</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Camion pluma" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Camion pluma</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Palote" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Palote</label>
+</div>
+<div class="hint">Puedes seleccionar hasta 2 opciones</div>
+</div>
+<div class="form-group">
+<label>Tipo de maquinaria <span class="required">*</span></label>
+<select id="tipoEquipo" onchange="toggleOtroEquipo(this.value)">
+<option value="Excavadora">Excavadora</option>
+<option value="Cargador frontal">Cargador frontal</option>
+<option value="Jumbo perforador">Jumbo perforador</option>
+<option value="Motoniveladora">Motoniveladora</option>
+<option value="Grua">Grua</option>
+<option value="Otro equipo">Otro equipo</option>
+</select>
+<div id="otro-equipo-wrap" style="display:none;margin-top:8px">
+<input type="text" id="tipoEquipoOtro" placeholder="Especifica el tipo de maquinaria..."/>
+</div>
+</div>
+<div class="grid-2">
+<div class="form-group"><label>Marca y modelo <span class="required">*</span></label><input type="text" id="marca" placeholder="Ej: Caterpillar 390F"/></div>
+<div class="form-group"><label>Peso aprox. (toneladas)</label><input type="number" id="pesoMaq" placeholder="Ej: 92" min="0"/></div>
+</div>
+<div class="form-group"><label>Dimensiones (largo x ancho x alto en metros)</label><input type="text" id="dimensionesMaq" placeholder="Ej: 14.5 x 4.2 x 4.8 m"/></div>
+<div class="form-group">
+<label>Descripcion y condiciones especiales</label>
+<textarea id="descripcionMaq" placeholder="Ej: Requiere escolta, permiso sobredimensionado..."></textarea>
+<div class="hint">Mientras mas detalle, mejores cotizaciones recibiras</div>
+</div>
+<div class="form-group">
+<label>Archivo de especificaciones <span class="required">*</span></label>
+<div class="upload-zone" id="upload-zone-maq" onclick="document.getElementById('archivo-input-maq').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event,'maq')">
+<div class="upload-title">Arrastra tu archivo o haz clic para seleccionar</div>
+<div class="upload-sub">Excel, PDF, Word o imagen &middot; Maximo 8 MB</div>
+</div>
+<input type="file" id="archivo-input-maq" accept=".xlsx,.xls,.pdf,.docx,.doc,.jpg,.jpeg,.png" style="display:none" onchange="handleFile(event,'maq')"/>
+<div class="file-preview" id="file-preview-maq">
+<div id="file-icon-maq" style="font-size:20px">&#128196;</div>
+<div><div class="file-name" id="file-name-maq"></div><div class="file-size" id="file-size-maq"></div></div>
+<button class="file-remove" onclick="removeFile(event,'maq')">&#10005;</button>
+</div>
+</div>
+<div class="btn-row">
+<button class="btn btn-outline" onclick="volverPaso0()">Cambiar tipo</button>
+<button class="btn btn-primary" onclick="irPaso(2)">Siguiente</button>
+</div>
+</div>
+
+<div class="form-card" id="paso1-carga">
+<div class="card-title">Detalle de la carga</div>
+<div class="form-group">
+<label>Tipo de equipo requerido <span class="required">*</span></label>
+<div id="equipo-requerido-carga-list" style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Cama baja estandar (40 - 60 ton)" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Cama baja estandar (40 - 60 ton)</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Cama baja reforzada (60 - 100 ton)" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Cama baja reforzada (60 - 100 ton)</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Cama baja super reforzada / modular (+100 ton)" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Cama baja super reforzada / modular (+100 ton)</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Plataforma abierta" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Plataforma abierta</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Plataforma con baranda" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Plataforma con baranda</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Camion pluma" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Camion pluma</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Palote" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Palote</label>
+</div>
+<div class="hint">Puedes seleccionar hasta 2 opciones</div>
+<input type="hidden" id="tipoEquipoCarga" value=""/>
+</div>
+<div class="form-group"><label>Tipo de carga</label><input type="text" id="tipoCarga" placeholder="Ej: Maxi sacos de cemento, tambores de lubricante..."/></div>
+<div class="grid-2">
+<div class="form-group"><label>Peso total aprox. (ton)</label><input type="number" id="pesoCarga" placeholder="Ej: 18" min="0" step="0.1"/></div>
+<div class="form-group"><label>Cantidad de bultos</label><input type="number" id="cantidadBultos" placeholder="Ej: 40" min="0"/></div>
+</div>
+<div class="grid-2">
+<div class="form-group"><label>Peso por bulto (kg)</label><input type="number" id="pesoPorBulto" placeholder="Ej: 500" min="0"/></div>
+<div class="form-group"><label>Dimensiones por bulto (cm)</label><input type="text" id="dimensionesCarga" placeholder="Ej: 90 x 90 x 120 cm"/></div>
+</div>
+<div class="form-group">
+<label>Descripcion y condiciones especiales</label>
+<textarea id="descripcionCarga" placeholder="Ej: Carga paletizada, requiere grua horquilla en destino..."></textarea>
+</div>
+<div class="form-group">
+<label>Archivo de especificaciones <span class="required">*</span></label>
+<div class="upload-zone" id="upload-zone-carga" onclick="document.getElementById('archivo-input-carga').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event,'carga')">
+<div class="upload-title">Arrastra tu archivo o haz clic para seleccionar</div>
+<div class="upload-sub">Excel, PDF, Word o imagen &middot; Maximo 8 MB</div>
+</div>
+<input type="file" id="archivo-input-carga" accept=".xlsx,.xls,.pdf,.docx,.doc,.jpg,.jpeg,.png" style="display:none" onchange="handleFile(event,'carga')"/>
+<div class="file-preview" id="file-preview-carga">
+<div style="font-size:20px">&#128196;</div>
+<div><div class="file-name" id="file-name-carga"></div><div class="file-size" id="file-size-carga"></div></div>
+<button class="file-remove" onclick="removeFile(event,'carga')">&#10005;</button>
+</div>
+</div>
+<div class="btn-row">
+<button class="btn btn-outline" onclick="volverPaso0()">Cambiar tipo</button>
+<button class="btn btn-primary" onclick="irPaso(2)">Siguiente</button>
+</div>
+</div>
+
+<div class="form-card" id="paso2">
+<div class="card-title">Ruta y fechas</div>
+<div class="grid-2">
+<div class="form-group"><label>Ciudad de origen <span class="required">*</span></label><input type="text" id="origen" placeholder="Ej: Rancagua"/></div>
+<div class="form-group"><label>Ciudad de destino <span class="required">*</span></label><input type="text" id="destino" placeholder="Ej: Antofagasta"/></div>
+</div>
+<div class="grid-2">
+<div class="form-group"><label>Fecha de carga <span class="required">*</span></label><input type="date" id="fechaCarga"/></div>
+<div class="form-group"><label>Fecha limite de entrega</label><input type="date" id="fechaEntrega"/></div>
+</div>
+<div class="form-group"><label>Direccion exacta de carga (opcional)</label><input type="text" id="direccionCarga" placeholder="Ej: Faena El Teniente, sector norte"/></div>
+<div class="btn-row">
+<button class="btn btn-outline" onclick="irPaso(1)">Volver</button>
+<button class="btn btn-primary" onclick="irPaso(3)">Siguiente</button>
+</div>
+</div>
+
+<div class="form-card" id="paso3">
+<div class="card-title">Configuracion de la licitacion</div>
+<div class="form-group">
+<label>Plazo para recibir cotizaciones <span class="required">*</span></label>
+<div class="plazo-grid">
+<div class="plazo-btn" onclick="selectPlazo(this,'12')" data-val="12"><div class="plazo-val">12h</div><div class="plazo-label">Urgente</div></div>
+<div class="plazo-btn selected" onclick="selectPlazo(this,'24')" data-val="24"><div class="plazo-val">24h</div><div class="plazo-label">Normal</div></div>
+<div class="plazo-btn" onclick="selectPlazo(this,'48')" data-val="48"><div class="plazo-val">48h</div><div class="plazo-label">Estandar</div></div>
+</div>
+<input type="hidden" id="plazo" value="24"/>
+</div>
+<div class="info-box">Un plazo mas corto significa mayor urgencia. Recomendamos usar <strong>24h o 48h</strong> para obtener mejores cotizaciones.</div>
+<div class="btn-row">
+<button class="btn btn-outline" onclick="irPaso(2)">Volver</button>
+<button class="btn btn-primary" onclick="irPaso(4)">Siguiente</button>
+</div>
+</div>
+
+<div class="form-card" id="paso4">
+<div class="card-title">Revisar y publicar</div>
+<div id="resumen-content"></div>
+<div class="info-box" style="margin-top:16px">Al publicar, los transportistas verificados seran notificados y podran enviar cotizaciones dentro del plazo seleccionado.</div>
+<div class="btn-row">
+<button class="btn btn-outline" onclick="irPaso(3)">Editar</button>
+<button class="btn btn-orange" id="btn-publicar" onclick="publicar()">Publicar licitacion</button>
+</div>
+</div>
+
+<div class="success-screen" id="success">
+<div style="font-size:56px;margin-bottom:16px">&#10003;</div>
+<div class="success-title">Licitacion publicada!</div>
+<div class="success-sub">Los transportistas estan siendo notificados. Recibiras las mejores cotizaciones dentro del plazo que seleccionaste.</div>
+<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+<a href="/cliente-licitaciones.html" class="btn btn-primary">Ver mis licitaciones</a>
+<a href="/cliente-nueva.html" class="btn btn-outline">Publicar otra</a>
+</div>
+</div>
+</main>
+</div>
+<div id="toast"></div>
+
+<script>
+var API='https://transmatch.transmatchcl.workers.dev';
+var tipoLicitacion=null;
+var modoEdicion=null;
+var archivoMaq=null;
+var archivoCarga=null;
+var currentStep=0;
+
+function showToast(msg,type){
+var el=document.getElementById('toast');
+el.textContent=msg;el.style.background=type==='err'?'#EF4444':'#1ED24E';
+el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(function(){el.style.opacity='0'},3500);
+}
+
+function handleEqCarga(cb){
+var checks=document.querySelectorAll('.eq-carga-cb:checked');
+if(checks.length>2){cb.checked=false;return;}
+document.querySelectorAll('.eq-carga-cb').forEach(function(c){
+var lbl=c.closest('label');
+if(c.checked){lbl.style.borderColor='#1e2d4e';lbl.style.background='#eef1f8';}
+else{lbl.style.borderColor='#E5E7EB';lbl.style.background='';}
+});
+var vals=[];
+document.querySelectorAll('.eq-carga-cb:checked').forEach(function(c){vals.push(c.value);});
+var hi=document.getElementById('tipoEquipoCarga');if(hi)hi.value=vals.join(' / ');
+}
+
+function getEqRequeridoCarga(){
+var vals=[];
+document.querySelectorAll('.eq-carga-cb:checked').forEach(function(c){vals.push(c.value);});
+return vals.join(' / ');
+}
+
+function handleEqReq(cb){
+var checks=document.querySelectorAll('.eq-req-cb:checked');
+if(checks.length>2){cb.checked=false;return;}
+document.querySelectorAll('.eq-req-cb').forEach(function(c){
+var lbl=c.closest('label');
+if(c.checked){lbl.style.borderColor='#1e2d4e';lbl.style.background='#eef1f8';}
+else{lbl.style.borderColor='#E5E7EB';lbl.style.background='';}
+});
+}
+
+function getEqRequerido(){
+var vals=[];
+document.querySelectorAll('.eq-req-cb:checked').forEach(function(c){vals.push(c.value)});
+return vals.join(' / ');
+}
+
+function toggleOtroEquipo(val){
+var wrap=document.getElementById('otro-equipo-wrap');
+if(wrap)wrap.style.display=val==='Otro equipo'?'block':'none';
+}
+
+function getTipoEquipo(){
+var v=document.getElementById('tipoEquipo').value;
+if(v==='Otro equipo'){var otro=(document.getElementById('tipoEquipoOtro').value||'').trim();return otro||'Otro equipo';}
+return v;
+}
+
+function seleccionarTipo(tipo){
+tipoLicitacion=tipo;
+document.getElementById('paso0').style.display='none';
+document.getElementById('stepper').style.display='flex';
+document.getElementById('sl1').textContent=tipo==='maquinaria'?'Equipo':'Carga';
+document.getElementById(tipo==='maquinaria'?'paso1-maquinaria':'paso1-carga').classList.add('active');
+var tel=document.getElementById('tipo-elegido');
+var tlbl=document.getElementById('tipo-elegido-label');
+if(tel&&tlbl){tlbl.textContent=tipo==='maquinaria'?'Maquinaria pesada':'Carga general';tel.style.display='block';}
+currentStep=1;updateStepper(1);
+window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function volverPaso0(){
+document.getElementById('paso0').style.display='block';
+document.getElementById('stepper').style.display='none';
+document.getElementById('paso1-maquinaria').classList.remove('active');
+document.getElementById('paso1-carga').classList.remove('active');
+var tel=document.getElementById('tipo-elegido');if(tel)tel.style.display='none';
+currentStep=0;tipoLicitacion=null;
+}
+
+function updateStepper(s){
+for(var i=1;i<=4;i++){
+var n=document.getElementById('sn'+i),l=document.getElementById('sl'+i);
+if(i<s){n.className='step-num done';l.className='step-label done';n.textContent=i;}
+else if(i===s){n.className='step-num active';l.className='step-label active';n.textContent=i;}
+else{n.className='step-num pending';l.className='step-label pending';n.textContent=i;}
+}
+var lines=document.querySelectorAll('.step-line');
+lines.forEach(function(line,idx){line.style.background=(idx+1)<s?'#1e2d4e':'#E5E7EB';});
+}
+
+function selectPlazo(el,val){
+document.querySelectorAll('.plazo-btn').forEach(function(b){b.classList.remove('selected')});
+el.classList.add('selected');
+document.getElementById('plazo').value=val;
+}
+
+function handleFile(e,key){
+var file=e.target.files[0];if(!file)return;
+processFile(file,key);
+}
+
+function handleDrop(e,key){
+e.preventDefault();
+document.getElementById('upload-zone-'+key).classList.remove('drag-over');
+var file=e.dataTransfer.files[0];if(!file)return;
+processFile(file,key);
+}
+
+function processFile(file,key){
+if(file.size>8*1024*1024){showToast('Archivo demasiado grande. Maximo 8 MB','err');return;}
+var reader=new FileReader();
+reader.onload=function(ev){
+var base64=ev.target.result.split(',')[1];
+var d={nombre:file.name,tipo:file.type,base64:base64};
+if(key==='maq')archivoMaq=d;else archivoCarga=d;
+var fp=document.getElementById('file-preview-'+key);
+fp.classList.add('show');
+document.getElementById('file-name-'+key).textContent=file.name;
+document.getElementById('file-size-'+key).textContent=(file.size/1024).toFixed(0)+' KB';
+};
+reader.readAsDataURL(file);
+}
+
+function removeFile(e,key){
+e.stopPropagation();
+if(key==='maq')archivoMaq=null;else archivoCarga=null;
+var fp=document.getElementById('file-preview-'+key);fp.classList.remove('show');
+document.getElementById('archivo-input-'+key).value='';
+}
+
+function irPaso(paso){
+if(paso===2){
+if(tipoLicitacion==='maquinaria'){
+if(!getEqRequerido()){showToast('Selecciona al menos un tipo de equipo requerido','err');return;}
+if(!modoEdicion&&!archivoMaq){showToast('Debes adjuntar el archivo de especificaciones','err');return;}
+if(document.getElementById('tipoEquipo').value==='Otro equipo'&&!document.getElementById('tipoEquipoOtro').value.trim()){showToast('Especifica el tipo de maquinaria','err');return;}
+}else{
+if(!getEqRequeridoCarga()){showToast('Selecciona al menos un tipo de equipo requerido','err');return;}
+if(!modoEdicion&&!archivoCarga){showToast('Debes adjuntar el archivo de especificaciones','err');return;}
+}
+}
+if(paso===3){
+if(!document.getElementById('origen').value.trim()){showToast('Ingresa la ciudad de origen','err');return;}
+if(!document.getElementById('destino').value.trim()){showToast('Ingresa la ciudad de destino','err');return;}
+if(!document.getElementById('fechaCarga').value){showToast('Selecciona la fecha de carga','err');return;}
+}
+if(paso===4)buildResumen();
+document.getElementById('paso1-maquinaria').classList.remove('active');
+document.getElementById('paso1-carga').classList.remove('active');
+document.getElementById('paso2').classList.remove('active');
+document.getElementById('paso3').classList.remove('active');
+document.getElementById('paso4').classList.remove('active');
+if(paso===1){document.getElementById(tipoLicitacion==='maquinaria'?'paso1-maquinaria':'paso1-carga').classList.add('active');}
+else{document.getElementById('paso'+paso).classList.add('active');}
+currentStep=paso;updateStepper(paso);
+window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function buildResumen(){
+var rows=[];
+rows.push(['Tipo',tipoLicitacion==='maquinaria'?'Maquinaria pesada':'Carga general']);
+if(tipoLicitacion==='maquinaria'){
+rows.push(['Maquinaria',getTipoEquipo()]);
+rows.push(['Equipo requerido',getEqRequerido()||'--']);
+var marca=document.getElementById('marca').value.trim();if(marca)rows.push(['Marca / modelo',marca]);
+var peso=document.getElementById('pesoMaq').value;if(peso)rows.push(['Peso',peso+' ton']);
+}else{
+var eq=document.getElementById('tipoEquipoCarga').value;if(eq)rows.push(['Camion requerido',eq]);
+var tc=document.getElementById('tipoCarga').value.trim();if(tc)rows.push(['Tipo de carga',tc]);
+var pc=document.getElementById('pesoCarga').value;if(pc)rows.push(['Peso total',pc+' ton']);
+}
+rows.push(['Origen',document.getElementById('origen').value.trim()]);
+rows.push(['Destino',document.getElementById('destino').value.trim()]);
+rows.push(['Fecha de carga',document.getElementById('fechaCarga').value]);
+var fe=document.getElementById('fechaEntrega').value;if(fe)rows.push(['Fecha entrega',fe]);
+rows.push(['Plazo cotizaciones',document.getElementById('plazo').value+'h']);
+document.getElementById('resumen-content').innerHTML=rows.map(function(r){
+return '<div class="resumen-row"><span class="resumen-key">'+r[0]+'</span><span class="resumen-val">'+r[1]+'</span></div>';
+}).join('');
+var btn=document.getElementById('btn-publicar');
+if(btn)btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';
+}
+
+async function publicar(){
+var btn=document.getElementById('btn-publicar');
+btn.disabled=true;btn.textContent='Publicando...';
+var archivo=tipoLicitacion==='maquinaria'?archivoMaq:archivoCarga;
+var archivoId=null;
+if(archivo){
+try{
+var rA=await fetch(API+'/api/archivos/upload',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(archivo)});
+var dA=await rA.json();
+if(!rA.ok){showToast(dA.error||'Error al subir el archivo','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';return;}
+archivoId=dA.id;
+}catch(e){showToast('Error al subir el archivo','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';return;}
+}
+var payload={tipoLicitacion:tipoLicitacion,origen:document.getElementById('origen').value.trim(),destino:document.getElementById('destino').value.trim(),fechaCarga:document.getElementById('fechaCarga').value,fechaEntrega:document.getElementById('fechaEntrega').value,plazo:document.getElementById('plazo').value};
+if(archivoId){payload.archivoId=archivoId;payload.archivoNombre=archivo.nombre;}
+if(tipoLicitacion==='maquinaria'){
+payload.tipoEquipo=getTipoEquipo();
+payload.tipoEquipoRequerido=getEqRequerido();
+payload.marca=document.getElementById('marca').value.trim();
+payload.peso=document.getElementById('pesoMaq').value||'';
+payload.dimensiones=document.getElementById('dimensionesMaq').value.trim();
+payload.descripcion=document.getElementById('descripcionMaq').value.trim();
+}else{
+payload.tipoEquipoRequerido=getEqRequeridoCarga();
+payload.tipoCarga=document.getElementById('tipoCarga').value.trim();
+payload.peso=document.getElementById('pesoCarga').value||'';
+payload.cantidadBultos=document.getElementById('cantidadBultos').value||'';
+payload.pesoPorBulto=document.getElementById('pesoPorBulto').value||'';
+payload.dimensiones=document.getElementById('dimensionesCarga').value.trim();
+payload.descripcion=document.getElementById('descripcionCarga').value.trim();
+}
+try{
+var url=modoEdicion?API+'/api/licitaciones/'+modoEdicion:API+'/api/licitaciones';
+var method=modoEdicion?'PUT':'POST';
+var res=await fetch(url,{method:method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(payload)});
+var data=await res.json();
+if(!res.ok){showToast(data.error||'Error al publicar','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';return;}
+document.getElementById('paso4').classList.remove('active');
+document.getElementById('success').style.display='block';
+document.getElementById('stepper').style.display='none';
+var tsw=document.getElementById('tipo-selector-wrap');if(tsw)tsw.style.display='none';
+var th=document.getElementById('tipo-elegido');if(th)th.style.display='none';
+document.querySelectorAll('a.btn.btn-outline').forEach(function(b){b.style.display='none';});
+window.scrollTo({top:0,behavior:'smooth'});
+}catch(e){showToast('Error de conexion. Intenta nuevamente.','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';}
+}
+
+async function cargarEdicion(id){
+try{
+var res=await fetch(API+'/api/licitaciones/'+id,{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+if(!res.ok)return;
+var data=await res.json();
+var l=data.licitacion;if(!l)return;
+modoEdicion=id;
+tipoLicitacion=l.tipoLicitacion||(l.tipoCarga?'carga':'maquinaria');
+document.getElementById('paso0').style.display='none';
+document.getElementById('stepper').style.display='flex';
+document.getElementById('sl1').textContent=tipoLicitacion==='maquinaria'?'Equipo':'Carga';
+document.getElementById('page-title').textContent='Editar licitacion';
+document.getElementById('page-sub').textContent='Modifica los datos que necesites';
+document.getElementById(tipoLicitacion==='maquinaria'?'paso1-maquinaria':'paso1-carga').classList.add('active');
+currentStep=1;updateStepper(1);
+if(l.origen)document.getElementById('origen').value=l.origen;
+if(l.destino)document.getElementById('destino').value=l.destino;
+if(l.fechaCarga)document.getElementById('fechaCarga').value=l.fechaCarga;
+if(l.fechaEntrega)document.getElementById('fechaEntrega').value=l.fechaEntrega;
+if(l.plazo){
+document.getElementById('plazo').value=l.plazo;
+document.querySelectorAll('.plazo-btn').forEach(function(b){b.classList.toggle('selected',b.getAttribute('data-val')===String(l.plazo));});
+}
+if(tipoLicitacion==='maquinaria'){
+var sel=document.getElementById('tipoEquipo');
+var opciones=Array.from(sel.options).map(function(o){return o.value});
+if(opciones.indexOf(l.tipoEquipo)>=0){sel.value=l.tipoEquipo;}
+else{sel.value='Otro equipo';document.getElementById('tipoEquipoOtro').value=l.tipoEquipo;document.getElementById('otro-equipo-wrap').style.display='block';}
+if(l.tipoEquipoRequerido){
+var vals=l.tipoEquipoRequerido.split(' / ');
+document.querySelectorAll('.eq-req-cb').forEach(function(cb){
+if(vals.indexOf(cb.value)>=0){cb.checked=true;var lbl=cb.closest('label');if(lbl){lbl.style.borderColor='#1e2d4e';lbl.style.background='#eef1f8';}}
+});
+}
+if(l.marca)document.getElementById('marca').value=l.marca;
+if(l.peso)document.getElementById('pesoMaq').value=l.peso;
+if(l.dimensiones)document.getElementById('dimensionesMaq').value=l.dimensiones;
+if(l.descripcion)document.getElementById('descripcionMaq').value=l.descripcion;
+// Mostrar archivo previo maquinaria
+if(l.archivoNombre){
+var fp=document.getElementById('file-preview-maq');fp.classList.add('show');
+document.getElementById('file-name-maq').textContent=l.archivoNombre;
+document.getElementById('file-size-maq').textContent='Archivo existente';
+}
+}else{
+if(l.tipoEquipoRequerido)document.getElementById('tipoEquipoCarga').value=l.tipoEquipoRequerido;
+if(l.tipoCarga)document.getElementById('tipoCarga').value=l.tipoCarga;
+if(l.peso)document.getElementById('pesoCarga').value=l.peso;
+if(l.cantidadBultos)document.getElementById('cantidadBultos').value=l.cantidadBultos;
+if(l.pesoPorBulto)document.getElementById('pesoPorBulto').value=l.pesoPorBulto;
+if(l.dimensiones)document.getElementById('dimensionesCarga').value=l.dimensiones;
+if(l.descripcion)document.getElementById('descripcionCarga').value=l.descripcion;
+// Mostrar archivo previo carga
+if(l.archivoNombre){
+var fp2=document.getElementById('file-preview-carga');fp2.classList.add('show');
+document.getElementById('file-name-carga').textContent=l.archivoNombre;
+document.getElementById('file-size-carga').textContent='Archivo existente';
+}
+}
+}catch(e){console.error('Error cargando edicion:',e);}
+}
+
+function cerrarSesion(){localStorage.clear();window.location.replace('/index.html');}
+
+async function cargarNotificaciones(){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var r = await fetch(API + '/api/notificaciones', { headers: {'Authorization':'Bearer '+token} });
+      var data = await r.json();
+      var notifs = data.notificaciones || [];
+      var noLeidas = notifs.filter(function(n){ return !n.leida; }).length;
+      var badge = document.getElementById('notif-count');
+      if(badge){ badge.textContent = noLeidas > 9 ? '9+' : noLeidas; badge.style.display = noLeidas > 0 ? 'flex' : 'none'; }
+      var list = document.getElementById('notif-list');
+      if(!list) return;
+      if(notifs.length === 0){
+        list.innerHTML = '<div style="padding:32px 20px;text-align:center"><div style="font-size:28px;margin-bottom:8px">🔔</div><div style="font-size:14px;font-weight:500;color:#374151;margin-bottom:4px">Sin notificaciones</div><div style="font-size:12px;color:#9CA3AF">Te avisaremos cuando haya novedades</div></div>';
+        return;
+      }
+      var iconMap = { adjudicacion:'🏆', licitacion_aprobada:'✅', licitacion_rechazada:'❌', licitacion_cerrada:'📋', cotizaciones_disponibles:'🎯', nueva_licitacion:'📣', cobro_pendiente:'💰', cobro_pagado:'✅', cuenta_aprobada:'✅' };
+      list.innerHTML = notifs.slice(0,20).map(function(n){
+        var icono = iconMap[n.tipo] || '🔔';
+        var bg = !n.leida ? 'background:#f0f4ff' : '';
+        var ts = n.createdAt ? new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+        return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'+
+          '<div style="font-size:18px;flex-shrink:0;margin-top:1px">'+icono+'</div>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4">'+n.mensaje+'</div>'+
+            '<div style="font-size:11px;color:#9CA3AF">'+ts+'</div>'+
+          '</div>'+
+          (!n.leida
+            ? '<button onclick="marcarUnaLeida(\'' + n.id + '\')" title="Marcar como leída" style="background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0;margin-top:2px;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">✓</button>'
+            : '') +
+        '</div>';
+      }).join('');
+      cargarPrefsConfig();
+    } catch(e){}
+  }
+
+async function marcarUnaLeida(id){
+    try {
+      await api('/api/notificaciones/leer', 'POST', { id: id });
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+async function marcarTodasLeidas(){
+    try {
+      const r = await api('/api/notificaciones');
+      if(!r || !r.ok) return;
+      const notifs = r.data.notificaciones || [];
+      const noLeidas = notifs.filter(function(n){ return !n.leida; });
+      for(var i=0; i<noLeidas.length; i++){
+        await api('/api/notificaciones/leer', 'POST', { id: noLeidas[i].id });
+      }
+      const badge = document.getElementById('notif-count');
+      if(badge) badge.style.display = 'none';
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+function toggleConfigNotif(){
+    var cfg      = document.getElementById('notif-config');
+    var list     = document.getElementById('notif-list');
+    var hMain    = document.getElementById('notif-header-main');
+    var hConfig  = document.getElementById('notif-header-config');
+    var isOpen   = cfg && cfg.style.display !== 'none';
+    if(isOpen){
+      if(cfg)     cfg.style.display     = 'none';
+      if(list)    list.style.display    = 'block';
+      if(hMain)   hMain.style.display   = 'flex';
+      if(hConfig) hConfig.style.display = 'none';
+    } else {
+      if(cfg)     cfg.style.display     = 'block';
+      if(list)    list.style.display    = 'none';
+      if(hMain)   hMain.style.display   = 'none';
+      if(hConfig) hConfig.style.display = 'flex';
+      cargarPrefsConfig();
+    }
+  }
+
+if(editId) document.addEventListener('DOMContentLoaded', function(){ cargarEdicion(editId); });
+
+var _API='https://transmatch.transmatchcl.workers.dev';
+function closeAllPanels(){var p=document.getElementById('notif-panel');if(p)p.style.display='none';}
+function toggleNotifs(e){if(e)e.stopPropagation();var p=document.getElementById('notif-panel');var open=p&&p.style.display==='flex';closeAllPanels();if(!open&&p){p.style.display='flex';_cargarNotif();}}
+document.addEventListener('click',closeAllPanels);
+function _cargarNotif(){
+  var token=localStorage.getItem('tm_token');
+  fetch(_API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    var notifs=d.notificaciones||[];
+    var badge=document.getElementById('notif-count');
+    var n=notifs.filter(function(x){return !x.leida;}).length;
+    if(badge){badge.textContent=n>9?'9+':n;badge.style.display=n>0?'flex':'none';}
+    var list=document.getElementById('notif-list');if(!list)return;
+    if(!notifs.length){list.innerHTML='<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Sin notificaciones</div>';return;}
+    list.innerHTML=notifs.slice(0,20).map(function(no){
+      var ts=no.createdAt?new Date(no.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+      return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;display:flex;align-items:flex-start;gap:8px;'+(no.leida?'':'background:#f0f4ff')+'"><div style="flex:1"><div style="font-size:13px;color:#111827;margin-bottom:2px">'+no.mensaje+'</div><div style="font-size:11px;color:#9CA3AF">'+ts+'</div></div>'+(!no.leida?'<button onclick="_marcarLeida(\''+no.id+'\');" style="background:none;border:none;cursor:pointer;color:#1e2d4e;font-size:15px;font-weight:700;flex-shrink:0" title="Marcar leída">✓</button>':'')+'</div>';
+    }).join('');
+  }).catch(function(){});
+}
+function _marcarLeida(id){
+  fetch(_API+'/api/notificaciones/leer',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({id:id})})
+  .then(function(){_cargarNotif();}).catch(function(){});
+}
+function marcarTodasLeidas(){
+  fetch(_API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    var ps=(d.notificaciones||[]).filter(function(x){return !x.leida;}).map(function(x){
+      return fetch(_API+'/api/notificaciones/leer',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({id:x.id})});
+    });
+    return Promise.all(ps);
+  })
+  .then(function(){_cargarNotif();}).catch(function(){});
+}
+</script>
+
+<footer style="background:#1e2d4e;margin-top:40px;padding:28px 24px 20px">
+<div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px">T</div><span style="font-weight:700;color:#fff;font-size:15px">Trans<span style="color:#ff8904">Match</span></span></div><div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div></div>
+<div style="display:flex;gap:32px;flex-wrap:wrap">
+<div><div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div><div style="display:flex;flex-direction:column;gap:6px"><a href="/terminos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Terminos y condiciones</a><a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Politica de privacidad</a><a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Centro de ayuda</a></div></div>
+<div><div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div><div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span><span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span></div></div>
+</div>
+</div>
+<div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B">(c) 2026 TransMatch SpA.</div>
+</footer>
+</body></html>

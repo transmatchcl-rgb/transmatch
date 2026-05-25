@@ -1,0 +1,658 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch — Cobros y OV</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f7fb;display:flex;flex-direction:column;min-height:100vh}
+#auth-guard{position:fixed;inset:0;background:#1e2d4e;display:flex;align-items:center;justify-content:center;z-index:9999}
+.gs{width:36px;height:36px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#app{display:none;flex-direction:column;min-height:100vh}
+.nav{background:#1e2d4e;padding:0 24px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.nav-left{display:flex;align-items:center;gap:16px}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-icon{background:#FF8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+.nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#FF8904}
+.nav-badge{background:rgba(255,255,255,.15);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px}
+.nav-tabs{display:flex;gap:2px}
+.nav-tab{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+.nav-tab:hover,.nav-tab.active{color:#fff;background:rgba(255,255,255,.12)}
+.logout-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer}
+main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
+.page-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.page-title{font-size:20px;font-weight:700;color:#1e2d4e}
+.page-sub{font-size:13px;color:#6B7280;margin-top:2px}
+.grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+@media(max-width:700px){.grid-4{grid-template-columns:repeat(2,1fr)}}
+.stat{background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);padding:16px 18px}
+.stat-label{font-size:12px;color:#6B7280;margin-bottom:6px}
+.stat-val{font-size:24px;font-weight:700}
+.stat-sub{font-size:11px;color:#9CA3AF;margin-top:4px}
+.card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);overflow:hidden;margin-bottom:16px}
+.card-hdr{padding:14px 18px;border-bottom:0.5px solid #e8eaf0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.card-title{font-size:15px;font-weight:600;color:#111827}
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px;border-bottom:0.5px solid #e8eaf0}
+.sel{padding:8px 12px;border:0.5px solid #E5E7EB;border-radius:7px;font-size:13px;background:#fff;color:#374151}
+.srch{padding:8px 12px;border:0.5px solid #E5E7EB;border-radius:7px;font-size:13px;flex:1;min-width:160px}
+.sel:focus,.srch:focus{outline:none;border-color:#1e2d4e}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;padding:10px 16px;text-align:left;border-bottom:0.5px solid #E5E7EB;white-space:nowrap;background:#fafafa}
+.tbl td{font-size:13px;color:#374151;padding:12px 16px;border-bottom:0.5px solid #F3F4F6;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#f5f7fb}
+.badge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.b-condicional{background:#FFF7ED;color:#92400E}
+.b-confirmada{background:#EFF6FF;color:#1e40af}
+.b-facturada{background:#F0FDF4;color:#14532D}
+.b-anulada{background:#FEF2F2;color:#991B1B}
+.b-activa{background:#F0FDF4;color:#14532D}
+.b-vencida{background:#FFF7ED;color:#92400E}
+.b-suspendida{background:#FEF2F2;color:#991B1B}
+.btn{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s;display:inline-flex;align-items:center;gap:5px}
+.btn:hover{opacity:.85}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:#1e2d4e;color:#fff}
+.btn-orange{background:#FF8904;color:#fff}
+.btn-red{background:#EF4444;color:#fff}
+.btn-outline{background:transparent;border:0.5px solid #E5E7EB;color:#374151}
+.btn-sm{padding:5px 10px;font-size:11px}
+.empty{text-align:center;padding:32px;color:#9CA3AF;font-size:13px}
+.spinner{width:22px;height:22px;border:2px solid #e8eaf0;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite;margin:32px auto}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:24px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:16px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:12px;font-weight:500;color:#374151;margin-bottom:5px}
+.fg input,.fg select,.fg textarea{width:100%;padding:9px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:inherit}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:#1e2d4e}
+.fg textarea{resize:vertical;min-height:70px}
+.info-box{background:#eef1f8;border-radius:8px;padding:12px 14px;font-size:13px;color:#1e40af;margin-bottom:14px;line-height:1.6}
+.warn-box{background:#FFF7ED;border-radius:8px;padding:12px 14px;font-size:13px;color:#92400E;margin-bottom:14px;line-height:1.6}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.detail-item{background:#f8f9fc;border-radius:8px;padding:10px 12px}
+.detail-label{font-size:11px;color:#9CA3AF;font-weight:500;margin-bottom:3px}
+.detail-val{font-size:14px;font-weight:600;color:#1e2d4e}
+#toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none}
+.tabs-bar{display:flex;gap:4px;margin-bottom:16px;background:#fff;border-radius:10px;padding:4px;border:0.5px solid #e8eaf0;width:fit-content}
+.tab-btn{padding:8px 18px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;color:#6B7280;transition:all .15s}
+.tab-btn.active{background:#1e2d4e;color:#fff}
+</style>
+</head>
+<body>
+<div id="auth-guard">
+  <div style="text-align:center">
+    <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px">
+      <div style="background:#FF8904;border-radius:7px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:15px">T</div>
+      <span style="font-weight:700;color:#fff;font-size:18px">Trans<span style="color:#FF8904">Match</span></span>
+    </div>
+    <div class="gs" style="margin:0 auto"></div>
+  </div>
+</div>
+
+<div id="app">
+  <nav class="nav">
+    <div class="nav-left">
+      <a href="/admin.html" class="nav-logo">
+        <div class="nav-icon">T</div>
+        <span class="nav-name">Trans<span>Match</span></span>
+        <span class="nav-badge">ADMIN</span>
+      </a>
+            <div class="nav-tabs">
+        <a href="/admin.html" class="nav-tab">Dashboard</a>
+        <a href="/admin-licitaciones.html" class="nav-tab">Licitaciones</a>
+        <a href="/admin-cotizaciones.html" class="nav-tab">Cotizaciones</a>
+        <a href="/admin-transportes.html" class="nav-tab">Transportes</a>
+        <a href="/admin-clientes.html" class="nav-tab">Clientes</a>
+        <a href="/admin-transportistas.html" class="nav-tab">Transportistas</a>
+        <a href="/admin-cobros.html" class="nav-tab active">Facturación</a>
+        <a href="/admin-reportes.html" class="nav-tab">Reportes</a>
+      </div>
+      </div>
+    <button class="logout-btn" onclick="localStorage.clear();window.location.replace('/admin-login.html')">Cerrar sesion</button>
+  </nav>
+
+  <main>
+    <div class="page-hdr">
+      <div>
+        <div class="page-title">Cobros y Ordenes de Venta</div>
+        <div class="page-sub">Comisiones por transporte y suscripciones de clientes</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-orange" onclick="abrirBatch()">Facturacion mensual</button>
+        
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid-4">
+      <div class="stat">
+        <div class="stat-label">OV Condicionales</div>
+        <div class="stat-val" id="st-condicional" style="color:#92400E">—</div>
+        <div class="stat-sub">Esperando factura del cliente</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">OV Confirmadas</div>
+        <div class="stat-val" id="st-confirmada" style="color:#1e40af">—</div>
+        <div class="stat-sub">Listas para facturar</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Comision pendiente</div>
+        <div class="stat-val" id="st-monto-pend" style="color:#FF8904;font-size:18px">—</div>
+        <div class="stat-sub">OV confirmadas este mes</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Comision facturada</div>
+        <div class="stat-val" id="st-monto-fact" style="color:#14532D;font-size:18px">—</div>
+        <div class="stat-sub">Acumulado historico</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-bar">
+      <button class="tab-btn active" onclick="switchTab('ovs',this)">Ordenes de Venta</button>
+      <button class="tab-btn" onclick="switchTab('facturas',this)">Facturas mensuales</button>
+      <button class="tab-btn" onclick="switchTab('alertas',this)">Alertas</button>
+    </div>
+
+    <!-- TAB: OVs -->
+    <div id="tab-ovs">
+      <div class="card">
+        <div class="filter-bar">
+          <select class="sel" id="fil-estado-ov" onchange="filtrarOVs()">
+            <option value="">Todos los estados</option>
+            <option value="CONDICIONAL">Condicional</option>
+            <option value="CONFIRMADA">Confirmada</option>
+            <option value="FACTURADA">Facturada</option>
+            <option value="ANULADA">Anulada</option>
+          </select>
+          <input class="srch" id="fil-buscar-ov" placeholder="Buscar OV, transportista o cliente..." oninput="filtrarOVs()"/>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>OV</th>
+                <th>Transportista</th>
+                <th>Licitacion</th>
+                <th>Comision estimada</th>
+                <th>Comision final</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-ovs"><tr><td colspan="8"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Facturas mensuales -->
+    <div id="tab-facturas" style="display:none">
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-title">Facturas consolidadas emitidas</span>
+          <button class="btn btn-orange btn-sm" onclick="abrirBatch()">Generar nueva facturacion</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Periodo</th>
+                <th>Transportista</th>
+                <th>OVs incluidas</th>
+                <th>Total comision</th>
+                <th>Estado pago</th>
+                <th>Fecha emision</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-facturas"><tr><td colspan="7"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Alertas -->
+    <div id="tab-alertas" style="display:none">
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-title">OV condicionales sin factura del cliente</span>
+          <span id="alerta-count" style="font-size:12px;color:#9CA3AF"></span>
+        </div>
+        <div id="lista-alertas"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal: Detalle OV -->
+<div class="modal-bg" id="modal-ov">
+  <div class="modal">
+    <div class="modal-title">Detalle Orden de Venta</div>
+    <div id="modal-ov-body"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+      <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="cerrarModal('modal-ov')">Cerrar</button>
+      <button class="btn btn-red btn-sm" id="btn-anular-ov" onclick="abrirAnularOV()" style="display:none">Anular OV</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Anular OV -->
+<div class="modal-bg" id="modal-anular">
+  <div class="modal">
+    <div class="modal-title">Anular Orden de Venta</div>
+    <div class="warn-box">Solo puedes anular OV en estado CONDICIONAL. Esta accion no se puede deshacer.</div>
+    <input type="hidden" id="anular-ov-id"/>
+    <div class="fg">
+      <label>Motivo de anulacion *</label>
+      <select id="anular-motivo">
+        <option value="">Seleccionar motivo...</option>
+        <option value="cliente_cancela">Cliente cancelo el transporte</option>
+        <option value="transportista_abandona">Transportista no se presento</option>
+        <option value="fuerza_mayor">Fuerza mayor acreditada</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Observaciones (opcional)</label>
+      <textarea id="anular-obs" placeholder="Detalle adicional..."></textarea>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="cerrarModal('modal-anular')">Cancelar</button>
+      <button class="btn btn-red" style="flex:1;justify-content:center" onclick="confirmarAnulacion()">Confirmar anulacion</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Facturacion batch -->
+<div class="modal-bg" id="modal-batch">
+  <div class="modal">
+    <div class="modal-title">Facturacion mensual consolidada</div>
+    <div class="info-box">Este proceso agrupa todas las OV en estado CONFIRMADA del mes y genera una factura por transportista. Las OV pasaran a estado FACTURADA y no se podran modificar.</div>
+    <div class="fg">
+      <label>Periodo a facturar</label>
+      <select id="batch-periodo"></select>
+    </div>
+    <div id="batch-preview" style="margin-bottom:14px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="cerrarModal('modal-batch')">Cancelar</button>
+      <button class="btn btn-orange" style="flex:1;justify-content:center" id="btn-batch" onclick="ejecutarBatch()">Generar facturas</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Marcar factura pagada -->
+<div class="modal-bg" id="modal-pago">
+  <div class="modal">
+    <div class="modal-title">Registrar pago recibido</div>
+    <div class="info-box" id="modal-pago-info"></div>
+    <input type="hidden" id="pago-factura-id"/>
+    <div class="fg">
+      <label>Metodo de pago</label>
+      <select id="metodo-pago">
+        <option value="transferencia">Transferencia bancaria</option>
+        <option value="cheque">Cheque</option>
+        <option value="efectivo">Efectivo</option>
+        <option value="otro">Otro</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Notas (opcional)</label>
+      <textarea id="notas-pago" placeholder="Ej: Transferencia N° 123456, fecha 15/05/2026..."></textarea>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="cerrarModal('modal-pago')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="confirmarPago()">Confirmar pago</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+var API = 'https://transmatch.transmatchcl.workers.dev';
+var allOVs = [], allFacturas = [], ovActual = null;
+
+// ── Helpers ──
+function peso(n){ return n!=null&&n!=='' ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '—'; }
+function fecha(iso){ return iso ? new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}) : '—'; }
+function diasDesde(iso){ if(!iso) return 0; return Math.floor((Date.now()-new Date(iso))/(1000*60*60*24)); }
+
+function toast(msg, type){
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = type==='err' ? '#EF4444' : type==='warn' ? '#FF8904' : '#1ED24E';
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(function(){ el.style.opacity='0'; }, 3500);
+}
+
+function badgeOV(estado){
+  var map = {
+    CONDICIONAL: 'b-condicional',
+    CONFIRMADA:  'b-confirmada',
+    FACTURADA:   'b-facturada',
+    ANULADA:     'b-anulada'
+  };
+  return '<span class="badge '+(map[estado]||'b-gray')+'">'+estado+'</span>';
+}
+
+async function apiFetch(path, method, body){
+  var o = {method:method||'GET', headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}};
+  if(body) o.body = JSON.stringify(body);
+  try {
+    var r = await fetch(API+path, o);
+    if(r.status===401){ localStorage.clear(); window.location.replace('/admin-login.html'); return null; }
+    return {ok:r.ok, status:r.status, data:await r.json()};
+  } catch(e){ return null; }
+}
+
+// ── Tabs ──
+function switchTab(id, btn){
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('tab-ovs').style.display     = id==='ovs'      ? 'block' : 'none';
+  document.getElementById('tab-facturas').style.display= id==='facturas' ? 'block' : 'none';
+  document.getElementById('tab-alertas').style.display = id==='alertas'  ? 'block' : 'none';
+  if(id==='alertas') renderAlertas();
+}
+
+function cerrarModal(id){ document.getElementById(id).classList.remove('open'); }
+
+// ── Carga inicial ──
+async function initPage(){
+  document.getElementById('tbody-ovs').innerHTML = '<tr><td colspan="8"><div class="spinner"></div></td></tr>';
+  document.getElementById('tbody-facturas').innerHTML = '<tr><td colspan="7"><div class="spinner"></div></td></tr>';
+
+  var [ovsR, factR] = await Promise.all([
+    apiFetch('/api/admin/ordenes-venta'),
+    apiFetch('/api/admin/facturas-mensuales')
+  ]);
+
+  allOVs = ovsR?.ok ? (ovsR.data.ordenes || ovsR.data.ovs || []) : [];
+  allFacturas = factR?.ok ? (factR.data.facturas || []) : [];
+
+  // Stats
+  var cond = allOVs.filter(function(o){ return o.estado==='CONDICIONAL'; });
+  var conf = allOVs.filter(function(o){ return o.estado==='CONFIRMADA'; });
+  var fact = allOVs.filter(function(o){ return o.estado==='FACTURADA'; });
+  document.getElementById('st-condicional').textContent = cond.length;
+  document.getElementById('st-confirmada').textContent  = conf.length;
+  document.getElementById('st-monto-pend').textContent  = peso(conf.reduce(function(s,o){ return s+(o.comision_final||o.comision_estimada||0); },0));
+  document.getElementById('st-monto-fact').textContent  = peso(fact.reduce(function(s,o){ return s+(o.comision_final||0); },0));
+
+  filtrarOVs();
+  renderFacturas();
+}
+
+// ── OVs ──
+function filtrarOVs(){
+  var estado = document.getElementById('fil-estado-ov').value;
+  var q = (document.getElementById('fil-buscar-ov').value||'').toLowerCase();
+  var lista = allOVs;
+  if(estado) lista = lista.filter(function(o){ return o.estado===estado; });
+  if(q) lista = lista.filter(function(o){
+    return ((o.id_ov||'')+(o.id_transportista||'')+(o.transportistaNombre||'')+(o.transportistaEmpresa||'')+(o.id_licitacion||'')).toLowerCase().includes(q);
+  });
+
+  if(lista.length===0){
+    document.getElementById('tbody-ovs').innerHTML = '<tr><td colspan="8" class="empty">Sin resultados</td></tr>';
+    return;
+  }
+
+  document.getElementById('tbody-ovs').innerHTML = lista.map(function(ov){
+    var comEst = ov.comision_estimada!=null ? peso(ov.comision_estimada) : '—';
+    var comFin = ov.comision_final!=null ? '<strong>'+peso(ov.comision_final)+'</strong>' : '—';
+    var acciones = '';
+    if(ov.estado==='CONDICIONAL'){
+      acciones += '<button class="btn btn-outline btn-sm" onclick="verOV(\''+ov.id_ov+'\')">Ver</button> ';
+      acciones += '<button class="btn btn-red btn-sm" onclick="abrirAnularOVDirecto(\''+ov.id_ov+'\')">Anular</button>';
+    } else {
+      acciones = '<button class="btn btn-outline btn-sm" onclick="verOV(\''+ov.id_ov+'\')">Ver</button>';
+    }
+    return '<tr>'
+      +'<td><span style="font-family:monospace;font-size:11px;color:#9CA3AF">'+ov.id_ov+'</span></td>'
+      +'<td><div style="font-weight:500;color:#1e2d4e">'+(ov.transportistaEmpresa||ov.id_transportista)+'</div><div style="font-size:11px;color:#9CA3AF">'+(ov.transportistaNombre||'')+'</div></td>'
+      +'<td style="font-size:11px;font-family:monospace;color:#9CA3AF">'+(ov.id_licitacion||'—')+'</td>'
+      +'<td>'+comEst+'</td>'
+      +'<td>'+comFin+'</td>'
+      +'<td>'+badgeOV(ov.estado)+'</td>'
+      +'<td style="font-size:12px">'+fecha(ov.fecha_adjudicacion)+'</td>'
+      +'<td>'+acciones+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+function verOV(id){
+  var ov = allOVs.find(function(o){ return o.id_ov===id; });
+  if(!ov) return;
+  ovActual = ov;
+  var html = '<div class="detail-grid">'
+    +'<div class="detail-item"><div class="detail-label">ID OV</div><div class="detail-val" style="font-size:12px;font-family:monospace">'+ov.id_ov+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Estado</div><div class="detail-val">'+badgeOV(ov.estado)+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Transportista</div><div class="detail-val">'+(ov.transportistaEmpresa||ov.id_transportista)+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Licitacion</div><div class="detail-val" style="font-size:12px;font-family:monospace">'+(ov.id_licitacion||'—')+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Monto cotizado</div><div class="detail-val">'+peso(ov.monto_cotizado)+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Monto facturado</div><div class="detail-val">'+peso(ov.monto_facturado)+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Comision estimada</div><div class="detail-val">'+peso(ov.comision_estimada)+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Comision final</div><div class="detail-val" style="color:#1e2d4e">'+peso(ov.comision_final)+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">UF del dia</div><div class="detail-val">'+(ov.uf_del_dia ? '$'+ov.uf_del_dia.toLocaleString('es-CL') : '—')+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Fecha adjudicacion</div><div class="detail-val">'+fecha(ov.fecha_adjudicacion)+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Fecha confirmacion</div><div class="detail-val">'+fecha(ov.fecha_confirmacion)+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Fecha facturacion</div><div class="detail-val">'+fecha(ov.fecha_facturacion)+'</div></div>'
+    +'</div>';
+  if(ov.motivo_anulacion){
+    html += '<div class="warn-box">Motivo de anulacion: <strong>'+ov.motivo_anulacion+'</strong>'+(ov.observaciones?' — '+ov.observaciones:'')+'</div>';
+  }
+  document.getElementById('modal-ov-body').innerHTML = html;
+  document.getElementById('btn-anular-ov').style.display = ov.estado==='CONDICIONAL' ? 'inline-flex' : 'none';
+  document.getElementById('modal-ov').classList.add('open');
+}
+
+function abrirAnularOV(){
+  document.getElementById('anular-ov-id').value = ovActual.id_ov;
+  document.getElementById('anular-motivo').value = '';
+  document.getElementById('anular-obs').value = '';
+  cerrarModal('modal-ov');
+  document.getElementById('modal-anular').classList.add('open');
+}
+
+function abrirAnularOVDirecto(id){
+  document.getElementById('anular-ov-id').value = id;
+  document.getElementById('anular-motivo').value = '';
+  document.getElementById('anular-obs').value = '';
+  document.getElementById('modal-anular').classList.add('open');
+}
+
+async function confirmarAnulacion(){
+  var id = document.getElementById('anular-ov-id').value;
+  var motivo = document.getElementById('anular-motivo').value;
+  var obs = document.getElementById('anular-obs').value.trim();
+  if(!motivo){ toast('Selecciona el motivo de anulacion','err'); return; }
+  var btn = event.target; btn.disabled=true; btn.textContent='Anulando...';
+  var r = await apiFetch('/api/admin/ordenes-venta/'+id+'/anular','POST',{motivo_anulacion:motivo, observaciones:obs, anulado_por_admin:localStorage.getItem('tm_email')});
+  btn.disabled=false; btn.textContent='Confirmar anulacion';
+  if(r && r.ok){
+    toast('OV anulada correctamente');
+    cerrarModal('modal-anular');
+    initPage();
+  } else {
+    toast((r?.data?.error)||'Error al anular la OV','err');
+  }
+}
+
+// ── Facturas mensuales ──
+function renderFacturas(){
+  var lista = allFacturas;
+  if(!lista.length){
+    document.getElementById('tbody-facturas').innerHTML = '<tr><td colspan="7" class="empty">Sin facturas emitidas aun</td></tr>';
+    return;
+  }
+  document.getElementById('tbody-facturas').innerHTML = lista.map(function(f){
+    var estadoBadge = f.estado_pago==='pagado'
+      ? '<span class="badge b-facturada">Pagado</span>'
+      : '<span class="badge b-condicional">Pendiente</span>';
+    var accion = f.estado_pago!=='pagado'
+      ? '<button class="btn btn-outline btn-sm" onclick="abrirPago(\''+f.id+'\',\''+f.transportistaEmpresa+'\','+f.total_comision+')">Marcar pagado</button>'
+      : '<span style="font-size:11px;color:#9CA3AF">'+fecha(f.fecha_pago)+'</span>';
+    return '<tr>'
+      +'<td style="font-weight:500">'+f.periodo+'</td>'
+      +'<td><div style="font-weight:500;color:#1e2d4e">'+f.transportistaEmpresa+'</div></td>'
+      +'<td style="text-align:center">'+f.total_ovs+'</td>'
+      +'<td style="font-weight:700;color:#1e2d4e">'+peso(f.total_comision)+'</td>'
+      +'<td>'+estadoBadge+'</td>'
+      +'<td style="font-size:12px">'+fecha(f.fecha_emision)+'</td>'
+      +'<td>'+accion+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+function abrirPago(id, empresa, monto){
+  document.getElementById('pago-factura-id').value = id;
+  document.getElementById('modal-pago-info').textContent = empresa+' — '+peso(monto);
+  document.getElementById('notas-pago').value = '';
+  document.getElementById('modal-pago').classList.add('open');
+}
+
+async function confirmarPago(){
+  var id = document.getElementById('pago-factura-id').value;
+  var metodo = document.getElementById('metodo-pago').value;
+  var notas = document.getElementById('notas-pago').value.trim();
+  var btn = event.target; btn.disabled=true; btn.textContent='Guardando...';
+  var r = await apiFetch('/api/admin/facturas-mensuales/'+id+'/pago','POST',{metodo_pago:metodo, notas:notas});
+  btn.disabled=false; btn.textContent='Confirmar pago';
+  if(r && r.ok){
+    toast('Pago registrado correctamente');
+    cerrarModal('modal-pago');
+    initPage();
+  } else {
+    toast((r?.data?.error)||'Error al registrar el pago','err');
+  }
+}
+
+// ── Batch mensual ──
+function abrirBatch(){
+  // Poblar selector de periodos (mes actual + 2 anteriores)
+  var sel = document.getElementById('batch-periodo');
+  sel.innerHTML = '';
+  var hoy = new Date();
+  for(var i=0; i<3; i++){
+    var d = new Date(hoy.getFullYear(), hoy.getMonth()-i, 1);
+    var key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    var label = d.toLocaleDateString('es-CL',{month:'long',year:'numeric'});
+    var opt = document.createElement('option');
+    opt.value = key; opt.textContent = label;
+    sel.appendChild(opt);
+  }
+  previsualizarBatch();
+  document.getElementById('modal-batch').classList.add('open');
+}
+
+function previsualizarBatch(){
+  var periodo = document.getElementById('batch-periodo').value;
+  var ovsPeriodo = allOVs.filter(function(o){
+    if(o.estado!=='CONFIRMADA') return false;
+    if(!o.fecha_confirmacion) return false;
+    var k = o.fecha_confirmacion.substring(0,7);
+    return k===periodo;
+  });
+
+  // Agrupar por transportista
+  var porTransportista = {};
+  ovsPeriodo.forEach(function(o){
+    var tid = o.id_transportista;
+    if(!porTransportista[tid]) porTransportista[tid]={empresa:o.transportistaEmpresa||tid, ovs:0, total:0};
+    porTransportista[tid].ovs++;
+    porTransportista[tid].total += (o.comision_final||0);
+  });
+
+  var keys = Object.keys(porTransportista);
+  if(!keys.length){
+    document.getElementById('batch-preview').innerHTML = '<div style="font-size:13px;color:#9CA3AF;text-align:center;padding:12px 0">Sin OV confirmadas en este periodo</div>';
+    document.getElementById('btn-batch').disabled = true;
+    return;
+  }
+  document.getElementById('btn-batch').disabled = false;
+
+  var html = '<div style="border:1px solid #E5E7EB;border-radius:8px;overflow:hidden">'
+    +'<table class="tbl"><thead><tr><th>Transportista</th><th>OVs</th><th>Total comision</th></tr></thead><tbody>';
+  var totalGral = 0;
+  keys.forEach(function(k){
+    var t = porTransportista[k];
+    totalGral += t.total;
+    html += '<tr><td>'+t.empresa+'</td><td style="text-align:center">'+t.ovs+'</td><td style="font-weight:600">'+peso(t.total)+'</td></tr>';
+  });
+  html += '<tr style="background:#f8f9fc"><td><strong>Total</strong></td><td style="text-align:center"><strong>'+ovsPeriodo.length+'</strong></td><td style="font-weight:700;color:#1e2d4e">'+peso(totalGral)+'</td></tr>';
+  html += '</tbody></table></div>';
+  document.getElementById('batch-preview').innerHTML = html;
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  var sel = document.getElementById('batch-periodo');
+  if(sel) sel.addEventListener('change', previsualizarBatch);
+});
+
+async function ejecutarBatch(){
+  var periodo = document.getElementById('batch-periodo').value;
+  var btn = document.getElementById('btn-batch');
+  btn.disabled=true; btn.textContent='Generando facturas...';
+  var r = await apiFetch('/api/admin/facturacion-batch','POST',{periodo:periodo});
+  btn.disabled=false; btn.textContent='Generar facturas';
+  if(r && r.ok){
+    toast('Facturas generadas correctamente');
+    cerrarModal('modal-batch');
+    initPage();
+  } else {
+    toast((r?.data?.error)||'Error al generar las facturas','err');
+  }
+}
+
+// ── Alertas ──
+function renderAlertas(){
+  var DIAS_ALERTA = 7;
+  var alertas = allOVs.filter(function(o){
+    return o.estado==='CONDICIONAL' && diasDesde(o.fecha_adjudicacion) >= DIAS_ALERTA;
+  }).sort(function(a,b){ return diasDesde(b.fecha_adjudicacion)-diasDesde(a.fecha_adjudicacion); });
+
+  document.getElementById('alerta-count').textContent = alertas.length+' alertas';
+
+  if(!alertas.length){
+    document.getElementById('lista-alertas').innerHTML = '<div class="empty">Sin OV condicionales con mas de '+DIAS_ALERTA+' dias de espera</div>';
+    return;
+  }
+
+  document.getElementById('lista-alertas').innerHTML = alertas.map(function(ov){
+    var dias = diasDesde(ov.fecha_adjudicacion);
+    var urgencia = dias >= 14 ? 'color:#991B1B;font-weight:700' : 'color:#92400E;font-weight:600';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:0.5px solid #F3F4F6;flex-wrap:wrap;gap:8px">'
+      +'<div>'
+        +'<div style="font-size:13px;font-weight:500;color:#1e2d4e">OV '+ov.id_ov+'</div>'
+        +'<div style="font-size:11px;color:#9CA3AF;margin-top:2px">'+(ov.transportistaEmpresa||ov.id_transportista)+' · Adjudicada '+fecha(ov.fecha_adjudicacion)+'</div>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:10px">'
+        +'<span style="'+urgencia+';font-size:13px">'+dias+' dias</span>'
+        +'<button class="btn btn-red btn-sm" onclick="abrirAnularOVDirecto(\''+ov.id_ov+'\')">Anular</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+// ── Auth ──
+(function(){
+  var token = localStorage.getItem('tm_token');
+  var role  = localStorage.getItem('tm_role');
+  if(!token || role!=='admin'){ window.location.replace('/admin-login.html'); return; }
+  document.getElementById('auth-guard').style.display='none';
+  var a=document.getElementById('app');
+  a.style.display='flex';a.style.flexDirection='column';a.style.minHeight='100vh';
+  initPage();
+})();
+</script>
+
+<footer style="background:#1e2d4e;padding:20px 24px">
+  <div style="max-width:1100px;margin:0 auto;font-size:12px;color:#64748B;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <span>© 2026 TransMatch SpA.</span>
+    <span>Panel de administracion</span>
+  </div>
+</footer>
+</body></html>

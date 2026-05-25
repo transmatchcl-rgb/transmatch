@@ -1,0 +1,569 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch — Facturación</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f7fb;min-height:100vh;color:#374151;display:flex;flex-direction:column}
+  #auth-guard{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:9999}
+  .spinner{width:32px;height:32px;border:3px solid #e8eaf0;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #app{display:none;flex-direction:column;min-height:100vh}
+  .nav{background:#1e2d4e;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .nav-left{display:flex;align-items:center;gap:16px}
+  .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+  .nav-icon{background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+  .nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#ff8904}
+  .nav-links{display:flex;gap:2px}
+  .nav-link{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+  .nav-link:hover,.nav-link.active{color:#fff;background:rgba(255,255,255,.12)}
+  .nav-avatar{width:30px;height:30px;border-radius:50%;background:#ff8904;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;cursor:pointer}
+  main{max-width:960px;margin:0 auto;padding:24px 20px;flex:1}
+  .page-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap}
+  .page-title{font-size:20px;font-weight:700;color:#1e2d4e}
+  .page-sub{font-size:13px;color:#6B7280;margin-top:2px}
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  @media(max-width:700px){.kpi-grid{grid-template-columns:1fr 1fr}}
+  .kpi{background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.05);padding:14px 16px}
+  .kpi-label{font-size:11px;color:#6B7280;margin-bottom:4px}
+  .kpi-val{font-size:20px;font-weight:700}
+  .kpi-sub{font-size:11px;color:#9CA3AF;margin-top:2px}
+  .card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.05);margin-bottom:16px;overflow:hidden}
+  .card-hdr{padding:14px 18px;border-bottom:0.5px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .card-title{font-size:14px;font-weight:600;color:#1e2d4e}
+  .tabs-bar{display:flex;gap:4px;margin-bottom:16px;background:#fff;border-radius:10px;padding:4px;border:0.5px solid #e8eaf0;width:fit-content}
+  .tab-btn{padding:7px 16px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;color:#6B7280;transition:all .15s;font-family:inherit}
+  .tab-btn.active{background:#1e2d4e;color:#fff}
+  .fil-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .sel{padding:7px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:12px;background:#fff;color:#374151;font-family:inherit}
+  .badge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+  .b-cond{background:#FFF7ED;color:#92400E}
+  .b-conf{background:#EFF6FF;color:#1e40af}
+  .b-fact{background:#F0FDF4;color:#14532D}
+  .b-paga{background:#F0FDF4;color:#14532D}
+  .b-venc{background:#FEF2F2;color:#991B1B}
+  .b-anul{background:#F3F4F6;color:#6B7280}
+  /* OV Cards */
+  .ov-card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.05);margin-bottom:10px;overflow:hidden}
+  .ov-card.vencida{border-color:#EF4444;border-width:1.5px}
+  .ov-hdr{padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .12s}
+  .ov-hdr:hover{background:#f5f7fb}
+  .ov-code{font-size:10px;font-weight:700;font-family:monospace;background:#eef1f8;color:#1e2d4e;padding:2px 8px;border-radius:4px;flex-shrink:0}
+  .ov-info{flex:1;min-width:0}
+  .ov-title{font-size:13px;font-weight:600;color:#1e2d4e}
+  .ov-meta{font-size:11px;color:#6B7280;margin-top:2px}
+  .ov-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+  .ov-monto{font-size:14px;font-weight:700;color:#1e2d4e}
+  .ov-arr{font-size:16px;color:#9CA3AF;transition:transform .2s;flex-shrink:0}
+  .ov-body{display:none;border-top:0.5px solid #f3f4f6}
+  .ov-body.open{display:block}
+  /* Info grid */
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;background:#f8f9fc;border-radius:8px;padding:12px 14px;margin-bottom:14px}
+  .ig-lbl{font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px}
+  .ig-val{font-size:13px;color:#374151;font-weight:500}
+  /* Comisión desglose */
+  .comis-box{border:0.5px solid #e8eaf0;border-radius:8px;padding:12px 16px;margin-bottom:14px}
+  .comis-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:0.5px solid #f3f4f6;font-size:12px;color:#374151}
+  .comis-row:last-child{border:none;font-weight:700;font-size:13px;color:#1e2d4e;padding-top:8px}
+  .comis-tope{background:#FFF7ED;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:600;color:#92400E;margin-left:6px}
+  /* Docs */
+  .doc-row{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:0.5px solid #f3f4f6;font-size:13px}
+  .doc-row:last-child{border:none}
+  .doc-icon{width:30px;height:30px;border-radius:7px;background:#eef1f8;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#1e2d4e;flex-shrink:0}
+  .doc-body{flex:1;min-width:0}
+  .doc-name{font-weight:500;color:#1e2d4e;font-size:12px}
+  .doc-meta{font-size:11px;color:#9CA3AF;margin-top:1px}
+  /* Historial */
+  .hist-item{display:flex;gap:10px;padding:8px 0;border-bottom:0.5px solid #f3f4f6}
+  .hist-item:last-child{border:none}
+  .hist-dot{width:8px;height:8px;border-radius:50%;background:#1e2d4e;flex-shrink:0;margin-top:4px}
+  .hist-txt{font-size:12px;color:#374151}
+  .hist-date{font-size:11px;color:#9CA3AF;margin-top:1px}
+  /* Alertas */
+  .alerta{background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#92400E;display:flex;gap:10px;align-items:flex-start}
+  .alerta-venc{background:#FEF2F2;border-color:#FECACA;color:#991B1B}
+  /* Facturas */
+  .fact-card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.05);margin-bottom:10px;overflow:hidden}
+  .fact-hdr{padding:14px 18px;display:flex;align-items:center;gap:12px}
+  .fact-info{flex:1}
+  .fact-periodo{font-size:14px;font-weight:600;color:#1e2d4e}
+  .fact-meta{font-size:11px;color:#6B7280;margin-top:2px}
+  .fact-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+  /* Docs tab */
+  .btn{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s;font-family:inherit}
+  .btn:hover{opacity:.88}
+  .btn-outline{background:#fff;border:0.5px solid #e8eaf0;color:#374151}
+  .btn-sm{padding:4px 10px;font-size:11px}
+  .empty{text-align:center;padding:32px;color:#9CA3AF;font-size:13px}
+  .info-box{background:#eef1f8;border-radius:8px;padding:12px 14px;font-size:13px;color:#1e40af;line-height:1.6;margin-bottom:14px}
+  #toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:20px"><div style="background:#ff8904;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff">T</div><span style="font-size:20px;font-weight:700;color:#1e2d4e">Trans<span style="color:#ff8904">Match</span></span></div><div class="spinner" style="margin:0 auto"></div></div></div>
+<div id="app">
+  <nav class="nav">
+    <div class="nav-left">
+      <a href="/transportista.html" class="nav-logo"><div class="nav-icon">T</div><span class="nav-name">Trans<span>Match</span></span></a>
+      <div class="nav-links"><a href="/transportista.html" class="nav-link">Inicio</a><a href="/transportista-retornos.html" class="nav-link">Retornos</a><a href="/transportista-licitaciones.html" class="nav-link">Licitaciones</a><a href="/transportista-transporte.html" class="nav-link">Transportes</a><a href="/transportista-cobros.html" class="nav-link active">Facturacion</a><a href="/transportista-calendario.html" class="nav-link">Calendario</a><a href="/transportista-historial.html" class="nav-link">Historial</a></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;position:relative"><div style="text-align:right"><div style="font-size:13px;color:#fff;font-weight:500" id="nav-nombre">--</div><div style="font-size:11px;color:#93C5FD" id="nav-empresa">--</div></div>
+    <div style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center" id="notif-btn" onclick="toggleNotifs(event)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center"></span>
+    </div>
+    <div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div>
+    <div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:220px;z-index:999;overflow:hidden">
+      <div style="padding:14px 16px;border-bottom:1px solid #f3f4f6"><div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div><div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div></div>
+      <a href="/transportista-perfil.html" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none">Mi perfil y equipos</a>
+      <div style="border-top:1px solid #f3f4f6"><button onclick="localStorage.clear();window.location.replace('/index.html')" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#DC2626;background:none;border:none;cursor:pointer;width:100%;font-family:inherit">Cerrar sesión</button></div>
+    </div>
+    </div>
+  </nav>
+
+  <div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:340px;background:#fff;border-radius:14px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.14);z-index:500;overflow:hidden;max-height:480px;flex-direction:column">
+    <div style="padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <span style="font-size:14px;font-weight:700;color:#1e2d4e">Notificaciones</span>
+      <button onclick="marcarTodasLeidas()" style="font-size:11px;color:#6B7280;background:none;border:none;cursor:pointer">Marcar leídas</button>
+    </div>
+    <div id="notif-list" style="overflow-y:auto;flex:1"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div>
+  </div>
+
+  <main>
+    <div class="page-hdr">
+      <div><div class="page-title">Facturación</div><div class="page-sub">Tus órdenes de venta, comisiones y documentos</div></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-outline" onclick="exportarCSV()"><i class="ti ti-download" aria-hidden="true"></i> Exportar CSV</button>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-label">Comisión pendiente</div>
+        <div class="kpi-val" id="kpi-pendiente" style="color:#ff8904">—</div>
+        <div class="kpi-sub">OV confirmadas sin facturar</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Comisión facturada</div>
+        <div class="kpi-val" id="kpi-facturada" style="color:#1e2d4e">—</div>
+        <div class="kpi-sub">En facturas emitidas</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Total pagado</div>
+        <div class="kpi-val" id="kpi-pagado" style="color:#16a34a">—</div>
+        <div class="kpi-sub">Comisiones ya pagadas</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">OV vencidas</div>
+        <div class="kpi-val" id="kpi-vencidas" style="color:#DC2626">—</div>
+        <div class="kpi-sub">Requieren atención</div>
+      </div>
+    </div>
+
+    <!-- Alertas -->
+    <div id="alerta-wrap"></div>
+
+    <!-- Tabs -->
+    <div class="tabs-bar">
+      <button class="tab-btn active" onclick="switchTab('ovs',this)">Mis OV</button>
+      <button class="tab-btn" onclick="switchTab('facturas',this)">Facturas TransMatch</button>
+    </div>
+
+    <!-- TAB OVs -->
+    <div id="tab-ovs">
+      <div class="fil-bar">
+        <select class="sel" id="fil-mes-ov" onchange="filtrarOVs()">
+          <option value="">Todos los meses</option>
+        </select>
+        <select class="sel" id="fil-estado-ov" onchange="filtrarOVs()">
+          <option value="">Todos los estados</option>
+          <option value="CONDICIONAL">Pendiente</option>
+          <option value="CONFIRMADA">Factura subida</option>
+          <option value="FACTURADA">Comisión facturada</option>
+          <option value="PAGADA">Pagado</option>
+          <option value="VENCIDA">Vencido</option>
+          <option value="ANULADA">Anulada</option>
+        </select>
+      </div>
+      <div id="lista-ovs"><div style="padding:32px;text-align:center"><div class="spinner" style="margin:0 auto;width:24px;height:24px;border-width:2px"></div></div></div>
+      <div style="font-size:11px;color:#9CA3AF;margin-top:8px;line-height:1.5">Las comisiones se generan automáticamente al adjudicar un transporte dentro de TransMatch, conforme a los términos aceptados al registrarse.</div>
+    </div>
+
+    <!-- TAB Facturas -->
+    <div id="tab-facturas" style="display:none">
+      <div class="info-box">Al cierre de cada mes TransMatch consolida todas las OV de tus transportes adjudicados y emite una sola factura de comisiones. El plazo de pago es de 30 días contra recepción de factura.</div>
+      <div id="lista-facturas"><div style="padding:32px;text-align:center"><div class="spinner" style="margin:0 auto;width:24px;height:24px;border-width:2px"></div></div></div>
+    </div>
+
+  </main>
+</div>
+<div id="toast"></div>
+<script>
+var API = 'https://transmatch.transmatchcl.workers.dev';
+var allOVs = [], allFacturas = [], allTransportes = [];
+
+function peso(n){ return n!=null&&n!==''?new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n):'—'; }
+function fechaCorta(iso){ return iso?new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}):'—'; }
+
+function toast(msg,type){ var el=document.getElementById('toast'); el.textContent=msg; el.style.background=type==='err'?'#EF4444':'#16a34a'; el.style.opacity='1'; clearTimeout(el._t); el._t=setTimeout(function(){ el.style.opacity='0'; },3000); }
+
+async function api(path,method,body){
+  var token=localStorage.getItem('tm_token');
+  var opts={method:method||'GET',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}};
+  if(body) opts.body=JSON.stringify(body);
+  var r=await fetch(API+path,opts);
+  if(r.status===401){localStorage.clear();window.location.replace('/index.html');return null;}
+  return{ok:r.ok,data:await r.json()};
+}
+
+function badgeOV(estado){
+  var map={CONDICIONAL:{cls:'b-cond',lbl:'Pendiente'},CONFIRMADA:{cls:'b-conf',lbl:'Factura subida'},FACTURADA:{cls:'b-fact',lbl:'Comisión facturada'},PAGADA:{cls:'b-paga',lbl:'Pagado'},VENCIDA:{cls:'b-venc',lbl:'Vencido'},ANULADA:{cls:'b-anul',lbl:'Anulada'}};
+  var m=map[estado]||{cls:'',lbl:estado};
+  return '<span class="badge '+m.cls+'">'+m.lbl+'</span>';
+}
+
+function switchTab(id,btn){
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  document.getElementById('tab-ovs').style.display=id==='ovs'?'block':'none';
+  document.getElementById('tab-facturas').style.display=id==='facturas'?'block':'none';
+}
+
+function actualizarKPIs(){
+  var pendiente=0,facturada=0,pagado=0,vencidas=0;
+  allOVs.forEach(function(ov){
+    if(ov.estado==='CONFIRMADA') pendiente+=(ov.comision_final||ov.comision_estimada||0);
+    if(ov.estado==='FACTURADA')  facturada+=(ov.comision_final||0);
+    if(ov.estado==='PAGADA')     pagado+=(ov.comision_final||0);
+    if(ov.estado==='VENCIDA')    vencidas++;
+  });
+  document.getElementById('kpi-pendiente').textContent=peso(pendiente);
+  document.getElementById('kpi-facturada').textContent=peso(facturada);
+  document.getElementById('kpi-pagado').textContent=peso(pagado);
+  document.getElementById('kpi-vencidas').textContent=vencidas||'0';
+  // Alertas
+  var alertas='';
+  if(vencidas>0) alertas+='<div class="alerta alerta-venc"><div style="font-weight:600">Tienes '+vencidas+' OV vencida'+(vencidas>1?'s':'')+'. Contacta a TransMatch para regularizar.</div></div>';
+  var factVenc=allFacturas.filter(function(f){ return f.estado_pago!=='pagado'&&f.fecha_vencimiento&&new Date(f.fecha_vencimiento)<new Date(); });
+  if(factVenc.length>0){
+    var totalV=factVenc.reduce(function(s,f){return s+(f.total_comision||0);},0);
+    alertas+='<div class="alerta"><div>Tienes <strong>'+factVenc.length+' factura'+(factVenc.length>1?'s':'')+' vencida'+(factVenc.length>1?'s':'')+' por '+peso(totalV)+'</strong>. Transfiere a TransMatch SpA y envía el comprobante a <strong>pagos@transmatch.cl</strong></div></div>';
+  }
+  document.getElementById('alerta-wrap').innerHTML=alertas;
+}
+
+async function cargar(){
+  try{
+    var token=localStorage.getItem('tm_token');
+    var heads={'Authorization':'Bearer '+token};
+    var [ovsR,factR,trpR]=await Promise.all([
+      fetch(API+'/api/mis-ordenes-venta',{headers:heads}),
+      fetch(API+'/api/mis-facturas-transmatch',{headers:heads}),
+      fetch(API+'/api/transportes',{headers:heads})
+    ]);
+    if(ovsR.status===401){localStorage.clear();window.location.replace('/index.html');return;}
+    var ovsD=await ovsR.json(); allOVs=ovsD.ordenes||[];
+    var factD=factR.ok?await factR.json():{}; allFacturas=factD.facturas||[];
+    var trpD=trpR.ok?await trpR.json():{}; allTransportes=trpD.transportes||[];
+    actualizarKPIs();
+    poblarMeses();
+    filtrarOVs();
+    renderFacturas();
+  }catch(e){
+    document.getElementById('lista-ovs').innerHTML='<div class="empty">Error al cargar. Intenta nuevamente.</div>';
+  }
+}
+
+function poblarMeses(){
+  var meses={};
+  allOVs.forEach(function(ov){
+    var k=(ov.fecha_adjudicacion||'').slice(0,7);
+    if(k) meses[k]=true;
+  });
+  var sel=document.getElementById('fil-mes-ov');
+  var actual=sel.value;
+  sel.innerHTML='<option value="">Todos los meses</option>';
+  Object.keys(meses).sort().reverse().forEach(function(m){
+    var d=new Date(m+'-01');
+    var lbl=d.toLocaleDateString('es-CL',{month:'long',year:'numeric'});
+    lbl=lbl.charAt(0).toUpperCase()+lbl.slice(1);
+    sel.innerHTML+='<option value="'+m+'"'+(m===actual?' selected':'')+'>'+lbl+'</option>';
+  });
+}
+
+function filtrarOVs(){
+  var estado=document.getElementById('fil-estado-ov').value;
+  var mes=document.getElementById('fil-mes-ov').value;
+  var lista=allOVs.filter(function(o){
+    if(estado&&o.estado!==estado) return false;
+    if(mes&&(o.fecha_adjudicacion||'').slice(0,7)!==mes) return false;
+    return true;
+  });
+  if(!lista.length){
+    document.getElementById('lista-ovs').innerHTML='<div class="empty">Sin órdenes de venta para este filtro</div>';
+    return;
+  }
+  document.getElementById('lista-ovs').innerHTML=lista.map(function(ov){
+    var esVencida=ov.estado==='VENCIDA';
+    var comisionMostrar=ov.comision_final!=null?ov.comision_final:(ov.comision_estimada||0);
+    var esEstimada=ov.comision_final==null;
+    var detalleHtml=renderOVDetalle(ov);
+    return '<div class="ov-card'+(esVencida?' vencida':'')+'" id="ov-card-'+ov.id_ov+'">'+
+      '<div class="ov-hdr" onclick="toggleOV(\''+ov.id_ov+'\')">'+
+        '<span class="ov-code">'+ov.id_ov+'</span>'+
+        '<div class="ov-info">'+
+          '<div class="ov-title">'+(ov.clienteEmpresa||'Cliente')+'</div>'+
+          '<div class="ov-meta">Adj. '+fechaCorta(ov.fecha_adjudicacion)+(ov.fecha_confirmacion?' · Factura '+fechaCorta(ov.fecha_confirmacion):'')+'</div>'+
+        '</div>'+
+        '<div class="ov-right">'+
+          '<div class="ov-monto">'+peso(comisionMostrar)+(esEstimada?'<span style="font-size:10px;color:#9CA3AF;font-weight:400;margin-left:3px">est.</span>':'')+'</div>'+
+          badgeOV(ov.estado)+
+        '</div>'+
+        '<span class="ov-arr" id="ov-arr-'+ov.id_ov+'">›</span>'+
+      '</div>'+
+      '<div class="ov-body" id="ov-body-'+ov.id_ov+'">'+detalleHtml+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+function toggleOV(id){
+  var body=document.getElementById('ov-body-'+id);
+  var arr=document.getElementById('ov-arr-'+id);
+  if(!body) return;
+  var open=body.classList.contains('open');
+  body.classList.toggle('open',!open);
+  if(arr) arr.style.transform=open?'':'rotate(90deg)';
+}
+
+function renderOVDetalle(ov){
+  var h='<div style="padding:16px 18px">';
+
+  // Mensaje de acción según estado
+  var acciones={
+    CONDICIONAL:{icon:'ti-upload',cls:'#FFF7ED',color:'#854F0B',msg:'Sube tu factura en el transporte asociado para confirmar esta OV.',btn:{txt:'Ir al transporte',href:'/transportista-transporte.html'}},
+    CONFIRMADA: {icon:'ti-clock',cls:'#E6F1FB',color:'#185FA5',msg:'Tu comisión será incluida en la factura del cierre de este mes. Sin acciones requeridas.'},
+    FACTURADA:  {icon:'ti-calendar',cls:'var(--color-background-secondary)',color:'var(--color-text-secondary)',msg:'Incluida en factura mensual. En espera de tu pago a TransMatch SpA.'},
+    PAGADA:     {icon:'ti-circle-check',cls:'#EAF3DE',color:'#3B6D11',msg:'Comisión pagada. Sin acciones pendientes.'},
+    VENCIDA:    {icon:'ti-alert-triangle',cls:'#FCEBEB',color:'#A32D2D',msg:'Plazo vencido. Contacta a TransMatch para regularizar.',btn:{txt:'pagos@transmatch.cl',href:'mailto:pagos@transmatch.cl'}},
+    ANULADA:    {icon:'ti-x',cls:'var(--color-background-secondary)',color:'var(--color-text-secondary)',msg:'Esta OV fue anulada.'+(ov.motivo_anulacion?' Motivo: '+ov.motivo_anulacion:'')},
+  };
+  var ac=acciones[ov.estado];
+  if(ac){
+    h+='<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:'+ac.cls+';color:'+ac.color+';font-size:12px;margin-bottom:14px">'+
+      '<i class="ti '+ac.icon+'" style="font-size:16px;flex-shrink:0" aria-hidden="true"></i>'+
+      '<span style="flex:1">'+ac.msg+'</span>'+
+      (ac.btn?'<a href="'+ac.btn.href+'" style="flex-shrink:0;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:500;border:0.5px solid currentColor;text-decoration:none;color:inherit">'+ac.btn.txt+'</a>':'')+
+    '</div>';
+  }
+
+  // Fechas info grid
+  h+='<div class="info-grid" style="margin-bottom:14px">'+
+    '<div><div class="ig-lbl">Adjudicación</div><div class="ig-val">'+fechaCorta(ov.fecha_adjudicacion)+'</div></div>'+
+    '<div><div class="ig-lbl">Factura subida</div><div class="ig-val">'+(ov.fecha_confirmacion?fechaCorta(ov.fecha_confirmacion):'Pendiente')+'</div></div>'+
+    '<div><div class="ig-lbl">Comisión facturada</div><div class="ig-val">'+(ov.fecha_facturacion?fechaCorta(ov.fecha_facturacion):'Pendiente')+'</div></div>'+
+    '<div><div class="ig-lbl">Pago confirmado</div><div class="ig-val">'+(ov.fecha_pago_confirmado?fechaCorta(ov.fecha_pago_confirmado):'Pendiente')+'</div></div>'+
+  '</div>';
+
+  // Desglose comisión
+  h+='<div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Desglose de comisión</div>';
+  h+='<div class="comis-box">';
+  var valorServicio=ov.valor_servicio_final||ov.monto_cotizado||0;
+  h+='<div class="comis-row"><span>Valor del servicio</span><span>'+peso(valorServicio)+'</span></div>';
+  h+='<div class="comis-row"><span>Porcentaje TransMatch</span><span>'+(ov.comision_porcentaje||5)+'%</span></div>';
+  var pct5=Math.round(valorServicio*(ov.comision_porcentaje||5)/100);
+  h+='<div class="comis-row"><span>Comisión calculada ('+peso(valorServicio)+' × '+(ov.comision_porcentaje||5)+'%)</span><span>'+peso(pct5)+'</span></div>';
+  if(ov.uf_del_dia){
+    var tope10uf=Math.round((ov.uf_del_dia||38500)*10);
+    h+='<div class="comis-row"><span>Tope máximo (10 UF · $'+Math.round(ov.uf_del_dia).toLocaleString('es-CL')+'/UF)</span><span>'+peso(tope10uf)+'</span></div>';
+    if(ov.tope_aplicado) h+='<div class="comis-row" style="color:#92400E"><span>Se aplicó tope <span class="comis-tope">Tope aplicado</span></span><span>'+peso(tope10uf)+'</span></div>';
+  }
+  var comFinal=ov.comision_final!=null?ov.comision_final:(ov.comision_estimada||pct5);
+  var esEst=ov.comision_final==null;
+  h+='<div class="comis-row"><span>Total comisión'+(esEst?' (estimada)':'')+'</span><span style="color:#1e2d4e">'+peso(comFinal)+'</span></div>';
+  h+='</div>';
+
+  // Documentos
+  h+='<div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Documentos</div>';
+  h+='<div style="border:0.5px solid #e8eaf0;border-radius:8px;overflow:hidden;margin-bottom:14px">';
+
+  // OC
+  var trp=allTransportes.find(function(t){return t.id===ov.id_transporte;});
+  var oc=trp&&trp.oc?trp.oc:null;
+  var fac=trp&&trp.factura?trp.factura:null;
+  var guia=trp&&trp.guiaDespacho?trp.guiaDespacho:null;
+
+  h+=docFila('OC','Orden de compra (cliente)',oc);
+  h+=docFila('FA','Tu factura de cobro',fac);
+  h+=docFila('GD','Guía de despacho',guia);
+  h+='</div>';
+
+  // Historial
+  var hist=ov.historial||[];
+  if(hist.length>0){
+    h+='<div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Historial</div>';
+    h+='<div style="border:0.5px solid #e8eaf0;border-radius:8px;padding:4px 14px">';
+    h+=hist.slice().reverse().map(function(ev){
+      return '<div class="hist-item"><div class="hist-dot"></div><div>'+
+        '<div class="hist-txt"><strong>'+ev.estado+'</strong>'+(ev.nota?' — '+ev.nota:'')+'</div>'+
+        '<div class="hist-date">'+fechaCorta(ev.fecha)+(ev.actor?' · '+ev.actor:'')+'</div>'+
+      '</div></div>';
+    }).join('');
+    h+='</div>';
+  }
+
+  h+='</div>';
+  return h;
+}
+
+function docFila(icono, nombre, doc){
+  if(doc){
+    return '<div class="doc-row">'+
+      '<div class="doc-icon">'+icono+'</div>'+
+      '<div class="doc-body"><div class="doc-name">'+nombre+'</div><div class="doc-meta">'+(doc.nombre||'—')+' · '+fechaCorta(doc.subidoAt)+'</div></div>'+
+      '<button class="btn btn-outline btn-sm" onclick="descargar(\''+doc.archivoId+'\',\''+doc.nombre+'\')">Descargar</button>'+
+    '</div>';
+  }
+  return '<div class="doc-row">'+
+    '<div class="doc-icon" style="background:#f3f4f6;color:#9CA3AF">'+icono+'</div>'+
+    '<div class="doc-body"><div class="doc-name" style="color:#9CA3AF">'+nombre+'</div><div class="doc-meta">Pendiente</div></div>'+
+  '</div>';
+}
+
+function renderFacturas(){
+  if(!allFacturas.length){
+    document.getElementById('lista-facturas').innerHTML='<div class="empty">Sin facturas emitidas aún. Aparecen al cierre de cada mes.</div>';
+    return;
+  }
+  document.getElementById('lista-facturas').innerHTML=allFacturas.map(function(f){
+    var pagada=f.estado_pago==='pagado';
+    var vencida=!pagada&&f.fecha_vencimiento&&new Date(f.fecha_vencimiento)<new Date();
+    var badgeFact=pagada?'<span class="badge b-paga">Pagado</span>':vencida?'<span class="badge b-venc">Vencido</span>':'<span class="badge b-cond">Pendiente</span>';
+    var vencStr=f.fecha_vencimiento?fechaCorta(f.fecha_vencimiento):(f.fecha_emision?fechaCorta(new Date(new Date(f.fecha_emision).getTime()+30*24*60*60*1000).toISOString()):'—');
+    return '<div class="fact-card">'+
+      '<div class="fact-hdr">'+
+        '<div class="fact-info">'+
+          '<div class="fact-periodo">'+f.periodo+'</div>'+
+          '<div class="fact-meta">'+f.total_ovs+' OV · Emitida '+fechaCorta(f.fecha_emision)+' · Vence '+vencStr+'</div>'+
+        '</div>'+
+        '<div class="fact-right">'+
+          '<div style="font-size:16px;font-weight:700;color:#1e2d4e">'+peso(f.total_comision)+'</div>'+
+          badgeFact+
+        '</div>'+
+      '</div>'+
+      (!pagada?'<div style="padding:0 18px 14px"><div style="font-size:12px;color:#6B7280">Transfiere a <strong>TransMatch SpA</strong> y envía el comprobante a <strong>pagos@transmatch.cl</strong></div></div>':'')+
+    '</div>';
+  }).join('');
+}
+
+function exportarCSV(){
+  var estado=document.getElementById('fil-estado-ov').value;
+  var mes=document.getElementById('fil-mes-ov').value;
+  var lista=allOVs.filter(function(o){
+    if(estado&&o.estado!==estado) return false;
+    if(mes&&(o.fecha_adjudicacion||'').slice(0,7)!==mes) return false;
+    return true;
+  });
+  if(!lista.length){toast('No hay OV para exportar','err');return;}
+  var estadoLabel={CONDICIONAL:'Pendiente',CONFIRMADA:'Factura subida',FACTURADA:'Comisión facturada',PAGADA:'Pagado',VENCIDA:'Vencido',ANULADA:'Anulada'};
+  var cols=['OV','Cliente','Estado','Valor servicio','Comisión estimada','Comisión final','Tope aplicado','UF del día','Fecha adjudicación','Fecha factura','Fecha facturación','Fecha pago'];
+  var rows=lista.map(function(ov){
+    return [
+      ov.id_ov,
+      ov.clienteEmpresa||'',
+      estadoLabel[ov.estado]||ov.estado,
+      ov.valor_servicio_final||ov.monto_cotizado||'',
+      ov.comision_estimada||'',
+      ov.comision_final||'',
+      ov.tope_aplicado?'Sí':'No',
+      ov.uf_del_dia||'',
+      (ov.fecha_adjudicacion||'').slice(0,10),
+      (ov.fecha_confirmacion||'').slice(0,10),
+      (ov.fecha_facturacion||'').slice(0,10),
+      (ov.fecha_pago_confirmado||'').slice(0,10),
+    ].map(function(v){return'"'+String(v).replace(/"/g,'""')+'"';}).join(',');
+  });
+  var csv='\uFEFF'+cols.join(',')+'\n'+rows.join('\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  var sufijo=mes||'todos';
+  a.href=url; a.download='transmatch-ov-'+sufijo+'.csv'; a.click();
+  URL.revokeObjectURL(url);
+  toast('CSV exportado');
+}
+
+async function descargar(id,nombre){
+  try{
+    var r=await fetch(API+'/api/archivos/'+id,{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    var d=await r.json();
+    var arr=new Uint8Array(atob(d.base64).split('').map(function(ch){return ch.charCodeAt(0);}));
+    var blob=new Blob([arr],{type:d.mimeType||'application/octet-stream'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download=nombre||'archivo';a.click();
+    URL.revokeObjectURL(url);
+  }catch(e){toast('Error al descargar','err');}
+}
+
+async function cargarNotificaciones(){
+  try{
+    var token=localStorage.getItem('tm_token');
+    var r=await fetch(API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+    var data=await r.json();
+    var notifs=data.notificaciones||[];
+    var noLeidas=notifs.filter(function(n){return !n.leida;}).length;
+    var badge=document.getElementById('notif-count');
+    if(badge){badge.textContent=noLeidas>9?'9+':noLeidas;badge.style.display=noLeidas>0?'flex':'none';}
+    var list=document.getElementById('notif-list');
+    if(!list) return;
+    if(!notifs.length){list.innerHTML='<div style="padding:24px;text-align:center;color:#9CA3AF;font-size:13px">Sin notificaciones</div>';return;}
+    list.innerHTML=notifs.slice(0,20).map(function(n){
+      var bg=!n.leida?'background:#f0f4ff':'';
+      var ts=n.createdAt?new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+      return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+'">'+
+        '<div style="font-size:13px;color:#111827;margin-bottom:2px">'+n.mensaje+'</div>'+
+        '<div style="font-size:11px;color:#9CA3AF">'+ts+'</div>'+
+      '</div>';
+    }).join('');
+  }catch(e){}
+}
+
+async function marcarTodasLeidas(){
+  try{
+    var r=await api('/api/notificaciones');
+    if(!r||!r.ok) return;
+    for(var n of (r.data.notificaciones||[]).filter(function(x){return !x.leida;}))
+      await api('/api/notificaciones/leer','POST',{id:n.id});
+    var badge=document.getElementById('notif-count');
+    if(badge) badge.style.display='none';
+    await cargarNotificaciones();
+  }catch(e){}
+}
+
+function closeAllPanels(){var m=document.getElementById('user-menu');var p=document.getElementById('notif-panel');if(m)m.style.display='none';if(p)p.style.display='none';}
+function toggleUserMenu(e){e.stopPropagation();var m=document.getElementById('user-menu');var isOpen=m&&m.style.display==='block';closeAllPanels();if(!isOpen&&m)m.style.display='block';}
+function toggleNotifs(e){if(e)e.stopPropagation();var p=document.getElementById('notif-panel');var isOpen=p&&p.style.display==='flex';closeAllPanels();if(!isOpen&&p){p.style.display='flex';cargarNotificaciones();}}
+document.addEventListener('click',function(){closeAllPanels();});
+
+(function(){
+  var token=localStorage.getItem('tm_token');
+  var role=localStorage.getItem('tm_role');
+  if(!token||role!=='transportista'){window.location.replace('/index.html');return;}
+  var n=localStorage.getItem('tm_nombre')||'?';
+  var e=localStorage.getItem('tm_empresa')||'';
+  document.getElementById('nav-avatar').textContent=n[0].toUpperCase();
+  var nn=document.getElementById('nav-nombre');if(nn)nn.textContent=n;
+  var ne=document.getElementById('nav-empresa');if(ne)ne.textContent=e;
+  var umN=document.getElementById('um-nombre');if(umN)umN.textContent=n;
+  var umE=document.getElementById('um-empresa');if(umE)umE.textContent=e;
+  document.getElementById('auth-guard').style.display='none';
+  var app=document.getElementById('app');app.style.display='flex';app.style.flexDirection='column';app.style.minHeight='100vh';
+  cargarNotificaciones();
+  cargar();
+})();
+</script>
+<footer style="background:#1e2d4e;margin-top:auto;padding:20px 24px">
+  <div style="max-width:960px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:8px"><div style="background:#ff8904;border-radius:7px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:12px">T</div><span style="font-weight:700;color:#fff;font-size:14px">Trans<span style="color:#ff8904">Match</span></span></div>
+    <div style="font-size:12px;color:#64748B">© 2026 TransMatch SpA · <a href="mailto:pagos@transmatch.cl" style="color:#93C5FD;text-decoration:none">pagos@transmatch.cl</a></div>
+  </div>
+</footer>
+</body></html>

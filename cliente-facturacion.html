@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch — Facturación</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f7fb;min-height:100vh;display:flex;flex-direction:column}
+  #auth-guard{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:9999}
+  .spinner{width:32px;height:32px;border:3px solid #e8eaf0;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #app{display:none;flex-direction:column;flex:1}
+  .nav{background:#1e2d4e;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .nav-left{display:flex;align-items:center;gap:16px}
+  .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+  .nav-icon{background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+  .nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#ff8904}
+  .nav-links{display:flex;gap:2px}
+  .nav-link{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+  .nav-link:hover,.nav-link.active{color:#fff;background:rgba(255,255,255,.12)}
+  .nav-avatar{width:30px;height:30px;border-radius:50%;background:#ff8904;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;cursor:pointer}
+  .nav-user{font-size:13px;color:#fff;font-weight:500}
+  .nav-sub{font-size:11px;color:#93C5FD}
+  main{max-width:900px;margin:0 auto;padding:24px 20px;flex:1;width:100%}
+  .page-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+  .page-title{font-size:20px;font-weight:700;color:#1e2d4e}
+  .page-sub{font-size:13px;color:#6B7280;margin-top:2px}
+  .card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.05);margin-bottom:16px;overflow:hidden}
+  .card-hdr{padding:14px 18px;border-bottom:0.5px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between}
+  .card-title{font-size:15px;font-weight:600;color:#1e2d4e}
+  .filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .sel{padding:8px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;background:#fff;color:#374151}
+  .sel:focus{outline:none;border-color:#1e2d4e}
+  .tabla{width:100%;border-collapse:collapse}
+  .tabla th{font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em;padding:10px 18px;text-align:left;border-bottom:0.5px solid #f3f4f6;background:#fafafa}
+  .tabla td{font-size:13px;color:#374151;padding:13px 18px;border-bottom:0.5px solid #f3f4f6}
+  .tabla tr:last-child td{border-bottom:none}
+  .tabla tr:hover td{background:#f5f7fb}
+  .badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px}
+  .b-pendiente{background:#FFF7ED;color:#92400E}
+  .b-pagado{background:#F0FDF4;color:#14532D}
+  .b-oc{background:#eef1f8;color:#1e2d4e}
+  .b-factura{background:#F0FDF4;color:#14532D}
+  .doc-row{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:0.5px solid #f3f4f6;font-size:13px}
+  .doc-row:last-child{border-bottom:none}
+  .doc-icon{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+  .doc-body{flex:1;padding:0 12px}
+  .doc-name{font-weight:500;color:#1e2d4e}
+  .doc-meta{font-size:11px;color:#9CA3AF;margin-top:2px}
+  .btn{padding:8px 16px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s}
+  .btn:hover{opacity:.88}
+  .btn-outline{background:#fff;border:0.5px solid #e8eaf0;color:#374151}
+  .btn-sm{padding:5px 12px;font-size:12px}
+  .empty{text-align:center;padding:32px;color:#9CA3AF;font-size:13px}
+  #toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none}
+  .um-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:background .15s}
+  .um-item:hover{background:#f9fafb}
+  .um-danger{color:#DC2626}
+  .um-danger:hover{background:#FEF2F2}
+
+  .grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px}
+  @media(max-width:500px){.grid-2{grid-template-columns:1fr}}
+  .stat{background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.05);padding:16px 18px}
+  .stat-label{font-size:12px;color:#6B7280;margin-bottom:6px}
+  .stat-val{font-size:26px;font-weight:700}
+  .stat-sub{font-size:12px;color:#9CA3AF;margin-top:4px}
+  /* Gráfico */
+  .chart-wrap{padding:20px 18px 12px}
+  .chart-legend{display:flex;align-items:center;gap:20px;padding:0 18px 16px;flex-wrap:wrap}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:#6B7280}
+  .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+  canvas#chart-gasto{width:100%;display:block}
+</style>
+</head>
+<body>
+<div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:20px"><div style="background:#ff8904;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff">T</div><span style="font-size:20px;font-weight:700;color:#1e2d4e">Trans<span style="color:#ff8904">Match</span></span></div><div class="spinner" style="margin:0 auto"></div></div></div>
+
+<div id="app">
+  <nav class="nav">
+    <div class="nav-logo">
+      <a href="/cliente.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;">
+        <div class="nav-icon">T</div><span class="nav-name">Trans<span>Match</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="/cliente.html" class="nav-link">Inicio</a>
+        <a href="/cliente-licitaciones.html" class="nav-link">Licitaciones</a>
+        <a href="/cliente-retornos.html" id="nav-retornos" class="nav-link">Retornos</a>
+        <a href="/cliente-transporte.html" class="nav-link">Transportes</a>
+        <a href="/cliente-facturacion.html" class="nav-link active">Facturacion</a>
+        <a href="/cliente-calendario.html" class="nav-link">Calendario</a>
+        
+      </div>
+    </div>
+    <div class="nav-right">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="text-align:right">
+          <div class="nav-user" id="nav-nombre">—</div>
+          <div class="nav-sub" id="nav-empresa">—</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div id="notif-btn" onclick="toggleNotifs(event)" style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;"></span>
+          </div>
+          <div style="position:relative">
+            <div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div>
+            <div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:220px;z-index:999;overflow:hidden">
+              <div style="padding:14px 16px;border-bottom:1px solid #f3f4f6">
+                <div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div>
+                <div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div>
+              </div>
+              <a href="/cliente-perfil.html" class="um-item">Configuracion</a>
+              <a href="/ayuda.html" class="um-item">Ayuda</a>
+              <a href="/landing-servicios.html" class="um-item">Planes y precios</a>
+              <div style="border-top:1px solid #f3f4f6"><button onclick="cerrarSesion()" class="um-item um-danger">Cerrar sesion</button></div>
+            </div>
+          </div>
+        </div>
+        <div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:320px;background:#fff;border-radius:12px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.12);z-index:9000;max-height:440px;overflow:hidden;flex-direction:column;">
+          <div style="padding:12px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:8px">
+            <span style="font-size:14px;font-weight:600;color:#111827">Notificaciones</span>
+            <button onclick="event.stopPropagation();marcarTodasLeidas()" style="font-size:11px;color:#1e2d4e;background:none;border:none;cursor:pointer;white-space:nowrap;flex-shrink:0">Marcar todas leidas</button>
+          </div>
+          <div id="notif-list" style="overflow-y:auto;max-height:380px;"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="page-hdr">
+      <div>
+        <div class="page-title">Facturación</div>
+        <div class="page-sub">Resumen de gastos y documentos por transporte</div>
+      </div>
+      
+    </div>
+
+    <!-- Stats -->
+    <div class="grid-2">
+      <div class="stat">
+        <div class="stat-label">Gasto total</div>
+        <div class="stat-val" id="st-gasto" style="color:#1e2d4e;font-size:22px">—</div>
+        <div class="stat-sub">Transportes facturados</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Licitaciones completadas</div>
+        <div class="stat-val" id="st-licitaciones" style="color:#1ED24E">—</div>
+        <div class="stat-sub">Con factura emitida</div>
+      </div>
+    </div>
+
+    <!-- Gráfico gasto mensual -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr">
+        <span class="card-title">Gasto mensual</span>
+        <span id="chart-total" style="font-size:13px;color:#6B7280"></span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart-gasto" height="200"></canvas>
+        <div id="chart-empty" style="display:none;text-align:center;padding:40px 0;color:#9CA3AF;font-size:13px">Sin datos de gasto aún</div>
+      </div>
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#1e2d4e"></div>Gasto mensual (CLP)</div>
+      </div>
+    </div>
+
+    <!-- Filtro -->
+    <div class="filter-bar">
+      <select class="sel" id="fil-mes" onchange="filtrar()">
+        <option value="">Todos los meses</option>
+      </select>
+      <select class="sel" id="fil-estado" onchange="filtrar()">
+        <option value="">Todos los estados</option>
+        <option value="adjudicada">En curso</option>
+        <option value="completada">Completado</option>
+      </select>
+    </div>
+
+    <!-- Tabla transportes -->
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-title">Mis transportes</span>
+        <span id="tabla-count" style="font-size:12px;color:#9CA3AF"></span>
+      </div>
+      <div id="tabla-transportes"><div class="empty"><div class="spinner" style="width:22px;height:22px;border-width:2px;margin:0 auto 8px"></div>Cargando...</div></div>
+    </div>
+
+    <!-- Documentos -->
+    <div class="card">
+      <div class="card-hdr"><span class="card-title">Ordenes de compra y facturas</span></div>
+      <div id="lista-docs"><div class="empty">Cargando documentos...</div></div>
+    </div>
+  </main>
+</div>
+<div id="toast"></div>
+
+<script>
+var API = 'https://transmatch.transmatchcl.workers.dev';
+var todosTransportes = [];
+var todosDocs = [];
+var chartInstance = null;
+
+function peso(n){ return n ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '$0'; }
+function fechaCorta(iso){ return iso ? new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}) : '--'; }
+function mesKey(iso){ if(!iso) return ''; var d=new Date(iso); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function mesLabel(k){ var p=k.split('-'); var m=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']; return m[parseInt(p[1])-1]+' '+p[0]; }
+function toast(msg,type){ var el=document.getElementById('toast'); el.textContent=msg; el.style.background=type==='err'?'#EF4444':'#1ED24E'; el.style.opacity='1'; clearTimeout(el._t); el._t=setTimeout(function(){ el.style.opacity='0'; },3000); }
+
+/* ── GRÁFICO ── */
+function renderChart(transportes){
+  var canvas = document.getElementById('chart-gasto');
+  var emptyEl = document.getElementById('chart-empty');
+
+  // Agrupar gasto por mes (últimos 12 meses)
+  var now = new Date();
+  var meses = [];
+  for(var i = 11; i >= 0; i--){
+    var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    meses.push(mesKey(d.toISOString()));
+  }
+
+  var gastos = {};
+  meses.forEach(function(m){ gastos[m] = 0; });
+  transportes.forEach(function(t){
+    if(t.factura && t.precio && t.adjudicadoAt){
+      var k = mesKey(t.adjudicadoAt);
+      if(gastos[k] !== undefined) gastos[k] += (t.precio || 0);
+    }
+  });
+
+  var valores = meses.map(function(m){ return gastos[m]; });
+  var labels  = meses.map(mesLabel);
+  var total   = valores.reduce(function(a,b){ return a+b; }, 0);
+
+  // Si todo cero, mostrar mensaje vacío
+  if(total === 0){
+    canvas.style.display = 'none';
+    emptyEl.style.display = 'block';
+    document.getElementById('chart-total').textContent = '';
+    return;
+  }
+  canvas.style.display = 'block';
+  emptyEl.style.display = 'none';
+  document.getElementById('chart-total').textContent = 'Total facturado: ' + peso(total);
+
+  // Dibujar con Canvas 2D nativo
+  var dpr = window.devicePixelRatio || 1;
+  var W = canvas.parentElement.clientWidth - 36; // padding 18px cada lado
+  var H = 200;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+
+  var ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  var padL = 70, padR = 12, padT = 16, padB = 40;
+  var chartW = W - padL - padR;
+  var chartH = H - padT - padB;
+
+  var maxVal = Math.max.apply(null, valores) || 1;
+  // Redondear el techo a valor "limpio"
+  var mag = Math.pow(10, Math.floor(Math.log10(maxVal)));
+  var techo = Math.ceil(maxVal / mag) * mag;
+
+  var barW = Math.floor(chartW / labels.length * 0.55);
+  var gap  = chartW / labels.length;
+
+  // Gridlines
+  var TICKS = 4;
+  ctx.font = '10px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+  ctx.fillStyle = '#9CA3AF';
+  ctx.textAlign = 'right';
+  for(var ti = 0; ti <= TICKS; ti++){
+    var yv = (techo / TICKS) * ti;
+    var yp = padT + chartH - (yv / techo) * chartH;
+    ctx.beginPath();
+    ctx.strokeStyle = ti === 0 ? '#d1d5db' : '#f3f4f6';
+    ctx.lineWidth = 1;
+    ctx.moveTo(padL, yp);
+    ctx.lineTo(padL + chartW, yp);
+    ctx.stroke();
+    // Etiqueta eje Y
+    var label = yv >= 1e6 ? '$'+(yv/1e6).toFixed(1)+'M' : yv >= 1e3 ? '$'+(yv/1e3).toFixed(0)+'K' : '$'+yv;
+    ctx.fillText(label, padL - 6, yp + 4);
+  }
+
+  // Barras + etiquetas X
+  ctx.textAlign = 'center';
+  valores.forEach(function(val, i){
+    var x  = padL + gap * i + gap / 2 - barW / 2;
+    var bh = val > 0 ? Math.max((val / techo) * chartH, 3) : 0;
+    var y  = padT + chartH - bh;
+
+    // Barra con bordes redondeados arriba
+    var r = Math.min(4, barW / 2);
+    ctx.fillStyle = val > 0 ? '#1e2d4e' : '#e8eaf0';
+    ctx.beginPath();
+    if(bh > 0){
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + barW - r, y);
+      ctx.quadraticCurveTo(x + barW, y, x + barW, y + r);
+      ctx.lineTo(x + barW, y + bh);
+      ctx.lineTo(x, y + bh);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+    } else {
+      ctx.rect(x, padT + chartH - 2, barW, 2);
+    }
+    ctx.fill();
+
+    // Valor sobre la barra
+    if(val > 0){
+      ctx.fillStyle = '#1e2d4e';
+      ctx.font = '10px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+      var vLabel = val >= 1e6 ? '$'+(val/1e6).toFixed(1)+'M' : val >= 1e3 ? '$'+(val/1e3).toFixed(0)+'K' : '$'+val;
+      ctx.fillText(vLabel, x + barW/2, y - 5);
+    }
+
+    // Etiqueta mes
+    ctx.fillStyle = '#9CA3AF';
+    ctx.font = '10px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+    ctx.fillText(labels[i], x + barW/2, padT + chartH + 16);
+  });
+}
+
+async function cargar(){
+  try {
+    var r = await fetch(API+'/api/transportes', {headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    if(r.status===401){localStorage.clear();window.location.replace('/index.html');return;}
+    var d = await r.json();
+    todosTransportes = d.transportes || [];
+
+    // Filtro meses
+    var meses = {};
+    todosTransportes.forEach(function(t){ if(t.adjudicadoAt) meses[mesKey(t.adjudicadoAt)]=true; });
+    var sel = document.getElementById('fil-mes');
+    sel.innerHTML = '<option value="">Todos los meses</option>';
+    Object.keys(meses).sort().reverse().forEach(function(k){
+      var o = document.createElement('option'); o.value=k; o.textContent=mesLabel(k); sel.appendChild(o);
+    });
+
+    // Docs
+    todosDocs = [];
+    todosTransportes.forEach(function(t){
+      if(t.oc)      todosDocs.push({tipo:'OC',      nombre:t.oc.nombre||'orden_de_compra.pdf',  archivoId:t.oc.archivoId,      fecha:t.oc.subidoAt,      transporte:t.código||t.id, precio:t.precio});
+      if(t.factura) todosDocs.push({tipo:'Factura', nombre:t.factura.nombre||'factura.pdf',      archivoId:t.factura.archivoId, fecha:t.factura.subidoAt, transporte:t.código||t.id, precio:t.precio});
+    });
+    todosDocs.sort(function(a,b){ return new Date(b.fecha)-new Date(a.fecha); });
+
+    // Stats
+    var gasto = todosTransportes.filter(function(t){ return t.factura; }).reduce(function(s,t){ return s+(t.precio||0); }, 0);
+    var licitCompletadas = todosTransportes.filter(function(t){ return t.factura; }).length;
+    document.getElementById('st-gasto').textContent        = peso(gasto);
+    document.getElementById('st-licitaciones').textContent = licitCompletadas;
+
+    renderChart(todosTransportes);
+    filtrar();
+    renderDocs();
+  } catch(e){
+    document.getElementById('tabla-transportes').innerHTML = '<div class="empty">Error al cargar</div>';
+  }
+}
+
+function filtrar(){
+  var mes    = document.getElementById('fil-mes').value;
+  var estado = document.getElementById('fil-estado').value;
+  var lista  = todosTransportes;
+  if(mes)    lista = lista.filter(function(t){ return mesKey(t.adjudicadoAt)===mes; });
+  if(estado==='adjudicada') lista = lista.filter(function(t){ return t.estado!=='entregado'; });
+  if(estado==='completada') lista = lista.filter(function(t){ return t.factura; });
+
+  document.getElementById('tabla-count').textContent = lista.length+' registro'+(lista.length!==1?'s':'');
+
+  if(lista.length===0){
+    document.getElementById('tabla-transportes').innerHTML = '<div class="empty">Sin resultados</div>';
+    return;
+  }
+
+  var html = '<table class="tabla"><thead><tr><th>Codigo</th><th>Equipo</th><th>Ruta</th><th>Precio</th><th>Fecha</th><th>Estado</th><th>Documentos</th></tr></thead><tbody>';
+  html += lista.map(function(t){
+    var estadoTxt, estadoCls;
+    if(t.factura){                    estadoTxt='Facturado';   estadoCls='b-pagado'; }
+    else if(t.oc){                    estadoTxt='OC recibida'; estadoCls='b-oc'; }
+    else if(t.estado==='entregado'){  estadoTxt='Entregado';   estadoCls='b-oc'; }
+    else {                            estadoTxt='En curso';    estadoCls='b-pendiente'; }
+    var docs = '';
+    if(t.oc)      docs += '<span class="badge b-oc" style="margin-right:4px">OC</span>';
+    if(t.factura) docs += '<span class="badge b-factura">Factura</span>';
+    return '<tr>'
+      +'<td style="font-family:monospace;font-size:11px;color:#9CA3AF">'+(t.código||'--')+'</td>'
+      +'<td style="font-weight:500;color:#1e2d4e">'+(t.tipoEquipo||'--')+'</td>'
+      +'<td style="font-size:12px">'+(t.origen||'--')+' → '+(t.destino||'--')+'</td>'
+      +'<td style="font-weight:700">'+(t.precio?peso(t.precio):'--')+'</td>'
+      +'<td>'+fechaCorta(t.adjudicadoAt)+'</td>'
+      +'<td><span class="badge '+estadoCls+'">'+estadoTxt+'</span></td>'
+      +'<td>'+(docs||'<span style="font-size:12px;color:#9CA3AF">Pendiente</span>')+'</td>'
+      +'</tr>';
+  }).join('');
+  html += '</tbody></table>';
+  document.getElementById('tabla-transportes').innerHTML = html;
+}
+
+function renderDocs(){
+  if(todosDocs.length===0){
+    document.getElementById('lista-docs').innerHTML = '<div class="empty">Los documentos apareceran aquí cuando el transportista suba la OC y tu emitas la factura</div>';
+    return;
+  }
+  document.getElementById('lista-docs').innerHTML = todosDocs.map(function(doc){
+    var esOC = doc.tipo==='OC';
+    return '<div class="doc-row">'
+      +'<div class="doc-icon" style="background:'+(esOC?'#eef1f8':'#F0FDF4')+';color:'+(esOC?'#1e2d4e':'#14532D')+'">'+(esOC?'OC':'FA')+'</div>'
+      +'<div class="doc-body">'
+        +'<div class="doc-name">'+doc.nombre+'</div>'
+        +'<div class="doc-meta">'+doc.tipo+' · '+(doc.transporte||'--')+' · '+fechaCorta(doc.fecha)+(doc.precio?' · '+peso(doc.precio):'')+'</div>'
+      +'</div>'
+      +'<button class="btn btn-outline btn-sm" onclick="descargar(\''+doc.archivoId+'\',\''+doc.nombre+'\')">Descargar</button>'
+      +'</div>';
+  }).join('');
+}
+
+async function descargar(id, nombre){
+  try {
+    var r = await fetch(API+'/api/archivos/'+id, {headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    var d = await r.json();
+    var arr = new Uint8Array(atob(d.base64).split('').map(function(ch){ return ch.charCodeAt(0); }));
+    var blob = new Blob([arr], {type:d.mimeType||'application/octet-stream'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a'); a.href=url; a.download=nombre||'archivo'; a.click();
+    URL.revokeObjectURL(url);
+  } catch(e){ toast('Error al descargar','err'); }
+}
+
+(function(){
+  var token = localStorage.getItem('tm_token');
+  var role  = localStorage.getItem('tm_role');
+  if(!token || role!=='cliente'){ window.location.replace('/index.html'); return; }
+  var n  = localStorage.getItem('tm_nombre')  || '';
+  var em = localStorage.getItem('tm_empresa') || '';
+  document.getElementById('nav-avatar').textContent  = n ? n[0].toUpperCase() : '?';
+  document.getElementById('nav-nombre').textContent  = n;
+  document.getElementById('nav-empresa').textContent = em;
+  document.getElementById('um-nombre').textContent   = n;
+  document.getElementById('um-empresa').textContent  = em;
+  document.getElementById('auth-guard').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  cargar();
+cargarNotificaciones();
+})();
+
+// Redibujar gráfico si cambia el tamaño
+window.addEventListener('resize', function(){
+  if(todosTransportes.length) renderChart(todosTransportes);
+});
+
+function closeAllPanels(){
+    var m=document.getElementById('user-menu');
+    var p=document.getElementById('notif-panel');
+    if(m) m.style.display='none';
+    if(p) p.style.display='none';
+  }
+  function toggleUserMenu(e){
+    e.stopPropagation();
+    var m=document.getElementById('user-menu');
+    var isOpen=m.style.display==='block';
+    closeAllPanels();
+    if(!isOpen) m.style.display='block';
+  }
+  function toggleNotifs(e){
+    if(e) e.stopPropagation();
+    var p=document.getElementById('notif-panel');
+    var isOpen=p.style.display==='flex';
+    closeAllPanels();
+    if(!isOpen){ p.style.display='flex'; cargarNotificaciones(); }
+  }
+  document.addEventListener('click',function(){ closeAllPanels(); });
+  function cerrarSesion(){localStorage.clear();window.location.replace('/index.html');}
+
+
+
+async function cargarNotificaciones(){
+  try {
+    var token = localStorage.getItem('tm_token');
+    var r = await fetch(API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+    var data = r.ok ? await r.json() : {};
+    var notifs = data.notificaciones || [];
+    var noLeidas = notifs.filter(function(n){ return !n.leida; }).length;
+    var badge = document.getElementById('notif-count');
+    if(badge){ badge.style.display = noLeidas>0 ? 'flex' : 'none'; badge.textContent = noLeidas; }
+    var list = document.getElementById('notif-list');
+    if(!list) return;
+    if(!notifs.length){ list.innerHTML='<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Sin notificaciones</div>'; return; }
+    var iconMap = {licitacion_aprobada:'✅',licitacion_rechazada:'❌',cotizaciones_disponibles:'🎯',cuenta_aprobada:'✅',cobro_pendiente:'💰',cobro_pagado:'✅',adjudicacion:'🏆',licitacion_cerrada:'📋'};
+    list.innerHTML = notifs.slice(0,20).map(function(n){
+      var icono = iconMap[n.tipo]||'🔔';
+      var bg = !n.leida ? 'background:#f0f4ff' : '';
+      var ts = n.createdAt ? new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+      return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'+
+        '<div style="font-size:18px;flex-shrink:0;margin-top:1px">'+icono+'</div>'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4">'+n.mensaje+'</div>'+
+          '<div style="font-size:11px;color:#9CA3AF">'+ts+'</div>'+
+        '</div>'+
+        (!n.leida?'<button onclick="event.stopPropagation();marcarUnaLeida(this.dataset.nid)" data-nid="'+n.id+'" style="background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0;margin-top:2px;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6">✓</button>':'')+
+      '</div>';
+    }).join('');
+  } catch(e){}
+}
+
+async function marcarTodasLeidas(){
+  try {
+    var token = localStorage.getItem('tm_token');
+    var r = await fetch(API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+    var data = r.ok ? await r.json() : {};
+    var notifs = (data.notificaciones||[]).filter(function(n){ return !n.leida; });
+    for(var i=0;i<notifs.length;i++){
+      await fetch(API+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:notifs[i].id})});
+    }
+    var badge = document.getElementById('notif-count');
+    if(badge) badge.style.display='none';
+    await cargarNotificaciones();
+  } catch(e){}
+}
+
+async function marcarUnaLeida(id){
+  try {
+    var token = localStorage.getItem('tm_token');
+    await fetch(API+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:id})});
+    await cargarNotificaciones();
+  } catch(e){}
+}
+</script>
+
+<footer style="background:#1e2d4e;margin-top:40px;padding:28px 24px 20px">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px">T</div>
+        <span style="font-weight:700;color:#fff;font-size:15px">Trans<span style="color:#ff8904">Match</span></span>
+      </div>
+      <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+    </div>
+    <div style="display:flex;gap:32px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <a href="/términos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Términos y condiciones</a>
+          <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Política de privacidad</a>
+          <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Centro de ayuda</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span>
+          <span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B">
+    © 2026 TransMatch SpA.
+  </div>
+</footer>
+</body>
+</html>

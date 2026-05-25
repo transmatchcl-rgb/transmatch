@@ -1,0 +1,586 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>TransMatch — Cliente</title><style>
+ *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#ffffff; ;display:flex;flex-direction:column;min-height:100vh}
+
+ /* Pantalla de carga que bloquea TODO el contenido */
+ #auth-guard {
+ position: fixed; inset: 0; background:#ffffff;
+ display: flex; align-items: center; justify-content: center;
+ z-index: 9999;
+ }
+ .guard-inner { text-align: center; }
+ .guard-logo { display: flex; align-items: center; gap: 8px; justify-content: center; margin-bottom: 24px; }
+ .guard-icon { background: #FF8904; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #fff; font-size: 16px; }
+ .guard-name { font-size: 20px; font-weight: 700; color: #1e2d4e; }
+ .guard-name span { color: #FF8904; }
+ .spinner { width: 32px; height: 32px; border: 3px solid #E5E7EB; border-top-color: #1e2d4e; border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto; }
+ @keyframes spin { to { transform: rotate(360deg); } }
+
+ /* El resto de la página oculto hasta pasar el guard */
+ #app { display: none; }
+
+ .nav { background: #1e2d4e; padding: 0 20px; height: 52px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+ .nav-logo { display: flex; align-items: center; gap: 16px; }
+ .nav-icon { background: #FF8904; border-radius: 7px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #fff; font-size: 14px; }
+ .nav-name { font-weight: 700; color: #fff; font-size: 15px; text-decoration: none; }
+ .nav-name span { color: #FF8904; }
+ .nav-links { display: flex; gap: 2px; overflow-x: auto; }
+ .nav-link { padding: 6px 13px; border-radius: 6px; font-size: 13px; text-decoration: none; color: #93C5FD; white-space: nowrap; }
+ .nav-link.active, .nav-link:hover { color: #fff; background: rgba(255,255,255,.18); }
+ .nav-right { display: flex; align-items: center; gap: 10px; }
+ .nav-user { font-size: 13px; color: #fff; font-weight: 500; }
+ .nav-avatar{width:34px;height:34px;border-radius:50%;background:#FF8904;color:#fff;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+  .nav-sub { font-size: 11px; color: #93C5FD; }
+ .avatar { width: 30px; height: 30px; border-radius: 50%; background: #FF8904; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; font-size: 13px; cursor: pointer; }
+
+ main { max-width: 1200px; margin: 0 auto; padding: 24px 20px; ;flex:1}
+ .page-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+ .page-title { font-size: 20px; font-weight: 600; color: #111827; }
+ .page-sub { font-size: 14px; color: #6B7280; margin-top: 3px; }
+
+ .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+ .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 20px; }
+ @media(max-width:768px) { .grid-4 { grid-template-columns: repeat(2,1fr); } .grid-2 { grid-template-columns: 1fr; } }
+
+ .stat { background: #fff; border-radius: 10px; border: 0.5px solid #E5E7EB; padding: 16px 18px; }
+ .stat-label { font-size: 12px; color: #6B7280; margin-bottom: 6px; }
+ .stat-val { font-size: 28px; font-weight: 600; }
+ .card { background: #fff; border-radius: 10px; border: 0.5px solid #E5E7EB; margin-bottom: 14px; overflow: hidden; }
+ .card-hdr { padding: 14px 18px; border-bottom: 0.5px solid #E5E7EB; display: flex; align-items: center; justify-content: space-between; }
+ .card-title { font-size: 15px; font-weight: 500; color: #111827; }
+ .row { display: flex; align-items: center; gap: 12px; padding: 13px 18px; border-bottom: 0.5px solid #F3F4F6; cursor: pointer; }
+ .row:hover { background: #FAFAFA; }
+ .row:last-child { border-bottom: none; }
+ .row-icon { width: 36px; height: 36px; border-radius: 8px; background: #EFF6FF; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+ .row-body { flex: 1; min-width: 0; }
+ .row-name { font-size: 13px; font-weight: 500; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+ .row-meta { font-size: 11px; color: #6B7280; margin-top: 2px; }
+ .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 9px; border-radius: 999px; }
+ .badge-orange { background: #FFF7ED; color: #92400E; }
+ .badge-blue { background: #EFF6FF; color: #1e40af; }
+ .badge-green { background: #F0FDF4; color: #14532D; }
+ .badge-gray { background:#f8f9fc; color: #6B7280; border: 0.5px solid #E5E7EB; }
+ .btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: opacity .15s; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+ .btn:hover { opacity: .88; }
+ .btn-orange { background: #FF8904; color: #fff; }
+ .btn-outline { background: transparent; border: 0.5px solid #E5E7EB; color: #374151; }
+ .btn-sm { padding: 5px 12px; font-size: 12px; }
+ .alert { padding: 10px 14px; border-radius: 8px; font-size: 13px; display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+ .alert-warn { background: #FFF7ED; color: #92400E; }
+ .alert-ok { background: #F0FDF4; color: #14532D; }
+ .empty { text-align: center; padding: 40px 20px; color: #9CA3AF; }
+ .empty-icon { font-size: 36px; margin-bottom: 10px; }
+
+  
+
+  .um-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:background .15s}
+  .um-item:hover{background:#f9fafb}
+  .um-danger{color:#DC2626}
+  .um-danger:hover{background:#FEF2F2}
+
+  /* Gráficos */
+  .charts-row { display: grid; grid-template-columns: 280px 1fr; gap: 14px; margin-bottom: 20px; }
+  @media(max-width:768px){ .charts-row { grid-template-columns: 1fr; } }
+  .chart-card { background:#fff; border-radius:10px; border:0.5px solid #E5E7EB; padding:16px 18px; }
+  .chart-title { font-size:13px; font-weight:600; color:#111827; margin-bottom:4px; }
+  .chart-sub { font-size:11px; color:#9CA3AF; margin-bottom:14px; }
+  .dona-wrap { position:relative; width:140px; height:140px; margin:0 auto 14px; }
+  .dona-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
+  .dona-num { font-size:26px; font-weight:700; color:#1e2d4e; line-height:1; }
+  .dona-lbl { font-size:10px; color:#9CA3AF; margin-top:2px; }
+  .dona-legend { display:flex; flex-direction:column; gap:6px; }
+  .legend-item { display:flex; align-items:center; gap:8px; font-size:12px; color:#374151; }
+  .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .legend-val { margin-left:auto; font-weight:600; color:#111827; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script><!-- ══ AUTH GUARD — corre ANTES de mostrar nada ══════════ --></head><body><!-- Guard visible mientras se verifica auth --><div id="auth-guard"><div class="guard-inner"><div class="guard-logo"><div class="guard-icon">T</div><div class="guard-name">Trans<span>Match</span></div></div><div class="spinner"></div></div></div><!-- App — oculta hasta pasar el guard --><div id="app"><!-- Navbar --><nav class="nav"><div class="nav-logo"><a href="/cliente.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;"><div class="nav-icon">T</div><span class="nav-name">Trans<span>Match</span></span></a><div class="nav-links"><a href="/cliente.html" class="nav-link active">Inicio</a><a href="/cliente-licitaciones.html" class="nav-link">Licitaciones</a><a href="/cliente-retornos.html" id="nav-retornos" class="nav-link">Retornos</a><a href="/cliente-transporte.html" class="nav-link">Transportes</a><a href="/cliente-facturacion.html" class="nav-link">Facturacion</a><a href="/cliente-calendario.html" class="nav-link">Calendario</a></div></div><div class="nav-right"><div style="display:flex;align-items:center;gap:12px;"><div style="text-align:right"><div class="nav-user" id="nav-nombre">—</div><div class="nav-sub" id="nav-empresa">—</div></div><div style="display:flex;align-items:center;gap:8px;"><div id="notif-btn" onclick="toggleNotifs(event)" style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;"></span></div><div style="position:relative"><div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div><div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:220px;z-index:999;overflow:hidden"><div style="padding:14px 16px;border-bottom:1px solid #f3f4f6"><div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div><div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div></div><a href="/cliente-perfil.html" class="um-item">Configuracion</a><a href="/ayuda.html" class="um-item">Ayuda</a><a href="/landing-servicios.html" class="um-item">Planes y precios</a><div style="border-top:1px solid #f3f4f6"><button onclick="cerrarSesion()" class="um-item um-danger">Cerrar sesion</button></div></div></div></div><!-- Panel notificaciónes --><div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:320px;background:#fff;border-radius:12px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.12);z-index:9000;max-height:440px;overflow:hidden;flex-direction:column;"><div style="padding:12px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:8px"><span style="font-size:14px;font-weight:600;color:#111827">Notificaciónes</span><button onclick="event.stopPropagation();marcarTodasLeidas()" style="font-size:11px;color:#1e2d4e;background:none;border:none;cursor:pointer;white-space:nowrap;flex-shrink:0">Marcar todas leídas</button></div><div id="notif-list" style="overflow-y:auto;max-height:380px;"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div></div></div></div></nav><main>
+  <!-- Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+    <div>
+      <div style="font-size:20px;font-weight:700;color:#1e2d4e" id="bienvenida">Bienvenido</div>
+      <div style="font-size:13px;color:#6B7280;margin-top:2px">Resumen de tu actividad</div>
+    </div>
+    <div style="display:flex;gap:10px"><a href="/cliente-retornos.html" class="btn" id="btn-retornos" style="background:#1e2d4e;color:#fff;border:none">Retornos disponibles</a><a href="/cliente-nueva.html" class="btn btn-orange">+ Nueva licitacion</a></div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="grid-4" style="margin-bottom:20px">
+    <div class="stat">
+      <div class="stat-label">Licitaciónes activas</div>
+      <div id="kpi-abiertas" class="stat-val" style="color:#ff8904">—</div>
+      <div style="font-size:12px;color:#9CA3AF;margin-top:3px">Abiertas y en revisión</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Licitaciones adjudicadas</div>
+      <div id="kpi-completadas" class="stat-val" style="color:#1ED24E">—</div>
+      <div style="font-size:12px;color:#9CA3AF;margin-top:3px">Total histórico</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Tasa de adjudicación</div>
+      <div id="kpi-tasa" class="stat-val" style="color:#1e2d4e">—</div>
+      <div style="font-size:12px;color:#9CA3AF;margin-top:3px">Licitaciones que resultaron en flete</div>
+    </div>
+  </div>
+
+  <!-- Fila superior: Dona + Acciones + Retornos -->
+  <div class="dash-3col" style="display:grid;grid-template-columns:1fr 1.5fr;gap:14px;margin-bottom:14px">
+
+    <!-- Dona: Estado de licitaciones -->
+    <div class="chart-card" style="margin:0">
+      <div class="chart-title">Estado de licitaciones</div>
+      <div class="chart-sub">Distribución actual de tus procesos</div>
+      <div class="dona-wrap">
+        <canvas id="chart-dona"></canvas>
+        <div class="dona-center">
+          <div class="dona-num" id="dona-total">—</div>
+          <div class="dona-lbl">Total</div>
+        </div>
+      </div>
+      <div class="dona-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#ff8904"></div>Abiertas<span class="legend-val" id="leg-abiertas">—</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1d4ed8"></div>Con cotizaciones<span class="legend-val" id="leg-cerradas">—</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1ED24E"></div>Adjudicadas<span class="legend-val" id="leg-adjudicadas">—</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#6B7280"></div>En revisión<span class="legend-val" id="leg-revision">—</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#E5E7EB"></div>Completadas<span class="legend-val" id="leg-completadas">—</span></div>
+      </div>
+    </div>
+
+    <!-- Acciones pendientes -->
+    <div class="card" id="card-acciones" style="margin:0">
+      <div class="card-hdr"><span class="card-title">Próximos pasos</span></div>
+      <div id="lista-acciones">
+        <div class="empty"><div class="spinner" style="width:22px;height:22px;border-width:2px;margin:0 auto"></div></div>
+      </div>
+    </div>
+
+    <!-- Retornos disponibles (movido al header) -->
+    <div style="display:none">
+      <div id="retornos-banner" style="display:none">
+        <div id="retornos-count"></div>
+        <a id="link-retornos" href="/cliente-retornos.html" style="display:none">Ver retornos</a>
+      </div>
+      <!-- Transportes activos -->
+      <div class="card" id="card-transportes" style="display:none">
+        <div class="card-hdr">
+          <span class="card-title">Transportes en curso</span>
+          <a href="/cliente-transporte.html" style="font-size:13px;color:#1d4ed8;text-decoration:none">Ver todos</a>
+        </div>
+        <div id="lista-transportes"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Línea: Actividad mensual — full width -->
+  <div class="chart-card" style="margin-bottom:14px">
+    <div class="chart-title">Actividad mensual</div>
+    <div class="chart-sub">Licitaciones publicadas en los últimos 6 meses</div>
+    <canvas id="chart-linea" style="max-height:200px"></canvas>
+  </div>
+
+  <!-- Mis licitaciones recientes -->
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-title">Mis licitaciónes</span>
+      <a href="/cliente-licitaciones.html" style="font-size:13px;color:#1d4ed8;text-decoration:none">Ver todas</a>
+    </div>
+    <div id="lista-licitaciones">
+      <div class="empty"><div class="spinner" style="width:22px;height:22px;border-width:2px;margin:0 auto"></div></div>
+    </div>
+  </div>
+</main></div><script>
+  var API = 'https://transmatch.transmatchcl.workers.dev';
+
+  function logout(){ localStorage.clear(); window.location.replace('/index.html'); }
+  function peso(n){ return n ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '$0'; }
+  function desde(iso){ if(!iso) return ''; var d=Math.floor((Date.now()-new Date(iso))/86400000); return d===0?'hoy':d===1?'hace 1d':'hace '+d+'d'; }
+  function fechaStr(iso){ return iso ? new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}) : '--'; }
+
+  async function apiCall(path){
+    try {
+      var res = await fetch(API+path, {headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+      if(res.status===401){ logout(); return null; }
+      return res.ok ? await res.json() : null;
+    } catch(e){ return null; }
+  }
+
+  function makeRow(href, html){
+    var onclick = href ? ' onclick="window.location.href=\'' + href + '\'"' : '';
+    return '<div style="display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:0.5px solid #f3f4f6;cursor:pointer"'
+      + onclick
+      + ' onmouseover="this.style.background=\'#f5f7fb\'" onmouseout="this.style.background=\'\'">'
+      + html + '</div>';
+  }
+
+  function initApp(){
+    var nombre  = localStorage.getItem('tm_nombre') || '';
+    var empresa = localStorage.getItem('tm_empresa') || '';
+    var plan    = localStorage.getItem('tm_plan') || 'basico';
+
+    document.getElementById('bienvenida').textContent = 'Bienvenido, ' + (empresa||nombre);
+    var navN = document.getElementById('nav-nombre');
+    var navE = document.getElementById('nav-empresa');
+    if(navN) navN.textContent = nombre;
+    if(navE) navE.textContent = empresa;
+    document.getElementById('nav-avatar').textContent = (nombre[0]||'?').toUpperCase();
+
+    var planLabel = {basico:'Plan Básico', pro:'Plan Pro', enterprise:'Enterprise'}[plan] || plan;
+    var planColor = {basico:'#6B7280', pro:'#1e2d4e', enterprise:'#92400E'}[plan] || '#6B7280';
+
+    var retBanner = document.getElementById('retornos-banner');
+    var retCount = document.getElementById('retornos-count');
+    if(['pro','enterprise'].includes(plan)){
+      var lr = document.getElementById('link-retornos');
+      if(lr) lr.style.display = 'inline-block';
+      cargarRetornos();
+    } else {
+      if(retCount) retCount.textContent = 'Disponible en Plan Pro o Enterprise';
+    }
+    cargarDashboard();
+  }
+
+  async function cargarDashboard(){
+    var data = await apiCall('/api/licitaciones');
+    if(!data){
+      var els = ['lista-acciones','lista-licitaciones','lista-notifs'];
+      els.forEach(function(id){
+        var el = document.getElementById(id);
+        if(el) el.innerHTML = '<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Sin datos disponibles</div>';
+      });
+      ['kpi-abiertas','kpi-completadas'].forEach(function(id){
+        var el = document.getElementById(id);
+        if(el) el.textContent = '0';
+      });
+      return;
+    }
+    var licitaciones = data.licitaciones || [];
+
+    var activas     = licitaciones.filter(function(l){ return l.estado==='abierta'||l.estado==='cerrada'; });
+    var completadas = licitaciones.filter(function(l){ return l.estado==='completada'; });
+    var adjudicadas = licitaciones.filter(function(l){ return l.estado==='adjudicada'; });
+    var conCotiz    = licitaciones.filter(function(l){ return l.estado==='cerrada'; });
+
+    var elA=document.getElementById('kpi-abiertas');     if(elA) elA.textContent=activas.length;
+    var elT=document.getElementById('kpi-completadas');  if(elT) elT.textContent=(adjudicadas.length+completadas.length);
+    var totalFinalizadas = licitaciones.filter(function(l){ return ['adjudicada','completada','rechazada'].includes(l.estado); }).length;
+    var tasaNum = totalFinalizadas > 0 ? Math.round((adjudicadas.length+completadas.length) / totalFinalizadas * 100) : 0;
+    var elTasa = document.getElementById('kpi-tasa');
+    if(elTasa){ elTasa.textContent = tasaNum + '%'; elTasa.style.color = tasaNum >= 60 ? '#1ED24E' : tasaNum >= 30 ? '#ff8904' : '#EF4444'; }
+
+    renderGraficos(licitaciones);
+
+    // Acciones pendientes
+    var acciones = [];
+    conCotiz.forEach(function(l){
+      acciones.push({ color:'#ff8904', titulo:'Cotizaciones listas para revisar', sub: l.tipoEquipo+(l.marca?' \u2014 '+l.marca:'')+' \u00b7 '+l.origen+' \u2192 '+l.destino, href:'/cliente-licitaciones.html?id='+l.id });
+    });
+    adjudicadas.forEach(function(l){
+      acciones.push({ color:'#1e2d4e', titulo:'Transporte en curso', sub: l.tipoEquipo+' \u00b7 '+l.origen+' \u2192 '+l.destino+(l.adjudicadaA?' \u00b7 '+peso(l.adjudicadaA.precio):''), href:'/cliente-transporte.html' });
+    });
+    licitaciones.filter(function(l){ return l.estado==='pendiente_admin'; }).forEach(function(l){
+      acciones.push({ color:'#6B7280', titulo:'Licitacion en revisión por TransMatch', sub: l.tipoEquipo+' \u00b7 publicada '+desde(l.createdAt), href:'/cliente-licitaciones.html?id='+l.id });
+    });
+
+    var elAcc = document.getElementById('lista-acciones');
+    if(acciones.length===0){
+      elAcc.innerHTML = '<div style="padding:20px 18px;font-size:13px;color:#9CA3AF;text-align:center">Sin acciones pendientes</div>';
+    } else {
+      elAcc.innerHTML = acciones.map(function(a){
+        var inner = '<div style="width:8px;height:8px;border-radius:50%;background:'+a.color+';flex-shrink:0"></div>'
+          + '<div style="flex:1;min-width:0">'
+          + '<div style="font-size:13px;font-weight:600;color:'+a.color+'">'+a.titulo+'</div>'
+          + '<div style="font-size:11px;color:#9CA3AF;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.sub+'</div>'
+          + '</div>'
+          + '<div style="font-size:18px;color:#e8eaf0">\u203a</div>';
+        return makeRow(a.href, inner);
+      }).join('');
+    }
+
+    // Lista licitaciones
+    var badgeMap = {pendiente_admin:'badge-gray',abierta:'badge-orange',cerrada:'badge-blue',adjudicada:'badge-green',completada:'badge-green',rechazada:'badge-red'};
+    var labelMap = {pendiente_admin:'En revisión',abierta:'Abierta',cerrada:'Con cotizaciones',adjudicada:'Adjudicada',completada:'Completada',rechazada:'Rechazada'};
+    var elList = document.getElementById('lista-licitaciones');
+    if(licitaciones.length===0){
+      elList.innerHTML = '<div style="padding:32px;text-align:center;color:#9CA3AF;font-size:13px">Aun no tienes licitaciones<br><a href="/cliente-nueva.html" style="color:#ff8904;font-weight:500">Publicar la primera</a></div>';
+    } else {
+      elList.innerHTML = licitaciones.slice(0,5).map(function(l){
+        var nC = (l.cotizaciones||[]).length;
+        var codTag = '<div style="font-size:10px;font-weight:700;font-family:monospace;background:#eef1f8;color:#1e2d4e;padding:3px 7px;border-radius:5px;flex-shrink:0;white-space:nowrap;align-self:center">'+(l.código||l.codigo||'LIC')+'</div>';
+        var inner = codTag
+          + '<div style="flex:1;min-width:0">'
+          + '<div style="font-size:13px;font-weight:600;color:#1e2d4e">'+l.tipoEquipo+(l.marca?' \u2014 '+l.marca:'')+'</div>'
+          + '<div style="font-size:11px;color:#9CA3AF;margin-top:2px">'+l.origen+' \u2192 '+l.destino+' \u00b7 '+desde(l.createdAt)+'</div>'
+          + '</div>'
+          + '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'
+          + (nC>0 ? '<span style="font-size:11px;color:#ff8904;font-weight:500">'+nC+' cotiz.</span>' : '')
+          + '<span class="badge '+badgeMap[l.estado]+'">'+labelMap[l.estado]+'</span>'
+          + '</div>';
+        return '<div style="display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:0.5px solid #f3f4f6;cursor:pointer" onclick="window.location.href=\'/cliente-licitaciones.html?id='+l.id+'\';" onmouseover="this.style.background=\'#f5f7fb\'" onmouseout="this.style.background=\'\'">'+inner+'</div>';
+      }).join('');
+    }
+
+    // Transportes en curso
+    if(adjudicadas.length>0){
+      document.getElementById('card-transportes').style.display = 'block';
+      document.getElementById('lista-transportes').innerHTML = adjudicadas.map(function(l){
+        var inner = '<div style="width:10px;height:10px;border-radius:50%;background:#ff8904;flex-shrink:0"></div>'
+          + '<div style="flex:1">'
+          + '<div style="font-size:13px;font-weight:500;color:#1e2d4e">'+l.tipoEquipo+(l.marca?' \u2014 '+l.marca:'')+'</div>'
+          + '<div style="font-size:11px;color:#9CA3AF;margin-top:2px">'+l.origen+' \u2192 '+l.destino+(l.adjudicadaA?' \u00b7 '+peso(l.adjudicadaA.precio):'')+'</div>'
+          + '</div>'
+          + '<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#FFF7ED;color:#92400E">En curso</span>';
+        return makeRow('/cliente-transporte.html', inner);
+      }).join('');
+    }
+
+  }
+
+  var _chartDona = null;
+  var _chartLinea = null;
+
+  function renderGraficos(licitaciones) {
+    // ── Datos dona ──────────────────────────────────────────
+    var nAbiertas    = licitaciones.filter(function(l){ return l.estado==='abierta'; }).length;
+    var nCerradas    = licitaciones.filter(function(l){ return l.estado==='cerrada'; }).length;
+    var nAdjudicadas = licitaciones.filter(function(l){ return l.estado==='adjudicada'; }).length;
+    var nRevision    = licitaciones.filter(function(l){ return l.estado==='pendiente_admin'; }).length;
+    var nCompletadas = licitaciones.filter(function(l){ return l.estado==='completada'; }).length;
+    var total = licitaciones.length;
+
+    document.getElementById('dona-total').textContent  = total;
+    document.getElementById('leg-abiertas').textContent    = nAbiertas;
+    document.getElementById('leg-cerradas').textContent    = nCerradas;
+    document.getElementById('leg-adjudicadas').textContent = nAdjudicadas;
+    document.getElementById('leg-revision').textContent    = nRevision;
+    document.getElementById('leg-completadas').textContent = nCompletadas;
+
+    var donaCtx = document.getElementById('chart-dona').getContext('2d');
+    if(_chartDona) _chartDona.destroy();
+    _chartDona = new Chart(donaCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Abiertas','Con cotizaciones','Adjudicadas','En revisión','Completadas'],
+        datasets:[{
+          data: [nAbiertas, nCerradas, nAdjudicadas, nRevision, nCompletadas],
+          backgroundColor: ['#ff8904','#1d4ed8','#1ED24E','#6B7280','#E5E7EB'],
+          borderWidth: 2,
+          borderColor: '#fff',
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        cutout: '70%',
+        plugins: { legend:{ display:false }, tooltip:{
+          callbacks:{ label: function(ctx){ return ' '+ctx.label+': '+ctx.raw; } }
+        }},
+        animation: { animateScale: true }
+      }
+    });
+
+    // ── Datos línea (últimos 6 meses) ────────────────────────
+    var meses = [];
+    var conteos = [];
+    var ahora = new Date();
+    for(var i = 5; i >= 0; i--){
+      var d = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1);
+      var yr = d.getFullYear();
+      var mo = d.getMonth();
+      meses.push(d.toLocaleDateString('es-CL', { month:'short', year:'2-digit' }));
+      conteos.push(licitaciones.filter(function(l){
+        var f = new Date(l.createdAt);
+        return f.getFullYear()===yr && f.getMonth()===mo;
+      }).length);
+    }
+
+    var lineaCtx = document.getElementById('chart-linea').getContext('2d');
+    if(_chartLinea) _chartLinea.destroy();
+
+    // Gradiente de relleno
+    var grad = lineaCtx.createLinearGradient(0, 0, 0, 180);
+    grad.addColorStop(0, 'rgba(255,137,4,0.18)');
+    grad.addColorStop(1, 'rgba(255,137,4,0)');
+
+    _chartLinea = new Chart(lineaCtx, {
+      type: 'line',
+      data: {
+        labels: meses,
+        datasets:[{
+          label: 'Licitaciones',
+          data: conteos,
+          borderColor: '#ff8904',
+          backgroundColor: grad,
+          borderWidth: 2.5,
+          pointBackgroundColor: '#ff8904',
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          tension: 0.35,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: { label: function(ctx){ return ' '+ctx.raw+' licitaciones'; } }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize:1, font:{ size:11 }, color:'#9CA3AF' },
+            grid: { color:'#f3f4f6' }
+          },
+          x: {
+            ticks: { font:{ size:11 }, color:'#9CA3AF' },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  }
+
+  async function cargarRetornos(){
+    var data = await apiCall('/api/retornos');
+    if(!data) return;
+    var ret = (data.retornos||[]).filter(function(r){ return r.estado==='disponible'; });
+    var el = document.getElementById('retornos-count');
+    if(el) el.textContent = ret.length + ' retorno'+(ret.length!==1?'s':'')+' disponible'+(ret.length!==1?'s':'')+' cerca de tu ruta';
+  }
+
+  async function cargarNotificaciones(){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var r = await fetch(API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+      var data = r.ok ? await r.json() : {};
+      var notifs = data.notificaciones || [];
+      var noLeidas = notifs.filter(function(n){ return !n.leida; }).length;
+      var badge = document.getElementById('notif-count');
+      if(badge){ badge.style.display = noLeidas>0 ? 'flex' : 'none'; badge.textContent = noLeidas; }
+      var list = document.getElementById('notif-list');
+      if(!list) return;
+      if(!notifs.length){ list.innerHTML='<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Sin notificaciones</div>'; return; }
+      var iconMap = { licitacion_aprobada:'✅', licitacion_rechazada:'❌', cotizaciones_disponibles:'🎯', cuenta_aprobada:'✅', cobro_pendiente:'💰', cobro_pagado:'✅', adjudicacion:'🏆', licitacion_cerrada:'📋' };
+      list.innerHTML = notifs.slice(0,20).map(function(n){
+        var icono = iconMap[n.tipo] || '🔔';
+        var bg = !n.leida ? 'background:#f0f4ff' : '';
+        var ts = n.createdAt ? new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+        return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'+
+          '<div style="font-size:18px;flex-shrink:0;margin-top:1px">'+icono+'</div>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4;word-break:break-word">'+n.mensaje+'</div>'+
+            '<div style="font-size:11px;color:#9CA3AF">'+ts+'</div>'+
+          '</div>'+
+          (!n.leida ? '<button onclick="event.stopPropagation();marcarUnaLeida(this.dataset.nid)" data-nid="'+n.id+'" title="Marcar como leída" style="background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0;margin-top:2px;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">✓</button>' : '')+
+        '</div>';
+      }).join('');
+    } catch(e){}
+  }
+
+  async function marcarTodasLeidas(){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var r = await fetch(API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+      var data = r.ok ? await r.json() : {};
+      var notifs = (data.notificaciones||[]).filter(function(n){ return !n.leida; });
+      for(var i=0;i<notifs.length;i++){
+        await fetch(API+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:notifs[i].id})});
+      }
+      var badge = document.getElementById('notif-count');
+      if(badge) badge.style.display='none';
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+  async function marcarUnaLeida(id){
+    try {
+      var token = localStorage.getItem('tm_token');
+      await fetch(API+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:id})});
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+  
+
+
+  (function(){
+    var token = localStorage.getItem('tm_token');
+    var role  = localStorage.getItem('tm_role');
+    if(!token){ window.location.replace('/index.html'); return; }
+    if(role==='admin'){ window.location.replace('/admin.html'); return; }
+    if(role==='transportista'){ window.location.replace('/transportista.html'); return; }
+    document.getElementById('auth-guard').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';document.getElementById('app').style.flexDirection='column';document.getElementById('app').style.minHeight='100vh';
+      cargarNotificaciones();
+    initApp();
+  })();
+
+    function closeAllPanels(){
+    var m=document.getElementById('user-menu');
+    var p=document.getElementById('notif-panel');
+    if(m) m.style.display='none';
+    if(p) p.style.display='none';
+  }
+  function toggleUserMenu(e){
+    e.stopPropagation();
+    var m=document.getElementById('user-menu');
+    var isOpen=m.style.display==='block';
+    closeAllPanels();
+    if(!isOpen) m.style.display='block';
+  }
+  function toggleNotifs(e){
+    if(e) e.stopPropagation();
+    var p=document.getElementById('notif-panel');
+    var isOpen=p.style.display==='flex';
+    closeAllPanels();
+    if(!isOpen){ p.style.display='flex'; cargarNotificaciones(); }
+  }
+  document.addEventListener('click',function(){ closeAllPanels(); });
+  function cerrarSesion(){localStorage.clear();window.location.replace('/index.html');}
+  (function(){
+    var n  = localStorage.getItem('tm_nombre')  || '';
+    var em = localStorage.getItem('tm_empresa') || '';
+    var nn = document.getElementById('nav-nombre');
+    var ns = document.getElementById('nav-empresa');
+    var av = document.getElementById('nav-avatar');
+    var un = document.getElementById('um-nombre');
+    var ue = document.getElementById('um-empresa');
+    if(nn) nn.textContent = n;
+    if(ns) ns.textContent = em;
+    if(av && n) av.textContent = n[0].toUpperCase();
+    if(un) un.textContent = n;
+    if(ue) ue.textContent = em;
+  })();
+</script>
+<footer style="background:#1e2d4e;margin-top:40px;padding:28px 24px 20px">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px">T</div>
+        <span style="font-weight:700;color:#fff;font-size:15px">Trans<span style="color:#ff8904">Match</span></span>
+      </div>
+      <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+    </div>
+    <div style="display:flex;gap:32px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <a href="/términos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Términos y condiciones</a>
+          <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Política de privacidad</a>
+          <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Centro de ayuda</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span>
+          <span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B">
+    © 2026 TransMatch SpA.
+  </div>
+</footer>
+</body></html>

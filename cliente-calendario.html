@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>TransMatch — Calendario</title>
+<style>
+  :root{--navy:#1e2d4e;--orange:#ff8904;--light:#f5f7fb;--text:#374151;--muted:#6B7280;--border:#e8eaf0}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--light);min-height:100vh;display:flex;flex-direction:column;color:var(--text)}
+  #auth-guard{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:9999}
+  .spinner{width:32px;height:32px;border:3px solid #e8eaf0;border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #app{display:none;flex-direction:column;flex:1}
+
+  /* NAV */
+  .nav{background:var(--navy);padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .nav-left{display:flex;align-items:center;gap:16px}
+  .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+  .nav-icon{background:var(--orange);border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+  .nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:var(--orange)}
+  .nav-links{display:flex;gap:2px}
+  .nav-link{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+  .nav-link:hover,.nav-link.active{color:#fff;background:rgba(255,255,255,.12)}
+  .nav-user { font-size: 13px; color: #fff; font-weight: 500; }
+ .nav-sub { font-size: 11px; color: #93C5FD; }
+ .nav-right{display:flex;align-items:center;gap:10px}
+  .nav-avatar{width:30px;height:30px;border-radius:50%;background:var(--orange);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;cursor:pointer}
+
+  /* MAIN */
+  main{max-width:1200px;margin:0 auto;padding:24px 32px;flex:1;width:100%}
+
+  /* HEADER */
+  .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+  .cal-title{font-size:20px;font-weight:700;color:var(--navy)}
+
+  /* FILTROS */
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+  .filter-chip{padding:5px 14px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:2px solid transparent;transition:all .15s;user-select:none}
+  .filter-chip.active{opacity:1}
+  .filter-chip:not(.active){opacity:.4}
+  .chip-abierta{background:#FFF7ED;color:#92400E;border-color:#FED7AA}
+  .chip-cerrada{background:#EFF6FF;color:#1e40af;border-color:#BFDBFE}
+  .chip-adjudicada{background:#F0FDF4;color:#14532D;border-color:#BBF7D0}
+  .chip-completada{background:#F5F3FF;color:#4C1D95;border-color:#DDD6FE}
+  .chip-pendiente_admin{background:#f8f9fc;color:var(--muted);border-color:var(--border)}
+
+  /* CONTROLES CALENDARIO */
+  .cal-controls{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .cal-nav{display:flex;align-items:center;gap:8px}
+  .cal-nav-btn{width:32px;height:32px;border-radius:7px;border:0.5px solid var(--border);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--navy);transition:all .15s}
+  .cal-nav-btn:hover{background:var(--navy);color:#fff}
+  .cal-month{font-size:18px;font-weight:700;color:var(--navy);min-width:180px;text-align:center}
+  .cal-today-btn{padding:6px 14px;border-radius:7px;border:0.5px solid var(--border);background:#fff;font-size:13px;font-weight:500;cursor:pointer;color:var(--navy);transition:all .15s}
+  .cal-today-btn:hover{background:var(--navy);color:#fff}
+  .view-btns{display:flex;border:0.5px solid var(--border);border-radius:7px;overflow:hidden}
+  .view-btn{padding:6px 14px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:#fff;color:var(--muted);transition:all .15s}
+  .view-btn.active{background:var(--navy);color:#fff}
+
+  /* GRID CALENDARIO */
+  .cal-grid{background:#fff;border-radius:12px;border:0.5px solid var(--border);overflow:hidden;box-shadow:0 1px 4px rgba(30,45,78,.05)}
+  .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);background:var(--navy)}
+  .cal-weekday{padding:10px 8px;text-align:center;font-size:12px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.05em}
+  .cal-days{display:grid;grid-template-columns:repeat(7,1fr)}
+  .cal-day{min-height:110px;padding:8px;border-right:0.5px solid var(--border);border-bottom:0.5px solid var(--border);position:relative;transition:background .1s}
+  .cal-day:hover{background:#fafbff}
+  .cal-day:nth-child(7n){border-right:none}
+  .cal-day.other-month .day-num{color:#D1D5DB}
+  .cal-day.today{background:#FFFBEB}
+  .cal-day.today .day-num{background:var(--orange);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:700}
+  .day-num{font-size:13px;font-weight:500;color:var(--navy);margin-bottom:4px;width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+  .day-events{display:flex;flex-direction:column;gap:2px}
+  .event{padding:2px 6px;border-radius:4px;font-size:11px;font-weight:500;cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;transition:opacity .15s}
+  .event:hover{opacity:.8}
+  .event.abierta{background:#FFF7ED;color:#92400E;border-left:3px solid #F97316}
+  .event.cerrada{background:#EFF6FF;color:#1e40af;border-left:3px solid #3B82F6}
+  .event.adjudicada{background:#F0FDF4;color:#14532D;border-left:3px solid #22C55E}
+  .event.completada{background:#F5F3FF;color:#4C1D95;border-left:3px solid #8B5CF6}
+  .event.pendiente_admin{background:#f8f9fc;color:var(--muted);border-left:3px solid var(--border)}
+  .more-events{font-size:11px;color:var(--muted);padding:2px 6px;cursor:pointer}
+  .more-events:hover{color:var(--navy)}
+
+  /* MODAL DETALLE */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;align-items:center;justify-content:center;padding:20px}
+  .modal-bg.open{display:flex}
+  .modal{background:#fff;border-radius:14px;padding:24px;max-width:460px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+  .modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  .modal-titulo{font-size:16px;font-weight:700;color:var(--navy)}
+  .modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);line-height:1}
+  .modal-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #f3f4f6;font-size:13px}
+  .modal-row:last-child{border:none}
+  .modal-label{color:var(--muted)}
+  .modal-val{font-weight:500;color:var(--navy)}
+  .badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px}
+  .badge-abierta{background:#FFF7ED;color:#92400E}
+  .badge-cerrada{background:#EFF6FF;color:#1e40af}
+  .badge-adjudicada{background:#F0FDF4;color:#14532D}
+  .badge-completada{background:#F5F3FF;color:#4C1D95}
+  .badge-pendiente_admin{background:#f8f9fc;color:var(--muted)}
+  .modal-btn{display:block;text-align:center;margin-top:16px;padding:10px;background:var(--navy);color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600;transition:opacity .15s}
+  .modal-btn:hover{opacity:.88}
+
+  /* VISTA SEMANA */
+  .week-grid{background:#fff;border-radius:12px;border:0.5px solid var(--border);overflow:hidden;box-shadow:0 1px 4px rgba(30,45,78,.05)}
+  .week-header{display:grid;grid-template-columns:60px repeat(7,1fr);background:var(--navy)}
+  .week-header-cell{padding:10px 8px;text-align:center;font-size:12px;font-weight:600;color:#93C5FD;text-transform:uppercase}
+  .week-body{display:grid;grid-template-columns:60px repeat(7,1fr)}
+  .week-time{padding:8px 6px;font-size:11px;color:var(--muted);text-align:right;border-right:0.5px solid var(--border);border-bottom:0.5px solid var(--border)}
+  .week-cell{min-height:50px;padding:4px;border-right:0.5px solid var(--border);border-bottom:0.5px solid var(--border);position:relative}
+  .week-cell:nth-child(8n){border-right:none}
+
+  /* EMPTY STATE */
+  .empty-cal{padding:40px;text-align:center;color:var(--muted);font-size:13px}
+
+  /* LEYENDA */
+  .leyenda{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+  .ley-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .ley-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+  #toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none}
+
+  .um-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:background .15s}
+  .um-item:hover{background:#f9fafb}
+  .um-danger{color:#DC2626}
+  .um-danger:hover{background:#FEF2F2}
+</style>
+</head>
+<body>
+
+<div id="auth-guard">
+  <div style="text-align:center">
+    <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:20px">
+      <div style="background:#ff8904;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff">T</div>
+      <span style="font-size:20px;font-weight:700;color:#1e2d4e">Trans<span style="color:#ff8904">Match</span></span>
+    </div>
+    <div class="spinner" style="margin:0 auto"></div>
+  </div>
+</div>
+
+<div id="app">
+  <nav class="nav"><div class="nav-logo"><a href="/cliente.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;"><div class="nav-icon">T</div><span class="nav-name">Trans<span>Match</span></span></a><div class="nav-links"><a href="/cliente.html" class="nav-link">Inicio</a><a href="/cliente-licitaciones.html" class="nav-link">Licitaciones</a><a href="/cliente-retornos.html" id="nav-retornos" class="nav-link">Retornos</a><a href="/cliente-transporte.html" class="nav-link">Transportes</a><a href="/cliente-facturacion.html" class="nav-link">Facturacion</a><a href="/cliente-calendario.html" class="nav-link active">Calendario</a></div></div><div class="nav-right"><div style="display:flex;align-items:center;gap:12px;"><div style="text-align:right"><div class="nav-user" id="nav-nombre">—</div><div class="nav-sub" id="nav-empresa">—</div></div><div style="display:flex;align-items:center;gap:8px;"><div id="notif-btn" onclick="toggleNotifs(event)" style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;"></span></div><div style="position:relative"><div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div><div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:220px;z-index:999;overflow:hidden"><div style="padding:14px 16px;border-bottom:1px solid #f3f4f6"><div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div><div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div></div><a href="/cliente-perfil.html" class="um-item">Configuracion</a><a href="/ayuda.html" class="um-item">Ayuda</a><a href="/landing-servicios.html" class="um-item">Planes y precios</a><div style="border-top:1px solid #f3f4f6"><button onclick="cerrarSesion()" class="um-item um-danger">Cerrar sesion</button></div></div></div></div><!-- Panel notificaciónes --><div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:320px;background:#fff;border-radius:12px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.12);z-index:9000;max-height:440px;overflow:hidden;flex-direction:column;"><div style="padding:12px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:8px"><span style="font-size:14px;font-weight:600;color:#111827">Notificaciónes</span><button onclick="event.stopPropagation();marcarTodasLeidas()" style="font-size:11px;color:#1e2d4e;background:none;border:none;cursor:pointer;white-space:nowrap;flex-shrink:0">Marcar todas leídas</button></div><div id="notif-list" style="overflow-y:auto;max-height:380px;"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div></div></div></div></nav>
+
+  <main>
+    <!-- Header -->
+    <div class="cal-header">
+      <div class="cal-title">Calendario de operaciones</div>
+      <a href="/cliente-nueva.html" style="padding:8px 16px;background:var(--orange);color:#fff;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none">+ Nueva licitacion</a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filters">
+      <div class="filter-chip chip-pendiente_admin active" onclick="toggleFilter('pendiente_admin',this)">En revision</div>
+      <div class="filter-chip chip-abierta active" onclick="toggleFilter('abierta',this)">Abiertas</div>
+      <div class="filter-chip chip-cerrada active" onclick="toggleFilter('cerrada',this)">Con cotizaciones</div>
+      <div class="filter-chip chip-adjudicada active" onclick="toggleFilter('adjudicada',this)">Adjudicadas</div>
+      <div class="filter-chip chip-completada active" onclick="toggleFilter('completada',this)">Completadas</div>
+    </div>
+
+    <div class="cal-controls">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" onclick="navMes(-1)">&#8249;</button>
+        <button class="cal-nav-btn" onclick="navMes(1)">&#8250;</button>
+        <button class="cal-today-btn" onclick="irHoy()">Hoy</button>
+        <div class="cal-month" id="cal-month-label"></div>
+      </div>
+      <div class="view-btns">
+        <button class="view-btn active" id="btn-mes" onclick="setVista('mes')">Mes</button>
+        <button class="view-btn" id="btn-semana" onclick="setVista('semana')">Semana</button>
+      </div>
+    </div>
+
+    <!-- Calendario -->
+    <div id="calendario"></div>
+  </main>
+</div>
+
+<!-- Modal detalle -->
+<div class="modal-bg" id="modal-bg" onclick="if(event.target===this)cerrarModal()">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-titulo" id="modal-titulo"></div>
+      <button class="modal-close" onclick="cerrarModal()">×</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+var API = 'https://transmatch.transmatchcl.workers.dev';
+var todasLicitaciones = [];
+var filtrosActivos = { pendiente_admin:true, abierta:true, cerrada:true, adjudicada:true, completada:true };
+var hoy = new Date();
+var mesActual = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+var vistaActual = 'mes';
+
+var MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+var DIAS  = ['Lun','Mar','Mie','Jue','Vie','Sab','Dom'];
+
+var ESTADO_LABEL = {
+  pendiente_admin: 'En revision',
+  abierta:         'Abierta',
+  cerrada:         'Cotizaciones listas',
+  adjudicada:      'Adjudicada',
+  completada:      'Completada',
+  rechazada:       'Rechazada'
+};
+
+function peso(n){ return n ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '--'; }
+function fechaStr(iso){ return iso ? new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}) : '--'; }
+
+function toast(msg,type){
+  var el=document.getElementById('toast');
+  el.textContent=msg; el.style.background=type==='err'?'#EF4444':'#1ED24E';
+  el.style.opacity='1'; clearTimeout(el._t); el._t=setTimeout(function(){el.style.opacity='0';},3000);
+}
+
+async function cargarLicitaciones(){
+  try {
+    var res = await fetch(API+'/api/licitaciones', {
+      headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}
+    });
+    if(res.status===401){localStorage.clear();window.location.replace('/index.html');return;}
+    var d = await res.json();
+    todasLicitaciones = d.licitaciones || [];
+    renderCalendario();
+  } catch(e){
+    document.getElementById('calendario').innerHTML = '<div class="empty-cal">Error al cargar licitaciones</div>';
+  }
+}
+
+function toggleFilter(estado, el){
+  filtrosActivos[estado] = !filtrosActivos[estado];
+  el.classList.toggle('active', filtrosActivos[estado]);
+  renderCalendario();
+}
+
+function licitacionesFiltradas(){
+  return todasLicitaciones.filter(function(l){
+    return filtrosActivos[l.estado] !== false;
+  });
+}
+
+// Devuelve fecha de referencia para poner en calendario
+function fechaLicitacion(l){
+  if(l.estado==='completada' && l.adjudicadaAt) return new Date(l.adjudicadaAt);
+  if(l.estado==='adjudicada' && l.adjudicadaAt) return new Date(l.adjudicadaAt);
+  if(l.fechaRequerida) return new Date(l.fechaRequerida);
+  return new Date(l.createdAt);
+}
+
+function isSameDay(a,b){
+  return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+}
+
+function navMes(dir){
+  mesActual = new Date(mesActual.getFullYear(), mesActual.getMonth()+dir, 1);
+  renderCalendario();
+}
+
+function irHoy(){
+  mesActual = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+  renderCalendario();
+}
+
+function setVista(v){
+  vistaActual = v;
+  document.getElementById('btn-mes').classList.toggle('active', v==='mes');
+  document.getElementById('btn-semana').classList.toggle('active', v==='semana');
+  renderCalendario();
+}
+
+function renderCalendario(){
+  document.getElementById('cal-month-label').textContent = MESES[mesActual.getMonth()] + ' de ' + mesActual.getFullYear();
+  if(vistaActual==='mes') renderMes();
+  else renderSemana();
+}
+
+function renderMes(){
+  var year  = mesActual.getFullYear();
+  var month = mesActual.getMonth();
+
+  // First day of month (0=Sun, adjust to Mon=0)
+  var firstDay = new Date(year, month, 1).getDay();
+  var startOffset = (firstDay === 0) ? 6 : firstDay - 1;
+
+  var daysInMonth  = new Date(year, month+1, 0).getDate();
+  var daysInPrevM  = new Date(year, month, 0).getDate();
+  var totalCells   = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+
+  var licit = licitacionesFiltradas();
+
+  var html = '<div class="cal-grid"><div class="cal-weekdays">';
+  DIAS.forEach(function(d){ html += '<div class="cal-weekday">'+d+'</div>'; });
+  html += '</div><div class="cal-days">';
+
+  for(var i=0; i<totalCells; i++){
+    var dayNum, isCurrentMonth, dateObj;
+    if(i < startOffset){
+      dayNum = daysInPrevM - startOffset + i + 1;
+      isCurrentMonth = false;
+      dateObj = new Date(year, month-1, dayNum);
+    } else if(i >= startOffset + daysInMonth){
+      dayNum = i - startOffset - daysInMonth + 1;
+      isCurrentMonth = false;
+      dateObj = new Date(year, month+1, dayNum);
+    } else {
+      dayNum = i - startOffset + 1;
+      isCurrentMonth = true;
+      dateObj = new Date(year, month, dayNum);
+    }
+
+    var isToday = isSameDay(dateObj, hoy);
+    var cls = 'cal-day';
+    if(!isCurrentMonth) cls += ' other-month';
+    if(isToday) cls += ' today';
+
+    // Eventos de este dia
+    var eventos = licit.filter(function(l){
+      return isSameDay(fechaLicitacion(l), dateObj);
+    });
+
+    html += '<div class="'+cls+'">';
+    html += '<div class="day-num">'+dayNum+'</div>';
+    html += '<div class="day-events">';
+
+    var maxShow = 3;
+    eventos.slice(0, maxShow).forEach(function(l){
+      var titulo = l.tipoEquipo + (l.marca?' — '+l.marca:'');
+      html += '<div class="event '+l.estado+'" onclick="abrirModal(\''+l.id+'\')" title="'+titulo+'">'+titulo+'</div>';
+    });
+
+    if(eventos.length > maxShow){
+      html += '<div class="more-events" onclick="verTodosDelDia(\''+dateObj.toISOString()+'\')">+' + (eventos.length-maxShow) + ' mas</div>';
+    }
+
+    html += '</div></div>';
+  }
+
+  html += '</div></div>';
+  document.getElementById('calendario').innerHTML = html;
+}
+
+function renderSemana(){
+  // Find Monday of current week in mesActual
+  var year  = mesActual.getFullYear();
+  var month = mesActual.getMonth();
+  var refDay = new Date(year, month, 1);
+  var dow = refDay.getDay();
+  var monday = new Date(refDay);
+  monday.setDate(refDay.getDate() - (dow===0?6:dow-1));
+
+  var licit = licitacionesFiltradas();
+
+  var html = '<div class="week-grid"><div class="week-header"><div class="week-header-cell"></div>';
+  for(var d=0; d<7; d++){
+    var day = new Date(monday); day.setDate(monday.getDate()+d);
+    var isToday = isSameDay(day, hoy);
+    html += '<div class="week-header-cell" style="'+(isToday?'color:#ff8904':'')+'">'+
+      DIAS[d]+'<br><span style="font-size:16px;font-weight:800">'+(isToday?'<span style="background:#ff8904;color:#fff;border-radius:50%;padding:2px 6px">'+day.getDate()+'</span>':day.getDate())+'</span></div>';
+  }
+  html += '</div><div class="week-body">';
+
+  // 8 time slots: Allday + 8-9, 9-10... simplified as day events
+  html += '<div class="week-time" style="background:#fafafa;font-weight:600;color:var(--navy);padding:10px 6px">Todo el dia</div>';
+  for(var d=0; d<7; d++){
+    var day = new Date(monday); day.setDate(monday.getDate()+d);
+    var eventos = licit.filter(function(l){ return isSameDay(fechaLicitacion(l), day); });
+    html += '<div class="week-cell" style="'+(isSameDay(day,hoy)?'background:#FFFBEB':'')+'">';
+    eventos.forEach(function(l){
+      var titulo = l.tipoEquipo + (l.marca?' — '+l.marca:'');
+      html += '<div class="event '+l.estado+'" onclick="abrirModal(\''+l.id+'\')" style="margin-bottom:3px" title="'+titulo+'">'+titulo+'</div>';
+    });
+    if(eventos.length===0) html += '<div style="height:50px"></div>';
+    html += '</div>';
+  }
+
+  html += '</div></div>';
+  document.getElementById('calendario').innerHTML = html;
+}
+
+function abrirModal(id){
+  var l = todasLicitaciones.find(function(x){ return x.id===id; });
+  if(!l) return;
+
+  var badgeCls = 'badge-'+(l.estado||'pendiente_admin');
+  var titulo = l.tipoEquipo + (l.marca?' — '+l.marca:'');
+
+  var rows = [
+    ['Estado',       '<span class="badge '+badgeCls+'">'+(ESTADO_LABEL[l.estado]||l.estado)+'</span>'],
+    ['Codigo',       l.codigo || '--'],
+    ['Ruta',         (l.origen||'--')+' &rarr; '+(l.destino||'--')],
+    ['Fecha',        fechaStr(l.createdAt)],
+    ['Fecha requerida', l.fechaRequerida ? fechaStr(l.fechaRequerida) : '--'],
+    ['Carga',        l.toneladas ? l.toneladas+' ton' : '--'],
+  ];
+
+  if(l.estado==='adjudicada'||l.estado==='completada'){
+    rows.push(['Adjudicado el', fechaStr(l.adjudicadaAt)]);
+    if(l.adjudicadaA) rows.push(['Precio', peso(l.adjudicadaA.precio)]);
+  }
+  if(l.estado==='cerrada'){
+    rows.push(['Cotizaciones', (l.cotizaciones||[]).length+' recibidas']);
+  }
+
+  var bodyHtml = rows.map(function(r){
+    return '<div class="modal-row"><span class="modal-label">'+r[0]+'</span><span class="modal-val">'+r[1]+'</span></div>';
+  }).join('');
+
+  bodyHtml += '<a href="/cliente-licitaciones.html?id='+id+'" class="modal-btn">Ver licitacion completa &rarr;</a>';
+
+  document.getElementById('modal-titulo').textContent = titulo;
+  document.getElementById('modal-body').innerHTML = bodyHtml;
+  document.getElementById('modal-bg').classList.add('open');
+}
+
+function cerrarModal(){
+  document.getElementById('modal-bg').classList.remove('open');
+}
+
+function verTodosDelDia(isoDate){
+  var d = new Date(isoDate);
+  var licit = licitacionesFiltradas().filter(function(l){ return isSameDay(fechaLicitacion(l), d); });
+  var titulo = 'Licitaciones del '+d.getDate()+' de '+MESES[d.getMonth()];
+  var bodyHtml = licit.map(function(l){
+    var badgeCls = 'badge-'+(l.estado||'pendiente_admin');
+    return '<div class="modal-row" style="cursor:pointer" onclick="abrirModal(\''+l.id+'\')">' +
+      '<span class="modal-label">'+l.tipoEquipo+(l.marca?' — '+l.marca:'')+'</span>' +
+      '<span class="badge '+badgeCls+'">'+(ESTADO_LABEL[l.estado]||l.estado)+'</span>' +
+    '</div>';
+  }).join('');
+  document.getElementById('modal-titulo').textContent = titulo;
+  document.getElementById('modal-body').innerHTML = bodyHtml;
+  document.getElementById('modal-bg').classList.add('open');
+}
+
+// Init
+(function(){
+  var token = localStorage.getItem('tm_token');
+  var role  = localStorage.getItem('tm_role');
+  if(!token){ window.location.replace('/index.html'); return; }
+  if(role==='transportista'){ window.location.replace('/transportista.html'); return; }
+  document.getElementById('nav-avatar').textContent = (localStorage.getItem('tm_nombre')||'?')[0].toUpperCase();
+  document.getElementById('auth-guard').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  renderCalendario(); // render empty while loading
+  cargarLicitaciones();
+  cargarNotificaciones();
+})();
+
+    function closeAllPanels(){
+    var m=document.getElementById('user-menu');
+    var p=document.getElementById('notif-panel');
+    if(m) m.style.display='none';
+    if(p) p.style.display='none';
+  }
+  function toggleUserMenu(e){
+    e.stopPropagation();
+    var m=document.getElementById('user-menu');
+    var isOpen=m.style.display==='block';
+    closeAllPanels();
+    if(!isOpen) m.style.display='block';
+  }
+  function toggleNotifs(e){
+    if(e) e.stopPropagation();
+    var p=document.getElementById('notif-panel');
+    var isOpen=p.style.display==='flex';
+    closeAllPanels();
+    if(!isOpen){ p.style.display='flex'; cargarNotificaciones(); }
+  }
+  document.addEventListener('click',function(){ closeAllPanels(); });
+  function cerrarSesion(){localStorage.clear();window.location.replace('/index.html');}
+  (function(){
+    var n  = localStorage.getItem('tm_nombre')  || '';
+    var em = localStorage.getItem('tm_empresa') || '';
+    var nn = document.getElementById('nav-nombre');
+    var ns = document.getElementById('nav-empresa');
+    var av = document.getElementById('nav-avatar');
+    var un = document.getElementById('um-nombre');
+    var ue = document.getElementById('um-empresa');
+    if(nn) nn.textContent = n;
+    if(ns) ns.textContent = em;
+    if(av && n) av.textContent = n[0].toUpperCase();
+    if(un) un.textContent = n;
+    if(ue) ue.textContent = em;
+  })();
+
+  
+
+  async function cargarNotificaciones(){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var r = await fetch((typeof API!=='undefined'?API:'https://transmatch-api.transmatch-66b.workers.dev')+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+      var data = r.ok ? await r.json() : {};
+      var notifs = data.notificaciones || [];
+      var noLeidas = notifs.filter(function(n){ return !n.leida; }).length;
+      var badge = document.getElementById('notif-count');
+      if(badge){ badge.style.display = noLeidas>0 ? 'flex' : 'none'; badge.textContent = noLeidas; }
+      var list = document.getElementById('notif-list');
+      if(!list) return;
+      if(!notifs.length){ list.innerHTML='<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Sin notificaciones</div>'; return; }
+      var iconMap = {licitacion_aprobada:'✅',licitacion_rechazada:'❌',cotizaciones_disponibles:'🎯',cuenta_aprobada:'✅',cobro_pendiente:'💰',cobro_pagado:'✅',adjudicacion:'🏆',licitacion_cerrada:'📋'};
+      list.innerHTML = notifs.slice(0,20).map(function(n){
+        var icono = iconMap[n.tipo]||'🔔';
+        var bg = !n.leida ? 'background:#f0f4ff' : '';
+        var ts = n.createdAt ? new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+        return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'+
+          '<div style="font-size:18px;flex-shrink:0;margin-top:1px">'+icono+'</div>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4">'+n.mensaje+'</div>'+
+            '<div style="font-size:11px;color:#9CA3AF">'+ts+'</div>'+
+          '</div>'+
+          (!n.leida?'<button onclick="event.stopPropagation();marcarUnaLeida(this.dataset.nid)" data-nid="'+n.id+'" title="Marcar como leída" style="background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0;margin-top:2px;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">✓</button>':'')+
+        '</div>';
+      }).join('');
+    } catch(e){}
+  }
+
+  async function marcarTodasLeidas(){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var API_URL = typeof API!=='undefined' ? API : 'https://transmatch-api.transmatch-66b.workers.dev';
+      var r = await fetch(API_URL+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+      var data = r.ok ? await r.json() : {};
+      var notifs = (data.notificaciones||[]).filter(function(n){ return !n.leida; });
+      for(var i=0;i<notifs.length;i++){
+        await fetch(API_URL+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:notifs[i].id})});
+      }
+      var badge = document.getElementById('notif-count');
+      if(badge) badge.style.display='none';
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+  async function marcarUnaLeida(id){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var API_URL = typeof API!=='undefined' ? API : 'https://transmatch-api.transmatch-66b.workers.dev';
+      await fetch(API_URL+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:id})});
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+</script>
+<footer style="background:#1e2d4e;margin-top:40px;padding:28px 24px 20px">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px">T</div>
+        <span style="font-weight:700;color:#fff;font-size:15px">Trans<span style="color:#ff8904">Match</span></span>
+      </div>
+      <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+    </div>
+    <div style="display:flex;gap:32px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <a href="/términos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Términos y condiciones</a>
+          <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Política de privacidad</a>
+          <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Centro de ayuda</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span>
+          <span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B">
+    © 2026 TransMatch SpA.
+  </div>
+</footer>
+</body></html>

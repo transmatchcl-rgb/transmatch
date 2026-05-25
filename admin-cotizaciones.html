@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch — Cotizaciónes</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff;color:#374151}
+  #app{display:none}
+  #auth-guard{position:fixed;inset:0;background:#1e2d4e;display:flex;align-items:center;justify-content:center;z-index:9999}
+  .gs{width:36px;height:36px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* NAV */
+  .nav{background:#1e2d4e;padding:0 24px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .nav-left{display:flex;align-items:center;gap:16px}
+  .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+  .nav-icon{background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+  .nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#ff8904}
+  .nav-badge{background:rgba(255,255,255,.15);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px}
+  .nav-tabs{display:flex;gap:2px}
+  .nav-tab{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+  .nav-tab:hover,.nav-tab.active{color:#fff;background:rgba(255,255,255,.12)}
+  .logout-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer}
+
+  /* LAYOUT */
+  main{max-width:1100px;margin:0 auto;padding:24px 20px;min-height:calc(100vh - 54px)}
+  .page-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:12px;flex-wrap:wrap}
+  .page-title{font-size:20px;font-weight:600;color:#1e2d4e}
+  .page-sub{font-size:14px;color:#6B7280;margin-top:2px}
+
+  /* STATS */
+  .grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+  @media(max-width:700px){.grid-4{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);padding:16px 18px}
+  .stat-label{font-size:12px;color:#6B7280;margin-bottom:6px}
+  .stat-val{font-size:26px;font-weight:700}
+
+  /* FILTERS */
+  .filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+  .sel{padding:8px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;background:#fff;color:#374151}
+  .srch{padding:8px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;flex:1;min-width:200px}
+  .srch:focus,.sel:focus{outline:none;border-color:#1e2d4e}
+
+  /* LICITACION GROUP */
+  .grupo{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);margin-bottom:14px;overflow:hidden}
+  .grupo-hdr{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;border-bottom:0.5px solid #e8eaf0;background:#f8f9fc;transition:background .15s;user-select:none}
+  .grupo-hdr:hover{background:#f0f2f8}
+  .grupo-toggle{font-size:12px;color:#9CA3AF;transition:transform .2s;flex-shrink:0}
+  .grupo-toggle.open{transform:rotate(90deg)}
+  .grupo-info{flex:1;min-width:0}
+  .grupo-title{font-size:14px;font-weight:600;color:#1e2d4e;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .grupo-meta{font-size:12px;color:#6B7280;margin-top:3px}
+  .grupo-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 9px;border-radius:999px}
+  .badge-orange{background:#FFF7ED;color:#92400E}
+  .badge-blue{background:#eef1f8;color:#1e2d4e}
+  .badge-green{background:#F0FDF4;color:#14532D}
+  .badge-gray{background:#F9FAFB;color:#6B7280;border:0.5px solid #e8eaf0}
+  .badge-red{background:#FEF2F2;color:#991B1B}
+  .ncot{font-size:13px;font-weight:700;color:#1e2d4e}
+
+  /* COTIZACIONES LIST */
+  .cotizaciónes-wrap{display:none}
+  .cotizaciónes-wrap.open{display:block}
+  .cotiz-row{display:flex;align-items:center;gap:12px;padding:13px 18px 13px 36px;border-bottom:0.5px solid #f3f4f6}
+  .cotiz-row:last-child{border-bottom:none}
+  .cotiz-rank{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+  .rank-1{background:#fbbf24;color:#fff}
+  .rank-2{background:#9CA3AF;color:#fff}
+  .rank-3{background:#CD7C2F;color:#fff}
+  .rank-n{background:#f3f4f6;color:#6B7280}
+  .cotiz-body{flex:1;min-width:0}
+  .cotiz-nombre{font-size:13px;font-weight:500;color:#111827}
+  .cotiz-meta{font-size:11px;color:#6B7280;margin-top:2px;display:flex;gap:10px;flex-wrap:wrap}
+  .cotiz-right{text-align:right;flex-shrink:0}
+  .cotiz-precio{font-size:15px;font-weight:700;color:#1d4ed8}
+  .cotiz-score{font-size:11px;color:#9CA3AF;margin-top:2px}
+  .score-bar-wrap{width:80px;height:5px;background:#e8eaf0;border-radius:3px;display:inline-block;vertical-align:middle;margin-left:4px}
+  .score-bar-fill{height:100%;border-radius:3px;background:#1e2d4e}
+  .tag{font-size:10px;font-weight:600;padding:1px 6px;border-radius:4px;margin-left:4px}
+  .tag-winner{background:#F0FDF4;color:#14532D}
+  .tag-sent{background:#eef1f8;color:#1e2d4e}
+
+  /* EMPTY */
+  .empty{text-align:center;padding:48px;color:#9CA3AF;font-size:13px}
+  .spinner{width:28px;height:28px;border:3px solid #e8eaf0;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite;margin:40px auto}
+  .btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;text-decoration:none;transition:opacity .15s}
+  .btn:hover{opacity:.88}
+  .btn-outline{background:transparent;border:0.5px solid #e8eaf0;color:#374151}
+  .btn-primary{background:#1e2d4e;color:#fff}
+</style>
+</head>
+<body>
+
+<div id="auth-guard">
+  <div style="text-align:center">
+    <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px">
+      <div style="background:#ff8904;border-radius:7px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:15px">T</div>
+      <span style="font-weight:700;color:#fff;font-size:18px">Trans<span style="color:#ff8904">Match</span></span>
+    </div>
+    <div class="gs" style="margin:0 auto"></div>
+  </div>
+</div>
+
+<div id="app">
+    <nav class="nav">
+    <div class="nav-left">
+      <a href="/admin.html" class="nav-logo">
+        <div class="nav-icon">T</div>
+        <span class="nav-name">Trans<span>Match</span></span>
+        <span class="nav-badge">ADMIN</span>
+      </a>
+            <div class="nav-tabs">
+        <a href="/admin.html" class="nav-tab">Dashboard</a>
+        <a href="/admin-licitaciones.html" class="nav-tab">Licitaciones</a>
+        <a href="/admin-cotizaciones.html" class="nav-tab active">Cotizaciones</a>
+        <a href="/admin-transportes.html" class="nav-tab">Transportes</a>
+        <a href="/admin-clientes.html" class="nav-tab">Clientes</a>
+        <a href="/admin-transportistas.html" class="nav-tab">Transportistas</a>
+        <a href="/admin-cobros.html" class="nav-tab">Facturación</a>
+        <a href="/admin-reportes.html" class="nav-tab">Reportes</a>
+      </div>
+      </div>
+    <button class="logout-btn" onclick="localStorage.clear();window.location.replace('/admin-login.html')">Cerrar sesion</button>
+  </nav>
+
+  <main>
+    <div class="page-hdr">
+      <div>
+        <div class="page-title">Historial de cotizaciónes</div>
+        <div class="page-sub">Todas las cotizaciónes recibidas, agrupadas por licitación</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline" onclick="exportarCSV()">Exportar CSV</button>
+        
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid-4" id="stats-grid">
+      <div class="stat"><div class="stat-label">Cargando...</div></div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filter-bar">
+      <select class="sel" id="fil-estado" onchange="filtrar()">
+        <option value="">Todos los estados</option>
+        <option value="pendiente_admin">Pendiente aprobacion</option>
+        <option value="abierta">Abierta</option>
+        <option value="cerrada">Cerrada</option>
+        <option value="adjudicada">Adjudicada</option>
+        <option value="completada">Completada</option>
+      </select>
+      <input class="srch" id="fil-buscar" placeholder="Buscar licitación, empresa o equipo..." oninput="filtrar()"/>
+      <label style="font-size:13px;color:#6B7280;display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="fil-solo-cotiz" onchange="filtrar()" style="accent-color:#1e2d4e"/>
+        Solo con cotizaciónes
+      </label>
+    </div>
+
+    <!-- Lista agrupada -->
+    <div id="lista-grupos"><div class="spinner"></div></div>
+  </main>
+</div>
+
+<script>
+  const API = 'https://transmatch.transmatchcl.workers.dev';
+  let allLicit = [];
+
+  function peso(n){ return n ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '--'; }
+  function fecha(iso){ return iso ? new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}) : '--'; }
+
+  function estadoBadge(e){
+    const m = {
+      pendiente_admin: ['badge-orange','Pendiente aprobacion'],
+      abierta:   ['badge-orange','Abierta'],
+      cerrada:   ['badge-blue','En revisión'],
+      adjudicada:['badge-blue','Adjudicada'],
+      completada:['badge-green','Completada'],
+      rechazada: ['badge-red','Rechazada'],
+    };
+    const [cls, lbl] = m[e] || ['badge-gray', e];
+    return '<span class="badge '+cls+'">'+lbl+'</span>';
+  }
+
+  async function cargar(){
+    document.getElementById('lista-grupos').innerHTML = '<div class="spinner"></div>';
+    try {
+      const r = await fetch(API+'/api/licitaciones', {headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+      if(r.status===401){localStorage.clear();window.location.replace('/admin-login.html');return;}
+      const d = await r.json();
+      allLicit = d.licitaciones || [];
+      renderStats();
+      filtrar();
+    } catch(e) {
+      document.getElementById('lista-grupos').innerHTML = '<div class="empty">Error al cargar. <button onclick="cargar()" style="color:#1d4ed8;background:none;border:none;cursor:pointer">Reintentar</button></div>';
+    }
+  }
+
+  function renderStats(){
+    const total     = allLicit.length;
+    const conCotiz  = allLicit.filter(l => (l.cotizaciones||[]).length > 0).length;
+    const totalCot  = allLicit.reduce((s,l) => s + (l.cotizaciones||[]).length, 0);
+    const adjudic   = allLicit.filter(l => l.adjudicadaA).length;
+    document.getElementById('stats-grid').innerHTML =
+      '<div class="stat"><div class="stat-label">Licitaciones totales</div><div class="stat-val" style="color:#1e2d4e">'+total+'</div></div>'+
+      '<div class="stat"><div class="stat-label">Con cotizaciones</div><div class="stat-val" style="color:#ff8904">'+conCotiz+'</div></div>'+
+      '<div class="stat"><div class="stat-label">Total cotizaciones</div><div class="stat-val" style="color:#1d4ed8">'+totalCot+'</div></div>'+
+      '<div class="stat"><div class="stat-label">Adjudicadas</div><div class="stat-val" style="color:#1ED24E">'+adjudic+'</div></div>';
+  }
+
+  function filtrar(){
+    const estado   = document.getElementById('fil-estado').value;
+    const q        = (document.getElementById('fil-buscar').value||'').toLowerCase();
+    const soloCotiz= document.getElementById('fil-solo-cotiz').checked;
+
+    let lista = allLicit;
+    if(estado)    lista = lista.filter(l => l.estado === estado);
+    if(q)         lista = lista.filter(l => (l.tipoEquipo+l.marca+l.origen+l.destino+l.clienteEmpresa+l.código).toLowerCase().includes(q));
+    if(soloCotiz) lista = lista.filter(l => (l.cotizaciones||[]).length > 0);
+
+    if(lista.length === 0){
+      document.getElementById('lista-grupos').innerHTML = '<div class="empty">Sin resultados para los filtros seleccionados</div>';
+      return;
+    }
+
+    document.getElementById('lista-grupos').innerHTML = lista.map((l,gi) => renderGrupo(l, gi)).join('');
+  }
+
+  function renderGrupo(l, gi){
+    const cotizaciones = (l.cotizaciones || []).sort((a,b) => (b.score||0)-(a.score||0));
+    const nCot = cotizaciones.length;
+    const adjId = l.adjudicadaA ? l.adjudicadaA.cotizacionId : null;
+
+    const cotizHTML = nCot === 0
+      ? '<div style="padding:16px 18px 16px 36px;font-size:13px;color:#9CA3AF">Sin cotizaciones recibidas</div>'
+      : cotizaciones.map((c, i) => {
+          const sc         = Math.round((c.score||0)*100);
+          const esGanadora = adjId && c.id === adjId;
+          const fueSent    = l.cotizacionesEnviadas && l.cotizacionesEnviadas.includes(c.id);
+          const rankCls    = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-n';
+          // Store cotizacion data for modal
+          const key = 'cdata_'+gi+'_'+i;
+          window._cotizStore = window._cotizStore || {};
+          window._cotizStore[key] = {c, esGanadora, licit:{
+            código: l.código, equipo: l.tipoEquipo+(l.marca?' - '+l.marca:''),
+            ruta: l.origen+' -> '+l.destino, clienteEmpresa: l.clienteEmpresa
+          }};
+          return '<div class="cotiz-row" style="cursor:pointer" onclick="abrirModal(\''+key+'\')">' +
+            '<div class="cotiz-rank '+rankCls+'">'+(i+1)+'</div>'+
+            '<div class="cotiz-body">'+
+              '<div class="cotiz-nombre">'+
+                (c.código?'<span style="font-size:10px;font-family:monospace;color:#9CA3AF;margin-right:4px">'+c.código+'</span>':'')+
+                (c.transportistaNombre||'—')+' — '+(c.transportistaEmpresa||'—')+
+                (esGanadora?'<span class="tag tag-winner">Adjudicado</span>':'')+
+                (fueSent&&!esGanadora?'<span class="tag tag-sent">Enviado al cliente</span>':'')+
+              '</div>'+
+              '<div class="cotiz-meta">'+
+                '<span>Entrega: '+(c.tiempoEntrega||'--')+'</span>'+
+                '<span>Rating: ★'+(c.transportistaRating||5)+'</span>'+
+                '<span>Resp: '+(c.tiempoRespuesta||'--')+'min</span>'+
+                (c.descripción?'<span style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+c.descripción+'</span>':'')+
+              '</div>'+
+            '</div>'+
+            '<div class="cotiz-right">'+
+              '<div class="cotiz-precio">'+peso(c.precio)+'</div>'+
+              '<div class="cotiz-score">Score: '+sc+'%'+
+                '<span class="score-bar-wrap"><span class="score-bar-fill" style="width:'+sc+'%"></span></span>'+
+              '</div>'+
+            '</div>'+
+          '</div>';
+        }).join('');
+
+    return '<div class="grupo">'+
+      '<div class="grupo-hdr" onclick="toggleGrupo('+gi+',this)">'+
+        '<span class="grupo-toggle" id="toggle-'+gi+'">▶</span>'+
+        '<div class="grupo-info">'+
+          '<div class="grupo-title">'+
+            (l.código ? '<span style="font-size:11px;font-family:monospace;color:#9CA3AF;font-weight:600">'+l.código+'</span>' : '')+
+            '<span>'+l.tipoEquipo+(l.marca?' — '+l.marca:'')+'</span>'+
+            estadoBadge(l.estado)+
+          '</div>'+
+          '<div class="grupo-meta">'+
+            (l.clienteEmpresa||'--')+' &nbsp;·&nbsp; '+l.origen+' → '+l.destino+' &nbsp;·&nbsp; '+fecha(l.createdAt)+
+          '</div>'+
+        '</div>'+
+        '<div class="grupo-right">'+
+          '<span class="ncot">'+nCot+' cotizacion'+(nCot!==1?'es':'')+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<div class="cotizaciones-wrap" id="cotiz-wrap-'+gi+'">'+cotizHTML+'</div>'+
+    '</div>';
+  }
+
+  function toggleGrupo(gi, hdrEl){
+    const wrap   = document.getElementById('cotiz-wrap-'+gi);
+    const toggle = document.getElementById('toggle-'+gi);
+    const isOpen = wrap.classList.contains('open');
+    wrap.classList.toggle('open', !isOpen);
+    toggle.classList.toggle('open', !isOpen);
+  }
+
+  function exportarCSV(){
+    const rows = [['Licitacion','Codigo Licit','Cliente','Equipo','Origen','Destino','Estado Licit',
+      'Codigo Cotiz','Transportista','Precio','Entrega','Rating','Score','Adjudicada','Fecha']];
+    allLicit.forEach(l => {
+      const cotizaciones = l.cotizaciones || [];
+      if(cotizaciones.length === 0){
+        rows.push([l.id, l.código||'', l.clienteEmpresa||'', (l.tipoEquipo||'')+(l.marca?' - '+l.marca:''),
+          l.origen||'', l.destino||'', l.estado||'', '','','','','','','No', fecha(l.createdAt)]);
+      } else {
+        cotizaciones.forEach(c => {
+          const esGan = l.adjudicadaA && l.adjudicadaA.cotizacionId === c.id;
+          rows.push([l.id, l.código||'', l.clienteEmpresa||'', (l.tipoEquipo||'')+(l.marca?' - '+l.marca:''),
+            l.origen||'', l.destino||'', l.estado||'',
+            c.código||'', (c.transportistaNombre||'—')+' / '+(c.transportistaEmpresa||'—'), c.precio||'', c.tiempoEntrega||'',
+            c.transportistaRating||5, Math.round((c.score||0)*100)+'%', esGan?'Si':'No', fecha(c.createdAt)]);
+        });
+      }
+    });
+    const csv = rows.map(r => r.map(v => '"'+String(v||'').split('"').join('""')+'"').join(',')).join('\n');
+    const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = 'TransMatch_Cotizaciones_'+new Date().toISOString().split('T')[0]+'.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function abrirModal(key){
+    const store = window._cotizStore || {};
+    const entry = store[key];
+    if(!entry){ console.error('No data for key:', key); return; }
+    const {c, esGanadora, licit} = entry;
+    const sc = Math.round((c.score||0)*100);
+
+    document.getElementById('mc-titulo').textContent =
+      (licit.equipo||'Cotizacion') + (esGanadora ? ' — Adjudicada' : '');
+    document.getElementById('mc-código').textContent =
+      (c.código||'--') + (licit.código ? '  /  ' + licit.código : '');
+
+    const items = [
+      ['Licitacion',          licit.código + ' — ' + licit.equipo],
+      ['Ruta',                licit.ruta],
+      ['Cliente',             licit.clienteEmpresa||'--'],
+      ['Transportista', (c.transportistaNombre||'—')+' · '+(c.transportistaEmpresa||'—')],
+      ['Precio ofrecido',     peso(c.precio)],
+      ['Tiempo entrega',      c.tiempoEntrega||'--'],
+      ['Tiempo respuesta',    (c.tiempoRespuesta||'--') + ' min'],
+      ['Rating transportista','★ ' + (c.transportistaRating||5)],
+      ['Score algoritmo',     sc + '%'],
+      ['Adjudicada',          esGanadora ? 'Si' : 'No'],
+      ['Fecha cotizacion',    fecha(c.createdAt)],
+    ];
+
+    let html = items.map(function(row){
+      return '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #f3f4f6;font-size:13px">'+
+        '<span style="color:#6B7280">'+row[0]+'</span>'+
+        '<span style="font-weight:500;color:#111827;text-align:right;max-width:60%">'+row[1]+'</span>'+
+        '</div>';
+    }).join('');
+
+    html += '<div style="margin-top:14px">'+
+      '<div style="font-size:12px;color:#6B7280;margin-bottom:6px">Score (Precio 50% · Fecha 30% · Valoracion 20%)</div>'+
+      '<div style="height:8px;background:#e8eaf0;border-radius:4px;overflow:hidden">'+
+      '<div style="height:100%;width:'+sc+'%;background:#1e2d4e;border-radius:4px"></div></div>'+
+      '<div style="font-size:12px;color:#9CA3AF;margin-top:4px">'+sc+'% de 100%</div></div>';
+
+    if(c.descripción){
+      html += '<div style="margin-top:14px;background:#f8f9fc;border-radius:8px;padding:12px;font-size:13px;color:#374151;line-height:1.6">'+
+        '<div style="font-size:11px;font-weight:600;color:#9CA3AF;margin-bottom:6px">DESCRIPCION</div>'+
+        c.descripción+'</div>';
+    }
+
+    if(c.archivoId){
+      html += '<div style="margin-top:14px">'+
+        '<button data-aid="'+c.archivoId+'" data-anombre="'+(c.archivoNombre||'propuesta')+'" '+
+        'onclick="descargarArchivoModal(this.dataset.aid,this.dataset.anombre)" '+
+        'style="padding:9px 16px;background:#eef1f8;color:#1e2d4e;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;width:100%">'+
+        'Descargar propuesta tecnica</button></div>';
+    }
+
+    document.getElementById('mc-body').innerHTML = html;
+    document.getElementById('modal-cotiz').style.display = 'flex';
+  }
+
+  function cerrarModal(){
+    document.getElementById('modal-cotiz').style.display = 'none';
+  }
+
+  async function descargarArchivoModal(id, nombre){
+    try{
+      const r = await fetch(API+'/api/archivos/'+id, {headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+      const d = await r.json();
+      const byteStr = atob(d.base64);
+      const arr = new Uint8Array(byteStr.length);
+      for(let i=0;i<byteStr.length;i++) arr[i]=byteStr.charCodeAt(i);
+      const blob = new Blob([arr], {type:d.mimeType||'application/octet-stream'});
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href=url; a.download=nombre||d.nombre||'archivo'; a.click();
+      URL.revokeObjectURL(url);
+    }catch(e){ alert('Error al descargar el archivo'); }
+  }
+
+  // Auth init
+  (function(){
+    const token = localStorage.getItem('tm_token');
+    const role  = localStorage.getItem('tm_role');
+    if(!token || role !== 'admin'){window.location.replace('/admin-login.html');return;}
+    document.getElementById('auth-guard').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    cargar();
+  })();
+</script>
+
+<!-- Modal detalle cotización -->
+<div id="modal-cotiz" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:14px;padding:24px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;position:relative">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+      <div>
+        <div style="font-size:16px;font-weight:600;color:#1e2d4e" id="mc-titulo">--</div>
+        <div style="font-size:12px;color:#9CA3AF;margin-top:3px" id="mc-código">--</div>
+      </div>
+      <button onclick="cerrarModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6B7280;line-height:1">x</button>
+    </div>
+    <div id="mc-body"></div>
+  </div>
+</div>
+
+<footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <!-- Logo -->
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px">T</div>
+        <span style="font-weight:700;color:#fff;font-size:15px">Trans<span style="color:#ff8904">Match</span></span>
+      </div>
+      <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+    </div>
+    <!-- Links -->
+    <div style="display:flex;gap:32px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <a href="/términos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Términos y condiciones</a>
+          <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Política de privacidad</a>
+          <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Centro de ayuda</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;color:#CBD5E1"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="54373b3a203537203b142026353a27393520373c7a3738">[email&#160;protected]</a></span>
+          <span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <span>© 2026 TransMatch SpA. T

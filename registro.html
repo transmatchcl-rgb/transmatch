@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch — Crear cuenta</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--blue:#1d4ed8;--blue-dk:#1e40af;--blue-lt:#EFF6FF;--orange:#FF8904;--navy:#1e2d4e;--gray:#6B7280;--gray-md:#E5E7EB;--text:#111827;--white:#fff}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f7fb;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:28px}
+.logo-icon{background:var(--orange);border-radius:10px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:900;color:#fff}
+.logo-name{font-size:22px;font-weight:700;color:var(--navy)}.logo-name span{color:var(--orange)}
+.card{background:#fff;border-radius:16px;border:0.5px solid var(--gray-md);padding:28px 32px;width:100%;max-width:480px;box-shadow:0 2px 12px rgba(30,45,78,.06)}
+.card-title{font-size:18px;font-weight:700;color:var(--navy);margin-bottom:4px}
+.card-sub{font-size:13px;color:var(--gray);margin-bottom:22px;line-height:1.5}
+
+/* Stepper */
+.stepper{display:flex;align-items:center;gap:0;margin-bottom:24px}
+.step{display:flex;align-items:center;flex:1}
+.step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;transition:all .2s}
+.step-dot.active{background:var(--navy);color:#fff}
+.step-dot.done{background:#1ED24E;color:#fff}
+.step-dot.pending{background:#e8eaf0;color:#9CA3AF}
+.step-label{font-size:11px;font-weight:500;margin-left:6px;color:#9CA3AF;white-space:nowrap}
+.step-label.active{color:var(--navy)}
+.step-line{flex:1;height:2px;background:#e8eaf0;margin:0 8px}
+.step-line.done{background:#1ED24E}
+
+/* Forms */
+.form-group{margin-bottom:14px}
+label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px}
+input,select,textarea{width:100%;padding:9px 13px;border:1px solid var(--gray-md);border-radius:8px;font-size:13px;color:var(--text);background:#fff;transition:border-color .15s;font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(30,45,78,.08)}
+input:disabled{background:#f5f7fb;color:#9CA3AF}
+textarea{resize:vertical;min-height:72px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:480px){.grid2{grid-template-columns:1fr}}
+.fg-full{grid-column:1/-1}
+
+/* Role selector */
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.role-btn{padding:14px 10px;border-radius:10px;border:1.5px solid var(--gray-md);cursor:pointer;text-align:center;transition:all .15s;background:#fff}
+.role-btn.selected{border-color:var(--navy);background:var(--blue-lt)}
+.role-btn .role-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.role-btn .role-desc{font-size:11px;color:var(--gray)}
+
+/* Checkboxes industria/zona */
+.check-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.check-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--gray-md);border-radius:7px;cursor:pointer;transition:all .15s;font-size:12px;color:#374151;font-weight:500}
+.check-item:hover{border-color:var(--navy);background:#f8f9fc}
+.check-item input[type=checkbox]{width:15px;height:15px;accent-color:var(--navy);flex-shrink:0;cursor:pointer}
+.check-item.selected{border-color:var(--navy);background:var(--blue-lt)}
+
+/* Equipos transportista */
+.equipo-check{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--gray-md);border-radius:8px;cursor:pointer;transition:all .15s;margin-bottom:6px}
+.equipo-check:hover{border-color:var(--navy);background:#f8f9fc}
+.equipo-check input{width:16px;height:16px;accent-color:var(--navy);cursor:pointer;flex-shrink:0}
+.equipo-check.selected{border-color:var(--navy);background:var(--blue-lt)}
+.equipo-check .eq-name{font-size:13px;font-weight:500;color:var(--text)}
+.equipo-check .eq-sub{font-size:11px;color:var(--gray);margin-top:1px}
+
+/* Botones */
+.btn{width:100%;padding:11px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover{opacity:.88}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn-primary{background:var(--navy);color:#fff}
+.btn-orange{background:var(--orange);color:#fff}
+.btn-outline{background:#fff;border:1px solid var(--gray-md);color:#374151}
+.btn-sm{padding:8px 16px;font-size:13px;width:auto}
+.btns-row{display:flex;gap:10px;margin-top:4px}
+
+/* Alerta */
+.alert{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;display:none;line-height:1.4}
+.alert-err{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA}
+.alert-ok{background:#F0FDF4;color:#14532D;border:1px solid #BBF7D0}
+
+/* Password reqs */
+.pass-req{font-size:11px;margin-bottom:2px;color:#9CA3AF}
+.pass-req.ok{color:#16a34a}
+
+/* TyC */
+.tyc-row{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:#f8f9fc;border-radius:8px;border:1px solid #e8eaf0;margin-bottom:14px}
+.tyc-row input{width:16px;height:16px;margin-top:2px;accent-color:var(--navy);cursor:pointer;flex-shrink:0}
+.tyc-row label{font-size:12px;color:#6B7280;cursor:pointer;line-height:1.5}
+
+/* Footer link */
+.footer-link{text-align:center;margin-top:16px;font-size:13px;color:var(--gray)}
+.footer-link a{color:var(--navy);font-weight:600;text-decoration:none;cursor:pointer}
+
+/* Back link */
+.back-link{display:flex;align-items:center;gap:6px;color:#6B7280;text-decoration:none;font-size:13px;margin-bottom:16px}
+.back-link:hover{color:var(--navy)}
+
+/* Invitación */
+.inv-banner{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:16px 20px;margin-bottom:20px;max-width:480px;width:100%;text-align:center;display:none}
+
+/* Spinner */
+.spinner-btn{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Sección label */
+.section-label{font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin:18px 0 10px;padding-top:14px;border-top:0.5px solid #e8eaf0}
+.section-label:first-child{margin-top:0;border-top:none;padding-top:0}
+</style>
+</head>
+<body>
+
+<!-- Banner invitación -->
+<div class="inv-banner" id="inv-banner">
+  <div style="font-size:14px;font-weight:700;color:#1e2d4e;margin-bottom:4px" id="inv-empresa-label">Fuiste invitado a TransMatch</div>
+  <div style="font-size:13px;color:#6B7280" id="inv-email-label">Crea tu contraseña para comenzar</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     FORMULARIO INVITACIÓN
+════════════════════════════════════════════════ -->
+<div id="screen-invitacion" style="display:none;width:100%;max-width:420px">
+  <div class="logo" style="justify-content:center">
+    <div class="logo-icon">T</div>
+    <span class="logo-name">Trans<span>Match</span></span>
+  </div>
+  <div class="card">
+    <div class="card-title">Crear tu cuenta</div>
+    <div class="card-sub" id="inv-sub">Completa tus datos para unirte a la empresa</div>
+    <div id="alert-inv" class="alert alert-err"></div>
+    <div class="form-group"><label>Tu nombre completo *</label><input type="text" id="inv-nombre" placeholder="Nombre y apellido"/></div>
+    <div class="form-group"><label>Contraseña *</label>
+      <div style="position:relative"><input type="password" id="inv-password" placeholder="Mínimo 8 caracteres" style="padding-right:40px" oninput="checkPassInv()"/>
+        <button type="button" onclick="togglePassEl('inv-password',this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:15px;padding:0">&#128065;</button>
+      </div>
+    </div>
+    <div class="form-group"><label>Confirmar contraseña *</label>
+      <div style="position:relative"><input type="password" id="inv-password2" placeholder="Repite tu contraseña" style="padding-right:40px"/>
+        <button type="button" onclick="togglePassEl('inv-password2',this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:15px;padding:0">&#128065;</button>
+      </div>
+    </div>
+    <button class="btn btn-orange" id="btn-aceptar-inv" onclick="aceptarInvitacion()">Crear cuenta y acceder</button>
+    <div class="footer-link"><a href="/index.html">Ya tengo cuenta, iniciar sesión</a></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     REGISTRO NORMAL
+════════════════════════════════════════════════ -->
+<div id="screen-registro" style="width:100%;max-width:480px">
+
+  <a href="/index.html" class="back-link">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Volver al inicio
+  </a>
+
+  <div class="logo" style="justify-content:center">
+    <div class="logo-icon">T</div>
+    <span class="logo-name">Trans<span>Match</span></span>
+  </div>
+
+  <!-- PASO 0: elegir rol -->
+  <div id="paso-rol">
+    <div class="card">
+      <div class="card-title">Crear cuenta</div>
+      <div class="card-sub">¿Cómo quieres usar TransMatch?</div>
+      <div class="role-grid">
+        <div class="role-btn selected" id="role-btn-mandante" onclick="elegirRol('mandante',this)">
+          <div class="role-name">Mandante / Generador de Carga</div>
+          <div class="role-desc">Publica tus requerimientos y recibe cotizaciones de transportistas verificados</div>
+        </div>
+        <div class="role-btn" id="role-btn-transportista" onclick="elegirRol('transportista',this)">
+          <div class="role-name">Transportista</div>
+          <div class="role-desc">Accede a licitaciones de carga y aumenta tus ingresos</div>
+        </div>
+      </div>
+      <button class="btn btn-orange" onclick="irAPaso1()">Continuar</button>
+      <div class="footer-link"><a href="/index.html">Ya tengo cuenta</a></div>
+    </div>
+  </div>
+
+  <!-- PASO 1: datos básicos -->
+  <div id="paso-1" style="display:none">
+    <div class="card">
+      <!-- Stepper -->
+      <div class="stepper" id="stepper-1"></div>
+      <div id="alert-reg" class="alert alert-err"></div>
+
+      <!-- Empresa -->
+      <div class="section-label">Empresa</div>
+      <div class="grid2">
+        <div class="form-group fg-full"><label>Razón social *</label><input type="text" id="reg-empresa" placeholder="Ej: Minera Atacama SpA"/></div>
+        <div class="form-group fg-full"><label>RUT empresa *</label><input type="text" id="reg-rut-empresa" placeholder="76.123.456-7" oninput="formatRutInput(this)"/></div>
+      </div>
+
+      <!-- Usuario principal -->
+      <div class="section-label">Tu información</div>
+      <div class="grid2">
+        <div class="form-group fg-full"><label>Nombre completo *</label><input type="text" id="reg-nombre" placeholder="Nombre y apellido"/></div>
+        <div class="form-group"><label>Cargo *</label><input type="text" id="reg-cargo" placeholder="Ej: Gerente de operaciones"/></div>
+        <div class="form-group"><label>Email corporativo *</label><input type="email" id="reg-email" placeholder="correo@empresa.cl"/></div>
+        <div class="form-group"><label>Teléfono *</label><input type="tel" id="reg-telefono" placeholder="+56 9 XXXX XXXX"/></div>
+      </div>
+
+      <!-- Contraseña -->
+      <div class="section-label">Seguridad</div>
+      <div class="form-group">
+        <label>Contraseña *</label>
+        <div style="position:relative"><input type="password" id="reg-password" placeholder="Mínimo 8 caracteres" style="padding-right:40px" oninput="checkPassReg()"/>
+          <button type="button" onclick="togglePassEl('reg-password',this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:15px;padding:0">&#128065;</button>
+        </div>
+        <div id="pass-reqs-reg" style="margin-top:7px;background:#f8f9fc;border-radius:7px;padding:8px 10px;font-size:11px;display:none">
+          <div id="preq-len"  class="pass-req">✕ Mínimo 8 caracteres</div>
+          <div id="preq-up"   class="pass-req">✕ Al menos una mayúscula</div>
+          <div id="preq-lo"   class="pass-req">✕ Al menos una minúscula</div>
+          <div id="preq-num"  class="pass-req">✕ Al menos un número</div>
+          <div id="preq-sym"  class="pass-req">✕ Al menos un carácter especial</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Confirmar contraseña *</label>
+        <div style="position:relative"><input type="password" id="reg-password2" placeholder="Repite tu contraseña" style="padding-right:40px"/>
+          <button type="button" onclick="togglePassEl('reg-password2',this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:15px;padding:0">&#128065;</button>
+        </div>
+      </div>
+
+      <!-- Operación específica por rol -->
+      <div id="bloque-cliente" style="display:none">
+        <div class="section-label">Industria</div>
+        <p style="font-size:12px;color:#6B7280;margin-bottom:10px">Selecciona tu industria principal</p>
+        <div class="check-grid" id="industria-grid">
+          <label class="check-item"><input type="checkbox" value="Minería"/> Minería</label>
+          <label class="check-item"><input type="checkbox" value="Construcción"/> Construcción</label>
+          <label class="check-item"><input type="checkbox" value="Energía"/> Energía</label>
+          <label class="check-item"><input type="checkbox" value="Industrial"/> Industrial</label>
+          <label class="check-item"><input type="checkbox" value="Forestal"/> Forestal</label>
+          <label class="check-item"><input type="checkbox" value="Otro"/> Otro</label>
+        </div>
+      </div>
+
+      <div id="bloque-transportista" style="display:none">
+        <div class="section-label">Zona principal de operación</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+          <label class="check-item" id="zona-norte-card"><input type="checkbox" id="zona-norte" value="norte"/> <div><div style="font-size:12px;font-weight:600;color:#374151">Zona Norte</div><div style="font-size:11px;color:#9CA3AF">Arica, Tarapacá, Antofagasta, Atacama</div></div></label>
+          <label class="check-item" id="zona-centro-card"><input type="checkbox" id="zona-centro" value="centro"/> <div><div style="font-size:12px;font-weight:600;color:#374151">Zona Centro</div><div style="font-size:11px;color:#9CA3AF">Coquimbo, Valparaíso, Metropolitana, O'Higgins, Maule</div></div></label>
+          <label class="check-item" id="zona-sur-card"><input type="checkbox" id="zona-sur" value="sur"/> <div><div style="font-size:12px;font-weight:600;color:#374151">Zona Sur</div><div style="font-size:11px;color:#9CA3AF">Biobío, Araucanía, Los Ríos, Los Lagos, Aysén, Magallanes</div></div></label>
+          <label class="check-item"><input type="checkbox" id="zona-otras" value="otras"/> <div><div style="font-size:12px;font-weight:600;color:#374151">Abierto a otras zonas</div><div style="font-size:11px;color:#9CA3AF">Acepto solicitudes fuera de mis zonas principales</div></div></label>
+        </div>
+
+        <div class="section-label">Equipos que opero</div>
+        <p style="font-size:12px;color:#6B7280;margin-bottom:10px">Selecciona los tipos de equipo con los que trabajas</p>
+        <div id="equipos-reg" style="display:flex;flex-direction:column;gap:6px">
+          <label class="equipo-check"><input type="checkbox" value="Cama baja estandar (40 - 60 ton)"/><div><div class="eq-name">Cama baja estándar</div><div class="eq-sub">40 - 60 ton</div></div></label>
+          <label class="equipo-check"><input type="checkbox" value="Cama baja reforzada (60 - 100 ton)"/><div><div class="eq-name">Cama baja reforzada</div><div class="eq-sub">60 - 100 ton</div></div></label>
+          <label class="equipo-check"><input type="checkbox" value="Cama baja super reforzada / modular (+100 ton)"/><div><div class="eq-name">Cama baja super reforzada / modular</div><div class="eq-sub">+100 ton</div></div></label>
+          <label class="equipo-check"><input type="checkbox" value="Plataforma abierta"/><div><div class="eq-name">Plataforma abierta</div></div></label>
+          <label class="equipo-check"><input type="checkbox" value="Plataforma con baranda"/><div><div class="eq-name">Plataforma con baranda</div></div></label>
+          <label class="equipo-check"><input type="checkbox" value="Camion pluma"/><div><div class="eq-name">Camión pluma</div></div></label>
+          <label class="equipo-check" id="otro-equipo-card"><input type="checkbox" value="otro" onchange="toggleOtroEquipo(this)"/><div><div class="eq-name">Otro</div><div class="eq-sub">Especificar</div></div></label>
+        </div>
+        <div id="otro-equipo-input" style="display:none;margin-top:8px">
+          <input type="text" id="reg-otro-equipo" placeholder="Describe el tipo de equipo..." style="font-size:13px"/>
+          <div style="font-size:11px;color:#9CA3AF;margin-top:4px">El equipo quedará pendiente de aprobación por TransMatch.</div>
+        </div>
+      </div>
+
+      <!-- TyC -->
+      <div class="tyc-row" style="margin-top:16px">
+        <input type="checkbox" id="reg-tyc"/>
+        <label for="reg-tyc">He leído y acepto los <a href="/terminos.html" target="_blank" style="color:#1d4ed8;text-decoration:underline">Términos y Condiciones</a> y la <a href="/privacidad.html" target="_blank" style="color:#1d4ed8;text-decoration:underline">Política de Privacidad</a> de TransMatch.</label>
+      </div>
+
+      <div class="btns-row">
+        <button class="btn btn-outline btn-sm" onclick="irARol()" style="flex:0 0 auto">Atrás</button>
+        <button class="btn btn-orange" id="btn-register" onclick="register()">Crear cuenta</button>
+      </div>
+      <div class="footer-link"><a href="/index.html">Ya tengo cuenta, iniciar sesión</a></div>
+    </div>
+  </div>
+
+</div><!-- fin screen-registro -->
+
+<script>
+var API = 'https://transmatch.transmatchcl.workers.dev';
+var selectedRole = 'mandante';
+var _invToken = null;
+
+// ── TOGGLES UI ────────────────────────────────────────────────
+function togglePassEl(id, btn){
+  var inp = document.getElementById(id);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.style.color = inp.type === 'text' ? '#1e2d4e' : '#9CA3AF';
+}
+
+function togglePass(id, btn){ togglePassEl(id, btn); }
+
+// ── STEPPER ───────────────────────────────────────────────────
+function renderStepper(containerId, steps, current){
+  var el = document.getElementById(containerId);
+  if(!el) return;
+  var html = '';
+  steps.forEach(function(s, i){
+    var cls = i < current ? 'done' : (i === current ? 'active' : 'pending');
+    html += '<div class="step">'
+      + (i > 0 ? '<div class="step-line'+(i <= current ? ' done' : '')+'"></div>' : '')
+      + '<div class="step-dot '+cls+'">'+(i < current ? '✓' : (i+1))+'</div>'
+      + '<span class="step-label'+(cls==='active'?' active':'')+'">'+s+'</span>'
+      + '</div>';
+  });
+  el.innerHTML = html;
+}
+
+// ── ROL ───────────────────────────────────────────────────────
+function elegirRol(rol, btn){
+  selectedRole = rol;
+  document.getElementById('role-btn-mandante').classList.toggle('selected', rol==='mandante');
+  document.getElementById('role-btn-transportista').classList.toggle('selected', rol==='transportista');
+}
+
+function irARol(){
+  document.getElementById('paso-rol').style.display='block';
+  document.getElementById('paso-1').style.display='none';
+}
+
+function irAPaso1(){
+  document.getElementById('paso-rol').style.display='none';
+  document.getElementById('paso-1').style.display='block';
+  document.getElementById('bloque-cliente').style.display = selectedRole==='mandante'?'block':'none';
+  document.getElementById('bloque-transportista').style.display = selectedRole==='transportista'?'block':'none';
+  var steps = selectedRole==='mandante'
+    ? ['Cuenta','Perfil empresa','Facturación']
+    : ['Cuenta','Perfil empresa','Equipos','Documentos'];
+  renderStepper('stepper-1', steps, 0);
+  document.getElementById('alert-reg').style.display='none';
+}
+
+// ── CHECKBOX STYLING ──────────────────────────────────────────
+document.addEventListener('change', function(e){
+  var item = e.target.closest('.check-item, .equipo-check');
+  if(item && e.target.type==='checkbox'){
+    item.classList.toggle('selected', e.target.checked);
+  }
+});
+
+function toggleOtroEquipo(cb){
+  document.getElementById('otro-equipo-input').style.display = cb.checked ? 'block' : 'none';
+}
+
+// ── VALIDACIÓN CONTRASEÑA ─────────────────────────────────────
+function checkPassReg(){ checkPassBase('reg-password','pass-reqs-reg','preq-len','preq-up','preq-lo','preq-num','preq-sym'); }
+function checkPassInv(){ /* sin indicadores en invitación */ }
+
+function checkPassBase(inputId, reqdId, lenId, upId, loId, numId, symId){
+  var v = document.getElementById(inputId).value;
+  document.getElementById(reqdId).style.display = v ? 'block' : 'none';
+  function set(id, ok){ var el=document.getElementById(id); if(!el)return; el.classList.toggle('ok',ok); el.textContent=(ok?'✓':'✕')+el.textContent.slice(1); }
+  set(lenId, v.length>=8);
+  set(upId, /[A-Z]/.test(v));
+  set(loId, /[a-z]/.test(v));
+  set(numId, /[0-9]/.test(v));
+  set(symId, /[^a-zA-Z0-9]/.test(v));
+}
+
+function validarPass(pw){
+  return pw.length>=8 && /[A-Z]/.test(pw) && /[a-z]/.test(pw) && /[0-9]/.test(pw) && /[^a-zA-Z0-9]/.test(pw);
+}
+
+// ── FORMAT RUT ────────────────────────────────────────────────
+function formatRutInput(input){
+  var v = input.value.replace(/[^0-9kK]/g,'').toUpperCase();
+  if(v.length<=1){input.value=v;return;}
+  var dv=v.slice(-1), num=v.slice(0,-1), fmt='', c=0;
+  for(var i=num.length-1;i>=0;i--){fmt=num[i]+fmt;c++;if(c%3===0&&i!==0)fmt='.'+fmt;}
+  input.value=fmt+'-'+dv;
+}
+
+// ── ALERTA ────────────────────────────────────────────────────
+function showAlert(msg, type){
+  var el=document.getElementById('alert-reg');
+  el.textContent=msg; el.className='alert '+(type==='error'?'alert-err':'alert-ok');
+  el.style.display='block';
+}
+
+// ── REGISTRO ──────────────────────────────────────────────────
+async function register(){
+  var nombre   = (document.getElementById('reg-nombre').value||'').trim();
+  var empresa  = (document.getElementById('reg-empresa').value||'').trim();
+  var rutEmp   = (document.getElementById('reg-rut-empresa').value||'').trim();
+  var cargo    = (document.getElementById('reg-cargo').value||'').trim();
+  var email    = (document.getElementById('reg-email').value||'').trim();
+  var telefono = (document.getElementById('reg-telefono').value||'').trim();
+  var password = document.getElementById('reg-password').value;
+  var password2= document.getElementById('reg-password2').value;
+
+  document.getElementById('alert-reg').style.display='none';
+
+  if(!empresa||!rutEmp) return showAlert('Ingresa la razón social y RUT de la empresa','error');
+  if(!nombre||!cargo||!email||!telefono) return showAlert('Completa todos tus datos personales','error');
+  if(!validarPass(password)) return showAlert('La contraseña no cumple los requisitos de seguridad','error');
+  if(password!==password2) return showAlert('Las contraseñas no coinciden','error');
+  if(!document.getElementById('reg-tyc').checked) return showAlert('Debes aceptar los términos y condiciones','error');
+
+  // Recolectar datos adicionales por rol
+  var extra = {};
+  if(selectedRole==='mandante'){
+    var industrias=[];
+    document.querySelectorAll('#industria-grid input[type=checkbox]:checked').forEach(function(cb){ industrias.push(cb.value); });
+    extra.industrias = industrias;
+  } else {
+    var zonas=[];
+    ['norte','centro','sur','otras'].forEach(function(z){ var el=document.getElementById('zona-'+z); if(el&&el.checked) zonas.push(z); });
+    extra.zonas = zonas;
+    var tiposEquipo=[];
+    document.querySelectorAll('#equipos-reg input[type=checkbox]:checked').forEach(function(cb){
+      if(cb.value!=='otro') tiposEquipo.push(cb.value);
+    });
+    var otroCb = document.querySelector('#equipos-reg input[value="otro"]');
+    if(otroCb&&otroCb.checked){
+      var otroTexto=(document.getElementById('reg-otro-equipo').value||'').trim();
+      if(otroTexto) extra.otroEquipoPendiente = otroTexto;
+    }
+    extra.tiposEquipo = tiposEquipo;
+  }
+
+  var btn=document.getElementById('btn-register');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner-btn"></span> Creando cuenta...';
+
+  var roleNorm = selectedRole==='mandante'?'cliente':selectedRole;
+  var body = { nombre, empresa, rutEmpresa:rutEmp, cargo, email, telefono, password,
+    role:selectedRole, ...extra };
+
+  try{
+    var res = await fetch(API+'/api/auth/register',{
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+    });
+    var data = await res.json();
+    if(res.ok){
+      localStorage.setItem('tm_token',   data.token);
+      localStorage.setItem('tm_role',    data.user.role);
+      localStorage.setItem('tm_nombre',  data.user.nombre);
+      localStorage.setItem('tm_empresa', data.user.empresa);
+      localStorage.setItem('tm_email',   data.user.email);
+      localStorage.setItem('tm_plan',    data.user.plan||'basico');
+      if(data.user.role==='transportista') window.location.replace('/transportista.html');
+      else window.location.replace('/bienvenida.html');
+    } else if(data.error&&data.error.toLowerCase().includes('ya est')){
+      showAlert('Este email ya está registrado. Inicia sesión.','error');
+      setTimeout(function(){ window.location.href='/login.html'; },2000);
+      btn.disabled=false; btn.textContent='Crear cuenta';
+    } else {
+      showAlert(data.error||'Error al crear la cuenta','error');
+      btn.disabled=false; btn.textContent='Crear cuenta';
+    }
+  }catch(e){
+    showAlert('Error de conexión. Intenta nuevamente.','error');
+    btn.disabled=false; btn.textContent='Crear cuenta';
+  }
+}
+
+// ── FLUJO INVITACIÓN ──────────────────────────────────────────
+(async function detectarInvitacion(){
+  var params = new URLSearchParams(window.location.search);
+  var token = params.get('invitacion');
+  if(!token) return;
+  _invToken = token;
+  document.getElementById('screen-registro').style.display='none';
+  document.getElementById('inv-banner').style.display='block';
+  document.getElementById('screen-invitacion').style.display='block';
+  try{
+    var res = await fetch(API+'/api/invitacion/'+token);
+    var data = await res.json();
+    if(!res.ok){
+      document.getElementById('inv-empresa-label').textContent = data.error||'Invitación inválida o expirada';
+      document.getElementById('inv-email-label').textContent='';
+      document.getElementById('screen-invitacion').innerHTML='<div style="text-align:center;padding:32px;background:#fff;border-radius:16px;color:#991B1B;font-size:14px;">'+( data.error||'Invitación no válida')+'<br><br><a href="/index.html" style="color:#1e2d4e;font-weight:600">Ir al inicio</a></div>';
+      return;
+    }
+    var inv = data.invitacion;
+    document.getElementById('inv-empresa-label').textContent = 'Fuiste invitado por '+inv.empresa;
+    document.getElementById('inv-email-label').textContent = inv.emailInvitado;
+    document.getElementById('inv-sub').textContent = 'Unirte a '+inv.empresa+' en TransMatch';
+  }catch(e){
+    document.getElementById('inv-empresa-label').textContent='Error al verificar invitación';
+  }
+})();
+
+async function aceptarInvitacion(){
+  var nombre   = (document.getElementById('inv-nombre').value||'').trim();
+  var password = document.getElementById('inv-password').value;
+  var password2= document.getElementById('inv-password2').value;
+  var alertEl  = document.getElementById('alert-inv');
+  alertEl.style.display='none';
+  if(!nombre){ alertEl.textContent='Ingresa tu nombre'; alertEl.style.display='block'; return; }
+  if(!validarPass(password)){ alertEl.textContent='La contraseña no cumple los requisitos de seguridad'; alertEl.style.display='block'; return; }
+  if(password!==password2){ alertEl.textContent='Las contraseñas no coinciden'; alertEl.style.display='block'; return; }
+  var btn=document.getElementById('btn-aceptar-inv');
+  btn.disabled=true; btn.innerHTML='<span class="spinner-btn"></span> Creando cuenta...';
+  try{
+    var res = await fetch(API+'/api/invitacion/'+_invToken+'/aceptar',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({nombre, password})
+    });
+    var data = await res.json();
+    if(res.ok){
+      localStorage.setItem('tm_token',   data.token);
+      localStorage.setItem('tm_role',    data.user.role);
+      localStorage.setItem('tm_nombre',  data.user.nombre);
+      localStorage.setItem('tm_empresa', data.user.empresa);
+      localStorage.setItem('tm_email',   data.user.email);
+      localStorage.setItem('tm_plan',    data.user.plan||'');
+      if(data.user.role==='transportista') window.location.replace('/transportista.html');
+      else window.location.replace('/cliente.html');
+    } else {
+      alertEl.textContent=data.error||'Error al crear la cuenta';
+      alertEl.style.display='block';
+      btn.disabled=false; btn.textContent='Crear cuenta y acceder';
+    }
+  }catch(e){
+    alertEl.textContent='Error de conexión';
+    alertEl.style.display='block';
+    btn.disabled=false; btn.textContent='Crear cuenta y acceder';
+  }
+}
+</script>
+</body>
+</html>

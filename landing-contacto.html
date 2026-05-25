@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>TransMatch — Contacto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#1e2d4e;--orange:#ff8904;--light:#f5f7fb;--text:#374151;--muted:#6B7280;--border:#e8eaf0}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Barlow',sans-serif;color:var(--text);background:#fff;line-height:1.6}
+  nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 48px;height:60px;background:rgba(30,45,78,.97);backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,.06)}
+  .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+  .nav-icon{background:var(--orange);border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;color:#fff;font-size:15px}
+  .nav-wordmark{font-family:'Barlow Condensed',sans-serif;font-weight:700;color:#fff;font-size:20px}.nav-wordmark span{color:var(--orange)}
+  .nav-right{display:flex;align-items:center;gap:4px}
+  .nav-right a{font-size:13px;font-weight:500;color:#93C5FD;text-decoration:none;padding:7px 13px;border-radius:6px;transition:all .15s;white-space:nowrap}
+  .nav-right a:hover,.nav-right a.active{color:#fff;background:rgba(255,255,255,.1)}
+  .nav-right .sep{border-left:1px solid rgba(255,255,255,.1);margin-left:6px;padding-left:16px}
+  .nav-right .cta{background:var(--orange);color:#fff!important;font-weight:600;margin-left:4px}
+  .nav-mb-btn{display:none;background:none;border:none;color:#fff;cursor:pointer;padding:8px}
+  .nav-mb-menu{display:none;position:fixed;top:60px;left:0;right:0;background:var(--navy);padding:16px 24px;border-bottom:1px solid rgba(255,255,255,.08);flex-direction:column;gap:4px;z-index:99}
+  .nav-mb-menu.open{display:flex}
+  .nav-mb-menu a{font-size:15px;font-weight:500;color:#93C5FD;text-decoration:none;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+  .page-hero{background:var(--navy);padding:120px 48px 80px;position:relative;overflow:hidden}
+  .page-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 60% at 80% 50%,rgba(255,137,4,.07) 0%,transparent 65%)}
+  .page-hero-grid{position:absolute;inset:0;opacity:.03;background-image:linear-gradient(rgba(255,255,255,.4) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.4) 1px,transparent 1px);background-size:56px 56px}
+  .page-hero-inner{max-width:1100px;margin:0 auto;position:relative;z-index:2}
+  .section-tag{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--orange);margin-bottom:12px}
+  h1{font-family:'Barlow Condensed',sans-serif;font-size:clamp(40px,5vw,68px);font-weight:800;color:#fff;line-height:1.0;letter-spacing:-1px;margin-bottom:20px}
+  h1 em{color:var(--orange);font-style:normal}
+  .page-sub{font-size:17px;color:#94A3B8;max-width:520px;line-height:1.75}
+  section{padding:80px 48px}
+  .container{max-width:1100px;margin:0 auto}
+  h2{font-family:'Barlow Condensed',sans-serif;font-size:clamp(28px,3.5vw,44px);font-weight:800;color:var(--navy);line-height:1.05;letter-spacing:-.4px;margin-bottom:14px}
+  /* CONTACT GRID */
+  .contact-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:64px;align-items:flex-start}
+  /* INFO */
+  .contact-info-item{display:flex;align-items:flex-start;gap:16px;padding:20px 0;border-bottom:1px solid var(--border)}
+  .contact-info-item:last-child{border:none}
+  .contact-icon{width:40px;height:40px;border-radius:10px;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .contact-info-title{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:2px}
+  .contact-info-val{font-size:14px;color:var(--text)}
+  .contact-info-val a{color:var(--navy);text-decoration:none;font-weight:500}
+  .contact-info-val a:hover{color:var(--orange)}
+  /* FORM */
+  .form-wrap{background:var(--light);border-radius:16px;border:0.5px solid var(--border);padding:36px}
+  .form-title{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:var(--navy);margin-bottom:24px}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+  .form-group label{font-size:12px;font-weight:600;color:var(--navy);letter-spacing:.03em}
+  .form-group input,.form-group select,.form-group textarea{padding:11px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:#fff;font-family:'Barlow',sans-serif;transition:border-color .15s;outline:none}
+  .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--navy)}
+  .form-group textarea{resize:vertical;min-height:120px}
+  .btn-primary{background:var(--orange);color:#fff;padding:14px 30px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;border:none;cursor:pointer;font-family:'Barlow',sans-serif;width:100%}
+  .btn-primary:hover{background:#e87900;transform:translateY(-1px)}
+  .form-note{font-size:12px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5}
+  #form-success{display:none;background:#F0FDF4;border:1px solid #86EFAC;border-radius:10px;padding:24px;text-align:center}
+  #form-success .ok-icon{font-size:36px;margin-bottom:8px}
+  #form-success h3{color:#14532D;font-family:'Barlow Condensed',sans-serif;font-size:22px;margin-bottom:6px}
+  #form-success p{font-size:14px;color:#166534}
+  footer{background:var(--navy);padding:48px 48px 24px}
+  .footer-top{max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:32px;padding-bottom:32px;border-bottom:1px solid rgba(255,255,255,.07)}
+  .footer-brand-name{font-family:'Barlow Condensed',sans-serif;font-weight:700;color:#fff;font-size:18px}.footer-brand-name span{color:var(--orange)}
+  .footer-tagline{font-size:12px;color:#475569;margin-top:6px;line-height:1.6}
+  .footer-col h4{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#93C5FD;margin-bottom:14px}
+  .footer-col a{display:block;font-size:13px;color:#94A3B8;text-decoration:none;margin-bottom:9px;transition:color .15s}
+  .footer-col a:hover{color:#fff}
+  .footer-col span{display:block;font-size:13px;color:#94A3B8;margin-bottom:9px}
+  .footer-bottom{max-width:1100px;margin:20px auto 0;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px;color:#475569}
+  .fade{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+  .fade.in{opacity:1;transform:translateY(0)}
+  @media(max-width:860px){nav{padding:0 20px}.nav-right{display:none}.nav-mb-btn{display:flex}section{padding:60px 24px}.page-hero{padding:100px 24px 60px}.contact-grid{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}footer{padding:40px 24px 20px}.footer-top{flex-direction:column;gap:24px}}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/index.html" class="nav-logo"><div class="nav-icon">T</div><span class="nav-wordmark">Trans<span>Match</span></span></a>
+  <div class="nav-right">
+    <a href="/index.html">Inicio</a><a href="/landing-conócenos.html">Conócenos</a><a href="/landing-servicios.html">Servicios</a><a href="/landing-contacto.html" class="active">Contacto</a>
+    <a href="/login.html" class="sep">Iniciar sesion</a><a href="/registro.html" class="cta">Registrarme</a>
+  </div>
+  <button class="nav-mb-btn" onclick="document.getElementById('mmenu').classList.toggle('open')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="nav-mb-menu" id="mmenu">
+    <a href="/index.html">Inicio</a><a href="/landing-conócenos.html">Conócenos</a><a href="/landing-servicios.html">Servicios</a><a href="/landing-contacto.html">Contacto</a><a href="/login.html">Iniciar sesion</a><a href="/index.html" style="color:var(--orange);font-weight:700">Registrarme</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <div class="page-hero-grid"></div>
+  <div class="page-hero-inner">
+    <div class="section-tag">Contacto</div>
+    <h1>Hablemos de<br><em>tu operación</em></h1>
+    <p class="page-sub">Completa el formulario y nuestro equipo se pondra en contacto contigo en menos de 24 horas.</p>
+  </div>
+</div>
+
+<section>
+  <div class="container">
+    <div class="contact-grid fade">
+
+      <!-- INFO -->
+      <div>
+        <h2 style="margin-bottom:8px">Estamos para<br><em>ayudarte</em></h2>
+        <p style="font-size:15px;color:var(--muted);margin-bottom:32px;line-height:1.7">Si tienes dudas sobre la plataforma, quieres conocer mas sobre nuestros planes o necesitas un plan Enterprise, contactanos.</p>
+
+        <div class="contact-info-item">
+          <div class="contact-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.16 6.16l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 17z"/></svg></div>
+          <div><div class="contact-info-title">Teléfono</div><div class="contact-info-val"><a href="tel:+56969081098">+56 9 6908 1098</a></div></div>
+        </div>
+        <div class="contact-info-item">
+          <div class="contact-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+          <div><div class="contact-info-title">Email</div><div class="contact-info-val"><a href="/cdn-cgi/l/email-protection#0b6864657f6a687f644b7f796a6578666a7f6863256867"><span class="__cf_email__" data-cfemail="11727e7f657072657e516563707f627c706572793f727d">[email&#160;protected]</span></a></div></div>
+        </div>
+        <div class="contact-info-item">
+          <div class="contact-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+          <div><div class="contact-info-title">Ubicación</div><div class="contact-info-val">Santiago, Chile<br><span style="font-size:13px;color:var(--muted)">Operamos en todo Chile</span></div></div>
+        </div>
+        <div class="contact-info-item">
+          <div class="contact-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div><div class="contact-info-title">Horario de atención</div><div class="contact-info-val">Lunes a viernes<br><span style="font-size:13px;color:var(--muted)">9:00 — 18:00 hrs</span></div></div>
+        </div>
+      </div>
+
+      <!-- FORM -->
+      <div class="form-wrap">
+        <div class="form-title">Envianos un mensaje</div>
+        <div id="form-success">
+          <div class="ok-icon">✓</div>
+          <h3>Mensaje enviado</h3>
+          <p>Nuestro equipo se pondra en contacto contigo en menos de 24 horas.</p>
+        </div>
+        <div id="contact-form">
+          <div class="form-row">
+            <div class="form-group"><label>Nombre *</label><input type="text" id="f-nombre" placeholder="Tu nombre"></div>
+            <div class="form-group"><label>Empresa *</label><input type="text" id="f-empresa" placeholder="Tu empresa"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Email *</label><input type="email" id="f-email" placeholder="tu@empresa.cl"></div>
+            <div class="form-group"><label>Teléfono</label><input type="tel" id="f-teléfono" placeholder="+56 9 XXXX XXXX"></div>
+          </div>
+          <div class="form-group">
+            <label>Soy *</label>
+            <select id="f-tipo">
+              <option value="">Selecciónar...</option>
+              <option value="empresa">Empresa mandante (necesito transporte)</option>
+              <option value="transportista">Transportista (quiero ofrecer servicios)</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Mensaje *</label>
+            <textarea id="f-mensaje" placeholder="Cuentanos sobre tu operación o consulta..."></textarea>
+          </div>
+          <button class="btn-primary" onclick="enviarFormulario()">
+            Enviar mensaje
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+          <p class="form-note">Al enviar aceptas nuestra <a href="/privacidad.html" style="color:var(--navy)">política de privacidad</a>. No enviamos spam.</p>
+          <div id="form-error" style="display:none;margin-top:12px;padding:12px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;font-size:13px;color:#991B1B"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-top">
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div style="background:var(--orange);border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;color:#fff;font-size:15px">T</div><span class="footer-brand-name">Trans<span>Match</span></span></div>
+      <div class="footer-tagline">Plataforma B2B de transporte especializado para la industria. Santiago, Chile.</div>
+    </div>
+    <div class="footer-col"><h4>Plataforma</h4><a href="/index.html">Inicio</a><a href="/landing-conócenos.html">Conócenos</a><a href="/landing-servicios.html">Servicios</a><a href="/landing-contacto.html">Contacto</a></div>
+    <div class="footer-col"><h4>Legal</h4><a href="/términos.html">Términos y condiciones</a><a href="/privacidad.html">Política de privacidad</a><a href="/ayuda.html">Centro de ayuda</a></div>
+    <div class="footer-col"><h4>Contacto</h4><a href="/cdn-cgi/l/email-protection#8deee2e3f9eceef9e2cdf9ffece3fee0ecf9eee5a3eee1"><span class="__cf_email__" data-cfemail="1d7e7273697c7e69725d696f7c736e707c697e75337e71">[email&#160;protected]</span></a><span>+56 9 6908 1098</span><span>Santiago, Chile</span></div>
+  </div>
+  <div class="footer-bottom"><span>© 2026 TransMatch SpA. Todos los derechos reservados.</span><span>RUT 76.XXX.XXX-X</span></div>
+</footer>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  function enviarFormulario(){
+    var nombre  = document.getElementById('f-nombre').value.trim();
+    var empresa = document.getElementById('f-empresa').value.trim();
+    var email   = document.getElementById('f-email').value.trim();
+    var tipo    = document.getElementById('f-tipo').value;
+    var mensaje = document.getElementById('f-mensaje').value.trim();
+    var errEl   = document.getElementById('form-error');
+    errEl.style.display = 'none';
+    if(!nombre||!empresa||!email||!tipo||!mensaje){
+      errEl.textContent = 'Por favor completa todos los campos obligatorios.';
+      errEl.style.display = 'block'; return;
+    }
+    if(!email.includes('@')){
+      errEl.textContent = 'Ingresa un email valido.';
+      errEl.style.display = 'block'; return;
+    }
+    // Simular envio — en produccion conectar con Resend u otro ser

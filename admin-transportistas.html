@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch — Transportistas</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff}
+  #app{display:none}
+  #auth-guard{position:fixed;inset:0;background:#1e2d4e;display:flex;align-items:center;justify-content:center;z-index:9999}
+  .gs{width:36px;height:36px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .nav{background:#1e2d4e;padding:0 24px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .nav-left{display:flex;align-items:center;gap:16px}
+  .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+  .nav-icon{background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+  .nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#ff8904}
+  .nav-badge{background:rgba(255,255,255,.15);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px}
+  .nav-tabs{display:flex;gap:2px}
+  .nav-tab{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+  .nav-tab:hover,.nav-tab.active{color:#fff;background:rgba(255,255,255,.12)}
+  .logout-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer}
+  main{max-width:1100px;margin:0 auto;padding:24px 20px;min-height:calc(100vh - 54px)}
+  .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+  .hdr-title{font-size:20px;font-weight:600;color:#1e2d4e}
+  .hdr-sub{font-size:14px;color:#6B7280;margin-top:2px}
+  .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:20px}
+  @media(max-width:600px){.grid-3{grid-template-columns:1fr 1fr}}
+  .stat{background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);padding:16px 18px}
+  .stat-label{font-size:12px;color:#6B7280;margin-bottom:6px}
+  .stat-val{font-size:26px;font-weight:700}
+  .filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .sel{padding:8px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;background:#fff;color:#374151}
+  .srch{padding:8px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;flex:1;min-width:200px}
+  .sel:focus,.srch:focus{outline:none;border-color:#1e2d4e}
+  .card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);overflow:hidden}
+  .row{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:0.5px solid #f3f4f6;cursor:pointer;transition:background .1s}
+  .row:hover{background:#f5f7fb}
+  .row:last-child{border-bottom:none}
+  .av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:16px;flex-shrink:0}
+  .row-body{flex:1;min-width:0}
+  .row-name{font-size:13px;font-weight:500;color:#1e2d4e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row-meta{font-size:11px;color:#6B7280;margin-top:2px}
+  .badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 9px;border-radius:999px}
+  .badge-green{background:#F0FDF4;color:#14532D}
+  .badge-orange{background:#FFF7ED;color:#92400E}
+  .badge-red{background:#FEF2F2;color:#991B1B}
+  .badge-gray{background:#F9FAFB;color:#6B7280;border:0.5px solid #e8eaf0}
+  .btn{padding:8px 16px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{opacity:.88}
+  .btn-primary{background:#1e2d4e;color:#fff}
+  .btn-green{background:#1ED24E;color:#fff}
+  .btn-red{background:#EF4444;color:#fff}
+  .btn-outline{background:transparent;border:0.5px solid #e8eaf0;color:#374151}
+  .btn-sm{padding:5px 11px;font-size:12px}
+  .empty{text-align:center;padding:40px;color:#9CA3AF;font-size:13px}
+  .spinner{width:26px;height:26px;border:3px solid #e8eaf0;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite;margin:40px auto}
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px}
+  .modal-bg.open{display:flex}
+  .modal{background:#fff;border-radius:16px;padding:24px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto}
+  .section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px}
+  .info-cell .k{font-size:11px;color:#9CA3AF;margin-bottom:2px}
+  .info-cell .v{font-weight:500;color:#111827}
+  #toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="auth-guard">
+  <div style="text-align:center">
+    <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px">
+      <div style="background:#ff8904;border-radius:7px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:15px">T</div>
+      <span style="font-weight:700;color:#fff;font-size:18px">Trans<span style="color:#ff8904">Match</span></span>
+    </div>
+    <div class="gs" style="margin:0 auto"></div>
+  </div>
+</div>
+
+<div id="app">
+  <nav class="nav">
+    <div class="nav-left">
+      <a href="/admin.html" class="nav-logo"><div class="nav-icon">T</div><span class="nav-name">Trans<span>Match</span></span><span class="nav-badge">ADMIN</span></a>
+            <div class="nav-tabs">
+        <a href="/admin.html" class="nav-tab">Dashboard</a>
+        <a href="/admin-licitaciones.html" class="nav-tab">Licitaciones</a>
+        <a href="/admin-cotizaciones.html" class="nav-tab">Cotizaciones</a>
+        <a href="/admin-transportes.html" class="nav-tab">Transportes</a>
+        <a href="/admin-clientes.html" class="nav-tab">Clientes</a>
+        <a href="/admin-transportistas.html" class="nav-tab active">Transportistas</a>
+        <a href="/admin-cobros.html" class="nav-tab">Facturación</a>
+        <a href="/admin-reportes.html" class="nav-tab">Reportes</a>
+      </div>
+      </div>
+    <button class="logout-btn" onclick="localStorage.clear();window.location.replace('/admin-login.html')">Cerrar sesion</button>
+  </nav>
+
+  <main>
+    <div class="hdr">
+      <div><div class="hdr-title">Transportistas</div><div class="hdr-sub">Gestión de proveedores de la red</div></div>
+      
+    </div>
+
+    <div class="grid-3">
+      <div class="stat"><div class="stat-label">Total registrados</div><div id="st-total" class="stat-val" style="color:#1e2d4e">--</div></div>
+      <div class="stat"><div class="stat-label">Activos</div><div id="st-activos" class="stat-val" style="color:#1ED24E">--</div></div>
+      <div class="stat"><div class="stat-label">Pendientes aprobacion</div><div id="st-pendientes" class="stat-val" style="color:#ff8904">--</div></div>
+    </div>
+
+    <div class="filter-bar">
+      <select class="sel" id="fil-estado" onchange="filtrar()">
+        <option value="">Todos los estados</option>
+        <option value="pendiente">Pendientes</option>
+        <option value="activo">Activos</option>
+        <option value="suspendido">Suspendidos</option>
+        <option value="rechazado">Rechazados</option>
+      </select>
+      <input class="srch" id="fil-buscar" placeholder="Buscar nombre, empresa o email..." oninput="filtrar()"/>
+    </div>
+
+    <div class="card" id="lista-transportistas"><div class="spinner"></div></div>
+  </main>
+</div>
+
+<!-- Modal perfil transportista -->
+<div class="modal-bg" id="modal-t">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+      <div>
+        <div style="font-size:20px;font-weight:700;color:#1e2d4e" id="mt-nombre">--</div>
+        <div style="font-size:13px;color:#6B7280;margin-top:2px" id="mt-email">--</div>
+      </div>
+      <button onclick="document.getElementById('modal-t').classList.remove('open')" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6B7280">x</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px">
+      <div style="background:#f8f9fc;border-radius:8px;padding:12px">
+        <div style="font-size:11px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:6px">Estado cuenta</div>
+        <div id="mt-estado-badge"></div>
+      </div>
+      <div style="background:#f8f9fc;border-radius:8px;padding:12px">
+        <div style="font-size:11px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:6px">Valoración</div>
+        <div style="font-size:18px;font-weight:700;color:#ff8904" id="mt-rating">★ --</div>
+      </div>
+    </div>
+
+    <div style="background:#f8f9fc;border-radius:10px;padding:14px;margin-bottom:14px">
+      <div class="section-label" style="color:#1d4ed8">Empresa</div>
+      <div class="info-grid">
+        <div class="info-cell"><div class="k">Razón social</div><div class="v" id="mt-empresa">--</div></div>
+        <div class="info-cell"><div class="k">RUT</div><div class="v" id="mt-rut">--</div></div>
+        <div class="info-cell"><div class="k">Contacto</div><div class="v" id="mt-contacto">--</div></div>
+        <div class="info-cell"><div class="k">Teléfono</div><div class="v" id="mt-teléfono">--</div></div>
+        <div class="info-cell"><div class="k">Transportes</div><div class="v" id="mt-transportes">--</div></div>
+        <div class="info-cell"><div class="k">Registro</div><div class="v" id="mt-fecha">--</div></div>
+      </div>
+    </div>
+
+    <div style="background:#f8f9fc;border-radius:10px;padding:14px;margin-bottom:14px">
+      <div class="section-label" style="color:#1d4ed8">Equipos registrados</div>
+      <div id="mt-equipos" style="font-size:13px;color:#6B7280">--</div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div class="section-label" style="color:#9CA3AF">Cambiar estado</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-green" onclick="aprobar(selEmail,'aprobar')">Aprobar</button>
+        <button class="btn btn-red" onclick="aprobar(selEmail,'rechazar')">Rechazar</button>
+        <button class="btn btn-outline" style="color:#EF4444;border-color:#FECACA" onclick="gestiónarUsuario(selEmail,'suspendido')">Suspender</button>
+        <button class="btn btn-outline" style="color:#14532D;border-color:#BBF7D0" onclick="gestiónarUsuario(selEmail,'activo')">Reactivar</button>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;padding-top:14px;border-top:0.5px solid #e8eaf0">
+      <button class="btn btn-outline" onclick="document.getElementById('modal-t').classList.remove('open')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const API = 'https://transmatch.transmatchcl.workers.dev';
+  let allT = [], selEmail = '';
+
+  function toast(msg, type) {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.style.background = type === 'err' ? '#EF4444' : '#1ED24E';
+    el.style.opacity = '1'; clearTimeout(el._t); el._t = setTimeout(() => { el.style.opacity = '0'; }, 3000);
+  }
+
+  async function apiFetch(path, method, body) {
+    const o = { method: method||'GET', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') } };
+    if (body) o.body = JSON.stringify(body);
+    try {
+      const r = await fetch(API + path, o);
+      if (r.status === 401) { localStorage.clear(); window.location.replace('/admin-login.html'); return null; }
+      return { ok: r.ok, data: await r.json() };
+    } catch(e) { return null; }
+  }
+
+  async function initPage() {
+    document.getElementById('lista-transportistas').innerHTML = '<div class="spinner"></div>';
+    try {
+      const r = await apiFetch('/api/admin/usuarios');
+      if (!r || !r.ok) { document.getElementById('lista-transportistas').innerHTML = '<div class="empty">Error al cargar</div>'; return; }
+      allT = r.data.usuarios.filter(u => u.role === 'transportista');
+      const activos    = allT.filter(u => u.estado === 'activo').length;
+      const pendientes = allT.filter(u => u.estado === 'pendiente').length;
+      document.getElementById('st-total').textContent     = allT.length;
+      document.getElementById('st-activos').textContent   = activos;
+      document.getElementById('st-pendientes').textContent= pendientes;
+      filtrar();
+    } catch(e) {
+      document.getElementById('lista-transportistas').innerHTML = '<div class="empty">Error de conexión</div>';
+    }
+  }
+
+  const avColors = ['#1e2d4e', '#1d4ed8', '#ff8904', '#1ED24E', '#7C3AED'];
+
+  function estadoBadge(e) {
+    const m = { activo: 'badge-green', pendiente: 'badge-orange', suspendido: 'badge-red', rechazado: 'badge-red' };
+    const l = { activo: 'Activo', pendiente: 'Pendiente', suspendido: 'Suspendido', rechazado: 'Rechazado' };
+    return '<span class="badge ' + (m[e]||'badge-gray') + '">' + (l[e]||e) + '</span>';
+  }
+
+  function filtrar() {
+    const estado = document.getElementById('fil-estado').value;
+    const q      = (document.getElementById('fil-buscar').value || '').toLowerCase();
+    let lista    = allT;
+    if (estado) lista = lista.filter(t => t.estado === estado);
+    if (q)      lista = lista.filter(t => (t.nombre + t.empresa + t.email).toLowerCase().includes(q));
+
+    document.getElementById('lista-transportistas').innerHTML = lista.length === 0
+      ? '<div class="empty">Sin resultados</div>'
+      : lista.map((t, i) =>
+          '<div class="row" onclick="verDetalle(\'' + t.email + '\')">' +
+          '<div class="av" style="background:' + avColors[i % avColors.length] + '">' + (t.nombre[0] || 'T').toUpperCase() + '</div>' +
+          '<div class="row-body">' +
+            '<div class="row-name">' + t.nombre + '</div>' +
+            '<div class="row-meta">' + (t.empresa || '--') + ' · ' + t.email + '</div>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">' +
+            '<span style="font-size:12px;color:#ff8904;font-weight:600">★ ' + (t.rating || 5) + '</span>' +
+            '<span style="font-size:11px;color:#9CA3AF">' + (t.totalTransportes || 0) + ' transp.</span>' +
+            estadoBadge(t.estado) +
+            (t.estado === 'pendiente' ?
+              '<button class="btn btn-green btn-sm" onclick="event.stopPropagation();aprobar(\'' + t.email + '\',\'aprobar\')">Aprobar</button>' +
+              '<button class="btn btn-red btn-sm" onclick="event.stopPropagation();aprobar(\'' + t.email + '\',\'rechazar\')">Rechazar</button>'
+            : '') +
+          '</div>' +
+          '</div>'
+        ).join('');
+  }
+
+  function verDetalle(email) {
+    selEmail = email;
+    const t = allT.find(x => x.email === email);
+    if (!t) return;
+
+    const estadoMap = {
+      activo:    ['#F0FDF4', '#14532D', 'Activo'],
+      suspendido:['#FEF2F2', '#991B1B', 'Suspendido'],
+      pendiente: ['#FFF7ED', '#92400E', 'Pendiente'],
+      rechazado: ['#FEF2F2', '#991B1B', 'Rechazado'],
+    };
+    const [ebg, ecol, elbl] = estadoMap[t.estado] || ['#F9FAFB', '#6B7280', t.estado];
+
+    document.getElementById('mt-nombre').textContent     = t.nombre || '--';
+    document.getElementById('mt-email').textContent      = t.email || '--';
+    document.getElementById('mt-empresa').textContent    = t.empresa || '--';
+    document.getElementById('mt-rut').textContent        = t.rut || '--';
+    document.getElementById('mt-contacto').textContent   = t.nombre || '--';
+    document.getElementById('mt-teléfono').textContent   = t.teléfono || '--';
+    document.getElementById('mt-transportes').textContent = (t.totalTransportes || 0) + ' completados';
+    document.getElementById('mt-fecha').textContent      = t.createdAt ? new Date(t.createdAt).toLocaleDateString('es-CL') : '--';
+    document.getElementById('mt-rating').textContent     = '★ ' + (t.rating || 5.0);
+
+    document.getElementById('mt-estado-badge').innerHTML =
+      '<span style="background:' + ebg + ';color:' + ecol + ';font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px">' + elbl + '</span>';
+
+    const equipos = t.equipos || [];
+    document.getElementById('mt-equipos').innerHTML = equipos.length === 0
+      ? '<span style="color:#9CA3AF">Sin equipos registrados</span>'
+      : equipos.map(e =>
+          '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid #e8eaf0;font-size:12px">' +
+          '<span style="color:#374151;font-weight:500">' + e.tipo + '</span>' +
+          '<span style="color:#6B7280">' + (e.capacidad ? e.capacidad + ' ton' : '') + (e.dimensiones ? ' · ' + e.dimensiones : '') + '</span>' +
+          '</div>'
+        ).join('');
+
+    document.getElementById('modal-t').classList.add('open');
+  }
+
+  async function aprobar(email, accion) {
+    const r = await apiFetch('/api/admin/aprobar-transportista', 'POST', { email, accion });
+    if (r && r.ok) { toast(accion === 'aprobar' ? 'Transportista aprobado' : 'Transportista rechazado'); document.getElementById('modal-t').classList.remove('open'); initPage(); }
+    else toast('Error', 'err');
+  }
+
+  async function gestionarUsuario(email, estado) {
+    const r = await apiFetch('/api/admin/gestionar-usuario', 'POST', { email, estado });
+    if (r && r.ok) { toast('Usuario actualizado'); document.getElementById('modal-t').classList.remove('open'); initPage(); }
+    else toast('Error', 'err');
+  }
+
+  // Auth
+  (function() {
+    const token = localStorage.getItem('tm_token');
+    const role  = localStorage.getItem('tm_role');
+    if (!token || role !== 'admin') { window.location.replace('/admin-login.html'); return; }
+    document.getElementById('auth-guard').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    initPage();
+  })();
+</script>
+
+<footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <!-- Logo -->
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px">T</div>
+        <span style="font-weight:700;color:#fff;font-size:15px">Trans<span style="color:#ff8904">Match</span></span>
+      </div>
+      <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+    </div>
+    <!-- Links -->
+    <div style="display:flex;gap:32px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <a href="/términos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Términos y condiciones</a>
+          <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Política de privacidad</a>
+          <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Centro de ayuda</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;color:#CBD5E1"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="43202c2d372220372c033731222d302e2237202b6d202f">[email&#160;protected]</a></span>
+          <span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <span>© 2026 TransMatch SpA. T
