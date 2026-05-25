@@ -278,7 +278,7 @@
         '<span class="grupo-toggle" id="toggle-'+gi+'">▶</span>'+
         '<div class="grupo-info">'+
           '<div class="grupo-title">'+
-            (l.código ? '<span style="font-size:10px;font-family:monospace;font-weight:700;background:#eef1f8;color:#1e2d4e;padding:2px 8px;border-radius:5px;margin-right:8px">'+l.código+'</span>' : '<span style="font-size:10px;font-family:monospace;font-weight:700;background:#eef1f8;color:#9CA3AF;padding:2px 8px;border-radius:5px;margin-right:8px">Sin código</span>')+
+            '<span style="font-size:10px;font-family:monospace;font-weight:700;background:#eef1f8;color:#1e2d4e;padding:2px 8px;border-radius:5px;margin-right:8px">'+(l.código||('LIC-'+String(gi+1).padStart(3,'0')))+'</span>'+
             '<span>'+l.tipoEquipo+(l.marca?' — '+l.marca:'')+'</span>'+
             estadoBadge(l.estado)+
           '</div>'+
