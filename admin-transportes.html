@@ -362,7 +362,7 @@ function renderCard(t){
         '<div class="trn-name">'+t.tipoEquipo+'</div>'+
         '<div class="trn-meta">'+
           '<strong style="color:#1e2d4e">'+(t.clienteEmpresa||'—')+'</strong>'+
-          ' → <strong style="color:#374151">'+(t.transportistaEmpresa||t.transportistaNombre||'—')+'</strong>'+
+          ' → <strong style="color:#374151">'+(t.transportistaEmpresa||'—')+' <span style="font-weight:400;font-size:11px;color:#9CA3AF">('+(t.transportistaNombre||'—')+')</span></strong>'+
           ' · '+t.origen+' → '+t.destino+
           ' · '+timeAgo(t.adjudicadoAt)+
         '</div>'+
@@ -396,9 +396,11 @@ function renderDetalle(t){
     ['Licitación asociada', t.licitacionCodigo||'—'],
     ['Tipo de equipo', t.tipoEquipo||'—'],
     ['Precio adjudicado', peso(t.precio)],
-    ['Cliente', t.clienteEmpresa||'—'],
+    ['Empresa cliente', t.clienteEmpresa||'—'],
+    ['Contacto cliente', t.clienteNombre||'—'],
     ['Email cliente', t.clienteEmail||'—'],
-    ['Transportista', (t.transportistaNombre||'—')+' · '+(t.transportistaEmpresa||'—')],
+    ['Transportista', t.transportistaNombre||'—'],
+    ['Empresa transportista', t.transportistaEmpresa||'—'],
     ['Email transportista', t.transportistaEmail||'—'],
     ['Teléfono transportista', t.transportistaTelefono||'—'],
     ['Origen', t.origen||'—'],
