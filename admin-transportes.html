@@ -390,25 +390,43 @@ function toggleCard(id){
 function renderDetalle(t){
   var html='';
 
-  // Grid info
-  var items=[
-    ['Código transporte', t.codigo||'—'],
+  // ── Bloque 1: Datos del transporte ──
+  var infoTransporte=[
+    ['Código transporte',   t.codigo||'—'],
     ['Licitación asociada', t.licitacionCodigo||'—'],
-    ['Tipo de equipo', t.tipoEquipo||'—'],
-    ['Precio adjudicado', peso(t.precio)],
-    ['Empresa cliente', t.clienteEmpresa||'—'],
-    ['Contacto cliente', t.clienteNombre||'—'],
-    ['Email cliente', t.clienteEmail||'—'],
-    ['Transportista', t.transportistaNombre||'—'],
-    ['Empresa transportista', t.transportistaEmpresa||'—'],
-    ['Email transportista', t.transportistaEmail||'—'],
-    ['Teléfono transportista', t.transportistaTelefono||'—'],
-    ['Origen', t.origen||'—'],
-    ['Destino', t.destino||'—'],
-    ['Adjudicado', fechaCorta(t.adjudicadoAt)],
-    ['Entregado', t.entregadoAt?fechaCorta(t.entregadoAt):'—'],
+    ['Tipo de equipo',      t.tipoEquipo||'—'],
+    ['Precio adjudicado',   peso(t.precio)],
+    ['Origen',              t.origen||'—'],
+    ['Destino',             t.destino||'—'],
+    ['Fecha adjudicación',  fechaCorta(t.adjudicadoAt)],
+    ['Fecha entrega',       t.entregadoAt?fechaCorta(t.entregadoAt):'—'],
   ];
-  html+='<div class="det-grid">'+items.map(function(it){
+  html+='<div class="det-section-title" style="padding-top:16px">DATOS DEL TRANSPORTE</div>';
+  html+='<div class="det-grid">'+infoTransporte.map(function(it){
+    return '<div class="det-cell"><div class="det-label">'+it[0]+'</div><div class="det-val">'+it[1]+'</div></div>';
+  }).join('')+'</div>';
+
+  // ── Bloque 2: Datos del cliente ──
+  var infoCliente=[
+    ['Empresa cliente',   t.clienteEmpresa||'—'],
+    ['Contacto cliente',  t.clienteNombre||'—'],
+    ['Email cliente',     t.clienteEmail||'—'],
+    ['Teléfono cliente',  t.clienteTelefono||'—'],
+  ];
+  html+='<div class="det-section-title">DATOS DEL CLIENTE</div>';
+  html+='<div class="det-grid">'+infoCliente.map(function(it){
+    return '<div class="det-cell"><div class="det-label">'+it[0]+'</div><div class="det-val">'+it[1]+'</div></div>';
+  }).join('')+'</div>';
+
+  // ── Bloque 3: Datos del transportista ──
+  var infoTransportista=[
+    ['Empresa transportista',   t.transportistaEmpresa||'—'],
+    ['Contacto transportista',  t.transportistaNombre||'—'],
+    ['Email transportista',     t.transportistaEmail||'—'],
+    ['Teléfono transportista',  t.transportistaTelefono||'—'],
+  ];
+  html+='<div class="det-section-title">DATOS DEL TRANSPORTISTA</div>';
+  html+='<div class="det-grid">'+infoTransportista.map(function(it){
     return '<div class="det-cell"><div class="det-label">'+it[0]+'</div><div class="det-val">'+it[1]+'</div></div>';
   }).join('')+'</div>';
 
