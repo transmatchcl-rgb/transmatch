@@ -226,17 +226,19 @@
       return;
     }
 
-    document.getElementById('lista-grupos').innerHTML = lista.map((l,gi) => renderGrupo(l, gi)).join('');
+    // Contador global de cotizaciones para códigos únicos
+    let cotContador = 0;
+    document.getElementById('lista-grupos').innerHTML = lista.map((l,gi) => renderGrupo(l, gi, cotContador, (n)=>{ cotContador=n; })).join('');
   }
 
-  function renderGrupo(l, gi){
+  function renderGrupo(l, gi, cotOffset, setCotOffset){
     const cotizaciones = (l.cotizaciones || []).sort((a,b) => (b.score||0)-(a.score||0));
     const nCot = cotizaciones.length;
     const adjId = l.adjudicadaA ? l.adjudicadaA.cotizacionId : null;
 
     const cotizHTML = nCot === 0
       ? '<div style="padding:16px 18px 16px 36px;font-size:13px;color:#9CA3AF">Sin cotizaciones recibidas</div>'
-      : cotizaciones.map((c, i) => {
+      : cotizaciones.map((c, i) => { const globalIdx = cotOffset + i;
           const sc         = Math.round((c.score||0)*100);
           const esGanadora = adjId && c.id === adjId;
           const fueSent    = l.cotizacionesEnviadas && l.cotizacionesEnviadas.includes(c.id);
@@ -252,7 +254,7 @@
             '<div class="cotiz-rank '+rankCls+'">'+(i+1)+'</div>'+
             '<div class="cotiz-body">'+
               '<div class="cotiz-nombre">'+
-                '<span style="font-size:10px;font-family:monospace;font-weight:700;background:#FFF7ED;color:#92400E;padding:2px 7px;border-radius:4px;margin-right:6px">'+(c.código||('COT-'+String(i+1).padStart(3,'0')))+'</span>'+
+                '<span style="font-size:10px;font-family:monospace;font-weight:700;background:#FFF7ED;color:#92400E;padding:2px 7px;border-radius:4px;margin-right:6px">'+(c.código||('COT-'+String(globalIdx+1).padStart(3,'0')))+'</span>'+
                 (c.transportistaNombre||'—')+' — '+(c.transportistaEmpresa||'—')+
                 (esGanadora?'<span class="tag tag-winner">Adjudicado</span>':'')+
                 (fueSent&&!esGanadora?'<span class="tag tag-sent">Enviado al cliente</span>':'')+
@@ -273,6 +275,7 @@
           '</div>';
         }).join('');
 
+    if(setCotOffset) setCotOffset(cotOffset + cotizaciones.length);
     return '<div class="grupo">'+
       '<div class="grupo-hdr" onclick="toggleGrupo('+gi+',this)">'+
         '<span class="grupo-toggle" id="toggle-'+gi+'">▶</span>'+
