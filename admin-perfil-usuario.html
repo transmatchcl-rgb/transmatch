@@ -227,6 +227,9 @@
             <div style="flex:1;min-width:0">
               <div class="perfil-nombre">${u.empresa || u.nombre}</div>
               <div class="perfil-email">${u.email}</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px">
+                <a href="mailto:${u.email}" class="btn btn-outline" style="font-size:12px;padding:5px 12px">Enviar email</a>
+              </div>
               <div class="perfil-badges">
                 ${estadoBadge(u.estado)}
                 ${planBadge(u.plan)}
@@ -320,19 +323,14 @@ ${renderEquipos(isTransportista, equipos)}
         <div class="card-hdr">Cambiar estado de cuenta</div>
         <div class="card-body">
           <div id="estado-actual-banner" style="margin-bottom:14px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px"></div>
-          <div class="acciones-estado">
-            <button class="btn btn-primary" id="btn-aprobar" onclick="cambiarEstado('activo')" style="background:#1e2d4e;color:#fff">Aprobar cuenta</button>
-            <button class="btn btn-outline" id="btn-rechazar" onclick="cambiarEstado('rechazado')" style="border-color:#ff8904;color:#ff8904">Rechazar</button>
-          </div>
+          <div class="acciones-estado" id="acciones-estado-wrap"></div>
           <div style="font-size:11px;color:#9CA3AF;margin-top:8px">El botón del estado actual aparece desactivado.</div>
         </div>
 
 
       <!-- Acciones peligrosas -->
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start;margin-top:8px">
-        <button class="btn btn-red" id="btn-suspender" onclick="cambiarEstado('suspendido')" style="display:none">Suspender cuenta</button>
-        <button class="btn btn-danger-outline" onclick="confirmarEliminar()">Eliminar cuenta</button>
-        <a href="mailto:${u.email}" class="btn btn-outline">Enviar email</a>
+<button class="btn btn-danger-outline" onclick="confirmarEliminar()">Eliminar cuenta</button>
       </div>
     `;
 
