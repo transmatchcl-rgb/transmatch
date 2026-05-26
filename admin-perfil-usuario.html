@@ -275,8 +275,6 @@
           <div class="acciones-estado">
             <button class="btn btn-primary" id="btn-aprobar" onclick="cambiarEstado('activo')" style="background:#1e2d4e;color:#fff">Aprobar cuenta</button>
             <button class="btn btn-outline" id="btn-rechazar" onclick="cambiarEstado('rechazado')" style="border-color:#ff8904;color:#ff8904">Rechazar</button>
-            <button class="btn btn-red" id="btn-suspender" onclick="cambiarEstado('suspendido')">Suspender</button>
-            <button class="btn btn-outline" id="btn-pendiente" onclick="cambiarEstado('pendiente')">↺ Marcar pendiente</button>
           </div>
           <div style="font-size:11px;color:#9CA3AF;margin-top:8px">El botón del estado actual aparece desactivado.</div>
         </div>
@@ -330,6 +328,7 @@ ${renderEquipos(isTransportista, equipos)}
 
       <!-- Acciones peligrosas -->
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start;margin-top:8px">
+        <button class="btn btn-red" id="btn-suspender" onclick="cambiarEstado('suspendido')" style="display:none">Suspender cuenta</button>
         <button class="btn btn-danger-outline" onclick="confirmarEliminar()">Eliminar cuenta</button>
         <a href="mailto:${u.email}" class="btn btn-outline">Enviar email</a>
       </div>
@@ -383,12 +382,16 @@ ${renderEquipos(isTransportista, equipos)}
     banner.style.cssText = 'margin-bottom:14px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;background:'+c.bg+';border:1px solid '+c.border+';color:'+c.color;
     banner.innerHTML = '<span style="font-size:16px">'+c.icon+'</span> Estado actual: <strong>'+c.label+'</strong>';
     // Disable the button matching current state
-    const map = { activo:'btn-aprobar', pendiente:'btn-pendiente', suspendido:'btn-suspender', rechazado:'btn-suspender' };
-    ['btn-aprobar','btn-pendiente','btn-suspender'].forEach(function(id){
+    // Mostrar suspender solo si cuenta activa
+    var btnSusp = document.getElementById('btn-suspender');
+    if(btnSusp) btnSusp.style.display = estado === 'activo' ? '' : 'none';
+    // Deshabilitar el botón del estado actual
+    var map = { activo:'btn-aprobar', rechazado:'btn-rechazar' };
+    ['btn-aprobar','btn-rechazar'].forEach(function(id){
       const b = document.getElementById(id);
       if(b){ b.disabled = false; b.style.opacity='1'; b.style.cursor='pointer'; }
     });
-    const activeBtn = document.getElementById(map[estado]);
+    var activeBtn = document.getElementById(map[estado]);
     if(activeBtn){ activeBtn.disabled = true; activeBtn.style.opacity='0.4'; activeBtn.style.cursor='not-allowed'; }
   }
 
@@ -406,10 +409,19 @@ ${renderEquipos(isTransportista, equipos)}
   }
 
   async function guardarMaxUsuarios(){
-    var max = parseInt(document.getElementById('inp-max-usuarios').value)||0;
+    var inp = document.getElementById('inp-max-usuarios');
+    var max = parseInt(inp.value)||0;
+    var btn = event.target;
+    btn.disabled = true; btn.textContent = 'Guardando...';
     const r = await api('/api/admin/gestionar-usuario','POST',{email:userData.email, max_usuarios:max});
-    if(r&&r.ok) toast('Usuarios adicionales actualizados: '+max);
-    else toast('Error al actualizar','err');
+    btn.disabled = false; btn.textContent = 'Guardar';
+    if(r&&r.ok){
+      userData.max_usuarios = max;
+      inp.value = max;
+      toast('Guardado: ' + max + ' usuario(s) extra permitido(s)');
+    } else {
+      toast('Error al guardar','err');
+    }
   }
 
   async function guardarNotas(){
