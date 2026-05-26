@@ -196,7 +196,6 @@
     document.getElementById('breadcrumb-nombre').textContent = userData.empresa || userData.nombre;
 
     renderPerfil(userData, isTransportista);
-    actualizarEstadoBanner(userData.estado);
   }
 
   function renderEquipos(isTransportista, equipos) {
@@ -332,6 +331,7 @@ ${renderEquipos(isTransportista, equipos)}
     `;
 
     document.getElementById('contenido').innerHTML = html;
+    actualizarEstadoBanner(u.estado);
     cargarHistorial(u.email, isTransportista);
   }
 
