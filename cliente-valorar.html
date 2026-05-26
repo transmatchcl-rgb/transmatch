@@ -89,23 +89,39 @@
         <div class="criterio">
           <div class="criterio-label">Cumplimiento del plazo</div>
           <div class="stars" id="stars-plazo" data-key="plazo"></div>
+          <div class="motivo-wrap" id="motivo-wrap-plazo" style="display:none;margin-top:8px">
+            <textarea class="motivo-input" id="motivo-plazo" placeholder="¿Qué ocurrió con cumplimiento del plazo? (obligatorio)" rows="2"></textarea>
+            <div class="motivo-aviso" id="motivo-aviso-plazo" style="display:none;font-size:11px;color:#EF4444;margin-top:3px">Este campo es obligatorio para valoraciones de 3 o menos estrellas.</div>
+          </div>
         </div>
         <div class="criterio">
           <div class="criterio-label">Estado del equipo</div>
           <div class="stars" id="stars-equipo" data-key="equipo"></div>
+          <div class="motivo-wrap" id="motivo-wrap-equipo" style="display:none;margin-top:8px">
+            <textarea class="motivo-input" id="motivo-equipo" placeholder="¿Qué ocurrió con estado del equipo? (obligatorio)" rows="2"></textarea>
+            <div class="motivo-aviso" id="motivo-aviso-equipo" style="display:none;font-size:11px;color:#EF4444;margin-top:3px">Este campo es obligatorio para valoraciones de 3 o menos estrellas.</div>
+          </div>
         </div>
         <div class="criterio">
           <div class="criterio-label">Comunicación y seriedad</div>
           <div class="stars" id="stars-comunicación" data-key="comunicación"></div>
+          <div class="motivo-wrap" id="motivo-wrap-comunicación" style="display:none;margin-top:8px">
+            <textarea class="motivo-input" id="motivo-comunicación" placeholder="¿Qué ocurrió con comunicación y seriedad? (obligatorio)" rows="2"></textarea>
+            <div class="motivo-aviso" id="motivo-aviso-comunicación" style="display:none;font-size:11px;color:#EF4444;margin-top:3px">Este campo es obligatorio para valoraciones de 3 o menos estrellas.</div>
+          </div>
         </div>
         <div class="criterio">
           <div class="criterio-label">Seguridad de la carga</div>
           <div class="stars" id="stars-seguridad" data-key="seguridad"></div>
+          <div class="motivo-wrap" id="motivo-wrap-seguridad" style="display:none;margin-top:8px">
+            <textarea class="motivo-input" id="motivo-seguridad" placeholder="¿Qué ocurrió con seguridad de la carga? (obligatorio)" rows="2"></textarea>
+            <div class="motivo-aviso" id="motivo-aviso-seguridad" style="display:none;font-size:11px;color:#EF4444;margin-top:3px">Este campo es obligatorio para valoraciones de 3 o menos estrellas.</div>
+          </div>
         </div>
       </div>
 
       <div class="fg">
-        <label>Comentario (opcional)</label>
+        <label>Comentario general (opcional)</label>
         <textarea id="comentario" placeholder="Describe tu experiencia con este transportista..."></textarea>
       </div>
 
@@ -135,6 +151,19 @@
             scores[k] = v;
             updateStars(k, v);
             updatePromedio();
+            // Mostrar/ocultar campo motivo si <= 3
+            var wrapEl = document.getElementById('motivo-wrap-' + k);
+            if (wrapEl) {
+              if (v <= 3) {
+                wrapEl.style.display = 'block';
+              } else {
+                wrapEl.style.display = 'none';
+                var inpEl = document.getElementById('motivo-' + k);
+                var avEl  = document.getElementById('motivo-aviso-' + k);
+                if (inpEl) { inpEl.value = ''; inpEl.classList.remove('ok'); }
+                if (avEl)  avEl.style.display = 'none';
+              }
+            }
           };
         })(key, i, star);
         star.onmouseover = (function(k, v) {
@@ -199,7 +228,34 @@
     document.getElementById('err-msg').style.display = 'none';
     try {
       var promedio = (vals.reduce(function(a,b){ return a+b; },0) / vals.length);
-      var res = await fetch(API+'/api/valoraciones', {
+      // Validar motivos obligatorios (categorías con <= 3 estrellas)
+    var keys = ['plazo','equipo','comunicación','seguridad'];
+    var motivos = {};
+    var hayError = false;
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      if (scores[k] && scores[k] <= 3) {
+        var inp = document.getElementById('motivo-' + k);
+        var av  = document.getElementById('motivo-aviso-' + k);
+        var val = inp ? inp.value.trim() : '';
+        if (!val) {
+          if (inp) inp.classList.remove('ok');
+          if (av)  av.style.display = 'block';
+          if (!hayError) { inp.scrollIntoView({behavior:'smooth',block:'center'}); inp.focus(); }
+          hayError = true;
+        } else {
+          if (inp) inp.classList.add('ok');
+          if (av)  av.style.display = 'none';
+          motivos[k] = val;
+        }
+      }
+    }
+    if (hayError) {
+      btn.disabled = false; btn.textContent = 'Enviar valoracion';
+      return;
+    }
+
+    var res = await fetch(API+'/api/valoraciones', {
         method: 'POST',
         headers: {'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
         body: JSON.stringify({
@@ -207,6 +263,7 @@
           scores:       scores,
           promedio:     promedio,
           comentario:   document.getElementById('comentario').value.trim(),
+          motivos: motivos,
         })
       });
       if (res.ok) {
