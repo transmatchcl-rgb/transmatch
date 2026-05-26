@@ -218,7 +218,7 @@
 
     let lista = allLicit;
     if(estado)    lista = lista.filter(l => l.estado === estado);
-    if(q)         lista = lista.filter(l => (l.tipoEquipo+l.marca+l.origen+l.destino+l.clienteEmpresa+l.codigo).toLowerCase().includes(q));
+    if(q)         lista = lista.filter(l => (l.tipoEquipo+l.marca+l.origen+l.destino+l.clienteEmpresa+l.código).toLowerCase().includes(q));
     if(soloCotiz) lista = lista.filter(l => (l.cotizaciones||[]).length > 0);
 
     if(lista.length === 0){
@@ -226,19 +226,17 @@
       return;
     }
 
-    // Contador global de cotizaciones para códigos únicos
-    let cotContador = 0;
-    document.getElementById('lista-grupos').innerHTML = lista.map((l,gi) => renderGrupo(l, gi, cotContador, (n)=>{ cotContador=n; })).join('');
+    document.getElementById('lista-grupos').innerHTML = lista.map((l,gi) => renderGrupo(l, gi)).join('');
   }
 
-  function renderGrupo(l, gi, cotOffset, setCotOffset){
+  function renderGrupo(l, gi){
     const cotizaciones = (l.cotizaciones || []).sort((a,b) => (b.score||0)-(a.score||0));
     const nCot = cotizaciones.length;
     const adjId = l.adjudicadaA ? l.adjudicadaA.cotizacionId : null;
 
     const cotizHTML = nCot === 0
       ? '<div style="padding:16px 18px 16px 36px;font-size:13px;color:#9CA3AF">Sin cotizaciones recibidas</div>'
-      : cotizaciones.map((c, i) => { const globalIdx = cotOffset + i;
+      : cotizaciones.map((c, i) => {
           const sc         = Math.round((c.score||0)*100);
           const esGanadora = adjId && c.id === adjId;
           const fueSent    = l.cotizacionesEnviadas && l.cotizacionesEnviadas.includes(c.id);
@@ -247,22 +245,22 @@
           const key = 'cdata_'+gi+'_'+i;
           window._cotizStore = window._cotizStore || {};
           window._cotizStore[key] = {c, esGanadora, licit:{
-            código: l.codigo, equipo: l.tipoEquipo+(l.marca?' - '+l.marca:''),
+            código: l.código, equipo: l.tipoEquipo+(l.marca?' - '+l.marca:''),
             ruta: l.origen+' -> '+l.destino, clienteEmpresa: l.clienteEmpresa
           }};
           return '<div class="cotiz-row" style="cursor:pointer" onclick="abrirModal(\''+key+'\')">' +
             '<div class="cotiz-rank '+rankCls+'">'+(i+1)+'</div>'+
             '<div class="cotiz-body">'+
               '<div class="cotiz-nombre">'+
-                '<span style="font-size:10px;font-family:monospace;font-weight:700;background:#FFF7ED;color:#92400E;padding:2px 7px;border-radius:4px;margin-right:6px">'+(c.codigo||('COT-'+String(globalIdx+1).padStart(3,'0')))+'</span>'+
+                (c.código?'<span style="font-size:10px;font-family:monospace;color:#9CA3AF;margin-right:4px">'+c.código+'</span>':'')+
                 (c.transportistaNombre||'—')+' — '+(c.transportistaEmpresa||'—')+
                 (esGanadora?'<span class="tag tag-winner">Adjudicado</span>':'')+
                 (fueSent&&!esGanadora?'<span class="tag tag-sent">Enviado al cliente</span>':'')+
               '</div>'+
               '<div class="cotiz-meta">'+
                 '<span>Entrega: '+(c.tiempoEntrega||'--')+'</span>'+
-                '<span>Rating: ★'+(c.transportistaRating||5)+'</span>'+
-                '<span>Resp: '+(c.tiempoRespuesta||'--')+'min</span>'+
+                '<span>Rating: '+(c.transportistaRating||5)+'</span>'+
+                
                 (c.descripción?'<span style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+c.descripción+'</span>':'')+
               '</div>'+
             '</div>'+
@@ -275,13 +273,12 @@
           '</div>';
         }).join('');
 
-    if(setCotOffset) setCotOffset(cotOffset + cotizaciones.length);
     return '<div class="grupo">'+
       '<div class="grupo-hdr" onclick="toggleGrupo('+gi+',this)">'+
         '<span class="grupo-toggle" id="toggle-'+gi+'">▶</span>'+
         '<div class="grupo-info">'+
           '<div class="grupo-title">'+
-            '<span style="font-size:10px;font-family:monospace;font-weight:700;background:#eef1f8;color:#1e2d4e;padding:2px 8px;border-radius:5px;margin-right:8px">'+(l.codigo||('LIC-'+String(gi+1).padStart(3,'0')))+'</span>'+
+            (l.código ? '<span style="font-size:11px;font-family:monospace;color:#9CA3AF;font-weight:600">'+l.código+'</span>' : '')+
             '<span>'+l.tipoEquipo+(l.marca?' — '+l.marca:'')+'</span>'+
             estadoBadge(l.estado)+
           '</div>'+
@@ -311,14 +308,14 @@
     allLicit.forEach(l => {
       const cotizaciones = l.cotizaciones || [];
       if(cotizaciones.length === 0){
-        rows.push([l.id, l.codigo||'', l.clienteEmpresa||'', (l.tipoEquipo||'')+(l.marca?' - '+l.marca:''),
+        rows.push([l.id, l.código||'', l.clienteEmpresa||'', (l.tipoEquipo||'')+(l.marca?' - '+l.marca:''),
           l.origen||'', l.destino||'', l.estado||'', '','','','','','','No', fecha(l.createdAt)]);
       } else {
         cotizaciones.forEach(c => {
           const esGan = l.adjudicadaA && l.adjudicadaA.cotizacionId === c.id;
-          rows.push([l.id, l.codigo||'', l.clienteEmpresa||'', (l.tipoEquipo||'')+(l.marca?' - '+l.marca:''),
+          rows.push([l.id, l.código||'', l.clienteEmpresa||'', (l.tipoEquipo||'')+(l.marca?' - '+l.marca:''),
             l.origen||'', l.destino||'', l.estado||'',
-            c.codigo||'', (c.transportistaNombre||'—')+' / '+(c.transportistaEmpresa||'—'), c.precio||'', c.tiempoEntrega||'',
+            c.código||'', (c.transportistaNombre||'—')+' / '+(c.transportistaEmpresa||'—'), c.precio||'', c.tiempoEntrega||'',
             c.transportistaRating||5, Math.round((c.score||0)*100)+'%', esGan?'Si':'No', fecha(c.createdAt)]);
         });
       }
@@ -341,16 +338,16 @@
     document.getElementById('mc-titulo').textContent =
       (licit.equipo||'Cotizacion') + (esGanadora ? ' — Adjudicada' : '');
     document.getElementById('mc-código').textContent =
-      (c.codigo||'--') + (licit.codigo ? '  /  ' + licit.codigo : '');
+      (c.código||'--') + (licit.código ? '  /  ' + licit.código : '');
 
     const items = [
-      ['Licitacion',          licit.codigo + ' — ' + licit.equipo],
+      ['Licitacion',          licit.código + ' — ' + licit.equipo],
       ['Ruta',                licit.ruta],
       ['Cliente',             licit.clienteEmpresa||'--'],
       ['Transportista', (c.transportistaNombre||'—')+' · '+(c.transportistaEmpresa||'—')],
       ['Precio ofrecido',     peso(c.precio)],
       ['Tiempo entrega',      c.tiempoEntrega||'--'],
-      ['Tiempo respuesta',    (c.tiempoRespuesta||'--') + ' min'],
+      
       ['Rating transportista','★ ' + (c.transportistaRating||5)],
       ['Score algoritmo',     sc + '%'],
       ['Adjudicada',          esGanadora ? 'Si' : 'No'],
@@ -447,7 +444,7 @@
       <div>
         <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
         <div style="display:flex;flex-direction:column;gap:6px">
-          <a href="/términos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Términos y condiciones</a>
+          <a href="/terminos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Términos y condiciones</a>
           <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Política de privacidad</a>
           <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Centro de ayuda</a>
         </div>

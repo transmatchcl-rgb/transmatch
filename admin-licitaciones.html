@@ -297,7 +297,7 @@ function filtrar(){
 
   if(lista.length===0){
     document.getElementById('lista-licitaciones').innerHTML=
-      '<div class="empty"><div style="font-size:32px;margin-bottom:10px">📋</div>Sin licitaciones para los filtros seleccionados</div>';
+      '<div class="empty"><div style="font-size:32px;margin-bottom:10px"></div>Sin licitaciones para los filtros seleccionados</div>';
     return;
   }
   document.getElementById('lista-licitaciones').innerHTML=lista.map(renderCard).join('');
@@ -405,8 +405,8 @@ function renderDetalle(l){
         '</div>'+
         '<div style="font-size:12px;color:#6B7280">'+
           'Entrega: '+(c.tiempoEntrega||'—')+
-          ' · Rating: ★'+(c.transportistaRating||5)+
-          ' · Resp: '+(c.tiempoRespuesta||'—')+'min'+
+          ' · Rating: '+(c.transportistaRating||5)+
+         
         '</div>'+
         '<div class="cotiz-score-bar"><div class="cotiz-score-fill" style="width:'+sc+'%"></div></div>'+
         '<div style="font-size:11px;color:#9CA3AF">Score: '+sc+'%</div>'+
@@ -419,8 +419,8 @@ function renderDetalle(l){
   // Acciones
   var acc=[];
   if(l.estado==='pendiente_admin'){
-    acc.push('<button class="btn btn-green" onclick="event.stopPropagation();aprobar(\''+l.id+'\')">✓ Aprobar y publicar</button>');
-    acc.push('<button class="btn btn-red" onclick="event.stopPropagation();rechazar(\''+l.id+'\')">✕ Rechazar</button>');
+    acc.push('<button class="btn btn-green" onclick="event.stopPropagation();aprobar(\''+l.id+'\')">Aprobar y publicar</button>');
+    acc.push('<button class="btn btn-red" onclick="event.stopPropagation();rechazar(\''+l.id+'\')">Rechazar</button>');
   }
   if(l.estado==='abierta'&&cotizaciones.length>0){
     acc.push('<button class="btn btn-primary" onclick="event.stopPropagation();cerrarLicit(\''+l.id+'\')">Cerrar y enviar TOP 3 →</button>');
