@@ -199,6 +199,17 @@
     actualizarEstadoBanner(userData.estado);
   }
 
+  function renderEquipos(isTransportista, equipos) {
+    if (!isTransportista) return '';
+    var inner = equipos.length === 0
+      ? '<div class="empty">Sin equipos registrados</div>'
+      : equipos.map(function(e) {
+          return '<div class="equipo-item"><div><div class="equipo-tipo">' + e.tipo + '</div>' +
+            '<div class="equipo-meta">Capacidad: ' + (e.capacidad||'--') + ' ton &nbsp;·&nbsp; Dim. max: ' + (e.dimensiones||'--') + '</div></div></div>';
+        }).join('');
+    return '<div class="card"><div class="card-hdr">Equipos registrados</div><div class="card-body">' + inner + '</div></div>';
+  }
+
   function renderPerfil(u, isTransportista){
     const initials = (u.empresa||u.nombre||'?')[0].toUpperCase();
     const notas    = u.notasAdmin || '';
@@ -233,7 +244,8 @@
           </div>
           <div class="info-grid">
             <div class="info-item"><div class="info-label">Razón social</div><div class="info-val">${u.empresa||'--'}</div></div>
-            <div class="info-item"><div class="info-label">RUT empresa</div><div class="info-val">${u.rut||'--'}</div></div>
+            <div class="info-item"><div class="info-label">RUT empresa</div><div class="info-val">${u.rutEmpresa||'--'}</div></div>
+            <div class="info-item"><div class="info-label">Teléfono</div><div class="info-val">${u.telefono||'--'}</div></div>
             <div class="info-item"><div class="info-label">Email</div><div class="info-val">${u.email||'--'}</div></div>
             <div class="info-item"><div class="info-label">Telefono</div><div class="info-val">${u.teléfono||'--'}</div></div>
             <div class="info-item"><div class="info-label">Registro</div><div class="info-val">${u.createdAt ? new Date(u.createdAt).toLocaleDateString('es-CL') : '--'}</div></div>
@@ -261,7 +273,8 @@
         <div class="card-body">
           <div id="estado-actual-banner" style="margin-bottom:14px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px"></div>
           <div class="acciones-estado">
-            <button class="btn btn-green" id="btn-aprobar" onclick="cambiarEstado('activo')">Aprobar cuenta</button>
+            <button class="btn btn-primary" id="btn-aprobar" onclick="cambiarEstado('activo')" style="background:#1e2d4e;color:#fff">Aprobar cuenta</button>
+            <button class="btn btn-outline" id="btn-rechazar" onclick="cambiarEstado('rechazado')" style="border-color:#ff8904;color:#ff8904">Rechazar</button>
             <button class="btn btn-red" id="btn-suspender" onclick="cambiarEstado('suspendido')">Suspender</button>
             <button class="btn btn-outline" id="btn-pendiente" onclick="cambiarEstado('pendiente')">↺ Marcar pendiente</button>
           </div>
@@ -280,7 +293,7 @@
               <option value="enterprise" ${u.plan==='enterprise'?'selected':''}>Enterprise</option>
             </select>
             <button class="btn btn-orange" onclick="cambiarPlan()">Activar plan</button>
-            <button class="btn btn-danger-outline" onclick="cambiarPlan('basico')">Suspender / Básico</button>
+            
           </div>
         </div>
       </div>
@@ -296,19 +309,7 @@
         '</div></div>'
       : ''}
 
-      \${isTransportista ?
-        '<div class="card"><div class="card-hdr">Equipos registrados</div><div class="card-body">' +
-        (equipos.length === 0
-          ? '<div class="empty">Sin equipos registrados</div>'
-          : equipos.map(e =>
-              '<div class="equipo-item">' +
-              '<div><div class="equipo-tipo">' + e.tipo + '</div>' +
-              '<div class="equipo-meta">Capacidad: ' + (e.capacidad||'--') + ' ton &nbsp;·&nbsp; Dim. max: ' + (e.dimensiones||'--') + '</div></div>' +
-              '</div>'
-            ).join('')
-        ) +
-        '</div></div>'
-      : ''}
+${renderEquipos(isTransportista, equipos)}
 
       <!-- Historial actividad -->
       <div class="card">
