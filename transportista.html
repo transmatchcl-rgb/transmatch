@@ -115,11 +115,11 @@
       <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Canal de notificaciones</div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
         <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
-          <span style="font-size:13px;color:#374151">✉️ Recibir por email</span>
+          <span style="font-size:13px;color:#374151">Recibir por email</span>
           <input type="checkbox" id="notif-email-chk" onchange="guardarPrefs()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/>
         </label>
         <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
-          <span style="font-size:13px;color:#374151">💬 Recibir por WhatsApp</span>
+          <span style="font-size:13px;color:#374151">Recibir por WhatsApp</span>
           <input type="checkbox" id="notif-wa-chk" onchange="toggleWA()" style="width:16px;height:16px;accent-color:#25D366;cursor:pointer"/>
         </label>
         <div id="wa-input" style="display:none;margin-top:4px">
@@ -260,7 +260,7 @@
         const u = me.data.user;
         const rating = u.rating || 5.0;
         const total  = u.totalTransportes || 0;
-        document.getElementById('kpi-rating').textContent   = '★ ' + rating;
+        document.getElementById('kpi-rating').textContent   = ''+rating+'/5';
         document.getElementById('kpi-ganados').textContent  = total;
         // Nombre en bienvenida
         const bienNombre = u.nombre || localStorage.getItem('tm_nombre') || '';
@@ -270,7 +270,7 @@
         document.getElementById('rating-content').innerHTML =
           '<div style="text-align:center;margin-bottom:16px">' +
             '<div style="font-size:48px;font-weight:800;color:#ff8904;line-height:1">' + rating + '</div>' +
-            '<div style="font-size:22px;color:#ff8904;margin:4px 0">' + '★'.repeat(Math.round(rating)) + '</div>' +
+            '<div style="font-size:22px;color:#ff8904;margin:4px 0">' + rating+'/5' + '</div>' +
             '<div style="font-size:13px;color:#6B7280">' + total + ' transporte' + (total!==1?'s':'') + ' completado' + (total!==1?'s':'') + '</div>' +
           '</div>' +
           [
@@ -298,7 +298,7 @@
       elKpi.textContent = '0';
       elDisp.innerHTML  =
         '<div style="padding:24px;text-align:center">' +
-          '<div style="font-size:28px;margin-bottom:8px">⚙️</div>' +
+          '<div style="font-size:28px;margin-bottom:8px"></div>' +
           '<div style="font-size:13px;font-weight:500;color:#92400E;margin-bottom:6px">Sin equipos en Mis Operaciones</div>' +
           '<div style="font-size:12px;color:#6B7280;margin-bottom:12px">Selecciona tus equipos en Perfil → Operaciones</div>' +
           '<a href="/transportista-perfil.html" style="display:inline-flex;padding:8px 16px;background:#1e2d4e;color:#fff;border-radius:8px;font-size:13px;font-weight:500;text-decoration:none">Ir a Operaciones →</a>' +
@@ -390,7 +390,7 @@
       const list = document.getElementById('notif-list');
       if(!list) return;
       if(notifs.length === 0){
-        list.innerHTML = '<div style="padding:32px 20px;text-align:center"><div style="font-size:28px;margin-bottom:8px">🔔</div><div style="font-size:14px;font-weight:500;color:#374151;margin-bottom:4px">Sin notificaciones</div><div style="font-size:12px;color:#9CA3AF">Te avisaremos cuando haya novedades</div></div>';
+        list.innerHTML = '<div style="padding:32px 20px;text-align:center"><div style="font-size:28px;margin-bottom:8px"></div><div style="font-size:14px;font-weight:500;color:#374151;margin-bottom:4px">Sin notificaciones</div><div style="font-size:12px;color:#9CA3AF">Te avisaremos cuando haya novedades</div></div>';
         return;
       }
       // Iconos por tipo

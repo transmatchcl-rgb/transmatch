@@ -346,7 +346,7 @@ function filtrar(){
 
   if(lista.length===0){
     document.getElementById('lista-transportes').innerHTML=
-      '<div class="empty"><div style="font-size:32px;margin-bottom:10px">🚛</div>Sin transportes para los filtros seleccionados</div>';
+      '<div class="empty"><div style="font-size:32px;margin-bottom:10px"></div>Sin transportes para los filtros seleccionados</div>';
     return;
   }
   document.getElementById('lista-transportes').innerHTML=lista.map(renderCard).join('');
@@ -362,7 +362,7 @@ function renderCard(t){
         '<div class="trn-name">'+t.tipoEquipo+'</div>'+
         '<div class="trn-meta">'+
           '<strong style="color:#1e2d4e">'+(t.clienteEmpresa||'—')+'</strong>'+
-          ' → <strong style="color:#374151">'+(t.transportistaEmpresa||'—')+' <span style="font-weight:400;font-size:11px;color:#9CA3AF">('+(t.transportistaNombre||'—')+')</span></strong>'+
+          ' → <strong style="color:#374151">'+(t.transportistaEmpresa||t.transportistaNombre||'—')+'</strong>'+
           ' · '+t.origen+' → '+t.destino+
           ' · '+timeAgo(t.adjudicadoAt)+
         '</div>'+
@@ -390,43 +390,23 @@ function toggleCard(id){
 function renderDetalle(t){
   var html='';
 
-  // ── Bloque 1: Datos del transporte ──
-  var infoTransporte=[
-    ['Código transporte',   t.codigo||'—'],
+  // Grid info
+  var items=[
+    ['Código transporte', t.codigo||'—'],
     ['Licitación asociada', t.licitacionCodigo||'—'],
-    ['Tipo de equipo',      t.tipoEquipo||'—'],
-    ['Precio adjudicado',   peso(t.precio)],
-    ['Origen',              t.origen||'—'],
-    ['Destino',             t.destino||'—'],
-    ['Fecha adjudicación',  fechaCorta(t.adjudicadoAt)],
-    ['Fecha entrega',       t.entregadoAt?fechaCorta(t.entregadoAt):'—'],
+    ['Tipo de equipo', t.tipoEquipo||'—'],
+    ['Precio adjudicado', peso(t.precio)],
+    ['Cliente', t.clienteEmpresa||'—'],
+    ['Email cliente', t.clienteEmail||'—'],
+    ['Transportista', (t.transportistaNombre||'—')+' · '+(t.transportistaEmpresa||'—')],
+    ['Email transportista', t.transportistaEmail||'—'],
+    ['Teléfono transportista', t.transportistaTelefono||'—'],
+    ['Origen', t.origen||'—'],
+    ['Destino', t.destino||'—'],
+    ['Adjudicado', fechaCorta(t.adjudicadoAt)],
+    ['Entregado', t.entregadoAt?fechaCorta(t.entregadoAt):'—'],
   ];
-  html+='<div class="det-section-title" style="padding-top:16px">DATOS DEL TRANSPORTE</div>';
-  html+='<div class="det-grid">'+infoTransporte.map(function(it){
-    return '<div class="det-cell"><div class="det-label">'+it[0]+'</div><div class="det-val">'+it[1]+'</div></div>';
-  }).join('')+'</div>';
-
-  // ── Bloque 2: Datos del cliente ──
-  var infoCliente=[
-    ['Empresa cliente',   t.clienteEmpresa||'—'],
-    ['Contacto cliente',  t.clienteNombre||'—'],
-    ['Email cliente',     t.clienteEmail||'—'],
-    ['Teléfono cliente',  t.clienteTelefono||'—'],
-  ];
-  html+='<div class="det-section-title">DATOS DEL CLIENTE</div>';
-  html+='<div class="det-grid">'+infoCliente.map(function(it){
-    return '<div class="det-cell"><div class="det-label">'+it[0]+'</div><div class="det-val">'+it[1]+'</div></div>';
-  }).join('')+'</div>';
-
-  // ── Bloque 3: Datos del transportista ──
-  var infoTransportista=[
-    ['Empresa transportista',   t.transportistaEmpresa||'—'],
-    ['Contacto transportista',  t.transportistaNombre||'—'],
-    ['Email transportista',     t.transportistaEmail||'—'],
-    ['Teléfono transportista',  t.transportistaTelefono||'—'],
-  ];
-  html+='<div class="det-section-title">DATOS DEL TRANSPORTISTA</div>';
-  html+='<div class="det-grid">'+infoTransportista.map(function(it){
+  html+='<div class="det-grid">'+items.map(function(it){
     return '<div class="det-cell"><div class="det-label">'+it[0]+'</div><div class="det-val">'+it[1]+'</div></div>';
   }).join('')+'</div>';
 
@@ -434,17 +414,17 @@ function renderDetalle(t){
   html+='<div class="det-section-title">Documentos</div>';
   html+='<div class="docs-row">';
   if(t.oc && t.oc.archivoId){
-    html+='<span class="doc-pill" onclick="descargar(\''+t.oc.archivoId+'\',\''+(t.oc.nombre||'orden_de_compra')+'\')">📄 OC — '+(t.oc.nombre||'orden_de_compra.pdf')+'</span>';
+    html+='<span class="doc-pill" onclick="descargar(\''+t.oc.archivoId+'\',\''+(t.oc.nombre||'orden_de_compra')+'\')">OC — '+(t.oc.nombre||'orden_de_compra.pdf')+'</span>';
   } else {
-    html+='<span class="doc-pill no-doc">📄 OC — Sin subir</span>';
+    html+='<span class="doc-pill no-doc">OC — Sin subir</span>';
   }
   if(t.factura && t.factura.archivoId){
-    html+='<span class="doc-pill" onclick="descargar(\''+t.factura.archivoId+'\',\''+(t.factura.nombre||'factura')+'\')">🧾 Factura — '+(t.factura.nombre||'factura.pdf')+'</span>';
+    html+='<span class="doc-pill" onclick="descargar(\''+t.factura.archivoId+'\',\''+(t.factura.nombre||'factura')+'\')">Factura — '+(t.factura.nombre||'factura.pdf')+'</span>';
   } else {
-    html+='<span class="doc-pill no-doc">🧾 Factura — Sin subir</span>';
+    html+='<span class="doc-pill no-doc">Factura — Sin subir</span>';
   }
   if(t.guia && t.guia.archivoId){
-    html+='<span class="doc-pill" onclick="descargar(\''+t.guia.archivoId+'\',\''+(t.guia.nombre||'guia_despacho')+'\')">📦 Guía despacho — '+(t.guia.nombre||'guia.pdf')+'</span>';
+    html+='<span class="doc-pill" onclick="descargar(\''+t.guia.archivoId+'\',\''+(t.guia.nombre||'guia_despacho')+'\')">Guía despacho — '+(t.guia.nombre||'guia.pdf')+'</span>';
   }
   html+='</div>';
 
@@ -463,7 +443,7 @@ function renderDetalle(t){
       var isLast=(i===0);
       var dotCls=isLast?'tl-dot-cur':'tl-dot-ok';
       html+='<div class="tl-item">'+
-        '<div class="tl-dot '+dotCls+'">'+(isLast?'●':'✓')+'</div>'+
+        '<div class="tl-dot '+dotCls+'">'+''+'</div>'+
         '<div class="tl-content">'+
           '<div class="tl-estado">'+(LABELS[h.estado]||h.estado)+'</div>'+
           '<div class="tl-fecha">'+fechaCorta(h.fecha)+' · '+( h.actor||'Sistema')+'</div>'+
