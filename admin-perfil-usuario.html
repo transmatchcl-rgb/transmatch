@@ -220,7 +220,7 @@
                 ${estadoBadge(u.estado)}
                 ${planBadge(u.plan)}
                 <span class="badge badge-gray">${isTransportista ? 'Transportista' : 'Cliente'}</span>
-                ${u.rating ? '<span class="badge badge-orange">★ '+u.rating+'</span>' : ''}
+                ${u.rating ? '<span class="badge badge-orange">'+u.rating+'</span>' : ''}
               </div>
             </div>
           </div>
@@ -261,8 +261,8 @@
         <div class="card-body">
           <div id="estado-actual-banner" style="margin-bottom:14px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px"></div>
           <div class="acciones-estado">
-            <button class="btn btn-green" id="btn-aprobar" onclick="cambiarEstado('activo')">✓ Aprobar cuenta</button>
-            <button class="btn btn-red" id="btn-suspender" onclick="cambiarEstado('suspendido')">✕ Suspender</button>
+            <button class="btn btn-green" id="btn-aprobar" onclick="cambiarEstado('activo')">Aprobar cuenta</button>
+            <button class="btn btn-red" id="btn-suspender" onclick="cambiarEstado('suspendido')">Suspender</button>
             <button class="btn btn-outline" id="btn-pendiente" onclick="cambiarEstado('pendiente')">↺ Marcar pendiente</button>
           </div>
           <div style="font-size:11px;color:#9CA3AF;margin-top:8px">El botón del estado actual aparece desactivado.</div>
@@ -285,23 +285,30 @@
         </div>
       </div>
 
-      ${isTransportista ? `
-      <!-- Equipos (solo transportista) -->
-      <div class="card">
-        <div class="card-hdr">Equipos registrados</div>
-        <div class="card-body">
-          ${equipos.length === 0
-            ? '<div class="empty">Sin equipos registrados</div>'
-            : equipos.map(e =>
-                '<div class="equipo-item">'+
-                '<div><div class="equipo-tipo">'+e.tipo+'</div>'+
-                '<div class="equipo-meta">Capacidad: '+(e.capacidad||'--')+' ton &nbsp;·&nbsp; Dim. max: '+(e.dimensiones||'--')+'</div></div>'+
-                '</div>'
-              ).join('')
-          }
-        </div>
-      </div>
-      ` : ''}
+      ${!isTransportista ?
+        '<div class="card"><div class="card-hdr">Usuarios adicionales de empresa</div><div class="card-body">' +
+        '<div style="font-size:13px;color:#6B7280;margin-bottom:12px">Define cuántos usuarios extra puede invitar esta empresa.</div>' +
+        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+        '<label style="font-size:13px;font-weight:500">Usuarios extra permitidos:</label>' +
+        '<input type="number" id="inp-max-usuarios" min="0" max="50" value="' + (u.max_usuarios||0) + '" style="width:80px;padding:8px 10px;border:1px solid #e8eaf0;border-radius:7px;font-size:14px;text-align:center"/>' +
+        '<button class="btn btn-primary" onclick="guardarMaxUsuarios()">Guardar</button></div>' +
+        '<div style="font-size:12px;color:#9CA3AF;margin-top:8px">Actualmente tiene <strong>' + (u.empresaMiembros||[]).length + '</strong> usuario(s) extra.</div>' +
+        '</div></div>'
+      : ''}
+
+      \${isTransportista ?
+        '<div class="card"><div class="card-hdr">Equipos registrados</div><div class="card-body">' +
+        (equipos.length === 0
+          ? '<div class="empty">Sin equipos registrados</div>'
+          : equipos.map(e =>
+              '<div class="equipo-item">' +
+              '<div><div class="equipo-tipo">' + e.tipo + '</div>' +
+              '<div class="equipo-meta">Capacidad: ' + (e.capacidad||'--') + ' ton &nbsp;·&nbsp; Dim. max: ' + (e.dimensiones||'--') + '</div></div>' +
+              '</div>'
+            ).join('')
+        ) +
+        '</div></div>'
+      : ''}
 
       <!-- Historial actividad -->
       <div class="card">
@@ -366,10 +373,10 @@
     const banner = document.getElementById('estado-actual-banner');
     if(!banner) return;
     const cfg = {
-      activo:    { bg:'#F0FDF4', border:'#BBF7D0', color:'#14532D', icon:'✓', label:'Cuenta activa' },
+      activo:    { bg:'#F0FDF4', border:'#BBF7D0', color:'#14532D', icon:'OK', label:'Cuenta activa' },
       pendiente: { bg:'#FFFBEB', border:'#FDE68A', color:'#92400E', icon:'⏳', label:'Pendiente de aprobación' },
-      suspendido:{ bg:'#FEF2F2', border:'#FECACA', color:'#991B1B', icon:'✕', label:'Cuenta suspendida' },
-      rechazado: { bg:'#FEF2F2', border:'#FECACA', color:'#991B1B', icon:'✕', label:'Cuenta rechazada' },
+      suspendido:{ bg:'#FEF2F2', border:'#FECACA', color:'#991B1B', icon:'—', label:'Cuenta suspendida' },
+      rechazado: { bg:'#FEF2F2', border:'#FECACA', color:'#991B1B', icon:'—', label:'Cuenta rechazada' },
     };
     const c = cfg[estado] || { bg:'#F9FAFB', border:'#E5E7EB', color:'#6B7280', icon:'?', label: estado };
     banner.style.cssText = 'margin-bottom:14px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;background:'+c.bg+';border:1px solid '+c.border+';color:'+c.color;
@@ -394,6 +401,13 @@
     const p = plan || document.getElementById('sel-plan').value;
     const r = await api('/api/admin/gestionar-usuario','POST',{email:userData.email, plan:p});
     if(r&&r.ok){ toast('Plan actualizado a: '+p); userData.plan=p; cargar(); }
+    else toast('Error al actualizar','err');
+  }
+
+  async function guardarMaxUsuarios(){
+    var max = parseInt(document.getElementById('inp-max-usuarios').value)||0;
+    const r = await api('/api/admin/gestionar-usuario','POST',{email:userData.email, max_usuarios:max});
+    if(r&&r.ok) toast('Usuarios adicionales actualizados: '+max);
     else toast('Error al actualizar','err');
   }
 
@@ -446,7 +460,7 @@
       <div>
         <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
         <div style="display:flex;flex-direction:column;gap:6px">
-          <a href="/términos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Términos y condiciones</a>
+          <a href="/terminos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Términos y condiciones</a>
           <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Política de privacidad</a>
           <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Centro de ayuda</a>
         </div>
