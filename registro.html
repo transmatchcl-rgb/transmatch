@@ -281,6 +281,20 @@ textarea{resize:vertical;min-height:72px}
 <script>
 var API = 'https://transmatch.transmatchcl.workers.dev';
 var selectedRole = 'mandante';
+// Preseleccionar desde URL (?tipo=transportista)
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  if(params.get('tipo') === 'transportista'){
+    selectedRole = 'transportista';
+    document.addEventListener('DOMContentLoaded', function(){
+      var btnM = document.getElementById('role-btn-mandante');
+      var btnT = document.getElementById('role-btn-transportista');
+      if(btnM) btnM.classList.remove('selected');
+      if(btnT) btnT.classList.add('selected');
+      elegirRol('transportista', btnT);
+    });
+  }
+})();
 var _invToken = null;
 
 // ── TOGGLES UI ────────────────────────────────────────────────
