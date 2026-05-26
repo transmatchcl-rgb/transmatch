@@ -155,78 +155,50 @@
     <div class="map-panel">
       <div class="map-title">Cobertura nacional</div>
       <div class="map-tooltip" id="map-tooltip"></div>
-      <svg id="chile-map" viewBox="0 0 160 600" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:160px;display:block;margin:0 auto">
-
-        <!-- Arica y Parinacota -->
-        <path class="region active" data-name="Arica y Parinacota"
-          d="M72,18 L105,14 L108,28 L104,34 L85,36 L72,32 Z"/>
-
-        <!-- Tarapaca -->
-        <path class="region" data-name="Tarapaca"
-          d="M72,32 L104,34 L107,52 L102,58 L80,60 L72,55 Z"/>
-
-        <!-- Antofagasta -->
-        <path class="region" data-name="Antofagasta"
-          d="M72,55 L102,58 L105,95 L98,102 L74,100 L70,80 Z"/>
-
-        <!-- Atacama -->
-        <path class="region" data-name="Atacama"
-          d="M70,100 L98,102 L100,132 L93,138 L71,136 L68,118 Z"/>
-
-        <!-- Coquimbo -->
-        <path class="region" data-name="Coquimbo"
-          d="M68,136 L93,138 L94,162 L87,168 L68,166 L65,150 Z"/>
-
-        <!-- Valparaiso -->
-        <path class="region" data-name="Valparaiso"
-          d="M65,166 L87,168 L88,184 L80,188 L63,186 L61,175 Z"/>
-
-        <!-- Metropolitana -->
-        <path class="region" data-name="Region Metropolitana"
-          d="M63,186 L80,188 L81,200 L73,204 L62,202 L60,193 Z"/>
-
-        <!-- O'Higgins -->
-        <path class="region" data-name="O Higgins"
-          d="M60,202 L73,204 L74,218 L66,222 L58,220 L57,210 Z"/>
-
-        <!-- Maule -->
-        <path class="region" data-name="Maule"
-          d="M57,220 L66,222 L67,242 L59,246 L54,244 L53,230 Z"/>
-
-        <!-- Nuble -->
-        <path class="region" data-name="Nuble"
-          d="M53,244 L59,246 L60,258 L52,261 L50,254 Z"/>
-
-        <!-- Biobio -->
-        <path class="region" data-name="Biobio"
-          d="M50,261 L60,258 L61,274 L51,278 L47,272 Z"/>
-
-        <!-- Araucania -->
-        <path class="region" data-name="Araucania"
-          d="M47,278 L61,274 L62,294 L50,299 L44,292 Z"/>
-
-        <!-- Los Rios -->
-        <path class="region" data-name="Los Rios"
-          d="M44,299 L62,294 L62,310 L48,315 L41,308 Z"/>
-
-        <!-- Los Lagos -->
-        <path class="region" data-name="Los Lagos"
-          d="M41,315 L62,310 L63,340 L52,348 L42,344 L37,330 Z"/>
-
-        <!-- Aysen -->
-        <path class="region" data-name="Aysen"
-          d="M37,344 L52,348 L53,385 L40,392 L30,384 L30,360 Z"/>
-
-        <!-- Magallanes -->
-        <path class="region" data-name="Magallanes"
-          d="M30,392 L53,385 L54,430 L44,448 L28,444 L22,424 L24,400 Z"/>
-
-        <!-- Isla Grande Tierra del Fuego -->
-        <path class="region" data-name="Magallanes" style="opacity:.7"
-          d="M28,455 L46,450 L50,470 L38,485 L22,478 L20,462 Z"/>
-
-      </svg>
-      <div class="map-counter"><strong id="region-count">16</strong> regiones de cobertura</div>
+      <div style="position:relative;display:flex;justify-content:center">
+        <svg id="chile-map" viewBox="0 0 160 520" xmlns="http://www.w3.org/2000/svg" style="width:140px;height:auto;display:block;filter:drop-shadow(0 4px 24px rgba(255,137,4,.15))">
+          <defs>
+            <linearGradient id="regionGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#2d4a7a;stop-opacity:1"/>
+              <stop offset="100%" style="stop-color:#1e2d4e;stop-opacity:1"/>
+            </linearGradient>
+          </defs>
+          <!-- Arica y Parinacota -->
+          <path class="region" data-name="Arica y Parinacota" d="M72,18 L105,14 L108,28 L104,34 L85,36 L72,32 Z"/>
+          <!-- Tarapaca -->
+          <path class="region" data-name="Tarapacá" d="M72,32 L104,34 L107,52 L102,58 L80,60 L72,55 Z"/>
+          <!-- Antofagasta -->
+          <path class="region" data-name="Antofagasta" d="M72,55 L102,58 L105,95 L98,102 L74,100 L70,80 Z"/>
+          <!-- Atacama -->
+          <path class="region" data-name="Atacama" d="M70,100 L98,102 L100,132 L93,138 L71,136 L68,118 Z"/>
+          <!-- Coquimbo -->
+          <path class="region" data-name="Coquimbo" d="M68,136 L93,138 L94,162 L87,168 L68,166 L65,150 Z"/>
+          <!-- Valparaíso -->
+          <path class="region" data-name="Valparaíso" d="M65,166 L87,168 L88,184 L80,188 L63,186 L61,175 Z"/>
+          <!-- Metropolitana -->
+          <path class="region" data-name="Región Metropolitana" d="M63,186 L80,188 L81,200 L73,204 L62,202 L60,193 Z"/>
+          <!-- O'Higgins -->
+          <path class="region" data-name="O'Higgins" d="M60,202 L73,204 L74,218 L66,222 L58,220 L57,210 Z"/>
+          <!-- Maule -->
+          <path class="region" data-name="Maule" d="M57,220 L66,222 L67,242 L59,246 L54,244 L53,230 Z"/>
+          <!-- Ñuble -->
+          <path class="region" data-name="Ñuble" d="M53,244 L59,246 L60,258 L52,261 L50,254 Z"/>
+          <!-- Biobío -->
+          <path class="region" data-name="Biobío" d="M50,261 L60,258 L61,274 L51,278 L47,272 Z"/>
+          <!-- Araucanía -->
+          <path class="region" data-name="La Araucanía" d="M47,278 L61,274 L62,294 L50,299 L44,292 Z"/>
+          <!-- Los Ríos -->
+          <path class="region" data-name="Los Ríos" d="M44,299 L62,294 L62,310 L48,315 L41,308 Z"/>
+          <!-- Los Lagos -->
+          <path class="region" data-name="Los Lagos" d="M41,315 L62,310 L63,340 L52,348 L42,344 L37,330 Z"/>
+          <!-- Aysén -->
+          <path class="region" data-name="Aysén" d="M37,344 L52,348 L53,385 L40,392 L30,384 L30,360 Z"/>
+          <!-- Magallanes -->
+          <path class="region" data-name="Magallanes" d="M30,392 L53,385 L54,430 L44,448 L28,444 L22,424 L24,400 Z"/>
+          <path class="region" data-name="Magallanes" d="M28,455 L46,450 L50,470 L38,485 L22,478 L20,462 Z" style="opacity:.8"/>
+        </svg>
+      </div>
+      <div class="map-counter" style="margin-top:16px"><strong id="region-count">16</strong> regiones de cobertura</div>
     </div>
   </div>
 </section>
@@ -249,7 +221,7 @@
         </div>
         <div>
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--navy);margin-bottom:8px">Eficiencia operaciónal</div>
-          <p style="font-size:14px;color:var(--muted);line-height:1.75">Reducimos el tiempo de cotización de dias a horas. El proceso de licitación completo ocurre dentro de la plataforma, eliminando llamadas, correos y coordinaciones manuales que consumen tiempo y recursos.</p>
+          <p style="font-size:14px;color:var(--muted);line-height:1.75">Desde la publicación del requerimiento hasta la adjudicación, todo ocurre dentro de la plataforma. Sin llamadas, sin correos dispersos.</p>
         </div>
       </div>
 
@@ -260,7 +232,7 @@
         </div>
         <div>
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--navy);margin-bottom:8px">Optimización de recursos</div>
-          <p style="font-size:14px;color:var(--muted);line-height:1.75">Las empresas acceden a las mejores propuestas del mercado ordenadas por precio y valoración. Los transportistas optimizan sus rutas publicando retornos y eliminando tiempos muertos entre servicios.</p>
+          <p style="font-size:14px;color:var(--muted);line-height:1.75">Las empresas acceden a las mejores propuestas del mercado ordenadas por precio y valoración. Los transportistas optimizan sus rutas publicando retornos disponibles.</p>
         </div>
       </div>
 
