@@ -242,8 +242,8 @@
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff8904" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
         </div>
         <div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--navy);margin-bottom:8px">Automatización del proceso</div>
-          <p style="font-size:14px;color:var(--muted);line-height:1.75">Desde la publicación hasta la factura, cada etapa del transporte queda registrada automáticamente. Trazabilidad de estados, gestión de documentos y notificaciónes sin intervencion manual.</p>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--navy);margin-bottom:8px">Digitalización del proceso</div>
+          <p style="font-size:14px;color:var(--muted);line-height:1.75">Cada etapa del proceso ocurre dentro de la plataforma: publicación, cotización, adjudicación y seguimiento. Todo queda registrado y disponible para ambas partes en todo momento.</p>
         </div>
       </div>
 
@@ -318,8 +318,8 @@
     r.addEventListener('mouseenter', function(e){
       tooltip.textContent = r.getAttribute('data-name');
       tooltip.style.opacity = '1';
-      tooltip.style.top = (e.offsetY - 36)+'px';
-      tooltip.style.left = (e.offsetX + 12)+'px';
+      tooltip.style.top = (e.offsetY + 10)+'px';
+      tooltip.style.left = (e.offsetX + 16)+'px';
       r.classList.add('active');
     });
     r.addEventListener('mouseleave', function(){

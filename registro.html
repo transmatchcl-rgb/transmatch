@@ -39,11 +39,13 @@ textarea{resize:vertical;min-height:72px}
 .fg-full{grid-column:1/-1}
 
 /* Role selector */
-.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.role-btn{padding:14px 10px;border-radius:10px;border:1.5px solid var(--gray-md);cursor:pointer;text-align:center;transition:all .15s;background:#fff}
-.role-btn.selected{border-color:var(--navy);background:var(--blue-lt)}
-.role-btn .role-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
-.role-btn .role-desc{font-size:11px;color:var(--gray)}
+.role-tabs{display:flex;gap:0;margin-bottom:24px;border-radius:10px;overflow:hidden;border:1.5px solid var(--gray-md)}
+.role-tab{flex:1;padding:12px 10px;cursor:pointer;text-align:center;transition:all .15s;background:#fff;border:none;font-family:inherit}
+.role-tab:first-child{border-right:1px solid var(--gray-md)}
+.role-tab.selected{background:var(--navy);color:#fff}
+.role-tab .role-name{font-size:13px;font-weight:600;margin-bottom:2px;color:inherit}
+.role-tab .role-desc{font-size:11px;color:var(--gray)}
+.role-tab.selected .role-desc{color:#93C5FD}
 
 /* Checkboxes industria/zona */
 .check-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
@@ -159,19 +161,19 @@ textarea{resize:vertical;min-height:72px}
   <div id="paso-rol">
     <div class="card">
       <div class="card-title">Crear cuenta</div>
-      <div class="card-sub">¿Cómo quieres usar TransMatch?</div>
-      <div class="role-grid">
-        <div class="role-btn selected" id="role-btn-mandante" onclick="elegirRol('mandante',this)">
-          <div class="role-name">Mandante / Generador de Carga</div>
-          <div class="role-desc">Publica tus requerimientos y recibe cotizaciones de transportistas verificados</div>
+      <div class="card-sub">Selecciona cómo vas a usar la plataforma</div>
+      <div class="role-tabs">
+        <div class="role-tab selected" id="role-btn-mandante" onclick="elegirRol('mandante',this)">
+          <div class="role-name">Soy empresa</div>
+          <div class="role-desc">Publico requerimientos de transporte</div>
         </div>
-        <div class="role-btn" id="role-btn-transportista" onclick="elegirRol('transportista',this)">
-          <div class="role-name">Transportista</div>
-          <div class="role-desc">Accede a licitaciones de carga y aumenta tus ingresos</div>
+        <div class="role-tab" id="role-btn-transportista" onclick="elegirRol('transportista',this)">
+          <div class="role-name">Soy transportista</div>
+          <div class="role-desc">Quiero acceder a licitaciones</div>
         </div>
       </div>
       <button class="btn btn-orange" onclick="irAPaso1()">Continuar</button>
-      <div class="footer-link"><a href="/index.html">Ya tengo cuenta</a></div>
+      <div class="footer-link"><a href="/login.html">Ya tengo cuenta → Iniciar sesión</a></div>
     </div>
   </div>
 
@@ -206,11 +208,11 @@ textarea{resize:vertical;min-height:72px}
           <button type="button" onclick="togglePassEl('reg-password',this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:15px;padding:0">&#128065;</button>
         </div>
         <div id="pass-reqs-reg" style="margin-top:7px;background:#f8f9fc;border-radius:7px;padding:8px 10px;font-size:11px;display:none">
-          <div id="preq-len"  class="pass-req">✕ Mínimo 8 caracteres</div>
-          <div id="preq-up"   class="pass-req">✕ Al menos una mayúscula</div>
-          <div id="preq-lo"   class="pass-req">✕ Al menos una minúscula</div>
-          <div id="preq-num"  class="pass-req">✕ Al menos un número</div>
-          <div id="preq-sym"  class="pass-req">✕ Al menos un carácter especial</div>
+          <div id="preq-len"  class="pass-req">Mínimo 8 caracteres</div>
+          <div id="preq-up"   class="pass-req">Al menos una mayúscula</div>
+          <div id="preq-lo"   class="pass-req">Al menos una minúscula</div>
+          <div id="preq-num"  class="pass-req">Al menos un número</div>
+          <div id="preq-sym"  class="pass-req">Al menos un carácter especial</div>
         </div>
       </div>
       <div class="form-group">
