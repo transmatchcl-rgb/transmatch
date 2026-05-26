@@ -367,6 +367,7 @@ ${renderEquipos(isTransportista, equipos)}
   }
 
   function actualizarEstadoBanner(estado){
+    // Banner de estado
     const banner = document.getElementById('estado-actual-banner');
     if(!banner) return;
     const cfg = {
@@ -376,17 +377,24 @@ ${renderEquipos(isTransportista, equipos)}
       rechazado: { bg:'#FEF2F2', border:'#FECACA', color:'#991B1B', label:'Cuenta rechazada' },
     };
     const c = cfg[estado] || { bg:'#F9FAFB', border:'#E5E7EB', color:'#6B7280', label: estado };
-    banner.style.cssText = 'margin-bottom:14px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;background:'+c.bg+';border:1px solid '+c.border+';color:'+c.color;
+    banner.style.cssText = 'margin-bottom:14px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;background:'+c.bg+';border:1px solid '+c.border+';color:'+c.color;
     banner.innerHTML = 'Estado actual: <strong>'+c.label+'</strong>';
-    // Disable the button matching current state
-    // Mostrar suspender solo si cuenta activa
-    var btnSusp = document.getElementById('btn-suspender');
-    if(btnSusp) btnSusp.style.display = estado === 'activo' ? '' : 'none';
-    // Ambos botones siempre habilitados — el admin puede cambiar estado cuando quiera
-    ['btn-aprobar','btn-rechazar'].forEach(function(id){
-      const b = document.getElementById(id);
-      if(b){ b.disabled = false; b.style.opacity='1'; b.style.cursor='pointer'; }
-    });
+
+    // Botones según estado
+    const wrap = document.getElementById('acciones-estado-wrap');
+    if(!wrap) return;
+    if(estado === 'pendiente'){
+      // Cuenta pendiente: Aprobar (azul marino) + Rechazar (naranja)
+      wrap.innerHTML = [
+        '<button onclick="cambiarEstado(&quot;activo&quot;)" style="background:#1e2d4e;color:#fff;padding:9px 20px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Aprobar cuenta</button>',
+        '<button onclick="cambiarEstado(&quot;rechazado&quot;)" style="background:#fff;color:#ff8904;border:1.5px solid #ff8904;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-left:8px">Rechazar</button>'
+      ].join('');
+    } else {
+      wrap.innerHTML = [
+        '<button onclick="cambiarEstado(&quot;suspendido&quot;)" style="background:#fff;color:#ff8904;border:1.5px solid #ff8904;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Suspender cuenta</button>',
+        '<button onclick="confirmarEliminar()" style="background:#1e2d4e;color:#fff;padding:9px 20px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-left:8px">Eliminar cuenta</button>'
+      ].join('');
+    }
   }
 
   async function cambiarEstado(estado){
