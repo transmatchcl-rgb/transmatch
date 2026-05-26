@@ -31,7 +31,7 @@
   .hero{min-height:100vh;background:var(--navy);display:flex;align-items:center;padding:120px 48px 80px;position:relative;overflow:hidden}
   .hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 75% 40%,rgba(255,137,4,.07) 0%,transparent 65%),radial-gradient(ellipse 50% 50% at 0% 100%,rgba(29,78,216,.12) 0%,transparent 60%)}
   .hero-grid{position:absolute;inset:0;opacity:.035;background-image:linear-gradient(rgba(255,255,255,.4) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.4) 1px,transparent 1px);background-size:56px 56px}
-  .hero-inner{max-width:1100px;margin:0 auto;width:100%;position:relative;z-index:2;display:grid;grid-template-columns:1fr 200px;gap:48px;align-items:flex-start}
+  .hero-inner{max-width:1100px;margin:0 auto;width:100%;position:relative;z-index:2;display:grid;grid-template-columns:1fr 160px;gap:48px;align-items:center}
   .hero-label{display:inline-flex;align-items:center;gap:8px;background:rgba(255,137,4,.1);border:1px solid rgba(255,137,4,.2);border-radius:999px;padding:4px 14px;font-size:11px;font-weight:700;color:var(--orange);letter-spacing:.1em;text-transform:uppercase;margin-bottom:28px}
   h1{font-family:'Barlow Condensed',sans-serif;font-size:clamp(42px,5.5vw,72px);font-weight:800;color:#fff;line-height:1.0;letter-spacing:-1.5px;margin-bottom:20px}
   h1 em{color:var(--orange);font-style:normal}
@@ -47,7 +47,7 @@
   .stat-val em{color:var(--orange);font-style:normal}
   .stat-lbl{font-size:12px;color:#64748B;margin-top:4px}
   /* MAP */
-  .map-panel{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:20px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;max-height:420px}
+  .map-panel{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center}
   .map-title{font-size:12px;font-weight:600;color:#93C5FD;letter-spacing:.06em;text-transform:uppercase;margin-bottom:16px;text-align:center}
   #chile-map{width:100%;max-width:280px;margin:0 auto;display:block;cursor:pointer}
   .region{fill:#2d4270;stroke:#1e2d4e;stroke-width:1.5;transition:fill .2s;cursor:pointer}
@@ -153,7 +153,6 @@
     </div>
     <!-- MAPA -->
     <div class="map-panel">
-      <div class="map-title">Cobertura nacional</div>
       <div class="map-tooltip" id="map-tooltip"></div>
       <div style="position:relative;display:flex;justify-content:center">
         <svg id="chile-map" viewBox="0 0 160 520" xmlns="http://www.w3.org/2000/svg" style="width:140px;height:auto;display:block;filter:drop-shadow(0 4px 24px rgba(255,137,4,.15))">
@@ -198,7 +197,6 @@
           <path class="region" data-name="Magallanes" d="M28,455 L46,450 L50,470 L38,485 L22,478 L20,462 Z" style="opacity:.8"/>
         </svg>
       </div>
-      <div class="map-counter" style="margin-top:16px"><strong id="region-count">16</strong> regiones de cobertura</div>
     </div>
   </div>
 </section>
