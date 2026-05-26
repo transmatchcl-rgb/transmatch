@@ -6,7 +6,7 @@
 <title>TransMatch — Perfil usuario</title>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff;color:#374151}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f7fb;color:#374151}
   #app{display:none}
   #auth-guard{position:fixed;inset:0;background:#1e2d4e;display:flex;align-items:center;justify-content:center;z-index:9999}
   .gs{width:36px;height:36px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
@@ -21,81 +21,43 @@
   .nav-tab{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
   .nav-tab:hover,.nav-tab.active{color:#fff;background:rgba(255,255,255,.12)}
   .logout-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer}
-
   main{max-width:820px;margin:0 auto;padding:28px 20px 60px}
-
-  /* Breadcrumb */
   .breadcrumb{display:flex;align-items:center;gap:6px;font-size:13px;color:#9CA3AF;margin-bottom:20px}
   .breadcrumb a{color:#1d4ed8;text-decoration:none}
-  .breadcrumb a:hover{text-decoration:underline}
-
-  /* Card base */
   .card{background:#fff;border-radius:14px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);margin-bottom:16px;overflow:hidden}
-  .card-hdr{padding:14px 20px;border-bottom:0.5px solid #e8eaf0;font-size:12px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:8px}
+  .card-hdr{padding:14px 20px;border-bottom:0.5px solid #e8eaf0;font-size:12px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em}
   .card-body{padding:20px}
-
-  /* Perfil header */
-  .perfil-hdr{display:flex;align-items:flex-start;gap:16px;margin-bottom:20px}
+  .perfil-hdr{display:flex;align-items:flex-start;gap:16px}
   .perfil-avatar{width:56px;height:56px;border-radius:12px;background:#1e2d4e;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:22px;flex-shrink:0}
   .perfil-nombre{font-size:20px;font-weight:700;color:#1e2d4e;margin-bottom:4px}
   .perfil-email{font-size:14px;color:#6B7280}
   .perfil-badges{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
-
-  /* Grid info */
-  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
   @media(max-width:560px){.info-grid{grid-template-columns:1fr}}
   .info-item{padding:12px 14px;background:#f8f9fc;border-radius:8px;border:0.5px solid #e8eaf0}
   .info-label{font-size:11px;color:#9CA3AF;font-weight:600;margin-bottom:4px}
   .info-val{font-size:13px;color:#111827;font-weight:500}
-
-  /* Badges */
   .badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;padding:3px 10px;border-radius:999px}
   .badge-green{background:#F0FDF4;color:#14532D;border:1px solid #BBF7D0}
   .badge-orange{background:#FFF7ED;color:#92400E;border:1px solid #FED7AA}
-  .badge-blue{background:#eef1f8;color:#1e2d4e;border:1px solid #c5cee8}
   .badge-gray{background:#F9FAFB;color:#6B7280;border:1px solid #e8eaf0}
   .badge-red{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA}
   .badge-pro{background:linear-gradient(135deg,#1d4ed8,#7c3aed);color:#fff;border:none}
   .badge-enterprise{background:linear-gradient(135deg,#ff8904,#ef4444);color:#fff;border:none}
-
-  /* Acciones estado */
-  .acciones-estado{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
-  .plan-select{padding:9px 12px;border:0.5px solid #e8eaf0;border-radius:8px;font-size:13px;background:#fff;color:#374151;flex:1;min-width:120px}
-  .plan-select:focus{outline:none;border-color:#1e2d4e}
-
-  /* Equipos (transportista) */
-  .equipo-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f8f9fc;border-radius:8px;border:0.5px solid #e8eaf0;margin-bottom:8px}
-  .equipo-item:last-child{margin-bottom:0}
+  .plan-select{padding:9px 12px;border:0.5px solid #e8eaf0;border-radius:8px;font-size:13px;background:#fff;color:#374151;min-width:180px}
+  .equipo-item{padding:10px 14px;background:#f8f9fc;border-radius:8px;border:0.5px solid #e8eaf0;margin-bottom:8px}
   .equipo-tipo{font-size:13px;font-weight:500;color:#1e2d4e}
   .equipo-meta{font-size:12px;color:#6B7280;margin-top:2px}
-
-  /* Buttons */
-  .btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s;display:inline-flex;align-items:center;gap:6px}
-  .btn:hover{opacity:.88}
-  .btn-primary{background:#1e2d4e;color:#fff}
-  .btn-green{background:#1ED24E;color:#fff}
-  .btn-red{background:#EF4444;color:#fff}
-  .btn-orange{background:#ff8904;color:#fff}
-  .btn-outline{background:transparent;border:0.5px solid #e8eaf0;color:#374151}
-  .btn-sm{padding:5px 12px;font-size:12px}
-  .btn-danger-outline{background:transparent;border:0.5px solid #FECACA;color:#991B1B}
-
-  /* Notas */
+  .sep{height:0.5px;background:#e8eaf0;margin:16px 0}
   textarea{width:100%;padding:10px 12px;border:0.5px solid #e8eaf0;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;min-height:90px;color:#374151}
   textarea:focus{outline:none;border-color:#1e2d4e}
-
-  /* Historial licitaciónes */
   .licit-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid #f3f4f6}
   .licit-row:last-child{border-bottom:none}
-
-  /* Toast */
   #toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none}
-
-  /* Separator */
-  .sep{height:0.5px;background:#e8eaf0;margin:16px 0}
-
   .spinner{width:24px;height:24px;border:3px solid #e8eaf0;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite;margin:32px auto}
   .empty{text-align:center;padding:24px;color:#9CA3AF;font-size:13px}
+  .btn{padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:opacity .15s}
+  .btn:hover{opacity:.85}
 </style>
 </head>
 <body>
@@ -118,7 +80,7 @@
         <span class="nav-name">Trans<span>Match</span></span>
         <span class="nav-badge">ADMIN</span>
       </a>
-            <div class="nav-tabs">
+      <div class="nav-tabs">
         <a href="/admin.html" class="nav-tab">Dashboard</a>
         <a href="/admin-licitaciones.html" class="nav-tab">Licitaciones</a>
         <a href="/admin-cotizaciones.html" class="nav-tab">Cotizaciones</a>
@@ -128,7 +90,7 @@
         <a href="/admin-cobros.html" class="nav-tab">Facturación</a>
         <a href="/admin-reportes.html" class="nav-tab">Reportes</a>
       </div>
-      </div>
+    </div>
     <button class="logout-btn" onclick="localStorage.clear();window.location.replace('/admin-login.html')">Cerrar sesion</button>
   </nav>
 
@@ -140,7 +102,6 @@
       <span>/</span>
       <span id="breadcrumb-nombre">Cargando...</span>
     </div>
-
     <div id="contenido"><div class="spinner"></div></div>
   </main>
 </div>
@@ -149,345 +110,285 @@
 
 <script>
   const API = 'https://transmatch.transmatchcl.workers.dev';
-  let userData = null;
+  var userData = null;
 
-  function toast(msg, type){
-    const el = document.getElementById('toast');
-    el.textContent = msg; el.style.background = type==='err' ? '#EF4444' : '#1ED24E';
-    el.style.opacity = '1'; clearTimeout(el._t);
-    el._t = setTimeout(() => { el.style.opacity = '0'; }, 3000);
+  function toast(msg, type) {
+    var el = document.getElementById('toast');
+    el.textContent = msg;
+    el.style.background = type === 'err' ? '#EF4444' : '#1ED24E';
+    el.style.opacity = '1';
+    clearTimeout(el._t);
+    el._t = setTimeout(function() { el.style.opacity = '0'; }, 3000);
   }
 
-  async function api(path, method, body){
-    const o = {method:method||'GET', headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}};
-    if(body) o.body = JSON.stringify(body);
-    const r = await fetch(API+path, o);
-    if(r.status===401){localStorage.clear();window.location.replace('/admin-login.html');return null;}
-    return {ok:r.ok, data:await r.json()};
+  async function api(path, method, body) {
+    var o = { method: method || 'GET', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') } };
+    if (body) o.body = JSON.stringify(body);
+    var r = await fetch(API + path, o);
+    if (r.status === 401) { localStorage.clear(); window.location.replace('/admin-login.html'); return null; }
+    return { ok: r.ok, data: await r.json() };
   }
 
-  function planBadge(plan){
-    if(plan==='enterprise') return '<span class="badge badge-enterprise">Enterprise</span>';
-    if(plan==='pro')        return '<span class="badge badge-pro">Pro</span>';
-    return '<span class="badge badge-gray">Básico</span>';
+  function planBadge(plan) {
+    if (plan === 'enterprise') return '<span class="badge badge-enterprise">Enterprise</span>';
+    if (plan === 'pro') return '<span class="badge badge-pro">Pro</span>';
+    if (plan === 'basico') return '<span class="badge badge-gray">Básico</span>';
+    return '<span class="badge badge-gray">Sin plan</span>';
   }
 
-  function estadoBadge(estado){
-    const m = {activo:'badge-green',pendiente:'badge-orange',suspendido:'badge-red',rechazado:'badge-red'};
-    const l = {activo:'Activa',pendiente:'Pendiente',suspendido:'Suspendida',rechazado:'Rechazada'};
-    return '<span class="badge '+(m[estado]||'badge-gray')+'">'+(l[estado]||estado)+'</span>';
+  function estadoBadge(estado) {
+    var m = { activo: 'badge-green', pendiente: 'badge-orange', suspendido: 'badge-red', rechazado: 'badge-red' };
+    var l = { activo: 'Activa', pendiente: 'Pendiente', suspendido: 'Suspendida', rechazado: 'Rechazada' };
+    return '<span class="badge ' + (m[estado] || 'badge-gray') + '">' + (l[estado] || estado) + '</span>';
   }
 
-  async function cargar(){
-    const params = new URLSearchParams(window.location.search);
-    const email  = params.get('email');
-    if(!email){ document.getElementById('contenido').innerHTML='<div class="empty">Usuario no especificado</div>'; return; }
+  async function cargar() {
+    var params = new URLSearchParams(window.location.search);
+    var email = params.get('email');
+    if (!email) { document.getElementById('contenido').innerHTML = '<div class="empty">Usuario no especificado</div>'; return; }
 
-    const r = await api('/api/admin/usuarios');
-    if(!r||!r.ok){ document.getElementById('contenido').innerHTML='<div class="empty">Error al cargar</div>'; return; }
+    var r = await api('/api/admin/usuarios');
+    if (!r || !r.ok) { document.getElementById('contenido').innerHTML = '<div class="empty">Error al cargar</div>'; return; }
 
-    userData = (r.data.usuarios||[]).find(u => u.email === email);
-    if(!userData){ document.getElementById('contenido').innerHTML='<div class="empty">Usuario no encontrado</div>'; return; }
+    userData = (r.data.usuarios || []).find(function(u) { return u.email === email; });
+    if (!userData) { document.getElementById('contenido').innerHTML = '<div class="empty">Usuario no encontrado</div>'; return; }
 
-    const isTransportista = userData.role === 'transportista';
-    const backHref = isTransportista ? '/admin-transportistas.html' : '/admin-clientes.html';
+    var isTransportista = userData.role === 'transportista';
     document.getElementById('breadcrumb-back').textContent = isTransportista ? 'Transportistas' : 'Clientes';
-    document.getElementById('breadcrumb-back').href = backHref;
+    document.getElementById('breadcrumb-back').href = isTransportista ? '/admin-transportistas.html' : '/admin-clientes.html';
     document.getElementById('breadcrumb-nombre').textContent = userData.empresa || userData.nombre;
 
     renderPerfil(userData, isTransportista);
   }
 
-  function renderEquipos(isTransportista, equipos) {
-    if (!isTransportista) return '';
-    var inner = equipos.length === 0
-      ? '<div class="empty">Sin equipos registrados</div>'
-      : equipos.map(function(e) {
-          return '<div class="equipo-item"><div><div class="equipo-tipo">' + e.tipo + '</div>' +
-            '<div class="equipo-meta">Capacidad: ' + (e.capacidad||'--') + ' ton &nbsp;·&nbsp; Dim. max: ' + (e.dimensiones||'--') + '</div></div></div>';
-        }).join('');
-    return '<div class="card"><div class="card-hdr">Equipos registrados</div><div class="card-body">' + inner + '</div></div>';
-  }
+  function renderPerfil(u, isTransportista) {
+    var initials = (u.empresa || u.nombre || '?')[0].toUpperCase();
+    var equipos = u.equipos || [];
 
-  function renderPerfil(u, isTransportista){
-    const initials = (u.empresa||u.nombre||'?')[0].toUpperCase();
-    const notas    = u.notasAdmin || '';
-    const equipos  = u.equipos || [];
+    // Sección equipos solo para transportistas
+    var equiposHtml = '';
+    if (isTransportista) {
+      var equiposInner = equipos.length === 0
+        ? '<div class="empty">Sin equipos registrados</div>'
+        : equipos.map(function(e) {
+            return '<div class="equipo-item"><div class="equipo-tipo">' + e.tipo + '</div><div class="equipo-meta">Capacidad: ' + (e.capacidad || '--') + ' ton · Dim. max: ' + (e.dimensiones || '--') + '</div></div>';
+          }).join('');
+      equiposHtml = '<div class="card"><div class="card-hdr">Equipos registrados</div><div class="card-body">' + equiposInner + '</div></div>';
+    }
 
-    // Historial licitaciones relacionadas al usuario
-    const licitHTML = ''; // Se carga async
-
-    const html = `
-      <!-- Header perfil -->
-      <div class="card">
-        <div class="card-body">
-          <div class="perfil-hdr">
-            <div class="perfil-avatar">${initials}</div>
-            <div style="flex:1;min-width:0">
-              <div class="perfil-nombre">${u.empresa || u.nombre}</div>
-              <div style="display:flex;align-items:center;gap:10px"><div class="perfil-email">${u.email}</div><a href="mailto:${u.email}" class="btn btn-outline" style="font-size:11px;padding:3px 10px">Enviar email</a></div>
-              <div class="perfil-badges">
-                ${estadoBadge(u.estado)}
-                ${planBadge(u.plan)}
-                <span class="badge badge-gray">${isTransportista ? 'Transportista' : 'Cliente'}</span>
-                ${u.rating ? '<span class="badge badge-orange">'+u.rating+'</span>' : ''}
-              </div>
-            </div>
-          </div>
-
-          <div class="sep"></div>
-
-          <!-- Info empresa -->
-          <div class="card-hdr" style="padding:0 0 10px;border-bottom:none;margin-bottom:10px">
-            Empresa
-          </div>
-          <div class="info-grid">
-            <div class="info-item"><div class="info-label">Razón social</div><div class="info-val">${u.empresa||'--'}</div></div>
-            <div class="info-item"><div class="info-label">RUT empresa</div><div class="info-val">${u.rutEmpresa||'--'}</div></div>
-            <div class="info-item"><div class="info-label">Teléfono</div><div class="info-val">${u.telefono||'--'}</div></div>
-            <div class="info-item"><div class="info-label">Email</div><div class="info-val">${u.email||'--'}</div></div>
-            <div class="info-item"><div class="info-label">Telefono</div><div class="info-val">${u.teléfono||'--'}</div></div>
-            <div class="info-item"><div class="info-label">Registro</div><div class="info-val">${u.createdAt ? new Date(u.createdAt).toLocaleDateString('es-CL') : '--'}</div></div>
-            ${isTransportista ? '<div class="info-item"><div class="info-label">Transportes completados</div><div class="info-val">'+(u.totalTransportes||0)+'</div></div>' : ''}
-          </div>
-
-          <div class="sep"></div>
-
-          <!-- Representante legal -->
-          <div class="card-hdr" style="padding:0 0 10px;border-bottom:none;margin-bottom:10px">
-            Representante legal
-          </div>
-          <div class="info-grid">
-            <div class="info-item"><div class="info-label">Nombre</div><div class="info-val">${u.nombre||'--'}</div></div>
-            <div class="info-item"><div class="info-label">RUT representante</div><div class="info-val">${u.rutRepresentante||'--'}</div></div>
-            <div class="info-item"><div class="info-label">Cargo</div><div class="info-val">${u.cargo||'--'}</div></div>
-            <div class="info-item"><div class="info-label">WhatsApp</div><div class="info-val">${u.whatsapp||'--'}</div></div>
-          </div>
-        </div>
-      </div>
-
-      </div>
-
-      <!-- Plan -->
-      <div class="card">
-        <div class="card-hdr">Activar / Gestionar plan</div>
-        <div class="card-body">
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <select class="plan-select" id="sel-plan">
-              <option value="basico" ${u.plan==='basico'?'selected':''}>Básico</option>
-              <option value="pro"    ${u.plan==='pro'?'selected':''}>Pro</option>
-              <option value="enterprise" ${u.plan==='enterprise'?'selected':''}>Enterprise</option>
-            </select>
-            <button class="btn btn-orange" onclick="cambiarPlan()">Activar plan</button>
-            
-          </div>
-        </div>
-      </div>
-
-      ${!isTransportista ?
-        '<div class="card"><div class="card-hdr">Usuarios adicionales de empresa</div><div class="card-body">' +
+    // Sección usuarios adicionales solo para clientes
+    var usuariosHtml = '';
+    if (!isTransportista) {
+      usuariosHtml = '<div class="card"><div class="card-hdr">Usuarios adicionales de empresa</div><div class="card-body">' +
         '<div style="font-size:13px;color:#6B7280;margin-bottom:12px">Define cuántos usuarios extra puede invitar esta empresa.</div>' +
         '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
-        '<label style="font-size:13px;font-weight:500">Usuarios extra permitidos:</label>' +
-        '<input type="number" id="inp-max-usuarios" min="0" max="50" value="' + (u.max_usuarios||0) + '" style="width:80px;padding:8px 10px;border:1px solid #e8eaf0;border-radius:7px;font-size:14px;text-align:center"/>' +
-        '<button class="btn btn-primary" onclick="guardarMaxUsuarios()">Guardar</button></div>' +
-        '<div style="font-size:12px;color:#9CA3AF;margin-top:8px">Actualmente tiene <strong>' + (u.empresaMiembros||[]).length + '</strong> usuario(s) extra.</div>' +
-        '</div></div>'
-      : ''}
+        '<label style="font-size:13px;font-weight:500;color:#374151">Usuarios extra permitidos:</label>' +
+        '<input type="number" id="inp-max-usuarios" min="0" max="50" value="' + (u.max_usuarios || 0) + '" style="width:80px;padding:8px 10px;border:1px solid #e8eaf0;border-radius:7px;font-size:14px;text-align:center"/>' +
+        '<button onclick="guardarMaxUsuarios()" style="background:#1e2d4e;color:#fff;padding:8px 18px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Guardar</button>' +
+        '</div>' +
+        '<div style="font-size:12px;color:#9CA3AF;margin-top:8px">Actualmente tiene <strong>' + (u.empresaMiembros || []).length + '</strong> usuario(s) extra activo(s).</div>' +
+        '</div></div>';
+    }
 
-${renderEquipos(isTransportista, equipos)}
+    var html =
+      // ── Header ──
+      '<div class="card"><div class="card-body">' +
+        '<div class="perfil-hdr">' +
+          '<div class="perfil-avatar">' + initials + '</div>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div class="perfil-nombre">' + (u.empresa || u.nombre) + '</div>' +
+            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">' +
+              '<div class="perfil-email">' + u.email + '</div>' +
+              '<a href="mailto:' + u.email + '" style="font-size:11px;color:#1d4ed8;text-decoration:underline">Enviar email</a>' +
+            '</div>' +
+            '<div class="perfil-badges">' +
+              estadoBadge(u.estado) +
+              planBadge(u.plan) +
+              '<span class="badge badge-gray">' + (isTransportista ? 'Transportista' : 'Cliente') + '</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
 
-      <!-- Historial actividad -->
-      <div class="card">
-        <div class="card-hdr">Actividad en la plataforma</div>
-        <div class="card-body" id="historial-body"><div class="spinner"></div></div>
-      </div>
+        '<div class="sep"></div>' +
 
-      <!-- Notas internas -->
-      <div class="card">
-        <div class="card-hdr">Notas internas</div>
-        <div class="card-body">
-          <textarea id="notas-admin" placeholder="Notas sobre esta cuenta...">${notas}</textarea>
-          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-            <button class="btn btn-primary" onclick="guardarNotas()">Guardar notas</button>
-          </div>
-        </div>
-      </div>
+        // ── Empresa ──
+        '<div style="font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Empresa</div>' +
+        '<div class="info-grid" style="margin-top:0">' +
+          '<div class="info-item"><div class="info-label">Razón social</div><div class="info-val">' + (u.empresa || '--') + '</div></div>' +
+          '<div class="info-item"><div class="info-label">RUT empresa</div><div class="info-val">' + (u.rutEmpresa || '--') + '</div></div>' +
+          '<div class="info-item"><div class="info-label">Teléfono</div><div class="info-val">' + (u.telefono || '--') + '</div></div>' +
+          '<div class="info-item"><div class="info-label">Registro</div><div class="info-val">' + (u.createdAt ? new Date(u.createdAt).toLocaleDateString('es-CL') : '--') + '</div></div>' +
+        '</div>' +
 
-      <!-- Cambiar estado de cuenta -->
-      <div class="card">
-        <div class="card-hdr">Cambiar estado de cuenta</div>
-        <div class="card-body">
-          <div id="estado-actual-banner" style="margin-bottom:14px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px"></div>
-          <div class="acciones-estado" id="acciones-estado-wrap"></div>
-          <div style="font-size:11px;color:#9CA3AF;margin-top:8px"></div>
-        </div>
+        '<div class="sep"></div>' +
 
+        // ── Representante ──
+        '<div style="font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Representante legal</div>' +
+        '<div class="info-grid" style="margin-top:0">' +
+          '<div class="info-item"><div class="info-label">Nombre</div><div class="info-val">' + (u.nombre || '--') + '</div></div>' +
+          '<div class="info-item"><div class="info-label">Cargo</div><div class="info-val">' + (u.cargo || '--') + '</div></div>' +
+        '</div>' +
+      '</div></div>' +
 
-      <!-- Acciones peligrosas -->
-      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start;margin-top:8px">
-<button class="btn btn-danger-outline" onclick="confirmarEliminar()">Eliminar cuenta</button>
-      </div>
-    `;
+      // ── Plan ──
+      '<div class="card"><div class="card-hdr">Plan activo</div><div class="card-body">' +
+        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+          '<select id="sel-plan" class="plan-select">' +
+            '<option value="basico"' + (u.plan === 'basico' ? ' selected' : '') + '>Básico (1 UF/mes)</option>' +
+            '<option value="pro"' + (u.plan === 'pro' ? ' selected' : '') + '>Pro (2 UF/mes)</option>' +
+            '<option value="enterprise"' + (u.plan === 'enterprise' ? ' selected' : '') + '>Enterprise (a cotizar)</option>' +
+          '</select>' +
+          '<button onclick="cambiarPlan()" style="background:#1e2d4e;color:#fff;padding:9px 18px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Guardar plan</button>' +
+        '</div>' +
+        '<div style="font-size:12px;color:#9CA3AF;margin-top:8px">Plan actual: <strong>' + (u.plan || 'Sin plan') + '</strong></div>' +
+      '</div></div>' +
+
+      // ── Usuarios adicionales / Equipos ──
+      usuariosHtml +
+      equiposHtml +
+
+      // ── Historial ──
+      '<div class="card"><div class="card-hdr">Actividad en la plataforma</div><div class="card-body" id="historial-body"><div class="spinner"></div></div></div>' +
+
+      // ── Notas internas ──
+      '<div class="card"><div class="card-hdr">Notas internas</div><div class="card-body">' +
+        '<textarea id="notas-admin" placeholder="Notas sobre esta cuenta...">' + (u.notasAdmin || '') + '</textarea>' +
+        '<div style="display:flex;justify-content:flex-end;margin-top:12px">' +
+          '<button onclick="guardarNotas()" style="background:#1e2d4e;color:#fff;padding:9px 18px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Guardar notas</button>' +
+        '</div>' +
+      '</div></div>' +
+
+      // ── Estado de cuenta ──
+      '<div class="card"><div class="card-hdr">Estado de cuenta</div><div class="card-body">' +
+        '<div id="estado-banner" style="padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:16px"></div>' +
+        '<div id="estado-botones" style="display:flex;gap:8px;flex-wrap:wrap"></div>' +
+      '</div></div>';
 
     document.getElementById('contenido').innerHTML = html;
-    actualizarEstadoBanner(u.estado);
+    renderEstado(u.estado);
     cargarHistorial(u.email, isTransportista);
   }
 
-  async function cargarHistorial(email, isTransportista){
-    const r = await api('/api/licitaciones');
-    const el = document.getElementById('historial-body');
-    if(!r||!r.ok){ el.innerHTML='<div class="empty">Sin datos</div>'; return; }
+  function renderEstado(estado) {
+    // Banner
+    var banner = document.getElementById('estado-banner');
+    var botones = document.getElementById('estado-botones');
+    if (!banner || !botones) return;
 
-    const licit = r.data.licitaciones||[];
-    const propias = isTransportista
-      ? licit.filter(l => (l.cotizaciones||[]).some(c => c.transportistaEmail===email) || (l.adjudicadaA&&l.adjudicadaA.transportistaEmail===email))
-      : licit.filter(l => l.clienteEmail===email);
-
-    if(propias.length===0){ el.innerHTML='<div class="empty">Sin actividad registrada</div>'; return; }
-
-    const estadoColor = {pendiente_admin:'#ff8904',abierta:'#ff8904',cerrada:'#1e2d4e',adjudicada:'#1d4ed8',completada:'#1ED24E',rechazada:'#EF4444'};
-
-    el.innerHTML = '<div style="font-size:13px;color:#6B7280;margin-bottom:10px">'+propias.length+' licitacion'+(propias.length!==1?'es':'')+' encontrada'+(propias.length!==1?'s':'')+' </div>' +
-      propias.slice(0,10).map(l =>
-        '<div class="licit-row">'+
-          '<div style="width:8px;height:8px;border-radius:50%;background:'+(estadoColor[l.estado]||'#9CA3AF')+';flex-shrink:0;margin-top:3px"></div>'+
-          '<div style="flex:1;min-width:0">'+
-            '<div style="font-size:13px;font-weight:500;color:#1e2d4e">'+
-              (l.código?'<span style="font-size:10px;font-family:monospace;color:#9CA3AF;margin-right:4px">'+l.código+'</span>':'')+
-              l.tipoEquipo+(l.marca?' — '+l.marca:'')+
-            '</div>'+
-            '<div style="font-size:11px;color:#6B7280;margin-top:2px">'+l.origen+' → '+l.destino+' &nbsp;·&nbsp; '+new Date(l.createdAt).toLocaleDateString('es-CL')+'</div>'+
-          '</div>'+
-          '<span style="font-size:11px;font-weight:500;color:'+(estadoColor[l.estado]||'#9CA3AF')+'">'+l.estado+'</span>'+
-        '</div>'
-      ).join('') +
-      (propias.length>10?'<div style="font-size:12px;color:#9CA3AF;text-align:center;padding-top:8px">+' + (propias.length-10)+' mas</div>':'');
-  }
-
-  function actualizarEstadoBanner(estado){
-    // Banner de estado
-    const banner = document.getElementById('estado-actual-banner');
-    if(!banner) return;
-    const cfg = {
+    var cfg = {
       activo:    { bg:'#F0FDF4', border:'#BBF7D0', color:'#14532D', label:'Cuenta activa' },
       pendiente: { bg:'#FFFBEB', border:'#FDE68A', color:'#92400E', label:'Pendiente de aprobación' },
       suspendido:{ bg:'#FEF2F2', border:'#FECACA', color:'#991B1B', label:'Cuenta suspendida' },
       rechazado: { bg:'#FEF2F2', border:'#FECACA', color:'#991B1B', label:'Cuenta rechazada' },
     };
-    const c = cfg[estado] || { bg:'#F9FAFB', border:'#E5E7EB', color:'#6B7280', label: estado };
-    banner.style.cssText = 'margin-bottom:14px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;background:'+c.bg+';border:1px solid '+c.border+';color:'+c.color;
-    banner.innerHTML = 'Estado actual: <strong>'+c.label+'</strong>';
+    var c = cfg[estado] || { bg:'#F9FAFB', border:'#E5E7EB', color:'#6B7280', label: estado };
+    banner.style.background = c.bg;
+    banner.style.border = '1px solid ' + c.border;
+    banner.style.color = c.color;
+    banner.innerHTML = 'Estado actual: <strong>' + c.label + '</strong>';
 
-    // Botones según estado
-    const wrap = document.getElementById('acciones-estado-wrap');
-    if(!wrap) return;
-    if(estado === 'pendiente'){
-      // Cuenta pendiente: Aprobar (azul marino) + Rechazar (naranja)
-      wrap.innerHTML = [
-        '<button onclick="cambiarEstado(&quot;activo&quot;)" style="background:#1e2d4e;color:#fff;padding:9px 20px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Aprobar cuenta</button>',
-        '<button onclick="cambiarEstado(&quot;rechazado&quot;)" style="background:#fff;color:#ff8904;border:1.5px solid #ff8904;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-left:8px">Rechazar</button>'
-      ].join('');
+    // Botones
+    if (estado === 'pendiente') {
+      // Cuenta pendiente → Aprobar (azul marino) + Rechazar (naranja outline)
+      botones.innerHTML =
+        '<button onclick="cambiarEstado(\'activo\')" style="background:#1e2d4e;color:#fff;padding:9px 20px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Aprobar cuenta</button>' +
+        '<button onclick="cambiarEstado(\'rechazado\')" style="background:#fff;color:#ff8904;border:1.5px solid #ff8904;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Rechazar</button>';
     } else {
-      wrap.innerHTML = [
-        '<button onclick="cambiarEstado(&quot;suspendido&quot;)" style="background:#fff;color:#ff8904;border:1.5px solid #ff8904;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Suspender cuenta</button>',
-        '<button onclick="confirmarEliminar()" style="background:#1e2d4e;color:#fff;padding:9px 20px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-left:8px">Eliminar cuenta</button>'
-      ].join('');
+      // Cuenta activa/rechazada/suspendida → Suspender (naranja outline) + Eliminar (azul marino)
+      botones.innerHTML =
+        '<button onclick="cambiarEstado(\'suspendido\')" style="background:#fff;color:#ff8904;border:1.5px solid #ff8904;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Suspender cuenta</button>' +
+        '<button onclick="confirmarEliminar()" style="background:#1e2d4e;color:#fff;padding:9px 20px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Eliminar cuenta</button>';
     }
   }
 
-  async function cambiarEstado(estado){
-    const r = await api('/api/admin/gestionar-usuario','POST',{email:userData.email, estado});
-    if(r&&r.ok){ toast('Estado actualizado a: '+estado); userData.estado=estado; actualizarEstadoBanner(estado); cargar(); }
-    else toast('Error al actualizar','err');
+  async function cambiarEstado(estado) {
+    var r = await api('/api/admin/gestionar-usuario', 'POST', { email: userData.email, estado: estado });
+    if (r && r.ok) {
+      userData.estado = estado;
+      renderEstado(estado);
+      toast('Estado actualizado');
+    } else {
+      toast('Error al actualizar', 'err');
+    }
   }
 
-  async function cambiarPlan(plan){
-    const p = plan || document.getElementById('sel-plan').value;
-    const r = await api('/api/admin/gestionar-usuario','POST',{email:userData.email, plan:p});
-    if(r&&r.ok){ toast('Plan actualizado a: '+p); userData.plan=p; cargar(); }
-    else toast('Error al actualizar','err');
+  async function cambiarPlan() {
+    var plan = document.getElementById('sel-plan').value;
+    var r = await api('/api/admin/gestionar-usuario', 'POST', { email: userData.email, plan: plan });
+    if (r && r.ok) {
+      userData.plan = plan;
+      toast('Plan actualizado a: ' + plan);
+    } else {
+      toast('Error al actualizar', 'err');
+    }
   }
 
-  async function guardarMaxUsuarios(){
+  async function guardarMaxUsuarios() {
     var inp = document.getElementById('inp-max-usuarios');
-    var max = parseInt(inp.value)||0;
-    var btn = event.target;
-    btn.disabled = true; btn.textContent = 'Guardando...';
-    const r = await api('/api/admin/gestionar-usuario','POST',{email:userData.email, max_usuarios:max});
-    btn.disabled = false; btn.textContent = 'Guardar';
-    if(r&&r.ok){
+    var max = parseInt(inp.value) || 0;
+    var r = await api('/api/admin/gestionar-usuario', 'POST', { email: userData.email, max_usuarios: max });
+    if (r && r.ok) {
       userData.max_usuarios = max;
       inp.value = max;
-      toast('Guardado: ' + max + ' usuario(s) extra permitido(s)');
+      toast('Guardado: ' + max + ' usuario(s) extra');
     } else {
-      toast('Error al guardar','err');
+      toast('Error al guardar', 'err');
     }
   }
 
-  async function guardarNotas(){
-    const notas = document.getElementById('notas-admin').value;
-    const r = await api('/api/admin/gestionar-usuario','POST',{email:userData.email, notasAdmin:notas});
-    if(r&&r.ok) toast('Notas guardadas');
-    else toast('Error al guardar','err');
+  async function guardarNotas() {
+    var notas = document.getElementById('notas-admin').value;
+    var r = await api('/api/admin/gestionar-usuario', 'POST', { email: userData.email, notasAdmin: notas });
+    if (r && r.ok) toast('Notas guardadas');
+    else toast('Error al guardar', 'err');
   }
 
-  async function confirmarEliminar(){
-    if(confirm('Estas seguro de eliminar la cuenta de '+userData.email+'? Esta accion no se puede deshacer.')){
-      const res = await fetch('https://transmatch.transmatchcl.workers.dev/api/admin/usuario/'+encodeURIComponent(userData.email),{
-        method:'DELETE',
-        headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}
+  async function confirmarEliminar() {
+    if (confirm('¿Eliminar la cuenta de ' + userData.email + '? Esta acción no se puede deshacer.')) {
+      var res = await fetch(API + '/api/admin/usuario/' + encodeURIComponent(userData.email), {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') }
       });
-      const d = await res.json();
-      if(res.ok){
-        toast('Usuario eliminado correctamente','ok');
-        setTimeout(function(){ window.location.href='/admin-clientes.html'; }, 1500);
+      var d = await res.json();
+      if (res.ok) {
+        toast('Usuario eliminado');
+        setTimeout(function() { window.location.href = '/admin-clientes.html'; }, 1500);
       } else {
-        toast(d.error||'Error al eliminar','err');
+        toast(d.error || 'Error al eliminar', 'err');
       }
     }
   }
 
-  // Auth
-  (function(){
-    const token = localStorage.getItem('tm_token');
-    const role  = localStorage.getItem('tm_role');
-    if(!token||role!=='admin'){window.location.replace('/admin-login.html');return;}
-    document.getElementById('auth-guard').style.display='none';
-    document.getElementById('app').style.display='block';
+  async function cargarHistorial(email, isTransportista) {
+    var r = await api('/api/licitaciones');
+    var el = document.getElementById('historial-body');
+    if (!r || !r.ok) { el.innerHTML = '<div class="empty">Sin datos</div>'; return; }
+    var licit = r.data.licitaciones || [];
+    var propias = isTransportista
+      ? licit.filter(function(l) { return (l.cotizaciones || []).some(function(c) { return c.transportistaEmail === email; }) || (l.adjudicadaA && l.adjudicadaA.transportistaEmail === email); })
+      : licit.filter(function(l) { return l.clienteEmail === email; });
+    if (propias.length === 0) { el.innerHTML = '<div class="empty">Sin actividad registrada</div>'; return; }
+    var colores = { pendiente_admin:'#ff8904', abierta:'#ff8904', cerrada:'#1e2d4e', adjudicada:'#1d4ed8', completada:'#1ED24E', rechazada:'#EF4444' };
+    el.innerHTML = propias.slice(0, 10).map(function(l) {
+      return '<div class="licit-row">' +
+        '<div style="width:8px;height:8px;border-radius:50%;background:' + (colores[l.estado] || '#9CA3AF') + ';flex-shrink:0"></div>' +
+        '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;color:#1e2d4e">' + l.tipoEquipo + (l.marca ? ' — ' + l.marca : '') + '</div>' +
+        '<div style="font-size:11px;color:#6B7280">' + l.origen + ' → ' + l.destino + '</div></div>' +
+        '<span style="font-size:11px;font-weight:500;color:' + (colores[l.estado] || '#9CA3AF') + '">' + l.estado + '</span>' +
+        '</div>';
+    }).join('');
+  }
+
+  // Auth guard
+  (function() {
+    var token = localStorage.getItem('tm_token');
+    var role = localStorage.getItem('tm_role');
+    if (!token || role !== 'admin') { window.location.replace('/admin-login.html'); return; }
+    document.getElementById('auth-guard').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
     cargar();
   })();
 </script>
 
-<footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px">
-  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
-    <!-- Logo -->
-    <div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <div style="background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px">T</div>
-        <span style="font-weight:700;color:#fff;font-size:15px">Trans<span style="color:#ff8904">Match</span></span>
-      </div>
-      <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
-    </div>
-    <!-- Links -->
-    <div style="display:flex;gap:32px;flex-wrap:wrap">
-      <div>
-        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <a href="/terminos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Términos y condiciones</a>
-          <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Política de privacidad</a>
-          <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Centro de ayuda</a>
-        </div>
-      </div>
-      <div>
-        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <span style="font-size:13px;color:#CBD5E1"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="64070b0a100507100b241016050a17090510070c4a0708">[email&#160;protected]</a></span>
-          <span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
-    <span>© 2026 TransMatch SpA. T
+</body>
+</html>
