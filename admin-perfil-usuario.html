@@ -385,14 +385,11 @@ ${renderEquipos(isTransportista, equipos)}
     // Mostrar suspender solo si cuenta activa
     var btnSusp = document.getElementById('btn-suspender');
     if(btnSusp) btnSusp.style.display = estado === 'activo' ? '' : 'none';
-    // Deshabilitar el botón del estado actual
-    var map = { activo:'btn-aprobar', rechazado:'btn-rechazar' };
+    // Ambos botones siempre habilitados — el admin puede cambiar estado cuando quiera
     ['btn-aprobar','btn-rechazar'].forEach(function(id){
       const b = document.getElementById(id);
       if(b){ b.disabled = false; b.style.opacity='1'; b.style.cursor='pointer'; }
     });
-    var activeBtn = document.getElementById(map[estado]);
-    if(activeBtn){ activeBtn.disabled = true; activeBtn.style.opacity='0.4'; activeBtn.style.cursor='not-allowed'; }
   }
 
   async function cambiarEstado(estado){
