@@ -116,8 +116,9 @@
   }
 
   function estadoBadge(e){
-    if(e==='aprobado') return '<span class="badge" style="background:#F0FDF4;color:#15803D">Aprobado</span>';
-    if(e==='rechazado') return '<span class="badge" style="background:#FEF2F2;color:#DC2626">Rechazado</span>';
+    if(e==='activo')    return '<span class="badge" style="background:#F0FDF4;color:#15803D">Activa</span>';
+    if(e==='rechazado') return '<span class="badge" style="background:#FEF2F2;color:#DC2626">Rechazada</span>';
+    if(e==='suspendido') return '<span class="badge" style="background:#FEF2F2;color:#DC2626">Suspendida</span>';
     return '<span class="badge" style="background:#FFFBEB;color:#92400E">Pendiente</span>';
   }
 
