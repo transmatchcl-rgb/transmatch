@@ -115,6 +115,12 @@
     return m[p]||'--';
   }
 
+  function estadoBadge(e){
+    if(e==='aprobado') return '<span class="badge" style="background:#F0FDF4;color:#15803D">Aprobado</span>';
+    if(e==='rechazado') return '<span class="badge" style="background:#FEF2F2;color:#DC2626">Rechazado</span>';
+    return '<span class="badge" style="background:#FFFBEB;color:#92400E">Pendiente</span>';
+  }
+
   async function initPage(){
     document.getElementById('lista-clientes').innerHTML='<div class="spinner"></div>';
     try{
@@ -140,16 +146,16 @@
     document.getElementById('lista-clientes').innerHTML = lista.length===0
       ? '<div class="empty">Sin resultados</div>'
       : lista.map((c,i) =>
-          '<div class="row">' +
+          '<div class="row" style="cursor:pointer" onclick="window.location=\'/admin-perfil-usuario.html?email='+encodeURIComponent(c.email)+'\'\'">' +
             '<div class="avatar" style="background:'+avColors[i%avColors.length]+';border-radius:10px">'+(c.empresa||c.nombre||'?')[0].toUpperCase()+'</div>' +
             '<div class="row-body">' +
               '<div class="row-name">'+(c.empresa||c.nombre)+'</div>' +
               '<div class="row-meta">'+c.nombre+' · '+c.email+' · Desde '+new Date(c.createdAt).toLocaleDateString('es-CL')+'</div>' +
             '</div>' +
             '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">' +
+              estadoBadge(c.estado) +
               planBadge(c.plan) +
-              '<a href="/admin-perfil-usuario.html?email='+encodeURIComponent(c.email)+'" class="btn btn-outline" style="font-size:12px;padding:5px 10px">Ver perfil</a>' +
-              '<button onclick="eliminarUsuario(\''+c.email+'\')" style="padding:5px 10px;font-size:12px;border-radius:6px;border:1px solid #FCA5A5;background:#FEF2F2;color:#DC2626;cursor:pointer">Eliminar</button>' +
+              '<a href="/admin-perfil-usuario.html?email='+encodeURIComponent(c.email)+'" class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="event.stopPropagation()">Ver perfil</a>' +
             '</div>' +
           '</div>'
         ).join('');
