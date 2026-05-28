@@ -478,21 +478,18 @@ async function cargarUsuarios(){
     var data = await res.json();
     _usuariosData = data.miembros||[];
     var max = data.max_usuarios||0;
-    renderUsuarios(_usuariosData, max, data.invitacionesPendientes||[]);
+    renderUsuarios(_usuariosData, max);
   } catch(e){ el.innerHTML='<div style="text-align:center;padding:20px;color:#9CA3AF;font-size:13px">Error de conexión</div>'; }
 }
 
-function renderUsuarios(miembros, max, invitaciones){
-  invitaciones = invitaciones || [];
+function renderUsuarios(miembros, max){
   var el = document.getElementById('usuarios-contenido');
   if(!el) return;
-  var pendientesActivas = invitaciones.filter(function(i){ return !i.vencida; });
-  var totalOcupados = miembros.length + pendientesActivas.length;
   var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
     +'<div style="font-size:13px;color:#6B7280">'+miembros.length+' de '+max+' usuarios extra activos</div>'
-    +(totalOcupados < max ? '<button class="btn btn-orange btn-sm" onclick="abrirModalInvitar()">+ Invitar usuario</button>' : '<span style="font-size:12px;color:#9CA3AF">Límite alcanzado</span>')
+    +(miembros.length < max ? '<button class="btn btn-orange btn-sm" onclick="abrirModalInvitar()">+ Invitar usuario</button>' : '<span style="font-size:12px;color:#9CA3AF">Límite alcanzado</span>')
     +'</div>';
-  if(miembros.length === 0 && invitaciones.length === 0){
+  if(miembros.length === 0){
     html += '<div style="text-align:center;padding:32px;background:#f8f9fc;border-radius:10px;border:0.5px solid #e8eaf0">'
       +'<div style="font-size:14px;font-weight:600;color:#374151;margin-bottom:6px">Sin usuarios extra aún</div>'
       +'<div style="font-size:13px;color:#9CA3AF">Invita a personas de tu empresa para que puedan acceder a la plataforma con los permisos que definas.</div>'
@@ -508,32 +505,13 @@ function renderUsuarios(miembros, max, invitaciones){
         +'<div style="font-size:12px;color:#6B7280;margin-top:2px">'+m.email+'</div>'
         +'</div>'
         +'<div style="display:flex;gap:6px;flex-shrink:0">'
-        +'<button class="btn btn-outline btn-sm" onclick="abrirModalPermisos(''+m.email+'',''+m.nombre+'')">Editar permisos</button>'
-        +'<button onclick="eliminarUsuario(''+m.email+'',''+m.nombre+'')" style="padding:5px 10px;font-size:12px;border-radius:6px;border:1px solid #FECACA;background:#FEF2F2;color:#DC2626;cursor:pointer">Eliminar</button>'
+        +'<button class="btn btn-outline btn-sm" onclick="abrirModalPermisos(\''+m.email+'\',\''+m.nombre+'\')">Editar permisos</button>'
+        +'<button onclick="eliminarUsuario(\''+m.email+'\',\''+m.nombre+'\')" style="padding:5px 10px;font-size:12px;border-radius:6px;border:1px solid #FECACA;background:#FEF2F2;color:#DC2626;cursor:pointer">Eliminar</button>'
         +'</div>'
         +'</div>'
         +(permLabels.length
           ? '<div style="display:flex;flex-wrap:wrap;gap:5px">'+permLabels.map(function(l){ return '<span style="background:#eef1f8;color:#1e2d4e;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px">'+l+'</span>'; }).join('')+'</div>'
           : '<div style="font-size:12px;color:#9CA3AF">Sin permisos asignados aún</div>')
-        +'</div>';
-    }).join('');
-    html += invitaciones.map(function(inv){
-      var vencida = inv.vencida;
-      var badgeStyle = vencida
-        ? 'background:#FEF2F2;color:#DC2626;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px'
-        : 'background:#FFFBEB;color:#92400E;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px';
-      var expiraTexto = vencida ? 'Invitación vencida' : 'Expira: '+new Date(inv.expiresAt).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-      return '<div style="border:0.5px solid #e8eaf0;border-radius:10px;padding:14px 16px;margin-bottom:10px;background:#FAFAFA">'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">'
-        +'<div>'
-        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">'
-        +'<div style="font-size:13px;font-weight:600;color:#374151">'+inv.emailInvitado+'</div>'
-        +'<span style="'+badgeStyle+'">'+(vencida?'Vencida':'Pendiente')+'</span>'
-        +'</div>'
-        +'<div style="font-size:11px;color:#9CA3AF">'+expiraTexto+'</div>'
-        +'</div>'
-        +'<button onclick="reenviarInvitacion(''+inv.emailInvitado+'')" style="padding:5px 12px;font-size:12px;border-radius:6px;border:0.5px solid #e8eaf0;background:#fff;color:#374151;cursor:pointer;white-space:nowrap">Reenviar</button>'
-        +'</div>'
         +'</div>';
     }).join('');
   }
@@ -568,20 +546,6 @@ function abrirModalInvitar(){
   document.getElementById('inv-cancel').onclick = function(){ modal.remove(); };
   document.getElementById('inv-save').onclick = function(){ enviarInvitacion(modal); };
   modal.onclick = function(e){ if(e.target===modal) modal.remove(); };
-}
-
-async function reenviarInvitacion(emailInvitado){
-  if(!confirm('¿Reenviar invitación a '+emailInvitado+'?')) return;
-  try{
-    var res = await fetch(API+'/api/mi-empresa/invitar',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
-      body:JSON.stringify({emailInvitado:emailInvitado, permisos:{}})
-    });
-    var d = await res.json();
-    if(res.ok){ alert('Invitación reenviada a '+emailInvitado+'. El link expira en 48 horas.'); cargarUsuarios(); }
-    else{ alert(d.error||'Error al reenviar'); }
-  }catch(e){ alert('Error de conexión'); }
 }
 
 async function enviarInvitacion(modal){
