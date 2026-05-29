@@ -176,9 +176,12 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-green" onclick="aprobar(selEmail,'aprobar')">Aprobar</button>
         <button class="btn btn-red" onclick="aprobar(selEmail,'rechazar')">Rechazar</button>
-        <button class="btn btn-outline" style="color:#EF4444;border-color:#FECACA" onclick="gestiónarUsuario(selEmail,'suspendido')">Suspender</button>
-        <button class="btn btn-outline" style="color:#14532D;border-color:#BBF7D0" onclick="gestiónarUsuario(selEmail,'activo')">Reactivar</button>
+        <button class="btn btn-outline" style="color:#EF4444;border-color:#FECACA" onclick="gestionarUsuario(selEmail,'suspendido')">Suspender</button>
+        <button class="btn btn-outline" style="color:#14532D;border-color:#BBF7D0" onclick="gestionarUsuario(selEmail,'activo')">Reactivar</button>
       </div>
+    </div>
+    <div id="mt-btn-eliminar" style="display:none;margin-bottom:14px">
+      <button onclick="eliminarTransportista(selEmail)" style="padding:7px 16px;font-size:12px;border-radius:6px;border:1px solid #FECACA;background:#FEF2F2;color:#DC2626;cursor:pointer;font-weight:500">Eliminar cuenta</button>
     </div>
 
     <div style="display:flex;justify-content:flex-end;padding-top:14px;border-top:0.5px solid #e8eaf0">
@@ -319,6 +322,9 @@
           '</div>'
         ).join('');
 
+    // Mostrar botón eliminar solo si está rechazado
+    document.getElementById('mt-btn-eliminar').style.display = t.estado === 'rechazado' ? 'block' : 'none';
+
     document.getElementById('modal-t').classList.add('open');
   }
 
@@ -326,6 +332,13 @@
     const r = await apiFetch('/api/admin/aprobar-transportista', 'POST', { email, accion });
     if (r && r.ok) { toast(accion === 'aprobar' ? 'Transportista aprobado' : 'Transportista rechazado'); document.getElementById('modal-t').classList.remove('open'); initPage(); }
     else toast('Error', 'err');
+  }
+
+  async function eliminarTransportista(email) {
+    if (!confirm('¿Eliminar la cuenta de ' + email + '? Esta acción no se puede deshacer.')) return;
+    const r = await apiFetch('/api/admin/usuario/' + encodeURIComponent(email), 'DELETE');
+    if (r && r.ok) { toast('Cuenta eliminada'); document.getElementById('modal-t').classList.remove('open'); initPage(); }
+    else toast('Error al eliminar', 'err');
   }
 
   async function gestionarUsuario(email, estado) {
