@@ -444,8 +444,13 @@
     }
   }
 
-  function cargarPrefsConfig(){
+  async function cargarPrefsConfig(){
     try {
+      // Cargar desde API y sincronizar localStorage
+      var me = await api('/api/auth/me');
+      if(me && me.ok && me.data.user.notifPrefs){
+        localStorage.setItem('tm_notif_prefs', JSON.stringify(me.data.user.notifPrefs));
+      }
       var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
       var emailChk = document.getElementById('notif-email-chk');
       var waChk    = document.getElementById('notif-wa-chk');
@@ -462,6 +467,27 @@
     } catch(e){}
   }
 
+  function toggleWA(){
+    var wc = document.getElementById('notif-wa-chk');
+    var wi = document.getElementById('wa-input');
+    if(wi) wi.style.display = (wc && wc.checked) ? 'block' : 'none';
+    guardarPrefs();
+  }
+
+  async function guardarPrefs(){
+    try {
+      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      var emailChk = document.getElementById('notif-email-chk');
+      var waChk    = document.getElementById('notif-wa-chk');
+      var waNum    = document.getElementById('wa-numero');
+      if(emailChk) prefs.notifEmail     = emailChk.checked;
+      if(waChk)    prefs.notifWhatsapp  = waChk.checked;
+      if(waNum)    prefs.whatsapp       = waNum.value.trim();
+      localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+      await api('/api/auth/me/prefs', 'POST', { notifPrefs: prefs });
+    } catch(e){}
+  }
+
   async function guardarPrefsDetalle(){
     try {
       var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
@@ -470,6 +496,7 @@
         if(el) prefs['pref_' + id] = el.checked;
       });
       localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+      await api('/api/auth/me/prefs', 'POST', { notifPrefs: prefs });
     } catch(e){}
   }
 
