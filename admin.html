@@ -124,7 +124,7 @@
         <a href="/admin-reportes.html" class="nav-tab">Reportes</a>
       </div>
       </div>
-    <button class="logout-btn" onclick="localStorage.clear();window.location.replace('/admin-login.html')">Cerrar sesion</button>
+    <button onclick="document.getElementById('modal-pwd').style.display='flex'" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;margin-right:8px">🔑 Contraseña</button><button class="logout-btn" onclick="localStorage.clear();window.location.replace('/admin-login.html')">Cerrar sesion</button>
   </nav><main><!-- ── DASHBOARD ─────────────────────────────────────── --><div id="s-dashboard" class="section active"><div class="page-hdr"><div><div class="page-title">Dashboard</div><div class="page-sub" id="dash-fecha">Cargando...</div></div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="exportarTodo()">Exportar CSV</button></div></div><div class="grid-4" id="dash-stats"><div class="stat"><div class="stat-label">Cargando...</div></div></div><div class="grid-2"><div><!-- Alertas rápidas --><div class="card"><div class="card-hdr"><div class="card-title">Alertas activas</div><span id="alertas-count" class="badge badge-red">0</span></div><div id="dash-alertas"><div class="spinner-wrap"><div class="spinner"></div></div></div></div><!-- Licitaciones pendientes de aprobación --><div class="card"><div class="card-hdr"><div class="card-title">Licitaciones pendientes de aprobación</div><button class="btn btn-outline btn-sm" onclick="showSection('licitaciones',document.querySelectorAll('.nav-tab')[1])">Ver todas →</button></div><div id="dash-pendientes"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><div><!-- Licitaciónes activas --><div class="card"><div class="card-hdr"><div class="card-title">Licitaciones abiertas</div><button class="btn btn-outline btn-sm" onclick="showSection('licitaciones',document.querySelectorAll('.nav-tab')[1])">Ver todas →</button></div><div id="dash-licitaciones"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div></div></div><!-- ── LICITACIONES ───────────────────────────────────── --><div id="s-licitaciones" class="section"><div class="page-hdr"><div class="page-title">Licitaciones</div><div class="page-sub">Todas las licitaciones en tiempo real</div></div><div class="filter-bar"><select class="select" id="fil-estado" onchange="filtrarLicitaciones()"><option value="">Todos los estados</option><option value="pendiente_admin">Pendientes aprobación</option><option value="abierta">Abiertas (cotizando)</option><option value="cerrada">En revisión cliente</option><option value="adjudicada">Adjudicadas</option><option value="completada">Completadas</option><option value="rechazada">Rechazadas</option></select><input class="input" style="max-width:280px;" placeholder=" Buscar empresa, equipo o ruta..." id="fil-buscar" oninput="filtrarLicitaciones()"/><button class="btn btn-outline btn-sm" onclick="exportarLicitaciones()">CSV</button></div><div class="card"><div id="lista-licitaciones"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── TRANSPORTISTAS ─────────────────────────────────── --><div id="s-transportistas" class="section"><div class="page-hdr"><div class="page-title">Transportistas</div><div class="page-sub">Gestión de proveedores de la red</div></div><div class="filter-bar"><select class="select" id="fil-t-estado" onchange="filtrarTransportistas()"><option value="">Todos</option><option value="pendiente">Pendientes</option><option value="activo">Activos</option><option value="suspendido">Suspendidos</option><option value="rechazado">Rechazados</option></select><input class="input" style="max-width:240px;" placeholder="Buscar nombre o empresa..." id="fil-t-buscar" oninput="filtrarTransportistas()"/></div><div class="card"><div id="lista-transportistas"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── CLIENTES ───────────────────────────────────────── --><div id="s-clientes" class="section"><div class="page-hdr"><div class="page-title">Clientes</div><div class="page-sub">Empresas registradas en la plataforma</div></div><div class="filter-bar"><select class="select" id="fil-c-plan" onchange="filtrarClientes()"><option value="">Todos los planes</option><option value="básico">Básico</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select><input class="input" style="max-width:240px;" placeholder="Buscar empresa o email..." id="fil-c-buscar" oninput="filtrarClientes()"/></div><div class="card"><div id="lista-clientes"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── ALERTAS ────────────────────────────────────────── --><div id="s-alertas" class="section"><div class="page-hdr"><div class="page-title">Alertas y posibles fraudes</div><div class="page-sub">Licitaciónes adjudicadas sin confirmar por más de 7 días</div></div><div class="card"><div id="lista-alertas"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── RETORNOS ─────────────────────────────────────── -->
 <div id="s-retornos" class="section">
   <div class="page-hdr">
@@ -740,6 +740,42 @@
   }
 
 
+
+async function cambiarPassword(){
+  var actual = document.getElementById('pwd-actual').value;
+  var nueva = document.getElementById('pwd-nueva').value;
+  var confirmar = document.getElementById('pwd-confirmar').value;
+  var msg = document.getElementById('pwd-msg');
+  msg.style.display='none';
+  if(!actual||!nueva||!confirmar){ showPwdMsg('Completa todos los campos','err'); return; }
+  if(nueva.length < 8){ showPwdMsg('La nueva contraseña debe tener al menos 8 caracteres','err'); return; }
+  if(nueva !== confirmar){ showPwdMsg('Las contraseñas no coinciden','err'); return; }
+  try{
+    var res = await fetch(API+'/api/auth/cambiar-password',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify({passwordActual:actual, passwordNueva:nueva})
+    });
+    var d = await res.json();
+    if(res.ok){
+      showPwdMsg('Contraseña actualizada correctamente','ok');
+      document.getElementById('pwd-actual').value='';
+      document.getElementById('pwd-nueva').value='';
+      document.getElementById('pwd-confirmar').value='';
+    } else {
+      showPwdMsg(d.error||'Error al cambiar contraseña','err');
+    }
+  }catch(e){ showPwdMsg('Error de conexión','err'); }
+}
+
+function showPwdMsg(text, type){
+  var el = document.getElementById('pwd-msg');
+  el.style.display='block';
+  el.style.background = type==='ok' ? '#F0FDF4' : '#FEF2F2';
+  el.style.color = type==='ok' ? '#15803D' : '#DC2626';
+  el.style.border = type==='ok' ? '0.5px solid #BBF7D0' : '0.5px solid #FECACA';
+  el.textContent = text;
+}
 </script>
 
 <footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px">
@@ -772,4 +808,24 @@
     </div>
   </div>
   <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
-    <span>© 2026 TransMatch SpA. 
+    <span>© 2026 TransMatch SpA.
+<!-- Modal cambiar contraseña -->
+<div id="modal-pwd" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;padding:28px;width:100%;max-width:400px;margin:20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div style="font-size:16px;font-weight:600;color:#1e2d4e">Cambiar contraseña</div>
+      <button onclick="document.getElementById('modal-pwd').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:#9CA3AF">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Contraseña actual</label><input type="password" id="pwd-actual" placeholder="••••••••" style="width:100%;padding:9px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;outline:none;box-sizing:border-box"/></div>
+      <div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Nueva contraseña</label><input type="password" id="pwd-nueva" placeholder="••••••••" style="width:100%;padding:9px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;outline:none;box-sizing:border-box"/></div>
+      <div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Confirmar nueva contraseña</label><input type="password" id="pwd-confirmar" placeholder="••••••••" style="width:100%;padding:9px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;outline:none;box-sizing:border-box"/></div>
+      <div id="pwd-msg" style="display:none;font-size:12px;padding:8px 12px;border-radius:6px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+        <button onclick="document.getElementById('modal-pwd').style.display='none'" style="padding:9px 16px;background:#f3f4f6;color:#374151;border:none;border-radius:7px;font-size:13px;cursor:pointer">Cancelar</button>
+        <button onclick="cambiarPassword()" style="padding:9px 20px;background:#1e2d4e;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+ 

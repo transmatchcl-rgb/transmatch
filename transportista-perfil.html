@@ -510,7 +510,8 @@
       <div class="card">
         <div class="card-title">Seguridad de la cuenta</div>
         <div class="sec-row">
-          <div><div class="sec-lbl">Contraseña</div><div class="sec-sub">Para cambiar tu contraseña, cierra sesión y usa la opción de recuperación</div></div>
+          <div><div class="sec-lbl">Contraseña</div><div class="sec-sub">Actualiza tu contraseña de acceso</div></div>
+          <button onclick="document.getElementById('modal-pwd').style.display='flex'" style="padding:6px 14px;font-size:12px;border-radius:6px;border:0.5px solid #e8eaf0;background:#fff;color:#374151;cursor:pointer;font-weight:500">Cambiar</button>
         </div>
         <div class="sec-row">
           <div><div class="sec-lbl">Sesión activa</div><div class="sec-sub" id="sesion-lbl">--</div></div>
@@ -1620,6 +1621,42 @@ function initRutInputs() {
     } catch(e){}
   }
 
+async function cambiarPassword(){
+  var actual = document.getElementById('pwd-actual').value;
+  var nueva = document.getElementById('pwd-nueva').value;
+  var confirmar = document.getElementById('pwd-confirmar').value;
+  var msg = document.getElementById('pwd-msg');
+  msg.style.display='none';
+  if(!actual||!nueva||!confirmar){ showPwdMsg('Completa todos los campos','err'); return; }
+  if(nueva.length < 8){ showPwdMsg('La nueva contraseña debe tener al menos 8 caracteres','err'); return; }
+  if(nueva !== confirmar){ showPwdMsg('Las contraseñas no coinciden','err'); return; }
+  try{
+    var res = await fetch(API+'/api/auth/cambiar-password',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify({passwordActual:actual, passwordNueva:nueva})
+    });
+    var d = await res.json();
+    if(res.ok){
+      showPwdMsg('Contraseña actualizada correctamente','ok');
+      document.getElementById('pwd-actual').value='';
+      document.getElementById('pwd-nueva').value='';
+      document.getElementById('pwd-confirmar').value='';
+    } else {
+      showPwdMsg(d.error||'Error al cambiar contraseña','err');
+    }
+  }catch(e){ showPwdMsg('Error de conexión','err'); }
+}
+
+function showPwdMsg(text, type){
+  var el = document.getElementById('pwd-msg');
+  el.style.display='block';
+  el.style.background = type==='ok' ? '#F0FDF4' : '#FEF2F2';
+  el.style.color = type==='ok' ? '#15803D' : '#DC2626';
+  el.style.border = type==='ok' ? '0.5px solid #BBF7D0' : '0.5px solid #FECACA';
+  el.textContent = text;
+}
+
 </script>
 <footer style="background:#1e2d4e;margin-top:40px;padding:28px 24px 20px">
   <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
@@ -1652,5 +1689,24 @@ function initRutInputs() {
     <span>© 2026 TransMatch SpA.</span>
   </div>
 </footer>
+
+<div id="modal-pwd" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;padding:28px;width:100%;max-width:400px;margin:20px;box-sizing:border-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div style="font-size:16px;font-weight:600;color:#1e2d4e">Cambiar contraseña</div>
+      <button onclick="document.getElementById('modal-pwd').style.display='none'" style="background:none;border:none;font-size:22px;cursor:pointer;color:#9CA3AF;line-height:1">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Contraseña actual</label><input type="password" id="pwd-actual" placeholder="••••••••" style="width:100%;padding:9px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;outline:none;box-sizing:border-box"/></div>
+      <div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Nueva contraseña</label><input type="password" id="pwd-nueva" placeholder="••••••••" style="width:100%;padding:9px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;outline:none;box-sizing:border-box"/></div>
+      <div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Confirmar nueva contraseña</label><input type="password" id="pwd-confirmar" placeholder="••••••••" style="width:100%;padding:9px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;outline:none;box-sizing:border-box"/></div>
+      <div id="pwd-msg" style="display:none;font-size:12px;padding:8px 12px;border-radius:6px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+        <button onclick="document.getElementById('modal-pwd').style.display='none'" style="padding:9px 16px;background:#f3f4f6;color:#374151;border:none;border-radius:7px;font-size:13px;cursor:pointer">Cancelar</button>
+        <button onclick="cambiarPassword()" style="padding:9px 20px;background:#1e2d4e;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

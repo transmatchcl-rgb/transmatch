@@ -373,6 +373,24 @@ async function handleRequest(request, env) {
     return ok({ token, user:{ id:user.id, email:emailLower, role:user.role, nombre:user.nombre, empresa:user.empresa, plan:user.plan } });
   }
 
+
+  // POST /api/auth/cambiar-password
+  if (path === "/api/auth/cambiar-password" && method === "POST") {
+    const user = await getUser(request, env);
+    if (!user) return err("No autenticado", 401);
+    const { passwordActual, passwordNueva } = body;
+    if (!passwordActual || !passwordNueva) return err("Faltan campos");
+    if (passwordNueva.length < 8) return err("La nueva contraseña debe tener al menos 8 caracteres");
+    const raw = await env.USERS.get(user.email);
+    if (!raw) return err("Usuario no encontrado", 404);
+    const u = JSON.parse(raw);
+    const hashActual = await hashPassword(passwordActual);
+    if (hashActual !== u.password) return err("La contraseña actual es incorrecta");
+    u.password = await hashPassword(passwordNueva);
+    await env.USERS.put(user.email, JSON.stringify(u));
+    return ok({ ok: true, mensaje: "Contraseña actualizada" });
+  }
+
   if (path === "/api/auth/login" && method === "POST") {
     let body = {}; try { body = await request.json(); } catch(e) { return err("Formato invalido"); }
     const { email, password } = body;
