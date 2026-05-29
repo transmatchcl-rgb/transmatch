@@ -1196,7 +1196,7 @@ async function handleRequest(request, env) {
   if (path === "/api/admin/usuarios" && method === "GET") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     const lista=await env.USERS.list(); const usuarios=[];
-    for(const key of lista.keys){ if(key.name.startsWith("id:")) continue; const raw=await env.USERS.get(key.name); if(!raw) continue; const u=JSON.parse(raw); usuarios.push({ id:u.id,email:u.email,nombre:u.nombre,empresa:u.empresa,role:u.role,estado:u.estado,plan:u.plan,createdAt:u.createdAt,rating:u.rating,totalTransportes:u.totalTransportes,telefono:u.telefono||'',rutEmpresa:u.rutEmpresa||'',cargo:u.cargo||'',max_usuarios:u.max_usuarios||0,empresaMiembros:u.empresaMiembros||[],notasAdmin:u.notasAdmin||'',equipos:u.equipos||[],rutRepresentante:u.rutRepresentante||'' }); }
+    for(const key of lista.keys){ if(key.name.startsWith("id:")) continue; const raw=await env.USERS.get(key.name); if(!raw) continue; const u=JSON.parse(raw); usuarios.push({ id:u.id,email:u.email,nombre:u.nombre,empresa:u.empresa,role:u.role,estado:u.estado,plan:u.plan,createdAt:u.createdAt,rating:u.rating,totalTransportes:u.totalTransportes,telefono:u.telefono||'',rutEmpresa:u.rutEmpresa||'',cargo:u.cargo||'',max_usuarios:u.max_usuarios||0,empresaMiembros:u.empresaMiembros||[],notasAdmin:u.notasAdmin||'',equipos:u.equipos||[],tiposEquipo:u.tiposEquipo||[],zonas:u.zonas||[],rutRepresentante:u.rutRepresentante||'' }); }
     return ok({ usuarios });
   }
 

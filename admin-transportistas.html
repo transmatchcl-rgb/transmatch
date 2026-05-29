@@ -157,13 +157,18 @@
     </div>
 
     <div style="background:#f8f9fc;border-radius:10px;padding:14px;margin-bottom:14px">
-      <div class="section-label" style="color:#1d4ed8">Equipos registrados</div>
-      <div id="mt-equipos" style="font-size:13px;color:#6B7280">--</div>
+      <div class="section-label" style="color:#1d4ed8">Equipos que opera</div>
+      <div id="mt-tipos-equipo" style="font-size:13px;color:#6B7280">--</div>
     </div>
 
     <div style="background:#f8f9fc;border-radius:10px;padding:14px;margin-bottom:14px">
       <div class="section-label" style="color:#1d4ed8">Zonas de operación</div>
       <div id="mt-zonas" style="font-size:13px;color:#6B7280">--</div>
+    </div>
+
+    <div style="background:#f8f9fc;border-radius:10px;padding:14px;margin-bottom:14px">
+      <div class="section-label" style="color:#1d4ed8">Equipos registrados</div>
+      <div id="mt-equipos" style="font-size:13px;color:#6B7280">--</div>
     </div>
 
     <div style="margin-bottom:14px">
@@ -284,36 +289,35 @@
     document.getElementById('mt-estado-badge').innerHTML =
       '<span style="background:' + ebg + ';color:' + ecol + ';font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px">' + elbl + '</span>';
 
-    // Equipos: puede venir como t.equipos (array de objetos) o t.tiposEquipo (array de strings)
-    const equiposObj = t.equipos || [];
-    const tiposStr = t.tiposEquipo || [];
-    const otroEquipo = t.otroEquipoPendiente || '';
-    let equiposHtml = '';
-    if (equiposObj.length > 0) {
-      equiposHtml = equiposObj.map(e =>
-        '<div style="padding:5px 0;border-bottom:0.5px solid #e8eaf0;font-size:12px;color:#374151;font-weight:500">' + e.tipo +
-        (e.capacidad ? '<span style="color:#6B7280;font-weight:400"> · ' + e.capacidad + ' ton</span>' : '') +
-        (e.dimensiones ? '<span style="color:#6B7280;font-weight:400"> · ' + e.dimensiones + '</span>' : '') +
-        '</div>'
-      ).join('');
-    } else if (tiposStr.length > 0 || otroEquipo) {
-      const todos = [...tiposStr];
-      if (otroEquipo) todos.push(otroEquipo + ' (por confirmar)');
-      equiposHtml = todos.map(e =>
-        '<div style="padding:5px 0;border-bottom:0.5px solid #e8eaf0;font-size:12px;color:#374151;font-weight:500">' + e + '</div>'
-      ).join('');
-    } else {
-      equiposHtml = '<span style="color:#9CA3AF">Sin equipos registrados</span>';
-    }
-    document.getElementById('mt-equipos').innerHTML = equiposHtml;
+    // 1. Equipos que opera (declarados al registrarse)
+    const tiposEquipo = t.tiposEquipo || [];
+    document.getElementById('mt-tipos-equipo').innerHTML = tiposEquipo.length === 0
+      ? '<span style="color:#9CA3AF">Sin información</span>'
+      : '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">' +
+        tiposEquipo.map(tipo => '<span style="background:#eef1f8;color:#1e2d4e;font-size:11px;font-weight:500;padding:3px 10px;border-radius:999px">' + tipo + '</span>').join('') +
+        '</div>';
 
-    // Zonas de operación
-    const zonas = t.zonasOperacion || t.zonas || [];
+    // 2. Zonas de operación
+    const zonas = t.zonas || [];
     document.getElementById('mt-zonas').innerHTML = zonas.length === 0
       ? '<span style="color:#9CA3AF">Sin zonas registradas</span>'
       : '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">' +
         zonas.map(z => '<span style="background:#eef1f8;color:#1e2d4e;font-size:11px;font-weight:500;padding:3px 10px;border-radius:999px">' + z + '</span>').join('') +
         '</div>';
+
+    // 3. Equipos registrados (agregados por el transportista con detalle)
+    const equiposReg = t.equipos || [];
+    document.getElementById('mt-equipos').innerHTML = equiposReg.length === 0
+      ? '<span style="color:#9CA3AF">Sin equipos registrados aún</span>'
+      : equiposReg.map(e =>
+          '<div style="padding:7px 0;border-bottom:0.5px solid #e8eaf0;font-size:12px">' +
+          '<span style="color:#374151;font-weight:600">' + e.tipo + '</span>' +
+          (e.marca ? '<span style="color:#6B7280"> · ' + e.marca + '</span>' : '') +
+          (e.modelo ? '<span style="color:#6B7280"> ' + e.modelo + '</span>' : '') +
+          (e.patente ? '<span style="color:#9CA3AF"> · ' + e.patente + '</span>' : '') +
+          (e.capacidadMax ? '<span style="color:#6B7280"> · ' + e.capacidadMax + ' ton</span>' : '') +
+          '</div>'
+        ).join('');
 
     document.getElementById('modal-t').classList.add('open');
   }
