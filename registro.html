@@ -429,7 +429,16 @@ async function register(){
     var otroCb = document.querySelector('#equipos-reg input[value="otro"]');
     if(otroCb&&otroCb.checked){
       var otroTexto=(document.getElementById('reg-otro-equipo').value||'').trim();
-      if(otroTexto) extra.otroEquipoPendiente = otroTexto;
+      if(!otroTexto){
+        var inp = document.getElementById('reg-otro-equipo');
+        inp.focus();
+        inp.style.borderColor='#DC2626';
+        inp.placeholder='Este campo es obligatorio';
+        showErr('Debes describir el tipo de equipo en el campo "Otro".');
+        return;
+      }
+      document.getElementById('reg-otro-equipo').style.borderColor='';
+      extra.otroEquipoPendiente = otroTexto;
     }
     extra.tiposEquipo = tiposEquipo;
   }
