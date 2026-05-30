@@ -129,6 +129,11 @@ function toast(msg, type){
 
 async function cargar(){
   document.getElementById('lista').innerHTML = '<div class="spinner" style="margin:40px auto"></div>';
+  // Obtener datos del usuario actual para saber si es cuenta madre
+  try {
+    var meRes = await fetch(API+'/api/auth/me', {headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    if(meRes.ok){ var meData = await meRes.json(); window._miUsuario = meData.user || null; }
+  } catch(e) {}
   try {
     var res = await fetch(API+'/api/transportes', {headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
     var d = await res.json();

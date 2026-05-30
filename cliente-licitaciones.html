@@ -91,7 +91,7 @@ if(role==='transportista'){window.location.replace('/transportista.html');return
 try{
 var res=await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+token}});
 if(res.status===401){localStorage.clear();window.location.replace('/index.html');return}
-if(res.ok){var d=await res.json();if(d.user.role!=='cliente'){window.location.replace('/index.html');return}localStorage.setItem('tm_plan',d.user.plan||'')}
+if(res.ok){var d=await res.json();if(d.user.role!=='cliente'){window.location.replace('/index.html');return}localStorage.setItem('tm_plan',d.user.plan||'');window._miUsuario=d.user;}
 }catch(e){}
 document.getElementById('auth-guard').style.display='none';
 var app=document.getElementById('app');app.style.display='flex';
@@ -338,6 +338,7 @@ return '<div class="lic-item" onclick="abrirDetalle(\''+l.id+'\')">'+
 '<div class="lic-body">'+
 '<div class="lic-title">'+nombre+'</div>'+
 '<div class="lic-meta">'+l.origen+' → '+l.destino+' · '+desde(l.createdAt)+'</div>'+
+(window._miUsuario&&!window._miUsuario.esSubusuario&&l.esCreadoPorSubusuario?'<div style="font-size:11px;color:#ff8904;margin-top:2px">Creado por: '+l.creadoPorNombre+'</div>':'')+
 '</div>'+
 '<div class="lic-right">'+
 (tieneMenu ? menuHtml : '')+
@@ -396,6 +397,7 @@ h+='<div style="background:#eef1f8;border-radius:8px;padding:12px 14px;margin-bo
 h+='<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:0.5px solid rgba(30,45,78,.1);flex-wrap:wrap"><span style="color:#6B7280">Plazo cotizaciones</span><span style="font-weight:500;text-align:right">'+(l.plazo||'24')+'h</span></div>';
 h+='<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:0.5px solid rgba(30,45,78,.1);flex-wrap:wrap"><span style="color:#6B7280">Fecha de carga</span><span style="font-weight:500;text-align:right">'+(l.fechaCarga||'--')+'</span></div>';
 h+='<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:0.5px solid rgba(30,45,78,.1);flex-wrap:wrap"><span style="color:#6B7280">Ruta</span><span style="font-weight:500;text-align:right">'+l.origen+' - '+l.destino+'</span></div>';
+if(window._miUsuario&&!window._miUsuario.esSubusuario&&l.esCreadoPorSubusuario){h+='<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:0.5px solid rgba(30,45,78,.1);flex-wrap:wrap"><span style="color:#6B7280">Creado por</span><span style="font-weight:500;text-align:right;color:#ff8904">'+l.creadoPorNombre+' ('+l.creadoPorEmail+')</span></div>';};
 h+='<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;flex-wrap:wrap"><span style="color:#6B7280">Equipo solicitado</span><span style="font-weight:500;text-align:right">'+(l.tipoEquipoRequerido||'--')+'</span></div>';
 h+='</div>';
 
