@@ -458,7 +458,7 @@
       if(waChk)    waChk.checked    = !!prefs.notifWhatsapp;
       if(waChk && waChk.checked){ var wi=document.getElementById('wa-input'); if(wi) wi.style.display='block'; }
       var waNum = document.getElementById('wa-numero');
-      if(waNum && prefs.whatsapp) waNum.value = prefs.whatsapp;
+      if(waNum) waNum.value = prefs.whatsapp || me.data.user.telefono || '';
       var prefIds = ['nueva-licit','licit-cerrada','adjudicada','retornos'];
       prefIds.forEach(function(id){
         var el = document.getElementById('pref-' + id);

@@ -374,7 +374,20 @@ async function handleRequest(request, env) {
   }
 
 
-  // POST /api/auth/cambiar-password
+  // POST /api/auth/me/prefs — guardar preferencias de notificaciones
+  if (path === "/api/auth/me/prefs" && method === "POST") {
+    const user = await getUser(request, env);
+    if (!user) return err("No autenticado", 401);
+    const { notifPrefs } = body;
+    if (!notifPrefs) return err("Faltan preferencias");
+    const raw = await env.USERS.get(user.email);
+    if (!raw) return err("Usuario no encontrado", 404);
+    const u = JSON.parse(raw);
+    u.notifPrefs = notifPrefs;
+    await env.USERS.put(user.email, JSON.stringify(u));
+    return ok({ ok: true });
+  }
+
   if (path === "/api/auth/cambiar-password" && method === "POST") {
     const user = await getUser(request, env);
     if (!user) return err("No autenticado", 401);
