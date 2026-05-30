@@ -1689,7 +1689,17 @@ async function handleRequest(request, env) {
       const m = JSON.parse(raw);
       miembros.push({ id:m.id, email:m.email, nombre:m.nombre, permisos:m.permisos||{}, estado:m.estado, createdAt:m.createdAt });
     }
-    return ok({ miembros, max_usuarios: uAdmin.max_usuarios||0 });
+    // Incluir invitaciones pendientes/vencidas
+    const ahora = Date.now();
+    const invitacionesPendientes = (uAdmin.invitacionesPendientes || []).map(inv => {
+      const expira = new Date(inv.expiresAt).getTime();
+      return { emailInvitado: inv.emailInvitado, createdAt: inv.createdAt, expiresAt: inv.expiresAt, vencida: ahora > expira };
+    }).filter(inv => (ahora - new Date(inv.expiresAt).getTime()) < 7*24*3600000);
+    uAdmin.invitacionesPendientes = (uAdmin.invitacionesPendientes || []).filter(inv =>
+      (ahora - new Date(inv.expiresAt).getTime()) < 7*24*3600000
+    );
+    await env.USERS.put(user.email, JSON.stringify(uAdmin));
+    return ok({ miembros, max_usuarios: uAdmin.max_usuarios||0, invitacionesPendientes });
   }
 
   // POST /api/mi-empresa/invitar — admin empresa invita a un usuario
@@ -1720,6 +1730,11 @@ async function handleRequest(request, env) {
       expiresAt: new Date(Date.now() + 48*3600000).toISOString()
     };
     await env.SESSIONS.put("invitacion:"+token, JSON.stringify(invitacion), { expirationTtl: 172800 });
+    // Guardar en lista de invitaciones pendientes del admin
+    if (!uAdmin.invitacionesPendientes) uAdmin.invitacionesPendientes = [];
+    uAdmin.invitacionesPendientes = uAdmin.invitacionesPendientes.filter(i => i.emailInvitado !== emailInvitado.toLowerCase());
+    uAdmin.invitacionesPendientes.push({ token, emailInvitado: emailInvitado.toLowerCase(), createdAt: invitacion.createdAt, expiresAt: invitacion.expiresAt });
+    await env.USERS.put(user.email, JSON.stringify(uAdmin));
     // Enviar email de invitación
     const linkInvitacion = `https://transmatch.cl/registro.html?invitacion=${token}`;
     await enviarEmail(env, {
