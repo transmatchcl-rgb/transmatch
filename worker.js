@@ -369,6 +369,13 @@ async function handleRequest(request, env) {
       pendientes.unshift({ id:uid(), texto:otroEquipoPendiente, empresa:empresa||"", email:emailLower, createdAt:new Date().toISOString(), estado:"pendiente" });
       await env.SESSIONS.put("equipos:pendientes", JSON.stringify(pendientes.slice(0,100)));
     }
+    // Notificar al admin del nuevo transportista registrado
+    if(roleNorm === "transportista"){
+      await crearNotificacion(env, "admin", "nuevo_transportista",
+        `Nuevo transportista: ${empresa||nombre} — pendiente de aprobación`,
+        { emailTransportista: emailLower, nombreEmpresa: empresa||nombre });
+    }
+
     const token = await signToken({ id:user.id, email:emailLower, role:user.role, nombre:user.nombre, empresa:user.empresa, plan:user.plan }, env.JWT_SECRET);
     return ok({ token, user:{ id:user.id, email:emailLower, role:user.role, nombre:user.nombre, empresa:user.empresa, plan:user.plan } });
   }
@@ -832,7 +839,12 @@ async function handleRequest(request, env) {
     const user=await getUser(request,env); if(!user) return err("No autenticado",401);
     let body={}; try{body=await request.json();}catch(e){}
     const userId=user.role==="admin"?"admin":user.id;
-    if(body.id){ const raw=await env.SESSIONS.get(`notif:${userId}:${body.id}`); if(raw){ const n=JSON.parse(raw); n.leida=true; await env.SESSIONS.put(`notif:${userId}:${body.id}`, JSON.stringify(n)); } }
+    if(body.todas){
+      const ids=JSON.parse(await env.SESSIONS.get(`notifs:${userId}`)||"[]");
+      for(const nid of ids){ const raw=await env.SESSIONS.get(`notif:${userId}:${nid}`); if(raw){ const n=JSON.parse(raw); n.leida=true; await env.SESSIONS.put(`notif:${userId}:${nid}`,JSON.stringify(n)); } }
+    } else if(body.id){
+      const raw=await env.SESSIONS.get(`notif:${userId}:${body.id}`); if(raw){ const n=JSON.parse(raw); n.leida=true; await env.SESSIONS.put(`notif:${userId}:${body.id}`, JSON.stringify(n)); }
+    }
     return ok({ ok:true });
   }
 
@@ -921,6 +933,41 @@ async function handleRequest(request, env) {
     }
 
     return ok({ total:ids.length, pendiente_admin, abiertas, cerradas, adjudicadas, completadas, ovCondicionales, ovConfirmadas, ovFacturadas, comisionPendiente, comisionFacturada, alertas });
+  }
+
+  // POST /api/admin/equipos-pendientes — aprobar o rechazar equipo tipo "Otro"
+  if (path === "/api/admin/equipos-pendientes" && method === "POST") {
+    const user = await getUser(request, env); const d = deny(user, "admin"); if(d) return d;
+    let b = {}; try{ b = await request.json(); }catch(e){ return err("Formato invalido"); }
+    const { accion, emailTransportista, equipoTexto } = b;
+    if(!accion||!emailTransportista) return err("Faltan campos");
+    try{
+      // Actualizar lista de equipos pendientes en SESSIONS
+      const pendientes = JSON.parse(await env.SESSIONS.get("equipos:pendientes") || "[]");
+      const idx = pendientes.findIndex(p => p.email === emailTransportista);
+      if(idx !== -1){
+        if(accion === "aprobar"){
+          pendientes[idx].estado = "aprobado";
+          pendientes[idx].textoFinal = equipoTexto;
+          // Agregar al perfil del transportista como tipoEquipo aprobado
+          const rawUser = await env.USERS.get(emailTransportista);
+          if(rawUser){
+            const u = JSON.parse(rawUser);
+            if(!u.tiposEquipo) u.tiposEquipo = [];
+            if(!u.tiposEquipo.includes(equipoTexto)) u.tiposEquipo.push(equipoTexto);
+            u.otroEquipoPendiente = null;
+            await env.USERS.put(emailTransportista, JSON.stringify(u));
+          }
+          // Notificar al transportista
+          await crearNotificacion(env, emailTransportista.replace('@','_').replace('.','_'), "equipo_aprobado",
+            `Tu equipo "${equipoTexto}" fue aprobado y agregado al listado de TransMatch.`, {});
+        } else {
+          pendientes[idx].estado = "rechazado";
+        }
+        await env.SESSIONS.put("equipos:pendientes", JSON.stringify(pendientes));
+      }
+      return ok({ ok: true });
+    } catch(e){ return err("Error: " + e.message, 500); }
   }
 
   if (path === "/api/admin/transportistas-pendientes" && method === "GET") {
