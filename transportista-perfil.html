@@ -1546,8 +1546,14 @@ function initRutInputs() {
       cargarPrefsConfig();
     }
 
-  function cargarPrefsConfig(){
+  async function cargarPrefsConfig(){
     try {
+      var token = localStorage.getItem('tm_token');
+      var meRes = await fetch('https://transmatch.transmatchcl.workers.dev/api/auth/me', {headers:{'Authorization':'Bearer '+token}});
+      var meData = meRes.ok ? await meRes.json() : null;
+      if(meData && meData.user && meData.user.notifPrefs){
+        localStorage.setItem('tm_notif_prefs', JSON.stringify(meData.user.notifPrefs));
+      }
       var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
       var ec = document.getElementById('notif-email-chk');
       var wc = document.getElementById('notif-wa-chk');
@@ -1555,10 +1561,30 @@ function initRutInputs() {
       if(wc) wc.checked = !!prefs.notifWhatsapp;
       if(wc && wc.checked){ var wi=document.getElementById('wa-input'); if(wi) wi.style.display='block'; }
       var waNum = document.getElementById('wa-numero');
-      if(waNum && prefs.whatsapp) waNum.value = prefs.whatsapp;
+      var telefono = meData && meData.user ? meData.user.telefono : '';
+      if(waNum) waNum.value = prefs.whatsapp || telefono || '';
       ['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
         var el = document.getElementById('pref-'+id);
         if(el) el.checked = prefs['pref_'+id] !== false;
+      });
+    } catch(e){}
+  }
+
+  async function guardarPrefs(){
+    try {
+      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      var ec = document.getElementById('notif-email-chk');
+      var wc = document.getElementById('notif-wa-chk');
+      var waNum = document.getElementById('wa-numero');
+      if(ec) prefs.notifEmail = ec.checked;
+      if(wc) prefs.notifWhatsapp = wc.checked;
+      if(waNum) prefs.whatsapp = waNum.value.trim();
+      localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+      var token = localStorage.getItem('tm_token');
+      await fetch('https://transmatch.transmatchcl.workers.dev/api/auth/me/prefs', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body:JSON.stringify({notifPrefs:prefs})
       });
     } catch(e){}
   }
@@ -1571,6 +1597,12 @@ function initRutInputs() {
         if(el) prefs['pref_'+id] = el.checked;
       });
       localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+      var token = localStorage.getItem('tm_token');
+      await fetch('https://transmatch.transmatchcl.workers.dev/api/auth/me/prefs', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body:JSON.stringify({notifPrefs:prefs})
+      });
     } catch(e){}
   }
 
