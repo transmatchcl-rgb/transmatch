@@ -120,35 +120,11 @@
   </nav>
 
   <div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:340px;background:#fff;border-radius:14px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.14);z-index:500;overflow:hidden;max-height:480px;flex-direction:column">
-    <div id="notif-header-main" style="padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <div style="padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
       <span style="font-size:14px;font-weight:700;color:#1e2d4e">Notificaciones</span>
-      <div style="display:flex;align-items:center;gap:8px">
-        <button onclick="marcarTodasLeidas()" style="font-size:11px;color:#6B7280;background:none;border:none;cursor:pointer">Marcar leídas</button>
-        <button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;color:#6B7280" title="Configurar notificaciones" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        </button>
-      </div>
-    </div>
-    <div id="notif-header-config" style="display:none;padding:14px 16px;border-bottom:0.5px solid #E5E7EB;align-items:center;gap:10px;flex-shrink:0">
-      <button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;color:#1e2d4e;font-size:13px;font-weight:500;padding:4px 8px;border-radius:6px" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-        Volver
-      </button>
-      <span style="font-size:14px;font-weight:700;color:#1e2d4e">Configuración</span>
+      <button onclick="marcarTodasLeidas()" style="font-size:11px;color:#6B7280;background:none;border:none;cursor:pointer">Marcar leídas</button>
     </div>
     <div id="notif-list" style="overflow-y:auto;flex:1"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div>
-    <div id="notif-config" style="display:none;overflow-y:auto;flex:1;padding:16px">
-      <div style="font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Canal de notificaciones</div>
-      <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:9px 0;border-bottom:0.5px solid #E5E7EB"><span style="font-size:13px;color:#374151">✉️ Por email</span><input type="checkbox" id="notif-email-chk" onchange="guardarPrefs()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
-      <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:9px 0;border-bottom:0.5px solid #E5E7EB"><span style="font-size:13px;color:#374151">💬 Por WhatsApp</span><input type="checkbox" id="notif-wa-chk" onchange="toggleWA()" style="width:16px;height:16px;accent-color:#25D366;cursor:pointer"/></label>
-      <div id="wa-input" style="display:none;margin-top:4px"><input id="wa-numero" type="tel" placeholder="+56 9 XXXX XXXX" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:7px;font-size:13px"/><button onclick="guardarPrefs()" style="margin-top:6px;width:100%;padding:7px;background:#25D366;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer">Guardar número</button></div>
-      <div style="font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin:14px 0 10px">Sobre licitaciones</div>
-      <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Nueva licitación disponible</span><input type="checkbox" id="pref-nueva-licit" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
-      <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Licitación cerrada sin adjudicación</span><input type="checkbox" id="pref-licit-cerrada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
-      <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Licitación adjudicada a mí</span><input type="checkbox" id="pref-adjudicada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
-      <div style="font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin:14px 0 10px">Sobre retornos</div>
-      <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;cursor:pointer"><span style="font-size:13px;color:#374151">Solicitudes en retornos publicados</span><input type="checkbox" id="pref-retornos" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
-    </div>
   </div>
 
   <main>
@@ -564,101 +540,7 @@ async function marcarTodasLeidas(){
 
 function closeAllPanels(){var m=document.getElementById('user-menu');var p=document.getElementById('notif-panel');if(m)m.style.display='none';if(p)p.style.display='none';}
 function toggleUserMenu(e){e.stopPropagation();var m=document.getElementById('user-menu');var isOpen=m&&m.style.display==='block';closeAllPanels();if(!isOpen&&m)m.style.display='block';}
-function toggleNotifs(e){
-  if(e) e.stopPropagation();
-  var p=document.getElementById('notif-panel');
-  var isOpen=p&&p.style.display==='flex';
-  closeAllPanels();
-  if(!isOpen&&p){
-    p.style.display='flex';
-    var cfg=document.getElementById('notif-config');
-    var list=document.getElementById('notif-list');
-    var hMain=document.getElementById('notif-header-main');
-    var hCfg=document.getElementById('notif-header-config');
-    if(cfg) cfg.style.display='none';
-    if(list) list.style.display='block';
-    if(hMain) hMain.style.display='flex';
-    if(hCfg) hCfg.style.display='none';
-    cargarNotificaciones();
-  }
-}
-
-function toggleConfigNotif(){
-  var cfg=document.getElementById('notif-config');
-  var list=document.getElementById('notif-list');
-  var hMain=document.getElementById('notif-header-main');
-  var hCfg=document.getElementById('notif-header-config');
-  var isOpen=cfg&&cfg.style.display!=='none';
-  if(isOpen){
-    if(cfg) cfg.style.display='none';
-    if(list) list.style.display='block';
-    if(hMain) hMain.style.display='flex';
-    if(hCfg) hCfg.style.display='none';
-  } else {
-    if(cfg) cfg.style.display='block';
-    if(list) list.style.display='none';
-    if(hMain) hMain.style.display='none';
-    if(hCfg) hCfg.style.display='flex';
-    cargarPrefsConfig();
-  }
-}
-
-function toggleWA(){
-  var wc=document.getElementById('notif-wa-chk');
-  var wi=document.getElementById('wa-input');
-  if(wi) wi.style.display=(wc&&wc.checked)?'block':'none';
-  guardarPrefs();
-}
-
-async function guardarPrefs(){
-  try{
-    var prefs=JSON.parse(localStorage.getItem('tm_notif_prefs')||'{}');
-    var ec=document.getElementById('notif-email-chk');
-    var wc=document.getElementById('notif-wa-chk');
-    var waNum=document.getElementById('wa-numero');
-    if(ec) prefs.notifEmail=ec.checked;
-    if(wc) prefs.notifWhatsapp=wc.checked;
-    if(waNum) prefs.whatsapp=waNum.value.trim();
-    localStorage.setItem('tm_notif_prefs',JSON.stringify(prefs));
-    var token=localStorage.getItem('tm_token');
-    await fetch('https://transmatch.transmatchcl.workers.dev/api/auth/me/prefs',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({notifPrefs:prefs})});
-  }catch(e){}
-}
-
-async function guardarPrefsDetalle(){
-  try{
-    var prefs=JSON.parse(localStorage.getItem('tm_notif_prefs')||'{}');
-    ['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
-      var el=document.getElementById('pref-'+id);
-      if(el) prefs['pref_'+id]=el.checked;
-    });
-    localStorage.setItem('tm_notif_prefs',JSON.stringify(prefs));
-    var token=localStorage.getItem('tm_token');
-    await fetch('https://transmatch.transmatchcl.workers.dev/api/auth/me/prefs',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({notifPrefs:prefs})});
-  }catch(e){}
-}
-
-async function cargarPrefsConfig(){
-  try{
-    var token=localStorage.getItem('tm_token');
-    var meRes=await fetch('https://transmatch.transmatchcl.workers.dev/api/auth/me',{headers:{'Authorization':'Bearer '+token}});
-    var meData=meRes.ok?await meRes.json():null;
-    if(meData&&meData.user&&meData.user.notifPrefs) localStorage.setItem('tm_notif_prefs',JSON.stringify(meData.user.notifPrefs));
-    var prefs=JSON.parse(localStorage.getItem('tm_notif_prefs')||'{}');
-    var ec=document.getElementById('notif-email-chk');
-    var wc=document.getElementById('notif-wa-chk');
-    if(ec) ec.checked=prefs.notifEmail!==false;
-    if(wc) wc.checked=!!prefs.notifWhatsapp;
-    if(wc&&wc.checked){var wi=document.getElementById('wa-input');if(wi) wi.style.display='block';}
-    var waNum=document.getElementById('wa-numero');
-    var telefono=meData&&meData.user?meData.user.telefono:'';
-    if(waNum) waNum.value=prefs.whatsapp||telefono||'';
-    ['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
-      var el=document.getElementById('pref-'+id);
-      if(el) el.checked=prefs['pref_'+id]!==false;
-    });
-  }catch(e){}
-}
+function toggleNotifs(e){if(e)e.stopPropagation();var p=document.getElementById('notif-panel');var isOpen=p&&p.style.display==='flex';closeAllPanels();if(!isOpen&&p){p.style.display='flex';cargarNotificaciones();}}
 document.addEventListener('click',function(){closeAllPanels();});
 
 (function(){
