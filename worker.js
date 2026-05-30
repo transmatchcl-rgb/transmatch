@@ -378,7 +378,8 @@ async function handleRequest(request, env) {
   if (path === "/api/auth/me/prefs" && method === "POST") {
     const user = await getUser(request, env);
     if (!user) return err("No autenticado", 401);
-    const { notifPrefs } = body;
+    let prefsBody = {}; try { prefsBody = await request.json(); } catch(e) { return err("Formato invalido"); }
+    const { notifPrefs } = prefsBody;
     if (!notifPrefs) return err("Faltan preferencias");
     const raw = await env.USERS.get(user.email);
     if (!raw) return err("Usuario no encontrado", 404);
