@@ -619,7 +619,7 @@
       ['Codigo', l.código||'--'],
       ['Cliente', l.clienteEmpresa || l.clienteEmail],
       ['Contacto', l.clienteNombre||'--'],
-      ['Email', l.estado === 'adjudicada' || l.estado === 'completada' ? l.clienteEmail : 'Oculto hasta adjudicar'],
+      ['Email', l.clienteEmail || '--'],
       ['Origen', l.origen||'--'],
       ['Destino', l.destino||'--'],
       ['Fecha de carga', l.fechaCarga ? new Date(l.fechaCarga).toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'}) : '--'],
