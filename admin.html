@@ -124,11 +124,35 @@
         <a href="/admin-reportes.html" class="nav-tab">Reportes</a>
       </div>
       </div>
-    <div style="position:relative;margin-right:8px;display:inline-block">
-  <button onclick="event.stopPropagation();toggleAdminNotifs()" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:6px 10px;border-radius:6px;font-size:16px;cursor:pointer;position:relative">
-    🔔<span id="admin-notif-count" style="display:none;position:absolute;top:-4px;right:-4px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center">0</span>
-  </button>
-  <div id="admin-notif-panel" style="display:none;position:fixed;top:60px;right:120px;width:360px;background:#fff;border-radius:14px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.14);z-index:9000;overflow:hidden;max-height:500px;flex-direction:column">
+    <div style="display:flex;align-items:center;gap:12px">
+  <!-- Campana notificaciones -->
+  <div id="notif-btn" onclick="toggleAdminNotifs(event)" style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <span id="admin-notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center"></span>
+  </div>
+  <!-- Avatar con menú -->
+  <div style="position:relative">
+    <div onclick="toggleAdminMenu(event)" style="width:34px;height:34px;border-radius:50%;background:#ff8904;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:15px;cursor:pointer">A</div>
+    <div id="admin-user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:200px;z-index:999;overflow:hidden">
+      <div style="padding:14px 16px;border-bottom:1px solid #f3f4f6">
+        <div style="font-weight:700;font-size:14px;color:#1e2d4e">Administrador</div>
+        <div style="font-size:12px;color:#6B7280;margin-top:2px">TransMatch</div>
+      </div>
+      <div onclick="document.getElementById('modal-pwd').style.display='flex';document.getElementById('admin-user-menu').style.display='none'" style="padding:12px 16px;font-size:13px;color:#374151;cursor:pointer;display:flex;align-items:center;gap:8px" onmouseover="this.style.background='#f5f7fb'" onmouseout="this.style.background=''">
+        🔑 Cambiar contraseña
+      </div>
+      <a href="/ayuda.html" style="padding:12px 16px;font-size:13px;color:#374151;cursor:pointer;display:flex;align-items:center;gap:8px;text-decoration:none" onmouseover="this.style.background='#f5f7fb'" onmouseout="this.style.background=''">
+        ❓ Ayuda
+      </a>
+      <div style="border-top:1px solid #f3f4f6">
+        <div onclick="localStorage.clear();window.location.replace('/admin-login.html')" style="padding:12px 16px;font-size:13px;color:#DC2626;cursor:pointer;display:flex;align-items:center;gap:8px" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background=''">
+          Cerrar sesión
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Panel notificaciones -->
+  <div id="admin-notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:360px;background:#fff;border-radius:14px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.14);z-index:9000;overflow:hidden;max-height:500px;flex-direction:column">
     <div style="padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
       <span style="font-size:14px;font-weight:700;color:#1e2d4e">Notificaciones</span>
       <button onclick="marcarTodasLeidasAdmin()" style="font-size:11px;color:#6B7280;background:none;border:none;cursor:pointer">Marcar leídas</button>
@@ -136,7 +160,6 @@
     <div id="admin-notif-list" style="overflow-y:auto;flex:1;max-height:440px"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div>
   </div>
 </div>
-<button onclick="document.getElementById('modal-pwd').style.display='flex'" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;margin-right:8px">🔑 Contraseña</button><button class="logout-btn" onclick="localStorage.clear();window.location.replace('/admin-login.html')">Cerrar sesion</button>
   </nav><main><!-- ── DASHBOARD ─────────────────────────────────────── --><div id="s-dashboard" class="section active"><div class="page-hdr"><div><div class="page-title">Dashboard</div><div class="page-sub" id="dash-fecha">Cargando...</div></div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="exportarTodo()">Exportar CSV</button></div></div><div class="grid-4" id="dash-stats"><div class="stat"><div class="stat-label">Cargando...</div></div></div><div class="grid-2"><div><!-- Alertas rápidas --><div class="card"><div class="card-hdr"><div class="card-title">Alertas activas</div><span id="alertas-count" class="badge badge-red">0</span></div><div id="dash-alertas"><div class="spinner-wrap"><div class="spinner"></div></div></div></div><!-- Licitaciones pendientes de aprobación --><div class="card"><div class="card-hdr"><div class="card-title">Licitaciones pendientes de aprobación</div><button class="btn btn-outline btn-sm" onclick="showSection('licitaciones',document.querySelectorAll('.nav-tab')[1])">Ver todas →</button></div><div id="dash-pendientes"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><div><!-- Licitaciónes activas --><div class="card"><div class="card-hdr"><div class="card-title">Licitaciones abiertas</div><button class="btn btn-outline btn-sm" onclick="showSection('licitaciones',document.querySelectorAll('.nav-tab')[1])">Ver todas →</button></div><div id="dash-licitaciones"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div></div></div><!-- ── LICITACIONES ───────────────────────────────────── --><div id="s-licitaciones" class="section"><div class="page-hdr"><div class="page-title">Licitaciones</div><div class="page-sub">Todas las licitaciones en tiempo real</div></div><div class="filter-bar"><select class="select" id="fil-estado" onchange="filtrarLicitaciones()"><option value="">Todos los estados</option><option value="pendiente_admin">Pendientes aprobación</option><option value="abierta">Abiertas (cotizando)</option><option value="cerrada">En revisión cliente</option><option value="adjudicada">Adjudicadas</option><option value="completada">Completadas</option><option value="rechazada">Rechazadas</option></select><input class="input" style="max-width:280px;" placeholder=" Buscar empresa, equipo o ruta..." id="fil-buscar" oninput="filtrarLicitaciones()"/><button class="btn btn-outline btn-sm" onclick="exportarLicitaciones()">CSV</button></div><div class="card"><div id="lista-licitaciones"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── TRANSPORTISTAS ─────────────────────────────────── --><div id="s-transportistas" class="section"><div class="page-hdr"><div class="page-title">Transportistas</div><div class="page-sub">Gestión de proveedores de la red</div></div><div class="filter-bar"><select class="select" id="fil-t-estado" onchange="filtrarTransportistas()"><option value="">Todos</option><option value="pendiente">Pendientes</option><option value="activo">Activos</option><option value="suspendido">Suspendidos</option><option value="rechazado">Rechazados</option></select><input class="input" style="max-width:240px;" placeholder="Buscar nombre o empresa..." id="fil-t-buscar" oninput="filtrarTransportistas()"/></div><div class="card"><div id="lista-transportistas"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── CLIENTES ───────────────────────────────────────── --><div id="s-clientes" class="section"><div class="page-hdr"><div class="page-title">Clientes</div><div class="page-sub">Empresas registradas en la plataforma</div></div><div class="filter-bar"><select class="select" id="fil-c-plan" onchange="filtrarClientes()"><option value="">Todos los planes</option><option value="básico">Básico</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select><input class="input" style="max-width:240px;" placeholder="Buscar empresa o email..." id="fil-c-buscar" oninput="filtrarClientes()"/></div><div class="card"><div id="lista-clientes"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── ALERTAS ────────────────────────────────────────── --><div id="s-alertas" class="section"><div class="page-hdr"><div class="page-title">Alertas y posibles fraudes</div><div class="page-sub">Licitaciónes adjudicadas sin confirmar por más de 7 días</div></div><div class="card"><div id="lista-alertas"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── RETORNOS ─────────────────────────────────────── -->
 <div id="s-retornos" class="section">
   <div class="page-hdr">
@@ -796,7 +819,17 @@ function showPwdMsg(text, type){
   // ── NOTIFICACIONES ADMIN ────────────────────────────────
   let adminNotifPanelOpen = false;
 
-  function toggleAdminNotifs(){
+  function toggleAdminMenu(e){
+    if(e) e.stopPropagation();
+    var m = document.getElementById('admin-user-menu');
+    var isOpen = m.style.display !== 'none';
+    m.style.display = isOpen ? 'none' : 'block';
+    // Cerrar panel notifs si está abierto
+    document.getElementById('admin-notif-panel').style.display = 'none';
+    adminNotifPanelOpen = false;
+  }
+
+  function toggleAdminNotifs(e){
     var panel = document.getElementById('admin-notif-panel');
     adminNotifPanelOpen = !adminNotifPanelOpen;
     panel.style.display = adminNotifPanelOpen ? 'flex' : 'none';
@@ -804,6 +837,7 @@ function showPwdMsg(text, type){
   }
 
   document.addEventListener('click', function(){
+    document.getElementById('admin-user-menu').style.display = 'none';
     if(adminNotifPanelOpen){
       adminNotifPanelOpen = false;
       document.getElementById('admin-notif-panel').style.display = 'none';
