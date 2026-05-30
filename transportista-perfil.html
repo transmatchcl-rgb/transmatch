@@ -1528,23 +1528,25 @@ function initRutInputs() {
   }
 
 
-    var cfg      = document.getElementById('notif-config');
-    var list     = document.getElementById('notif-list');
-    var hMain    = document.getElementById('notif-header-main');
-    var hConfig  = document.getElementById('notif-header-config');
-    var isOpen   = cfg && cfg.style.display !== 'none';
+  function toggleConfigNotif(){
+    var cfg   = document.getElementById('notif-config');
+    var list  = document.getElementById('notif-list');
+    var hMain = document.getElementById('notif-header-main');
+    var hCfg  = document.getElementById('notif-header-config');
+    var isOpen = cfg && cfg.style.display !== 'none';
     if(isOpen){
-      if(cfg)     cfg.style.display     = 'none';
-      if(list)    list.style.display    = 'block';
-      if(hMain)   hMain.style.display   = 'flex';
-      if(hConfig) hConfig.style.display = 'none';
+      if(cfg)   cfg.style.display  = 'none';
+      if(list)  list.style.display = 'block';
+      if(hMain) hMain.style.display = 'flex';
+      if(hCfg)  hCfg.style.display  = 'none';
     } else {
-      if(cfg)     cfg.style.display     = 'block';
-      if(list)    list.style.display    = 'none';
-      if(hMain)   hMain.style.display   = 'none';
-      if(hConfig) hConfig.style.display = 'flex';
+      if(cfg)   cfg.style.display  = 'block';
+      if(list)  list.style.display = 'none';
+      if(hMain) hMain.style.display = 'none';
+      if(hCfg)  hCfg.style.display  = 'flex';
       cargarPrefsConfig();
     }
+  }
 
   async function cargarPrefsConfig(){
     try {
@@ -1628,7 +1630,19 @@ function initRutInputs() {
     if(!panel) return;
     var isOpen=panel.style.display==='flex';
     closeAllPanels();
-    if(!isOpen){panel.style.display='flex';cargarNotificaciones();}
+    if(!isOpen){
+      panel.style.display='flex';
+      // Siempre abrir en vista de notificaciones, no en config
+      var cfg   = document.getElementById('notif-config');
+      var list  = document.getElementById('notif-list');
+      var hMain = document.getElementById('notif-header-main');
+      var hCfg  = document.getElementById('notif-header-config');
+      if(cfg)   cfg.style.display  = 'none';
+      if(list)  list.style.display = 'block';
+      if(hMain) hMain.style.display = 'flex';
+      if(hCfg)  hCfg.style.display  = 'none';
+      cargarNotificaciones();
+    }
   }
 
 
