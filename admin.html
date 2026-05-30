@@ -830,6 +830,7 @@ function showPwdMsg(text, type){
   }
 
   function toggleAdminNotifs(e){
+    if(e) e.stopPropagation();
     var panel = document.getElementById('admin-notif-panel');
     adminNotifPanelOpen = !adminNotifPanelOpen;
     panel.style.display = adminNotifPanelOpen ? 'flex' : 'none';
