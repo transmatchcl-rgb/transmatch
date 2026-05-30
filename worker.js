@@ -907,7 +907,20 @@ async function handleRequest(request, env) {
       else if(ov.estado==="FACTURADA"){  ovFacturadas++;  comisionFacturada+=(ov.comision_final||0); }
     }
 
-    return ok({ total:ids.length, pendiente_admin, abiertas, cerradas, adjudicadas, completadas, ovCondicionales, ovConfirmadas, ovFacturadas, comisionPendiente, comisionFacturada });
+    // Alertas: transportistas pendientes de aprobación
+    const alertas = [];
+    const usersLista = await env.USERS.list();
+    for(const key of usersLista.keys){
+      if(key.name.startsWith("id:")) continue;
+      const raw = await env.USERS.get(key.name);
+      if(!raw) continue;
+      const u = JSON.parse(raw);
+      if(u.role==="transportista" && u.estado==="pendiente"){
+        alertas.push({ tipo:"transportista_pendiente", nombre:u.nombre, empresa:u.empresa, email:u.email, createdAt:u.createdAt });
+      }
+    }
+
+    return ok({ total:ids.length, pendiente_admin, abiertas, cerradas, adjudicadas, completadas, ovCondicionales, ovConfirmadas, ovFacturadas, comisionPendiente, comisionFacturada, alertas });
   }
 
   if (path === "/api/admin/transportistas-pendientes" && method === "GET") {

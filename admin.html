@@ -267,8 +267,12 @@
  document.getElementById('alertas-count').textContent = alertas.length;
  document.getElementById('dash-alertas').innerHTML = alertas.length === 0
  ? `<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:14px;">Sin alertas activas </div>`
- : alertas.map(a => `
- <div class="row"><div class="alert-dot dot-red"></div><div class="row-body"><div class="row-name">Posible bypass — sin confirmar hace ${a.dias} días</div><div class="row-meta">ID: ${a.licitacionId}</div></div></div>`).join('');
+ : alertas.map(a => {
+  if(a.tipo==='transportista_pendiente'){
+    return `<div class="row" style="cursor:pointer" onclick="window.location='/admin-transportistas.html'"><div class="alert-dot dot-red"></div><div class="row-body"><div class="row-name">Transportista pendiente de aprobación</div><div class="row-meta">${a.empresa||a.nombre} · ${a.email}</div></div></div>`;
+  }
+  return `<div class="row"><div class="alert-dot dot-red"></div><div class="row-body"><div class="row-name">Posible bypass — sin confirmar hace ${a.dias} días</div><div class="row-meta">ID: ${a.licitacionId}</div></div></div>`;
+}).join('');
  } else {
  document.getElementById('dash-stats').innerHTML = `
  <div class="stat"><div class="stat-label">Total licitaciones</div><div class="stat-val" style="color:#1e2d4e;">0</div></div><div class="stat"><div class="stat-label">Abiertas ahora</div><div class="stat-val" style="color:#FF8904;">0</div></div><div class="stat"><div class="stat-label">Completadas</div><div class="stat-val" style="color:#1ED24E;">0</div></div><div class="stat"><div class="stat-label">Ingresos (fees 4%)</div><div class="stat-val" style="font-size:20px;">$0</div></div>
