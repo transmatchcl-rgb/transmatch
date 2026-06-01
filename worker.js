@@ -442,7 +442,7 @@ async function handleRequest(request, env) {
     const raw = await env.USERS.get(user.email);
     if (!raw) return err("Usuario no encontrado",404);
     const u = JSON.parse(raw);
-    return ok({ user:{ id:u.id, email:u.email, role:u.role, nombre:u.nombre, empresa:u.empresa, plan:u.plan, rating:u.rating, totalTransportes:u.totalTransportes, estado:u.estado, notifEmail:u.notifEmail, notifWhatsapp:u.notifWhatsapp, whatsapp:u.whatsapp, telefono:u.telefono, ciudad:u.ciudad, rut:u.rut, rutEmpresa:u.rutEmpresa, cargo:u.cargo, giro:u.giro, telEmpresa:u.telEmpresa, ciudadEmpresa:u.ciudadEmpresa, direccion:u.direccion, web:u.web, descripcion:u.descripcion, anosExperiencia:u.anosExperiencia, zonas:u.zonas||[], equipos:u.equipos||[], tiposEquipo:u.tiposEquipo||[], facturacion:u.facturacion||{}, contactoOperaciones:u.contactoOperaciones, contactoComercial:u.contactoComercial, contactoFacturacion:u.contactoFacturacion, industrias:u.industrias||[], max_usuarios:u.max_usuarios||0, esSubusuario:u.esSubusuario||false, permisos:u.permisos||{}, perfilCompletitud:u.perfilCompletitud||0, totalCotizaciones:u.totalCotizaciones||0 } });
+    return ok({ user:{ id:u.id, email:u.email, role:u.role, nombre:u.nombre, empresa:u.empresa, plan:u.plan, rating:u.rating, totalTransportes:u.totalTransportes, estado:u.estado, notifEmail:u.notifEmail, notifWhatsapp:u.notifWhatsapp, whatsapp:u.whatsapp, telefono:u.telefono, ciudad:u.ciudad, rut:u.rut, rutEmpresa:u.rutEmpresa, cargo:u.cargo, giro:u.giro, telEmpresa:u.telEmpresa, ciudadEmpresa:u.ciudadEmpresa, direccion:u.direccion, web:u.web, descripcion:u.descripcion, anosExperiencia:u.anosExperiencia, zonas:u.zonas||[], equipos:u.equipos||[], tiposEquipo:u.tiposEquipo||[], facturacion:u.facturacion||{}, contactoOperaciones:u.contactoOperaciones, contactoComercial:u.contactoComercial, contactoFacturacion:u.contactoFacturacion, industrias:u.industrias||[], max_usuarios:u.max_usuarios||0, esSubusuario:u.esSubusuario||false, empresaMadreId:u.empresaMadreId||null, empresaMiembros:u.empresaMiembros||[], permisos:u.permisos||{}, perfilCompletitud:u.perfilCompletitud||0, totalCotizaciones:u.totalCotizaciones||0 } });
   }
 
   if (path === "/api/licitaciones" && method === "POST") {
@@ -452,7 +452,7 @@ async function handleRequest(request, env) {
     const { tipoEquipo, marca, peso, dimensiones, descripcion, origen, destino, fechaCarga, fechaEntrega, plazo, archivoId, archivoNombre, tipoLicitacion, tipoCarga, cantidadBultos, pesoPorBulto } = body;
     if (!origen||!destino||!fechaCarga) return err("Faltan campos requeridos");
     const id = uid(); const codigo = await generarCodigo(env,'LIC');
-    const licitacion = { id, codigo, clienteId:user.id, clienteEmail:user.email, clienteEmpresa:user.empresa||"", clienteNombre:user.nombre||"", clienteTelefono:user.telefono||"", tipoLicitacion:tipoLicitacion||"maquinaria", tipoEquipo:tipoEquipo||tipoCarga||"Carga general", tipoEquipoRequerido:body.tipoEquipoRequerido||"cualquiera", marca:marca||"", tipoCarga:tipoCarga||"", cantidadBultos:cantidadBultos||"", pesoPorBulto:pesoPorBulto||"", peso:peso||"", dimensiones:dimensiones||"", descripcion:descripcion||"", origen, destino, fechaCarga, fechaEntrega:fechaEntrega||"", plazo:plazo||"24", archivoId:archivoId||null, archivoNombre:archivoNombre||null, estado:"pendiente_admin", cotizaciones:[], cotizacionesEnviadas:[], ronda:0, createdAt:new Date().toISOString(), cierreAt:new Date(Date.now()+parseInt(plazo||"24")*3600000).toISOString() };
+    const licitacion = { id, codigo, clienteId:user.id, clienteEmail:user.email, clienteEmpresa:user.empresa||"", clienteNombre:user.nombre||"", clienteTelefono:user.telefono||"", empresaId:user.esSubusuario?(user.empresaMadreId||user.id):user.id, creadoPorEmail:user.email, creadoPorNombre:user.nombre||"", esCreadoPorSubusuario:user.esSubusuario||false, tipoLicitacion:tipoLicitacion||"maquinaria", tipoEquipo:tipoEquipo||tipoCarga||"Carga general", tipoEquipoRequerido:body.tipoEquipoRequerido||"cualquiera", marca:marca||"", tipoCarga:tipoCarga||"", cantidadBultos:cantidadBultos||"", pesoPorBulto:pesoPorBulto||"", peso:peso||"", dimensiones:dimensiones||"", descripcion:descripcion||"", origen, destino, fechaCarga, fechaEntrega:fechaEntrega||"", plazo:plazo||"24", archivoId:archivoId||null, archivoNombre:archivoNombre||null, estado:"pendiente_admin", cotizaciones:[], cotizacionesEnviadas:[], ronda:0, createdAt:new Date().toISOString(), cierreAt:new Date(Date.now()+parseInt(plazo||"24")*3600000).toISOString() };
     await env.LICITACIONES.put(id, JSON.stringify(licitacion));
     const idxC = JSON.parse(await env.LICITACIONES.get("cliente:"+user.id)||"[]"); idxC.unshift(id); await env.LICITACIONES.put("cliente:"+user.id, JSON.stringify(idxC));
     const idxA = JSON.parse(await env.LICITACIONES.get("all")||"[]"); idxA.unshift(id); await env.LICITACIONES.put("all", JSON.stringify(idxA));
@@ -465,7 +465,30 @@ async function handleRequest(request, env) {
     if (!user) return err("No autenticado",401);
     let ids = [];
     if (user.role==="admin") ids = JSON.parse(await env.LICITACIONES.get("all")||"[]");
-    else if (user.role==="cliente") ids = JSON.parse(await env.LICITACIONES.get("cliente:"+user.id)||"[]");
+    else if (user.role==="cliente") {
+      // Leer índice propio
+      const idsPropios = JSON.parse(await env.LICITACIONES.get("cliente:"+user.id)||"[]");
+      // Si es sub-usuario, también leer licitaciones de la cuenta madre y de otros sub-usuarios
+      let idsMadre = [];
+      if (user.esSubusuario && user.empresaMadreId) {
+        idsMadre = JSON.parse(await env.LICITACIONES.get("cliente:"+user.empresaMadreId)||"[]");
+      }
+      // Si es cuenta madre, leer licitaciones de todos los sub-usuarios
+      let idsSubusuarios = [];
+      if (!user.esSubusuario && user.empresaMiembros && user.empresaMiembros.length > 0) {
+        const emailsMiembros = user.empresaMiembros;
+        // Buscar IDs de cada miembro
+        for (const emailMiembro of emailsMiembros) {
+          const rawMiembro = await env.USERS.get(emailMiembro);
+          if (!rawMiembro) continue;
+          const miembro = JSON.parse(rawMiembro);
+          const idsMiembro = JSON.parse(await env.LICITACIONES.get("cliente:"+miembro.id)||"[]");
+          idsSubusuarios.push(...idsMiembro);
+        }
+      }
+      // Combinar y deduplicar
+      ids = [...new Set([...idsPropios, ...idsMadre, ...idsSubusuarios])];
+    }
     else if (user.role==="transportista") ids = JSON.parse(await env.LICITACIONES.get("all")||"[]");
     let equiposTransportista = [];
     if (user.role==="transportista") { const rawT = await env.USERS.get(user.email); if (rawT) equiposTransportista = JSON.parse(rawT).tiposEquipo||[]; }
@@ -493,7 +516,7 @@ async function handleRequest(request, env) {
     const id = path.split("/")[3]; const user = await getUser(request,env); if(!user) return err("No autenticado",401);
     const raw = await env.LICITACIONES.get(id); if(!raw) return err("No encontrada",404);
     const l = JSON.parse(raw);
-    if (user.role==="cliente"&&l.clienteId!==user.id) return err("Sin acceso",403);
+    if(user.role==="cliente"){ const _eid=(user.esSubusuario?(user.empresaMadreId||user.id):user.id); if((l.empresaId||l.clienteId)!==_eid) return err("Sin acceso",403); }
     if (user.role==="transportista") { if(!["abierta","cerrada"].includes(l.estado)) return err("Sin acceso",403); return ok({ licitacion:anonimizarCliente(l) }); }
     if (user.role==="cliente") { const lCopy={...l}; lCopy.cotizaciones=(l.cotizacionesEnviadas||[]).map(anonimizarTransportista); lCopy.totalCotizaciones=(l.cotizaciones||[]).length; return ok({ licitacion:lCopy }); }
     return ok({ licitacion:l });
@@ -503,7 +526,7 @@ async function handleRequest(request, env) {
     const id = path.split("/")[3]; const user = await getUser(request,env); if(!user) return err("No autenticado",401);
     const raw = await env.LICITACIONES.get(id); if(!raw) return err("No encontrada",404);
     const l = JSON.parse(raw);
-    if (user.role==="cliente"&&l.clienteId!==user.id) return err("Sin acceso",403);
+    if(user.role==="cliente"){ const _eid=(user.esSubusuario?(user.empresaMadreId||user.id):user.id); if((l.empresaId||l.clienteId)!==_eid) return err("Sin acceso",403); }
     if (user.role==="cliente"&&l.estado!=="pendiente_admin") return err("Solo puedes eliminar licitaciones pendientes",403);
     await env.LICITACIONES.delete(id);
     const idxC = JSON.parse(await env.LICITACIONES.get("cliente:"+user.id)||"[]"); await env.LICITACIONES.put("cliente:"+user.id, JSON.stringify(idxC.filter(x=>x!==id)));
@@ -570,7 +593,7 @@ async function handleRequest(request, env) {
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
     const raw=await env.LICITACIONES.get(id); if(!raw) return err("No encontrada",404);
     const l=JSON.parse(raw);
-    if(user.role==="cliente"&&l.clienteId!==user.id) return err("Sin acceso",403);
+    if(user.role==="cliente"){ const _eid=(user.esSubusuario?(user.empresaMadreId||user.id):user.id); if((l.empresaId||l.clienteId)!==_eid) return err("Sin acceso",403); }
     if(l.estado!=="pendiente_admin") return err("Solo puedes editar licitaciones pendientes de aprobacion");
     const campos=["tipoEquipo","tipoEquipoRequerido","marca","peso","dimensiones","descripcion","origen","destino","fechaCarga","fechaEntrega","plazo","tipoCarga","cantidadBultos","pesoPorBulto"];
     for(const k of campos){ if(body[k]!==undefined) l[k]=body[k]; }
@@ -586,7 +609,7 @@ async function handleRequest(request, env) {
     if(!body.motivo) return err("motivo requerido");
     const raw=await env.LICITACIONES.get(id); if(!raw) return err("No encontrada",404);
     const l=JSON.parse(raw);
-    if(user.role==="cliente"&&l.clienteId!==user.id) return err("Sin acceso",403);
+    if(user.role==="cliente"){ const _eid=(user.esSubusuario?(user.empresaMadreId||user.id):user.id); if((l.empresaId||l.clienteId)!==_eid) return err("Sin acceso",403); }
     if(!["abierta","cerrada"].includes(l.estado)) return err("Solo puedes anular licitaciones abiertas o en revision de cotizaciones");
     l.estado="anulada"; l.anuladaAt=new Date().toISOString(); l.motivoAnulacion=body.motivo; l.anuladaPor=user.role;
     await env.LICITACIONES.put(id, JSON.stringify(l));
@@ -598,7 +621,7 @@ async function handleRequest(request, env) {
     const id=path.split("/")[3]; const user=await getUser(request,env); const d=deny(user,"cliente"); if(d) return d;
     if (!["pro","enterprise"].includes(user.plan)) return err("Requiere plan Pro o Enterprise",403);
     const raw=await env.LICITACIONES.get(id); if(!raw) return err("No encontrada",404);
-    const l=JSON.parse(raw); if(l.clienteId!==user.id) return err("Sin acceso",403);
+    const l=JSON.parse(raw); if((l.empresaId||l.clienteId)!==(user.esSubusuario?(user.empresaMadreId||user.id):user.id)) return err("Sin acceso",403);
     if(l.estado!=="cerrada") return err("No esta en revision");
     const yaIds=new Set((l.cotizacionesEnviadas||[]).map(c=>c.id));
     const extras=(l.cotizaciones||[]).filter(c=>!yaIds.has(c.id)).slice(0,3);
@@ -613,7 +636,7 @@ async function handleRequest(request, env) {
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
     const { cotizacionId } = body; if(!cotizacionId) return err("cotizacionId requerido");
     const raw=await env.LICITACIONES.get(id); if(!raw) return err("No encontrada",404);
-    const l=JSON.parse(raw); if(user.role==="cliente"&&l.clienteId!==user.id) return err("Sin acceso",403);
+    const l=JSON.parse(raw); if(user.role==="cliente"){ const _eid=(user.esSubusuario?(user.empresaMadreId||user.id):user.id); if((l.empresaId||l.clienteId)!==_eid) return err("Sin acceso",403); }
     if(!["cerrada","abierta"].includes(l.estado)) return err("No se puede adjudicar");
     let cotiz=(l.cotizaciones||[]).find(c=>c.id===cotizacionId);
     if(!cotiz) { const enviadas=l.cotizacionesEnviadas||[]; const idxMatch=cotizacionId.match(/^cotiz_(\d+)$/); if(idxMatch){cotiz=enviadas[parseInt(idxMatch[1])];if(cotiz?.id)cotiz=(l.cotizaciones||[]).find(c=>c.id===cotiz.id)||cotiz;}else{cotiz=enviadas.find(c=>c.id===cotizacionId);} }
@@ -622,7 +645,7 @@ async function handleRequest(request, env) {
     l.adjudicadaA={ cotizacionId, precio:cotiz.precio, transportistaId:cotiz.transportistaId, transportistaNombre:cotiz.transportistaNombre, transportistaEmpresa:cotiz.transportistaEmpresa, transportistaEmail:cotiz.transportistaEmail, transportistaTelefono:cotiz.transportistaTelefono, tiempoEntrega:cotiz.tiempoEntrega };
     await env.LICITACIONES.put(id, JSON.stringify(l));
     const codigoTRN=await generarCodigo(env,"TRN"); const transporteId=uid();
-    const transporte={ id:transporteId, codigo:codigoTRN, licitacionId:id, licitacionCodigo:l.codigo||"", tipoEquipo:l.tipoEquipo+(l.marca?" - "+l.marca:""), origen:l.origen, destino:l.destino, precio:cotiz.precio, clienteEmail:l.clienteEmail, clienteEmpresa:l.clienteEmpresa, clienteNombre:l.clienteNombre||"", clienteTelefono:l.clienteTelefono||"", transportistaEmail:cotiz.transportistaEmail, transportistaNombre:cotiz.transportistaNombre, transportistaEmpresa:cotiz.transportistaEmpresa, transportistaTelefono:cotiz.transportistaTelefono||"", estado:"preparacion", estadoDocumentos:"pendiente", historial:[{ estado:"preparacion", nota:"Transporte creado al adjudicar", fecha:new Date().toISOString(), actor:"Sistema" }], oc:null, factura:null, adjudicadoAt:new Date().toISOString() };
+    const transporte={ id:transporteId, codigo:codigoTRN, licitacionId:id, empresaId:l.empresaId||l.clienteId, creadoPorEmail:l.creadoPorEmail||l.clienteEmail, creadoPorNombre:l.creadoPorNombre||l.clienteNombre||'', licitacionCodigo:l.codigo||"", tipoEquipo:l.tipoEquipo+(l.marca?" - "+l.marca:""), origen:l.origen, destino:l.destino, precio:cotiz.precio, clienteEmail:l.clienteEmail, clienteEmpresa:l.clienteEmpresa, clienteNombre:l.clienteNombre||"", clienteTelefono:l.clienteTelefono||"", transportistaEmail:cotiz.transportistaEmail, transportistaNombre:cotiz.transportistaNombre, transportistaEmpresa:cotiz.transportistaEmpresa, transportistaTelefono:cotiz.transportistaTelefono||"", estado:"preparacion", estadoDocumentos:"pendiente", historial:[{ estado:"preparacion", nota:"Transporte creado al adjudicar", fecha:new Date().toISOString(), actor:"Sistema" }], oc:null, factura:null, adjudicadoAt:new Date().toISOString() };
     await env.RETORNOS.put("transporte:"+transporteId, JSON.stringify(transporte));
     const allT=JSON.parse(await env.RETORNOS.get("transportes:all")||"[]"); allT.unshift(transporteId); await env.RETORNOS.put("transportes:all", JSON.stringify(allT));
     const ov = await crearOV(env, { transporteId, licitacion:l, cotizacion:cotiz });
@@ -1237,6 +1260,32 @@ async function handleRequest(request, env) {
     });
   }
 
+
+  // ── MIGRAR sub-usuarios: agregar empresaMadreId a los que no lo tienen ──
+  if (path === "/api/admin/migrar-subusuarios" && method === "POST") {
+    const user = await getUser(request, env);
+    const d = deny(user, "admin"); if(d) return d;
+    let migrados = 0, errores = 0;
+    const lista = await env.USERS.list();
+    for (const key of lista.keys) {
+      if (key.name.startsWith("id:")) continue;
+      const raw = await env.USERS.get(key.name);
+      if (!raw) continue;
+      const u = JSON.parse(raw);
+      // Solo sub-usuarios sin empresaMadreId
+      if (!u.esSubusuario || u.empresaMadreId) continue;
+      // Buscar cuenta madre por empresaAdminEmail
+      if (!u.empresaAdminEmail) continue;
+      const rawMadre = await env.USERS.get(u.empresaAdminEmail);
+      if (!rawMadre) continue;
+      const madre = JSON.parse(rawMadre);
+      u.empresaMadreId = madre.id;
+      await env.USERS.put(key.name, JSON.stringify(u));
+      migrados++;
+    }
+    return ok({ mensaje: "Migración completada", migrados, errores });
+  }
+
   // ── MIGRACIÓN: asignar códigos a licitaciones y cotizaciones existentes ──
   if (path === "/api/admin/migrar-codigos" && method === "POST") {
     const user = await getUser(request, env);
@@ -1348,7 +1397,7 @@ async function handleRequest(request, env) {
   if (path === "/api/transportes" && method === "GET") {
     const user=await getUser(request,env); if(!user) return err("No autenticado",401);
     const allIds=JSON.parse(await env.RETORNOS.get("transportes:all")||"[]"); const transportes=[];
-    for(const id of allIds){ const raw=await env.RETORNOS.get("transporte:"+id); if(!raw) continue; const t=JSON.parse(raw); if(user.role==="admin"){ transportes.push(t); continue; } if(user.role==="cliente"&&t.clienteEmail===user.email) transportes.push(t); if(user.role==="transportista"&&t.transportistaEmail===user.email) transportes.push(t); }
+    for(const id of allIds){ const raw=await env.RETORNOS.get("transporte:"+id); if(!raw) continue; const t=JSON.parse(raw); if(user.role==="admin"){ transportes.push(t); continue; } if(user.role==="cliente"){ const miEmpId=user.esSubusuario?(user.empresaMadreId||user.id):user.id; if((t.empresaId||t.clienteId)===miEmpId) transportes.push(t); } if(user.role==="transportista"&&t.transportistaEmail===user.email) transportes.push(t); }
     return ok({ transportes });
   }
 
@@ -1377,7 +1426,7 @@ async function handleRequest(request, env) {
     const user=await getUser(request,env); if(!user) return err("No autenticado",401);
     if(user.role!=="cliente") return err("Solo clientes",403);
     const id=path.split("/")[3]; const raw=await env.RETORNOS.get("transporte:"+id); if(!raw) return err("No encontrado",404);
-    const t=JSON.parse(raw); if(t.clienteEmail!==user.email) return err("Sin acceso",403);
+    const t=JSON.parse(raw); if((t.empresaId||t.clienteId)!==(user.esSubusuario?(user.empresaMadreId||user.id):user.id)) return err("Sin acceso",403);
     let body={}; try{body=await request.json();}catch(e){}
     if(!body.base64) return err("Archivo requerido");
     const archivoId=uid(); await env.ARCHIVOS.put(archivoId, JSON.stringify({ base64:body.base64, mimeType:body.mimeType, nombre:body.nombre, createdAt:new Date().toISOString() }));
@@ -1428,7 +1477,7 @@ async function handleRequest(request, env) {
     const user=await getUser(request,env); if(!user) return err("No autenticado",401);
     if(user.role!=="cliente") return err("Solo clientes",403);
     const id=path.split("/")[3]; const raw=await env.RETORNOS.get("transporte:"+id); if(!raw) return err("No encontrado",404);
-    const t=JSON.parse(raw); if(t.clienteEmail!==user.email) return err("Sin acceso",403);
+    const t=JSON.parse(raw); if((t.empresaId||t.clienteId)!==(user.esSubusuario?(user.empresaMadreId||user.id):user.id)) return err("Sin acceso",403);
     if(t.oc) return err("Ya existe una OC para este transporte");
     const rawU=await env.USERS.get(user.email); const u=rawU?JSON.parse(rawU):{};
     const ocData={ tipo:"oc_automatica", numero:"OC-"+t.codigo, fecha:new Date().toISOString(), cliente:{ nombre:u.nombre||"", empresa:u.empresa||"", rut:u.rut||"", email:user.email }, transportista:{ nombre:t.transportistaNombre, empresa:t.transportistaEmpresa, email:t.transportistaEmail, telefono:t.transportistaTelefono||"" }, transporte:{ codigo:t.codigo, origen:t.origen, destino:t.destino, tipoEquipo:t.tipoEquipo, precio:t.precio }, generadoAt:new Date().toISOString() };
@@ -1741,11 +1790,17 @@ async function handleRequest(request, env) {
       to: emailInvitado,
       subject: `${uAdmin.empresa||user.nombre} te invita a TransMatch`,
       html: emailBase(`
-        <h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Fuiste invitado a TransMatch</h2>
-        <p style="font-size:14px;color:#6B7280;margin:0 0 20px"><strong>${uAdmin.empresa||user.nombre}</strong> te invita a unirte como usuario de su cuenta.</p>
-        <p style="font-size:13px;color:#374151;margin:0 0 20px">Haz click en el botón para crear tu contraseña y comenzar. El link expira en 48 horas.</p>
-        ${btnEmail(linkInvitacion, 'Aceptar invitación', '#FF8904')}
-        <p style="font-size:12px;color:#9CA3AF;margin-top:16px">Si no esperabas esta invitación, puedes ignorar este email.</p>
+        <h2 style="font-size:24px;font-weight:800;color:#1e2d4e;margin:0 0 8px;letter-spacing:-0.4px">Tienes una invitación</h2>
+        <p style="font-size:15px;color:#64748B;margin:0 0 8px;line-height:1.7">Hola, te han invitado a unirte a la plataforma.</p>
+        <p style="font-size:15px;color:#64748B;margin:0 0 28px;line-height:1.7"><strong style="color:#1e2d4e">${uAdmin.empresa||user.nombre}</strong> te invita a ser usuario de su cuenta en TransMatch.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;margin:0 0 28px">
+          <tr><td style="padding:20px 24px">
+            <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.06em">Empresa que te invita</p>
+            <p style="margin:0;font-size:16px;font-weight:700;color:#1e2d4e">${uAdmin.empresa||user.nombre}</p>
+          </td></tr>
+        </table>
+        ${btnEmail(linkInvitacion, 'Aceptar invitación →', '#FF8904')}
+        <p style="font-size:13px;color:#94A3B8;margin:20px 0 0;text-align:center;line-height:1.6">Este link expira en <strong style="color:#64748B">48 horas</strong>.<br>Si no esperabas esta invitación, puedes ignorar este email.</p>
       `, "Invitación a TransMatch")
     });
     return ok({ ok:true, mensaje:"Invitación enviada a "+emailInvitado });
@@ -1784,6 +1839,7 @@ async function handleRequest(request, env) {
       empresaAdminEmail: inv.empresaAdminEmail, // vincula a la empresa
       permisos: inv.permisos || {},
       esSubusuario: true,
+      empresaMadreId: uAdmin.id,
       createdAt: new Date().toISOString(),
     };
     await env.USERS.put(inv.emailInvitado, JSON.stringify(nuevoUser));
@@ -1909,7 +1965,7 @@ async function handleRequest(request, env) {
     if(user.role !== "cliente") return err("Solo clientes",403);
     const id = path.split("/")[3];
     const raw = await env.RETORNOS.get("transporte:"+id); if(!raw) return err("No encontrado",404);
-    const t = JSON.parse(raw); if(t.clienteEmail!==user.email) return err("Sin acceso",403);
+    const t = JSON.parse(raw); if((t.empresaId||t.clienteId)!==(user.esSubusuario?(user.empresaMadreId||user.id):user.id)) return err("Sin acceso",403);
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
     if(!body.direcciones) return err("direcciones requerido");
     t.direcciones = body.direcciones;
