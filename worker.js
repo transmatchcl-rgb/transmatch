@@ -1065,7 +1065,7 @@ async function handleRequest(request, env) {
         headers: { "Authorization": "Bearer " + RESEND_KEY, "Content-Type": "application/json" },
         body: JSON.stringify({
           from: "TransMatch <hola@transmatch.cl>",
-          to: ["hola@transmatch.cl"],
+          to: ["hola@transmatch.cl", "mariajose@transmatch.cl"],
           subject: "Nueva solicitud de contacto — " + nombre + " / " + empresa,
           html: htmlEquipo
         })
