@@ -176,10 +176,7 @@ function emailBase(contenido, titulo) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6;padding:32px 16px">
     <tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
       <tr><td style="background:#1e2d4e;border-radius:12px 12px 0 0;padding:20px 28px;text-align:center">
-        <table cellpadding="0" cellspacing="0" style="margin:0 auto"><tr>
-          <td style="background:#FF8904;border-radius:8px;width:32px;height:32px;text-align:center;vertical-align:middle;font-weight:900;color:#fff;font-size:16px">T</td>
-          <td style="padding-left:8px;font-weight:700;color:#fff;font-size:18px">TransMatch</td>
-        </tr></table>
+        <span style="font-weight:700;color:#fff;font-size:20px">TransMatch</span>
       </td></tr>
       <tr><td style="background:#fff;padding:28px;border-radius:0 0 12px 12px">
         ${contenido}
