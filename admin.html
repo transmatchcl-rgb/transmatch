@@ -106,6 +106,18 @@
  .score-mini { height:4px;background:#E5E7EB;border-radius:2px;margin-top:6px; }
  .score-mini-fill { height:100%;border-radius:2px;background:#1e2d4e; }
  #toast { position: fixed; bottom: 24px; right: 24px; z-index: 999; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 500; color: #fff; opacity: 0; transition: opacity .3s; pointer-events: none; max-width: 320px; }
+
+  @media(max-width:768px){
+    .nav-links,.nav-tabs{display:none!important}
+    .nav-mobile-menu{display:flex!important}
+    .nav-user-name{display:none!important}
+  }
+  .nav-mobile-menu{display:none;flex-direction:column;gap:3px;cursor:pointer;padding:6px;border-radius:6px;background:none;border:none}
+  .nav-mobile-menu span{display:block;width:20px;height:2px;background:#fff;border-radius:2px;transition:all .2s}
+  .nav-mobile-panel{display:none;position:fixed;top:52px;left:0;right:0;background:#1e2d4e;z-index:999;padding:8px 16px 16px;border-bottom:0.5px solid rgba(255,255,255,.1)}
+  .nav-mobile-panel.open{display:block}
+  .nav-mobile-link{display:block;padding:10px 12px;color:#93C5FD;text-decoration:none;font-size:14px;border-radius:8px;margin-bottom:2px}
+  .nav-mobile-link:hover,.nav-mobile-link.active{background:rgba(255,255,255,.1);color:#fff}
 </style></head><body><div id="auth-guard"><div style="text-align:center;"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px;"><div style="background:#FF8904;border-radius:7px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:15px;">T</div><span style="font-weight:700;color:#fff;font-size:18px;">Trans<span style="color:#FF8904;">Match</span></span></div><div class="guard-spinner" style="margin:0 auto;"></div></div></div><div id="app" style="display:none"><!-- NAV -->  <nav class="nav">
     <div class="nav-left">
       <a href="/admin.html" class="nav-logo">
@@ -124,42 +136,7 @@
         <a href="/admin-reportes.html" class="nav-tab">Reportes</a>
       </div>
       </div>
-    <div style="display:flex;align-items:center;gap:12px">
-  <!-- Campana notificaciones -->
-  <div id="notif-btn" onclick="toggleAdminNotifs(event)" style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-    <span id="admin-notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center"></span>
-  </div>
-  <!-- Avatar con menú -->
-  <div style="position:relative">
-    <div onclick="toggleAdminMenu(event)" style="width:34px;height:34px;border-radius:50%;background:#ff8904;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:15px;cursor:pointer">A</div>
-    <div id="admin-user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:200px;z-index:999;overflow:hidden">
-      <div style="padding:14px 16px;border-bottom:1px solid #f3f4f6">
-        <div style="font-weight:700;font-size:14px;color:#1e2d4e">Administrador</div>
-        <div style="font-size:12px;color:#6B7280;margin-top:2px">TransMatch</div>
-      </div>
-      <div onclick="document.getElementById('modal-pwd').style.display='flex';document.getElementById('admin-user-menu').style.display='none'" style="padding:12px 16px;font-size:13px;color:#374151;cursor:pointer;display:flex;align-items:center;gap:8px" onmouseover="this.style.background='#f5f7fb'" onmouseout="this.style.background=''">
-        🔑 Cambiar contraseña
-      </div>
-      <a href="/ayuda.html" style="padding:12px 16px;font-size:13px;color:#374151;cursor:pointer;display:flex;align-items:center;gap:8px;text-decoration:none" onmouseover="this.style.background='#f5f7fb'" onmouseout="this.style.background=''">
-        ❓ Ayuda
-      </a>
-      <div style="border-top:1px solid #f3f4f6">
-        <div onclick="localStorage.clear();window.location.replace('/admin-login.html')" style="padding:12px 16px;font-size:13px;color:#DC2626;cursor:pointer;display:flex;align-items:center;gap:8px" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background=''">
-          Cerrar sesión
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- Panel notificaciones -->
-  <div id="admin-notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:360px;background:#fff;border-radius:14px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.14);z-index:9000;overflow:hidden;max-height:500px;flex-direction:column">
-    <div style="padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
-      <span style="font-size:14px;font-weight:700;color:#1e2d4e">Notificaciones</span>
-      <button onclick="marcarTodasLeidasAdmin()" style="font-size:11px;color:#6B7280;background:none;border:none;cursor:pointer">Marcar leídas</button>
-    </div>
-    <div id="admin-notif-list" style="overflow-y:auto;flex:1;max-height:440px"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div>
-  </div>
-</div>
+    <button class="logout-btn" onclick="localStorage.clear();window.location.replace('/admin-login.html')">Cerrar sesion</button>
   </nav><main><!-- ── DASHBOARD ─────────────────────────────────────── --><div id="s-dashboard" class="section active"><div class="page-hdr"><div><div class="page-title">Dashboard</div><div class="page-sub" id="dash-fecha">Cargando...</div></div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="exportarTodo()">Exportar CSV</button></div></div><div class="grid-4" id="dash-stats"><div class="stat"><div class="stat-label">Cargando...</div></div></div><div class="grid-2"><div><!-- Alertas rápidas --><div class="card"><div class="card-hdr"><div class="card-title">Alertas activas</div><span id="alertas-count" class="badge badge-red">0</span></div><div id="dash-alertas"><div class="spinner-wrap"><div class="spinner"></div></div></div></div><!-- Licitaciones pendientes de aprobación --><div class="card"><div class="card-hdr"><div class="card-title">Licitaciones pendientes de aprobación</div><button class="btn btn-outline btn-sm" onclick="showSection('licitaciones',document.querySelectorAll('.nav-tab')[1])">Ver todas →</button></div><div id="dash-pendientes"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><div><!-- Licitaciónes activas --><div class="card"><div class="card-hdr"><div class="card-title">Licitaciones abiertas</div><button class="btn btn-outline btn-sm" onclick="showSection('licitaciones',document.querySelectorAll('.nav-tab')[1])">Ver todas →</button></div><div id="dash-licitaciones"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div></div></div><!-- ── LICITACIONES ───────────────────────────────────── --><div id="s-licitaciones" class="section"><div class="page-hdr"><div class="page-title">Licitaciones</div><div class="page-sub">Todas las licitaciones en tiempo real</div></div><div class="filter-bar"><select class="select" id="fil-estado" onchange="filtrarLicitaciones()"><option value="">Todos los estados</option><option value="pendiente_admin">Pendientes aprobación</option><option value="abierta">Abiertas (cotizando)</option><option value="cerrada">En revisión cliente</option><option value="adjudicada">Adjudicadas</option><option value="completada">Completadas</option><option value="rechazada">Rechazadas</option></select><input class="input" style="max-width:280px;" placeholder=" Buscar empresa, equipo o ruta..." id="fil-buscar" oninput="filtrarLicitaciones()"/><button class="btn btn-outline btn-sm" onclick="exportarLicitaciones()">CSV</button></div><div class="card"><div id="lista-licitaciones"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── TRANSPORTISTAS ─────────────────────────────────── --><div id="s-transportistas" class="section"><div class="page-hdr"><div class="page-title">Transportistas</div><div class="page-sub">Gestión de proveedores de la red</div></div><div class="filter-bar"><select class="select" id="fil-t-estado" onchange="filtrarTransportistas()"><option value="">Todos</option><option value="pendiente">Pendientes</option><option value="activo">Activos</option><option value="suspendido">Suspendidos</option><option value="rechazado">Rechazados</option></select><input class="input" style="max-width:240px;" placeholder="Buscar nombre o empresa..." id="fil-t-buscar" oninput="filtrarTransportistas()"/></div><div class="card"><div id="lista-transportistas"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── CLIENTES ───────────────────────────────────────── --><div id="s-clientes" class="section"><div class="page-hdr"><div class="page-title">Clientes</div><div class="page-sub">Empresas registradas en la plataforma</div></div><div class="filter-bar"><select class="select" id="fil-c-plan" onchange="filtrarClientes()"><option value="">Todos los planes</option><option value="básico">Básico</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select><input class="input" style="max-width:240px;" placeholder="Buscar empresa o email..." id="fil-c-buscar" oninput="filtrarClientes()"/></div><div class="card"><div id="lista-clientes"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── ALERTAS ────────────────────────────────────────── --><div id="s-alertas" class="section"><div class="page-hdr"><div class="page-title">Alertas y posibles fraudes</div><div class="page-sub">Licitaciónes adjudicadas sin confirmar por más de 7 días</div></div><div class="card"><div id="lista-alertas"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── RETORNOS ─────────────────────────────────────── -->
 <div id="s-retornos" class="section">
   <div class="page-hdr">
@@ -302,12 +279,8 @@
  document.getElementById('alertas-count').textContent = alertas.length;
  document.getElementById('dash-alertas').innerHTML = alertas.length === 0
  ? `<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:14px;">Sin alertas activas </div>`
- : alertas.map(a => {
-  if(a.tipo==='transportista_pendiente'){
-    return `<div class="row" style="cursor:pointer" onclick="window.location='/admin-transportistas.html'"><div class="alert-dot dot-red"></div><div class="row-body"><div class="row-name">Transportista pendiente de aprobación</div><div class="row-meta">${a.empresa||a.nombre} · ${a.email}</div></div></div>`;
-  }
-  return `<div class="row"><div class="alert-dot dot-red"></div><div class="row-body"><div class="row-name">Posible bypass — sin confirmar hace ${a.dias} días</div><div class="row-meta">ID: ${a.licitacionId}</div></div></div>`;
-}).join('');
+ : alertas.map(a => `
+ <div class="row"><div class="alert-dot dot-red"></div><div class="row-body"><div class="row-name">Posible bypass — sin confirmar hace ${a.dias} días</div><div class="row-meta">ID: ${a.licitacionId}</div></div></div>`).join('');
  } else {
  document.getElementById('dash-stats').innerHTML = `
  <div class="stat"><div class="stat-label">Total licitaciones</div><div class="stat-val" style="color:#1e2d4e;">0</div></div><div class="stat"><div class="stat-label">Abiertas ahora</div><div class="stat-val" style="color:#FF8904;">0</div></div><div class="stat"><div class="stat-label">Completadas</div><div class="stat-val" style="color:#1ED24E;">0</div></div><div class="stat"><div class="stat-label">Ingresos (fees 4%)</div><div class="stat-val" style="font-size:20px;">$0</div></div>
@@ -619,7 +592,7 @@
       ['Codigo', l.código||'--'],
       ['Cliente', l.clienteEmpresa || l.clienteEmail],
       ['Contacto', l.clienteNombre||'--'],
-      ['Email', l.clienteEmail || '--'],
+      ['Email', l.estado === 'adjudicada' || l.estado === 'completada' ? l.clienteEmail : 'Oculto hasta adjudicar'],
       ['Origen', l.origen||'--'],
       ['Destino', l.destino||'--'],
       ['Fecha de carga', l.fechaCarga ? new Date(l.fechaCarga).toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'}) : '--'],
@@ -779,145 +752,6 @@
   }
 
 
-
-async function cambiarPassword(){
-  var actual = document.getElementById('pwd-actual').value;
-  var nueva = document.getElementById('pwd-nueva').value;
-  var confirmar = document.getElementById('pwd-confirmar').value;
-  var msg = document.getElementById('pwd-msg');
-  msg.style.display='none';
-  if(!actual||!nueva||!confirmar){ showPwdMsg('Completa todos los campos','err'); return; }
-  if(nueva.length < 8){ showPwdMsg('La nueva contraseña debe tener al menos 8 caracteres','err'); return; }
-  if(nueva !== confirmar){ showPwdMsg('Las contraseñas no coinciden','err'); return; }
-  try{
-    var res = await fetch(API+'/api/auth/cambiar-password',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
-      body:JSON.stringify({passwordActual:actual, passwordNueva:nueva})
-    });
-    var d = await res.json();
-    if(res.ok){
-      showPwdMsg('Contraseña actualizada correctamente','ok');
-      document.getElementById('pwd-actual').value='';
-      document.getElementById('pwd-nueva').value='';
-      document.getElementById('pwd-confirmar').value='';
-    } else {
-      showPwdMsg(d.error||'Error al cambiar contraseña','err');
-    }
-  }catch(e){ showPwdMsg('Error de conexión','err'); }
-}
-
-function showPwdMsg(text, type){
-  var el = document.getElementById('pwd-msg');
-  el.style.display='block';
-  el.style.background = type==='ok' ? '#F0FDF4' : '#FEF2F2';
-  el.style.color = type==='ok' ? '#15803D' : '#DC2626';
-  el.style.border = type==='ok' ? '0.5px solid #BBF7D0' : '0.5px solid #FECACA';
-  el.textContent = text;
-}
-
-  // ── NOTIFICACIONES ADMIN ────────────────────────────────
-  let adminNotifPanelOpen = false;
-
-  function toggleAdminMenu(e){
-    if(e) e.stopPropagation();
-    var m = document.getElementById('admin-user-menu');
-    var isOpen = m.style.display !== 'none';
-    m.style.display = isOpen ? 'none' : 'block';
-    // Cerrar panel notifs si está abierto
-    document.getElementById('admin-notif-panel').style.display = 'none';
-    adminNotifPanelOpen = false;
-  }
-
-  function toggleAdminNotifs(e){
-    if(e) e.stopPropagation();
-    var panel = document.getElementById('admin-notif-panel');
-    adminNotifPanelOpen = !adminNotifPanelOpen;
-    panel.style.display = adminNotifPanelOpen ? 'flex' : 'none';
-    if(adminNotifPanelOpen) cargarAdminNotifs();
-  }
-
-  document.addEventListener('click', function(){
-    document.getElementById('admin-user-menu').style.display = 'none';
-    if(adminNotifPanelOpen){
-      adminNotifPanelOpen = false;
-      document.getElementById('admin-notif-panel').style.display = 'none';
-    }
-  });
-
-  async function cargarAdminNotifs(){
-    try{
-      const r = await api('/api/notificaciones');
-      if(!r||!r.ok) return;
-      const notifs = r.data.notificaciones || [];
-      const noLeidas = notifs.filter(n=>!n.leida).length;
-      const countEl = document.getElementById('admin-notif-count');
-      if(countEl){ countEl.textContent=noLeidas; countEl.style.display=noLeidas>0?'flex':'none'; }
-      const list = document.getElementById('admin-notif-list');
-      if(!list) return;
-      if(notifs.length===0){ list.innerHTML='<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Sin notificaciones</div>'; return; }
-      list.innerHTML = notifs.map(n => {
-        const esEquipo = n.tipo==='equipo_pendiente_aprobacion';
-        return `<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;display:flex;align-items:flex-start;gap:10px;cursor:pointer;background:${n.leida?'#fff':'#F0F9FF'}" onclick="${esEquipo?`abrirModalEquipo('${n.datos.emailTransportista||''}','${(n.datos.equipoPendiente||'').replace(/'/g,"\\'")}')`:''};marcarLeidaAdmin('${n.id}');this.style.background='#fff'">
-          <div style="width:8px;height:8px;border-radius:50%;background:${n.leida?'transparent':'#1d4ed8'};flex-shrink:0;margin-top:4px"></div>
-          <div style="flex:1">
-            <div style="font-size:13px;color:#1e2d4e;font-weight:${n.leida?'400':'500'}">${n.mensaje}</div>
-            <div style="font-size:11px;color:#9CA3AF;margin-top:2px">${new Date(n.createdAt).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
-            ${esEquipo?'<span style="font-size:11px;color:#1d4ed8;font-weight:500">→ Gestionar equipo</span>':''}
-          </div>
-        </div>`;
-      }).join('');
-    }catch(e){}
-  }
-
-  async function marcarLeidaAdmin(id){
-    await api('/api/notificaciones/leer','POST',{id});
-  }
-
-  async function marcarTodasLeidasAdmin(){
-    await api('/api/notificaciones/leer','POST',{todas:true});
-    cargarAdminNotifs();
-  }
-
-  // ── EQUIPOS PENDIENTES ──────────────────────────────────
-  let equipoActual = null;
-
-  async function abrirModalEquipo(email, texto){
-    equipoActual = { email, texto };
-    document.getElementById('eq-empresa').textContent = email;
-    document.getElementById('eq-email').textContent = '';
-    document.getElementById('eq-texto').value = texto;
-    // Cargar datos del transportista
-    try{
-      const r = await api('/api/admin/usuarios');
-      if(r&&r.ok){
-        const u = r.data.usuarios.find(u=>u.email===email);
-        if(u){ document.getElementById('eq-empresa').textContent=u.empresa||u.nombre; document.getElementById('eq-email').textContent=u.email; }
-      }
-    }catch(e){}
-    document.getElementById('modal-equipo').style.display='flex';
-    document.getElementById('admin-notif-panel').style.display='none';
-    adminNotifPanelOpen=false;
-  }
-
-  async function gestionarEquipo(accion){
-    if(!equipoActual) return;
-    const textoFinal = document.getElementById('eq-texto').value.trim();
-    if(accion==='aprobar'&&!textoFinal){ alert('Escribe el nombre del equipo'); return; }
-    const r = await api('/api/admin/equipos-pendientes','POST',{ accion, emailTransportista:equipoActual.email, equipoTexto:textoFinal });
-    if(r&&r.ok){
-      alert(accion==='aprobar'?'Equipo aprobado y agregado al listado':'Equipo rechazado');
-      document.getElementById('modal-equipo').style.display='none';
-      equipoActual=null;
-      cargarAdminNotifs();
-    } else {
-      alert('Error al procesar');
-    }
-  }
-
-  // Cargar notificaciones al iniciar
-  setTimeout(cargarAdminNotifs, 1000);
-  setInterval(cargarAdminNotifs, 60000);
 </script>
 
 <footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px">
@@ -950,47 +784,4 @@ function showPwdMsg(text, type){
     </div>
   </div>
   <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
-    <span>© 2026 TransMatch SpA.
-<!-- Modal cambiar contraseña -->
-<div id="modal-pwd" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9999;align-items:center;justify-content:center">
-  <div style="background:#fff;border-radius:14px;padding:28px;width:100%;max-width:400px;margin:20px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <div style="font-size:16px;font-weight:600;color:#1e2d4e">Cambiar contraseña</div>
-      <button onclick="document.getElementById('modal-pwd').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:#9CA3AF">×</button>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:12px">
-      <div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Contraseña actual</label><input type="password" id="pwd-actual" placeholder="••••••••" style="width:100%;padding:9px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;outline:none;box-sizing:border-box"/></div>
-      <div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Nueva contraseña</label><input type="password" id="pwd-nueva" placeholder="••••••••" style="width:100%;padding:9px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;outline:none;box-sizing:border-box"/></div>
-      <div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Confirmar nueva contraseña</label><input type="password" id="pwd-confirmar" placeholder="••••••••" style="width:100%;padding:9px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;outline:none;box-sizing:border-box"/></div>
-      <div id="pwd-msg" style="display:none;font-size:12px;padding:8px 12px;border-radius:6px"></div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
-        <button onclick="document.getElementById('modal-pwd').style.display='none'" style="padding:9px 16px;background:#f3f4f6;color:#374151;border:none;border-radius:7px;font-size:13px;cursor:pointer">Cancelar</button>
-        <button onclick="cambiarPassword()" style="padding:9px 20px;background:#1e2d4e;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer">Guardar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal equipos pendientes -->
-<div id="modal-equipo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center">
-  <div style="background:#fff;border-radius:14px;padding:28px;width:100%;max-width:460px;margin:20px;box-sizing:border-box">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <div style="font-size:16px;font-weight:600;color:#1e2d4e">Equipo pendiente de aprobación</div>
-      <button onclick="document.getElementById('modal-equipo').style.display='none'" style="background:none;border:none;font-size:22px;cursor:pointer;color:#9CA3AF">×</button>
-    </div>
-    <div style="background:#F8FAFC;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#374151">
-      <div style="font-size:11px;color:#9CA3AF;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Registrado por</div>
-      <div id="eq-empresa" style="font-weight:600;color:#1e2d4e"></div>
-      <div id="eq-email" style="color:#6B7280;font-size:12px"></div>
-    </div>
-    <div style="margin-bottom:16px">
-      <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Nombre del equipo (editable)</label>
-      <input id="eq-texto" type="text" style="width:100%;padding:9px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;outline:none;box-sizing:border-box"/>
-    </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button onclick="gestionarEquipo('rechazar')" style="padding:9px 16px;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;border-radius:7px;font-size:13px;cursor:pointer;font-weight:500">Rechazar</button>
-      <button onclick="gestionarEquipo('aprobar')" style="padding:9px 20px;background:#1e2d4e;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer">Aprobar y agregar</button>
-    </div>
-  </div>
-</div>
- 
+    <span>© 2026 TransMatch SpA. 

@@ -118,14 +118,7 @@
           <span style="font-size:13px;color:#374151">Recibir por email</span>
           <input type="checkbox" id="notif-email-chk" onchange="guardarPrefs()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/>
         </label>
-        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
-          <span style="font-size:13px;color:#374151">Recibir por WhatsApp</span>
-          <input type="checkbox" id="notif-wa-chk" onchange="toggleWA()" style="width:16px;height:16px;accent-color:#25D366;cursor:pointer"/>
-        </label>
-        <div id="wa-input" style="display:none;margin-top:4px">
-          <input id="wa-numero" type="tel" placeholder="+56 9 XXXX XXXX" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:7px;font-size:13px"/>
-          <button onclick="guardarPrefs()" style="margin-top:6px;width:100%;padding:7px;background:#25D366;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer">Guardar número</button>
-        </div>
+        
       </div>
       <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Sobre licitaciones</div>
       <div style="display:flex;flex-direction:column;gap:0">
@@ -155,7 +148,17 @@
   <div id="notif-list" style="overflow-y:auto;flex:1">
     <div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div>
   </div>
-</div></nav><main>
+</div><button class="nav-mobile-menu" onclick="toggleMobileNav()" aria-label="Menu"><span></span><span></span><span></span></button>
+</nav>
+<div id="nav-mobile-panel" class="nav-mobile-panel">
+<a href="/transportista.html" class="nav-mobile-link">Inicio</a>
+<a href="/transportista-retornos.html" class="nav-mobile-link">Retornos</a>
+<a href="/transportista-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
+<a href="/transportista-transporte.html" class="nav-mobile-link">Transportes</a>
+<a href="/transportista-cobros.html" class="nav-mobile-link">Facturacion</a>
+<a href="/transportista-calendario.html" class="nav-mobile-link">Calendario</a>
+<a href="/transportista-historial.html" class="nav-mobile-link">Historial</a>
+</div><main>
   <!-- Header -->
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
     <div>
@@ -260,7 +263,7 @@
         const u = me.data.user;
         const rating = u.rating || 5.0;
         const total  = u.totalTransportes || 0;
-        document.getElementById('kpi-rating').textContent   = ''+rating;
+        document.getElementById('kpi-rating').textContent   = ''+rating+'/5';
         document.getElementById('kpi-ganados').textContent  = total;
         // Nombre en bienvenida
         const bienNombre = u.nombre || localStorage.getItem('tm_nombre') || '';
@@ -270,8 +273,8 @@
         document.getElementById('rating-content').innerHTML =
           '<div style="text-align:center;margin-bottom:16px">' +
             '<div style="font-size:48px;font-weight:800;color:#ff8904;line-height:1">' + rating + '</div>' +
-
-
+            '<div style="font-size:22px;color:#ff8904;margin:4px 0">' + rating+'/5' + '</div>' +
+            '<div style="font-size:13px;color:#6B7280">' + total + ' transporte' + (total!==1?'s':'') + ' completado' + (total!==1?'s':'') + '</div>' +
           '</div>' +
           [
             ['Comunicación', rating, 'Claridad y fluidez en la comunicación durante el proceso de transporte.'],
@@ -444,13 +447,8 @@
     }
   }
 
-  async function cargarPrefsConfig(){
+  function cargarPrefsConfig(){
     try {
-      // Cargar desde API y sincronizar localStorage
-      var me = await api('/api/auth/me');
-      if(me && me.ok && me.data.user.notifPrefs){
-        localStorage.setItem('tm_notif_prefs', JSON.stringify(me.data.user.notifPrefs));
-      }
       var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
       var emailChk = document.getElementById('notif-email-chk');
       var waChk    = document.getElementById('notif-wa-chk');
@@ -458,33 +456,12 @@
       if(waChk)    waChk.checked    = !!prefs.notifWhatsapp;
       if(waChk && waChk.checked){ var wi=document.getElementById('wa-input'); if(wi) wi.style.display='block'; }
       var waNum = document.getElementById('wa-numero');
-      if(waNum) waNum.value = prefs.whatsapp || me.data.user.telefono || '';
+      if(waNum && prefs.whatsapp) waNum.value = prefs.whatsapp;
       var prefIds = ['nueva-licit','licit-cerrada','adjudicada','retornos'];
       prefIds.forEach(function(id){
         var el = document.getElementById('pref-' + id);
         if(el) el.checked = prefs['pref_' + id] !== false;
       });
-    } catch(e){}
-  }
-
-  function toggleWA(){
-    var wc = document.getElementById('notif-wa-chk');
-    var wi = document.getElementById('wa-input');
-    if(wi) wi.style.display = (wc && wc.checked) ? 'block' : 'none';
-    guardarPrefs();
-  }
-
-  async function guardarPrefs(){
-    try {
-      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
-      var emailChk = document.getElementById('notif-email-chk');
-      var waChk    = document.getElementById('notif-wa-chk');
-      var waNum    = document.getElementById('wa-numero');
-      if(emailChk) prefs.notifEmail     = emailChk.checked;
-      if(waChk)    prefs.notifWhatsapp  = waChk.checked;
-      if(waNum)    prefs.whatsapp       = waNum.value.trim();
-      localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
-      await api('/api/auth/me/prefs', 'POST', { notifPrefs: prefs });
     } catch(e){}
   }
 
@@ -496,7 +473,6 @@
         if(el) prefs['pref_' + id] = el.checked;
       });
       localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
-      await api('/api/auth/me/prefs', 'POST', { notifPrefs: prefs });
     } catch(e){}
   }
 
