@@ -75,6 +75,18 @@
  .fil-btn{padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e8eaf0;background:#fff;color:#6B7280;transition:all .15s;font-family:inherit}
  .fil-btn:hover{border-color:#1e2d4e;color:#1e2d4e}
  .fil-btn.active{background:#1e2d4e;color:#fff;border-color:#1e2d4e}
+
+  .nav-mobile-menu{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:6px;border-radius:6px;background:none;border:none;flex-shrink:0}
+  .nav-mobile-menu span{display:block;width:20px;height:2px;background:#fff;border-radius:2px}
+  .nav-mobile-panel{display:none;position:fixed;top:52px;left:0;right:0;background:#1e2d4e;z-index:999;padding:8px 16px 16px;border-bottom:0.5px solid rgba(255,255,255,.1)}
+  .nav-mobile-panel.open{display:block}
+  .nav-mobile-link{display:block;padding:10px 12px;color:#93C5FD;text-decoration:none;font-size:14px;border-radius:8px;margin-bottom:2px}
+  .nav-mobile-link:hover{background:rgba(255,255,255,.1);color:#fff}
+  @media(max-width:860px){
+    .nav-links,.nav-tabs{display:none!important}
+    .nav-mobile-menu{display:flex!important}
+    .nav-user-name{display:none!important}
+  }
 </style></head><body>
 
 <div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px"><div style="background:#FF8904;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:16px">T</div><div style="font-size:20px;font-weight:700;color:#1e2d4e">Trans<span style="color:#FF8904">Match</span></div></div><div class="spinner"></div></div></div>

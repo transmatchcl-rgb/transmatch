@@ -33,9 +33,6 @@
   .pane{display:none}.pane.active{display:block}
   .card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);padding:24px;margin-bottom:16px}
   .card-title{font-size:14px;font-weight:600;color:#1e2d4e;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid #f3f4f6}
-  .sec-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:0.5px solid #f3f4f6}
-  .sec-lbl{font-size:13px;font-weight:500;color:#1e2d4e;margin-bottom:3px}
-  .sec-sub{font-size:12px;color:#6B7280}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   @media(max-width:600px){.grid2{grid-template-columns:1fr}}
   .fg{display:flex;flex-direction:column;gap:5px}
@@ -106,6 +103,18 @@
   .venc-2d{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B}
   .venc-7d{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E}
   .venc-15d{background:#FFF7ED;border:1px solid #FED7AA;color:#9a3412}
+
+  .nav-mobile-menu{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:6px;border-radius:6px;background:none;border:none;flex-shrink:0}
+  .nav-mobile-menu span{display:block;width:20px;height:2px;background:#fff;border-radius:2px}
+  .nav-mobile-panel{display:none;position:fixed;top:52px;left:0;right:0;background:#1e2d4e;z-index:999;padding:8px 16px 16px;border-bottom:0.5px solid rgba(255,255,255,.1)}
+  .nav-mobile-panel.open{display:block}
+  .nav-mobile-link{display:block;padding:10px 12px;color:#93C5FD;text-decoration:none;font-size:14px;border-radius:8px;margin-bottom:2px}
+  .nav-mobile-link:hover{background:rgba(255,255,255,.1);color:#fff}
+  @media(max-width:860px){
+    .nav-links,.nav-tabs{display:none!important}
+    .nav-mobile-menu{display:flex!important}
+    .nav-user-name{display:none!important}
+  }
 </style>
 </head>
 <body>
@@ -141,7 +150,7 @@
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
   <span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;"></span>
 </div>
-<div style="text-align:right"><div style="font-size:13px;color:#fff;font-weight:500" id="nav-nombre">--</div><div style="font-size:11px;color:#93C5FD" id="nav-empresa">--</div></div>
+<div class="nav-user-name" style="text-align:right"><div style="font-size:13px;color:#fff;font-weight:500" id="nav-nombre">--</div><div style="font-size:11px;color:#93C5FD" id="nav-empresa">--</div></div>
 <div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div>
       <div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:240px;z-index:999;overflow:hidden">
         <div style="padding:14px 16px;border-bottom:1px solid #f3f4f6">
@@ -513,8 +522,7 @@
       <div class="card">
         <div class="card-title">Seguridad de la cuenta</div>
         <div class="sec-row">
-          <div><div class="sec-lbl">Contraseña</div><div class="sec-sub">Actualiza tu contraseña de acceso</div></div>
-          <button onclick="document.getElementById('modal-pwd').style.display='flex'" style="padding:6px 14px;font-size:12px;border-radius:6px;border:0.5px solid #e8eaf0;background:#fff;color:#374151;cursor:pointer;font-weight:500">Cambiar</button>
+          <div><div class="sec-lbl">Contraseña</div><div class="sec-sub">Para cambiar tu contraseña, cierra sesión y usa la opción de recuperación</div></div>
         </div>
         <div class="sec-row">
           <div><div class="sec-lbl">Sesión activa</div><div class="sec-sub" id="sesion-lbl">--</div></div>
@@ -595,7 +603,7 @@ function fill() {
   document.getElementById('inp-ciudad').value  = U.ciudad   || '';
   document.getElementById('inp-rut').value     = U.rut      || '';
   document.getElementById('inp-empresa').value = emp;
-  document.getElementById('inp-rut2').value    = U.rutEmpresa || U.rut || '';
+  document.getElementById('inp-rut2').value    = U.rut      || '';
   document.getElementById('inp-anos').value    = U.anosExperiencia || '';
   document.getElementById('inp-web').value     = U.web      || '';
   document.getElementById('inp-desc').value    = U.descripcion || '';
@@ -1527,35 +1535,28 @@ function initRutInputs() {
     if(res.ok) cargarUsuariosT(); else{var d=await res.json();alert(d.error||'Error');}
   }
 
-
-  function toggleConfigNotif(){
-    var cfg   = document.getElementById('notif-config');
-    var list  = document.getElementById('notif-list');
-    var hMain = document.getElementById('notif-header-main');
-    var hCfg  = document.getElementById('notif-header-config');
-    var isOpen = cfg && cfg.style.display !== 'none';
+</script>
+    var cfg      = document.getElementById('notif-config');
+    var list     = document.getElementById('notif-list');
+    var hMain    = document.getElementById('notif-header-main');
+    var hConfig  = document.getElementById('notif-header-config');
+    var isOpen   = cfg && cfg.style.display !== 'none';
     if(isOpen){
-      if(cfg)   cfg.style.display  = 'none';
-      if(list)  list.style.display = 'block';
-      if(hMain) hMain.style.display = 'flex';
-      if(hCfg)  hCfg.style.display  = 'none';
+      if(cfg)     cfg.style.display     = 'none';
+      if(list)    list.style.display    = 'block';
+      if(hMain)   hMain.style.display   = 'flex';
+      if(hConfig) hConfig.style.display = 'none';
     } else {
-      if(cfg)   cfg.style.display  = 'block';
-      if(list)  list.style.display = 'none';
-      if(hMain) hMain.style.display = 'none';
-      if(hCfg)  hCfg.style.display  = 'flex';
+      if(cfg)     cfg.style.display     = 'block';
+      if(list)    list.style.display    = 'none';
+      if(hMain)   hMain.style.display   = 'none';
+      if(hConfig) hConfig.style.display = 'flex';
       cargarPrefsConfig();
     }
   }
 
-  async function cargarPrefsConfig(){
+  function cargarPrefsConfig(){
     try {
-      var token = localStorage.getItem('tm_token');
-      var meRes = await fetch('https://transmatch.transmatchcl.workers.dev/api/auth/me', {headers:{'Authorization':'Bearer '+token}});
-      var meData = meRes.ok ? await meRes.json() : null;
-      if(meData && meData.user && meData.user.notifPrefs){
-        localStorage.setItem('tm_notif_prefs', JSON.stringify(meData.user.notifPrefs));
-      }
       var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
       var ec = document.getElementById('notif-email-chk');
       var wc = document.getElementById('notif-wa-chk');
@@ -1563,30 +1564,10 @@ function initRutInputs() {
       if(wc) wc.checked = !!prefs.notifWhatsapp;
       if(wc && wc.checked){ var wi=document.getElementById('wa-input'); if(wi) wi.style.display='block'; }
       var waNum = document.getElementById('wa-numero');
-      var telefono = meData && meData.user ? meData.user.telefono : '';
-      if(waNum) waNum.value = prefs.whatsapp || telefono || '';
+      if(waNum && prefs.whatsapp) waNum.value = prefs.whatsapp;
       ['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
         var el = document.getElementById('pref-'+id);
         if(el) el.checked = prefs['pref_'+id] !== false;
-      });
-    } catch(e){}
-  }
-
-  async function guardarPrefs(){
-    try {
-      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
-      var ec = document.getElementById('notif-email-chk');
-      var wc = document.getElementById('notif-wa-chk');
-      var waNum = document.getElementById('wa-numero');
-      if(ec) prefs.notifEmail = ec.checked;
-      if(wc) prefs.notifWhatsapp = wc.checked;
-      if(waNum) prefs.whatsapp = waNum.value.trim();
-      localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
-      var token = localStorage.getItem('tm_token');
-      await fetch('https://transmatch.transmatchcl.workers.dev/api/auth/me/prefs', {
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-        body:JSON.stringify({notifPrefs:prefs})
       });
     } catch(e){}
   }
@@ -1599,12 +1580,6 @@ function initRutInputs() {
         if(el) prefs['pref_'+id] = el.checked;
       });
       localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
-      var token = localStorage.getItem('tm_token');
-      await fetch('https://transmatch.transmatchcl.workers.dev/api/auth/me/prefs', {
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-        body:JSON.stringify({notifPrefs:prefs})
-      });
     } catch(e){}
   }
 
@@ -1630,19 +1605,7 @@ function initRutInputs() {
     if(!panel) return;
     var isOpen=panel.style.display==='flex';
     closeAllPanels();
-    if(!isOpen){
-      panel.style.display='flex';
-      // Siempre abrir en vista de notificaciones, no en config
-      var cfg   = document.getElementById('notif-config');
-      var list  = document.getElementById('notif-list');
-      var hMain = document.getElementById('notif-header-main');
-      var hCfg  = document.getElementById('notif-header-config');
-      if(cfg)   cfg.style.display  = 'none';
-      if(list)  list.style.display = 'block';
-      if(hMain) hMain.style.display = 'flex';
-      if(hCfg)  hCfg.style.display  = 'none';
-      cargarNotificaciones();
-    }
+    if(!isOpen){panel.style.display='flex';cargarNotificaciones();}
   }
 
 
@@ -1669,38 +1632,6 @@ function initRutInputs() {
     } catch(e){}
   }
 
-
-  async function cambiarPassword(){
-    var actual = document.getElementById('pwd-actual').value;
-    var nueva = document.getElementById('pwd-nueva').value;
-    var confirmar = document.getElementById('pwd-confirmar').value;
-    if(!actual||!nueva||!confirmar){ showPwdMsg('Completa todos los campos','err'); return; }
-    if(nueva.length < 8){ showPwdMsg('La contraseña debe tener al menos 8 caracteres','err'); return; }
-    if(nueva !== confirmar){ showPwdMsg('Las contraseñas no coinciden','err'); return; }
-    try{
-      var res = await fetch(API+'/api/auth/cambiar-password',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
-        body:JSON.stringify({passwordActual:actual, passwordNueva:nueva})
-      });
-      var d = await res.json();
-      if(res.ok){
-        showPwdMsg('Contraseña actualizada correctamente','ok');
-        document.getElementById('pwd-actual').value='';
-        document.getElementById('pwd-nueva').value='';
-        document.getElementById('pwd-confirmar').value='';
-      } else { showPwdMsg(d.error||'Error al cambiar contraseña','err'); }
-    }catch(e){ showPwdMsg('Error de conexión','err'); }
-  }
-
-  function showPwdMsg(text, type){
-    var el = document.getElementById('pwd-msg');
-    el.style.display='block';
-    el.style.background = type==='ok' ? '#F0FDF4' : '#FEF2F2';
-    el.style.color = type==='ok' ? '#15803D' : '#DC2626';
-    el.style.border = type==='ok' ? '0.5px solid #BBF7D0' : '0.5px solid #FECACA';
-    el.textContent = text;
-  }
 </script>
 <footer style="background:#1e2d4e;margin-top:40px;padding:28px 24px 20px">
   <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
@@ -1733,24 +1664,5 @@ function initRutInputs() {
     <span>© 2026 TransMatch SpA.</span>
   </div>
 </footer>
-
-<div id="modal-pwd" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center">
-  <div style="background:#fff;border-radius:14px;padding:28px;width:100%;max-width:400px;margin:20px;box-sizing:border-box">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <div style="font-size:16px;font-weight:600;color:#1e2d4e">Cambiar contraseña</div>
-      <button onclick="document.getElementById('modal-pwd').style.display='none'" style="background:none;border:none;font-size:22px;cursor:pointer;color:#9CA3AF;line-height:1">×</button>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:12px">
-      <div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Contraseña actual</label><input type="password" id="pwd-actual" placeholder="••••••••" style="width:100%;padding:9px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;outline:none;box-sizing:border-box"/></div>
-      <div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Nueva contraseña</label><input type="password" id="pwd-nueva" placeholder="••••••••" style="width:100%;padding:9px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;outline:none;box-sizing:border-box"/></div>
-      <div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Confirmar nueva contraseña</label><input type="password" id="pwd-confirmar" placeholder="••••••••" style="width:100%;padding:9px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;outline:none;box-sizing:border-box"/></div>
-      <div id="pwd-msg" style="display:none;font-size:12px;padding:8px 12px;border-radius:6px"></div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
-        <button onclick="document.getElementById('modal-pwd').style.display='none'" style="padding:9px 16px;background:#f3f4f6;color:#374151;border:none;border-radius:7px;font-size:13px;cursor:pointer">Cancelar</button>
-        <button onclick="cambiarPassword()" style="padding:9px 20px;background:#1e2d4e;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer">Guardar</button>
-      </div>
-    </div>
-  </div>
-</div>
 </body>
 </html>

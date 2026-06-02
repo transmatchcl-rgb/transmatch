@@ -64,6 +64,18 @@
   .info-cell .k{font-size:11px;color:#9CA3AF;margin-bottom:2px}
   .info-cell .v{font-weight:500;color:#111827}
   #toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none}
+
+  .nav-mobile-menu{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:6px;border-radius:6px;background:none;border:none;flex-shrink:0}
+  .nav-mobile-menu span{display:block;width:20px;height:2px;background:#fff;border-radius:2px}
+  .nav-mobile-panel{display:none;position:fixed;top:52px;left:0;right:0;background:#1e2d4e;z-index:999;padding:8px 16px 16px;border-bottom:0.5px solid rgba(255,255,255,.1)}
+  .nav-mobile-panel.open{display:block}
+  .nav-mobile-link{display:block;padding:10px 12px;color:#93C5FD;text-decoration:none;font-size:14px;border-radius:8px;margin-bottom:2px}
+  .nav-mobile-link:hover{background:rgba(255,255,255,.1);color:#fff}
+  @media(max-width:860px){
+    .nav-links,.nav-tabs{display:none!important}
+    .nav-mobile-menu{display:flex!important}
+    .nav-user-name{display:none!important}
+  }
 </style>
 </head>
 <body>
@@ -157,16 +169,6 @@
     </div>
 
     <div style="background:#f8f9fc;border-radius:10px;padding:14px;margin-bottom:14px">
-      <div class="section-label" style="color:#1d4ed8">Equipos que opera</div>
-      <div id="mt-tipos-equipo" style="font-size:13px;color:#6B7280">--</div>
-    </div>
-
-    <div style="background:#f8f9fc;border-radius:10px;padding:14px;margin-bottom:14px">
-      <div class="section-label" style="color:#1d4ed8">Zonas de operación</div>
-      <div id="mt-zonas" style="font-size:13px;color:#6B7280">--</div>
-    </div>
-
-    <div style="background:#f8f9fc;border-radius:10px;padding:14px;margin-bottom:14px">
       <div class="section-label" style="color:#1d4ed8">Equipos registrados</div>
       <div id="mt-equipos" style="font-size:13px;color:#6B7280">--</div>
     </div>
@@ -176,12 +178,9 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-green" onclick="aprobar(selEmail,'aprobar')">Aprobar</button>
         <button class="btn btn-red" onclick="aprobar(selEmail,'rechazar')">Rechazar</button>
-        <button class="btn btn-outline" style="color:#EF4444;border-color:#FECACA" onclick="gestionarUsuario(selEmail,'suspendido')">Suspender</button>
-        <button class="btn btn-outline" style="color:#14532D;border-color:#BBF7D0" onclick="gestionarUsuario(selEmail,'activo')">Reactivar</button>
+        <button class="btn btn-outline" style="color:#EF4444;border-color:#FECACA" onclick="gestiónarUsuario(selEmail,'suspendido')">Suspender</button>
+        <button class="btn btn-outline" style="color:#14532D;border-color:#BBF7D0" onclick="gestiónarUsuario(selEmail,'activo')">Reactivar</button>
       </div>
-    </div>
-    <div id="mt-btn-eliminar" style="display:none;margin-bottom:14px">
-      <button onclick="eliminarTransportista(selEmail)" style="padding:7px 16px;font-size:12px;border-radius:6px;border:1px solid #FECACA;background:#FEF2F2;color:#DC2626;cursor:pointer;font-weight:500">Eliminar cuenta</button>
     </div>
 
     <div style="display:flex;justify-content:flex-end;padding-top:14px;border-top:0.5px solid #e8eaf0">
@@ -282,7 +281,7 @@
     document.getElementById('mt-nombre').textContent     = t.nombre || '--';
     document.getElementById('mt-email').textContent      = t.email || '--';
     document.getElementById('mt-empresa').textContent    = t.empresa || '--';
-    document.getElementById('mt-rut').textContent        = t.rutEmpresa || t.rut || '--';
+    document.getElementById('mt-rut').textContent        = t.rut || '--';
     document.getElementById('mt-contacto').textContent   = t.nombre || '--';
     document.getElementById('mt-teléfono').textContent   = t.teléfono || '--';
     document.getElementById('mt-transportes').textContent = (t.totalTransportes || 0) + ' completados';
@@ -292,38 +291,15 @@
     document.getElementById('mt-estado-badge').innerHTML =
       '<span style="background:' + ebg + ';color:' + ecol + ';font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px">' + elbl + '</span>';
 
-    // 1. Equipos que opera (declarados al registrarse)
-    const tiposEquipo = t.tiposEquipo || [];
-    document.getElementById('mt-tipos-equipo').innerHTML = tiposEquipo.length === 0
-      ? '<span style="color:#9CA3AF">Sin información</span>'
-      : '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">' +
-        tiposEquipo.map(tipo => '<span style="background:#eef1f8;color:#1e2d4e;font-size:11px;font-weight:500;padding:3px 10px;border-radius:999px">' + tipo + '</span>').join('') +
-        '</div>';
-
-    // 2. Zonas de operación
-    const zonas = t.zonas || [];
-    document.getElementById('mt-zonas').innerHTML = zonas.length === 0
-      ? '<span style="color:#9CA3AF">Sin zonas registradas</span>'
-      : '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">' +
-        zonas.map(z => '<span style="background:#eef1f8;color:#1e2d4e;font-size:11px;font-weight:500;padding:3px 10px;border-radius:999px">' + z + '</span>').join('') +
-        '</div>';
-
-    // 3. Equipos registrados (agregados por el transportista con detalle)
-    const equiposReg = t.equipos || [];
-    document.getElementById('mt-equipos').innerHTML = equiposReg.length === 0
-      ? '<span style="color:#9CA3AF">Sin equipos registrados aún</span>'
-      : equiposReg.map(e =>
-          '<div style="padding:7px 0;border-bottom:0.5px solid #e8eaf0;font-size:12px">' +
-          '<span style="color:#374151;font-weight:600">' + e.tipo + '</span>' +
-          (e.marca ? '<span style="color:#6B7280"> · ' + e.marca + '</span>' : '') +
-          (e.modelo ? '<span style="color:#6B7280"> ' + e.modelo + '</span>' : '') +
-          (e.patente ? '<span style="color:#9CA3AF"> · ' + e.patente + '</span>' : '') +
-          (e.capacidadMax ? '<span style="color:#6B7280"> · ' + e.capacidadMax + ' ton</span>' : '') +
+    const equipos = t.equipos || [];
+    document.getElementById('mt-equipos').innerHTML = equipos.length === 0
+      ? '<span style="color:#9CA3AF">Sin equipos registrados</span>'
+      : equipos.map(e =>
+          '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid #e8eaf0;font-size:12px">' +
+          '<span style="color:#374151;font-weight:500">' + e.tipo + '</span>' +
+          '<span style="color:#6B7280">' + (e.capacidad ? e.capacidad + ' ton' : '') + (e.dimensiones ? ' · ' + e.dimensiones : '') + '</span>' +
           '</div>'
         ).join('');
-
-    // Mostrar botón eliminar solo si está rechazado
-    document.getElementById('mt-btn-eliminar').style.display = t.estado === 'rechazado' ? 'block' : 'none';
 
     document.getElementById('modal-t').classList.add('open');
   }
@@ -332,13 +308,6 @@
     const r = await apiFetch('/api/admin/aprobar-transportista', 'POST', { email, accion });
     if (r && r.ok) { toast(accion === 'aprobar' ? 'Transportista aprobado' : 'Transportista rechazado'); document.getElementById('modal-t').classList.remove('open'); initPage(); }
     else toast('Error', 'err');
-  }
-
-  async function eliminarTransportista(email) {
-    if (!confirm('¿Eliminar la cuenta de ' + email + '? Esta acción no se puede deshacer.')) return;
-    const r = await apiFetch('/api/admin/usuario/' + encodeURIComponent(email), 'DELETE');
-    if (r && r.ok) { toast('Cuenta eliminada'); document.getElementById('modal-t').classList.remove('open'); initPage(); }
-    else toast('Error al eliminar', 'err');
   }
 
   async function gestionarUsuario(email, estado) {
