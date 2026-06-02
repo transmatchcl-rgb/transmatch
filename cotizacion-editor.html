@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch — Cotización</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f7;color:#1e2d4e;min-height:100vh}
+
+/* ── NAV ── */
+.nav{background:#1e2d4e;padding:0 24px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.nav-left{display:flex;align-items:center;gap:14px}
+.nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+.nav-icon{background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+.nav-name{font-weight:700;color:#fff;font-size:15px}
+.nav-name span{color:#ff8904}
+.nav-back{font-size:13px;color:#93C5FD;text-decoration:none;padding:6px 12px;border-radius:6px;display:flex;align-items:center;gap:5px}
+.nav-back:hover{color:#fff;background:rgba(255,255,255,.1)}
+#save-pill{font-size:12px;color:#93C5FD;display:none;align-items:center;gap:5px}
+
+/* ── BUTTONS ── */
+.btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:all .15s;white-space:nowrap}
+.btn:hover{opacity:.88}
+.btn-save{background:#ff8904;color:#fff}
+.btn-send{background:#16a34a;color:#fff;font-size:14px;font-weight:600;padding:10px 24px}
+.btn-send:disabled{opacity:.55;cursor:not-allowed}
+.btn-pdf{background:#1e2d4e;color:#fff}
+.btn-print{background:#374151;color:#fff}
+.btn-ghost{background:transparent;border:1.5px solid #e2e5ef;color:#374151}
+.btn-danger{background:transparent;border:none;color:#dc2626;padding:4px 8px;font-size:12px}
+.btn-danger:hover{background:#fff1f2;opacity:1}
+.btn-add{background:#eef1f8;color:#1e2d4e;border:1.5px dashed #c7cde0;font-size:12px;padding:7px 14px;margin-top:8px;width:100%;justify-content:center}
+.btn-add:hover{background:#e0e5f2;opacity:1}
+
+/* ── BOTTOM BAR ── */
+.bottom-bar{position:sticky;bottom:0;background:#fff;border-top:1.5px solid #e2e5ef;padding:12px 20px;display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;box-shadow:0 -4px 16px rgba(30,45,78,.08);z-index:50}
+.bottom-bar-left{display:flex;gap:8px;align-items:center}
+@media(max-width:540px){.bottom-bar{flex-direction:column}.bottom-bar-left,.bottom-bar .btn-send{width:100%;justify-content:center}}
+
+/* ── WRAPPER ── */
+.wrapper{max-width:900px;margin:24px auto;padding:0 16px 0}
+
+/* ── SHEET ── */
+.sheet{background:#fff;border-radius:14px;box-shadow:0 2px 16px rgba(30,45,78,.1);overflow:hidden;border:0.5px solid #dce0ea}
+
+/* ── HEADER ── */
+.sheet-header{background:#1e2d4e;padding:20px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.sheet-header-icon{background:#ff8904;border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:17px;flex-shrink:0}
+.sheet-header-name{font-weight:700;color:#fff;font-size:18px}
+.sheet-header-name span{color:#ff8904}
+.sheet-doc-title-main{font-size:15px;font-weight:700;color:#fff;text-transform:uppercase}
+.sheet-doc-title-main span{color:#ff8904}
+.sheet-doc-title-sub{font-size:11px;color:#93C5FD;margin-top:3px}
+
+/* ── LICIT INFO BANNER ── */
+.licit-banner{background:#eef1f8;border-bottom:1.5px solid #dce0ea;padding:12px 28px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.licit-banner-item{font-size:12px;color:#374151;display:flex;align-items:center;gap:5px}
+.licit-banner-item strong{color:#1e2d4e;font-weight:600}
+.licit-banner-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B7280}
+
+/* ── BODY ── */
+.sheet-body{padding:24px 28px}
+.sec-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:#1e2d4e;padding:6px 12px;border-radius:6px;display:inline-block;margin-bottom:12px;margin-top:20px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.sec-label:first-child{margin-top:0}
+.divider{border:none;border-top:1.5px solid #f0f2f7;margin:20px 0}
+
+/* ── FORM ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.05em}
+.field input,.field textarea,.field select{padding:9px 11px;border:1.5px solid #e2e5ef;border-radius:7px;font-size:13px;color:#1e2d4e;font-family:inherit;transition:border-color .15s;background:#fff;width:100%}
+.field input:focus,.field textarea:focus{outline:none;border-color:#1e2d4e;box-shadow:0 0 0 3px rgba(30,45,78,.08)}
+.field input[readonly]{background:#f8f9fc;color:#6B7280;cursor:not-allowed}
+.field textarea{resize:vertical;min-height:64px}
+.field-hint{font-size:10px;color:#9CA3AF;margin-top:3px}
+.req-star{color:#dc2626}
+input.invalid,textarea.invalid{border-color:#dc2626!important;background:#fff8f8!important}
+.field-err{font-size:11px;color:#dc2626;margin-top:4px;display:none}
+.field-err.show{display:block}
+.sec-err{background:#fff1f2;border:1px solid #fecdd3;border-radius:8px;padding:10px 14px;font-size:13px;color:#be123c;margin-bottom:12px;display:none;align-items:center;gap:8px}
+.sec-err.show{display:flex}
+
+/* ── ITEMS TABLE ── */
+.items-table{width:100%;border-collapse:collapse;font-size:12px}
+.items-table th{background:#f8f9fc;border:1px solid #e2e5ef;padding:8px 10px;text-align:left;font-weight:600;color:#6B7280;font-size:11px;text-transform:uppercase;letter-spacing:.04em;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.items-table td{border:1px solid #e2e5ef;padding:0}
+.items-table td input{width:100%;border:none;padding:9px 10px;font-size:12.5px;color:#1e2d4e;background:transparent;font-family:inherit}
+.items-table td input:focus{outline:none;background:#f0f4ff}
+.items-table td.ro{background:#f8f9fc;padding:9px 10px;color:#374151;font-weight:600;text-align:right;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.items-table td.act{padding:4px 6px;text-align:center;border-left:none;width:32px}
+.items-table tr:hover td{background:#fafbff}
+.items-table tr:hover td.ro{background:#f4f6fc}
+.items-table tfoot td{background:#eef1f8;font-weight:700;padding:9px 10px;border:1px solid #dce0ea;font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.items-table tfoot .lbl{color:#6B7280;text-align:right;padding-right:12px}
+.items-table tfoot .tot{color:#1e2d4e;font-size:14px;font-weight:800;text-align:right}
+
+/* ── TARIFA INCLUYE / NO INCLUYE ── */
+.incl-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px}
+@media(max-width:560px){.incl-grid{grid-template-columns:1fr}}
+.incl-box{border-radius:8px;padding:14px 16px;font-size:12px;line-height:2;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.incl-box.green{background:#f0fdf4;border:1px solid #bbf7d0}
+.incl-box.red{background:#fff1f2;border:1px solid #fecdd3}
+.incl-title{font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.incl-title.green{color:#15803d}
+.incl-title.red{color:#be123c}
+.incl-box li{list-style:none;color:#374151;display:flex;align-items:flex-start;gap:6px}
+.incl-box.green li::before{content:"✓";color:#16a34a;font-weight:700;flex-shrink:0}
+.incl-box.red li::before{content:"–";color:#e11d48;font-weight:700;flex-shrink:0}
+
+/* ── SEGUROS ── */
+.seg-table{width:100%;border-collapse:collapse;font-size:12px}
+.seg-table th{background:#f8f9fc;border:1px solid #e2e5ef;padding:8px 10px;font-weight:600;color:#6B7280;font-size:11px;text-transform:uppercase;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.seg-table td{border:1px solid #e2e5ef;padding:0}
+.seg-table td input{width:100%;border:none;padding:8px 10px;font-size:12.5px;font-family:inherit;color:#1e2d4e;background:transparent}
+.seg-table td input:focus{outline:none;background:#f0f4ff}
+.seg-table td.act{padding:4px 6px;text-align:center;border-left:none;width:32px}
+
+/* ── UPLOAD PROPIA ── */
+.upload-section{background:#f8f9fc;border:1.5px dashed #c7cde0;border-radius:10px;padding:18px 20px;margin-top:4px;cursor:pointer;transition:all .2s}
+.upload-section:hover,.upload-section.drag{border-color:#1e2d4e;background:#eef1f8}
+.upload-section.has-file{border-style:solid;border-color:#16a34a;background:#f0fdf4;cursor:default}
+.upload-icon{font-size:28px;margin-bottom:6px}
+.upload-label{font-size:13px;font-weight:500;color:#374151}
+.upload-sub{font-size:11px;color:#9CA3AF;margin-top:3px}
+.file-chip{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e2e5ef;border-radius:8px;padding:10px 12px;margin-top:10px}
+.file-chip-icon{font-size:20px}
+.file-chip-name{font-size:13px;font-weight:500;color:#1e2d4e;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-chip-remove{background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:16px;flex-shrink:0;padding:2px 4px;border-radius:4px}
+.file-chip-remove:hover{color:#dc2626;background:#fff1f2}
+.confidential-badge{display:inline-flex;align-items:center;gap:5px;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:5px 10px;font-size:11px;color:#92400e;font-weight:500;margin-top:8px}
+
+/* ── CONDITIONS ── */
+.cond-list{display:flex;flex-direction:column;gap:8px}
+.cond-item{display:flex;gap:10px;font-size:12.5px;color:#374151;line-height:1.6;padding:8px 12px;background:#f8f9fc;border-radius:8px;border:1px solid #e8eaf0}
+.cond-num{flex-shrink:0;font-weight:700;color:#1e2d4e;min-width:18px}
+
+/* ── TERMS ── */
+.terms-box{background:#f8f9fc;border:1.5px solid #e2e5ef;border-radius:10px;padding:14px 16px;transition:border-color .2s,background .2s}
+.terms-box.invalid-terms{border-color:#dc2626;background:#fff8f8}
+.terms-label{display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;color:#374151;line-height:1.5}
+.terms-label input{width:16px;height:16px;flex-shrink:0;accent-color:#1e2d4e;cursor:pointer;margin-top:1px}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:#1e2d4e;color:#fff;padding:11px 22px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:all .3s;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.25)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:#dc2626}
+
+/* ── PRINT ── */
+@media print{
+  .nav,.bottom-bar,.toast,.act,.btn-add,.upload-section,.file-chip,.terms-box{display:none!important}
+  body{background:#fff!important}
+  .wrapper{max-width:100%;padding:0;margin:0}
+  .sheet{border-radius:0;box-shadow:none;border:none}
+  .sheet-body{padding:16px 20px}
+  .field input,.field textarea,.items-table td input,.seg-table td input{border:none!important;background:transparent!important;box-shadow:none!important;padding:4px 2px!important}
+  .field input[readonly]{background:transparent!important}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-left">
+    <a href="/transportista-licitaciones.html" class="nav-back">← Volver</a>
+    <a href="/transportista.html" class="nav-logo">
+      <div class="nav-icon">T</div>
+      <span class="nav-name">Trans<span>Match</span></span>
+    </a>
+  </div>
+  <span id="save-pill">✓ Borrador guardado</span>
+</nav>
+
+<!-- MAIN -->
+<div class="wrapper">
+  <div class="sheet" id="sheet">
+
+    <!-- HEADER -->
+    <div class="sheet-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="sheet-header-icon">T</div>
+        <div>
+          <div class="sheet-header-name">Trans<span>Match</span></div>
+          <div style="font-size:11px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div class="sheet-doc-title-main">Cotización de Servicio</div>
+      </div>
+    </div>
+
+    <!-- LICIT BANNER (datos de la licitación, solo lectura) -->
+    <div class="licit-banner" id="licit-banner" style="display:none">
+      <div>
+        <div class="licit-banner-label">Licitación</div>
+        <div class="licit-banner-item"><strong id="lb-cod">—</strong></div>
+      </div>
+      <div>
+        <div class="licit-banner-label">Equipo</div>
+        <div class="licit-banner-item" id="lb-equipo">—</div>
+      </div>
+      <div>
+        <div class="licit-banner-label">Ruta</div>
+        <div class="licit-banner-item" id="lb-ruta">—</div>
+      </div>
+    </div>
+
+    <div class="sheet-body">
+
+      <!-- DATOS GENERALES -->
+      <span class="sec-label">Datos Generales</span>
+      <div class="form-grid">
+        <div class="field">
+          <label>N° Cotización</label>
+          <input type="text" id="f-num-cotiz" placeholder="[Asignado automáticamente]" readonly/>
+        </div>
+        <div class="field">
+          <label>Fecha</label>
+          <input type="date" id="f-fecha"/>
+        </div>
+        <div class="field">
+          <label>ID Licitación</label>
+          <input type="text" id="f-id-licit" readonly/>
+          <span class="field-hint">Asignado desde la licitación</span>
+        </div>
+        <div class="field">
+          <label>Validez de la oferta</label>
+          <input type="text" id="f-validez" value="5 días hábiles"/>
+          <span class="field-hint">Mínimo 5 días hábiles</span>
+        </div>
+      </div>
+
+      <hr class="divider"/>
+
+      <!-- DATOS DE SOLICITUD -->
+      <span class="sec-label">Datos de Solicitud</span>
+      <div id="err-solicitud" class="sec-err">⚠ Completa todos los campos obligatorios de esta sección.</div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Ruta <span class="req-star">*</span></label>
+          <input type="text" id="f-ruta" placeholder="Ej: Calama → Santiago" oninput="clearErr('f-ruta')"/>
+          <span class="field-err" id="err-f-ruta">Ingresa la ruta</span>
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label>Descripción del servicio <span class="req-star">*</span></label>
+          <textarea id="f-desc" placeholder="Descripción general del servicio de transporte…" oninput="clearErr('f-desc')"></textarea>
+          <span class="field-err" id="err-f-desc">Ingresa una descripción</span>
+        </div>
+        <div class="field">
+          <label>Fecha de carga <span class="req-star">*</span></label>
+          <input type="date" id="f-fecha-carga" onchange="clearErr('f-fecha-carga')"/>
+          <span class="field-err" id="err-f-fecha-carga">Selecciona la fecha de carga</span>
+        </div>
+        <div class="field">
+          <label>Fecha de entrega <span class="req-star">*</span></label>
+          <input type="date" id="f-fecha-entrega" onchange="clearErr('f-fecha-entrega')"/>
+          <span class="field-err" id="err-f-fecha-entrega">Selecciona la fecha de entrega</span>
+        </div>
+      </div>
+
+      <hr class="divider"/>
+
+      <!-- DETALLE DEL SERVICIO -->
+      <span class="sec-label">Detalle del Servicio <span class="req-star" style="font-size:11px">*</span></span>
+      <div id="err-items" class="sec-err" style="margin-top:10px">⚠ Agrega al menos un servicio con equipo y tarifa.</div>
+      <div style="overflow-x:auto">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th style="width:32px">N°</th>
+              <th>Equipo / Descripción</th>
+              <th style="width:110px">Modelo</th>
+              <th style="width:58px">Año</th>
+              <th style="width:52px">Cant.</th>
+              <th style="width:108px">Tarifa Neta Unit.</th>
+              <th style="width:100px">Sub Total Neto</th>
+              <th style="width:76px">Unidad</th>
+              <th style="width:100px">Total Neto</th>
+              <th style="width:130px">Observaciones</th>
+              <th style="width:32px;border-left:none" class="act"></th>
+            </tr>
+          </thead>
+          <tbody id="items-body"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="8" class="lbl">Monto Neto</td>
+              <td class="ro tot" id="tf-neto" style="background:#eef1f8;font-size:15px;color:#1e2d4e"></td>
+              <td style="background:#f8f9fc"></td><td style="background:#f8f9fc;border-left:none"></td>
+            </tr>
+            <tr>
+              <td colspan="8" class="lbl" style="color:#374151">IVA 19%</td>
+              <td class="ro" id="tf-iva"></td>
+              <td style="background:#f8f9fc"></td><td style="background:#f8f9fc;border-left:none"></td>
+            </tr>
+            <tr>
+              <td colspan="8" class="lbl tot">TOTAL (con IVA)</td>
+              <td class="ro tot" id="tf-total"></td>
+              <td style="background:#eef1f8"></td><td style="background:#eef1f8;border-left:none"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <button class="btn btn-add" onclick="agregarItem()">+ Agregar servicio</button>
+
+      <hr class="divider"/>
+
+      <!-- TARIFA INCLUYE / NO INCLUYE -->
+      <span class="sec-label">Alcance de la Tarifa</span>
+      <div class="incl-grid">
+        <div class="incl-box green">
+          <div class="incl-title green">✓ Tarifa incluye</div>
+          <ul>
+            <li>Seguro de transporte durante el traslado</li>
+            <li>Conductor certificado</li>
+            <li>Escolta si es requerida por normativa vial</li>
+            <li>Coordinación de permisos de circulación (si aplica)</li>
+          </ul>
+        </div>
+        <div class="incl-box red">
+          <div class="incl-title red">– Tarifa NO incluye</div>
+          <ul>
+            <li>Carga y descarga del equipo</li>
+            <li>Estadía en destino superior a lo cotizado</li>
+            <li>Trámites aduaneros (transporte internacional)</li>
+          </ul>
+        </div>
+      </div>
+
+      <hr class="divider"/>
+
+      <!-- SEGUROS -->
+      <span class="sec-label">Seguros</span>
+      <table class="seg-table">
+        <thead>
+          <tr>
+            <th>Tipo de seguro / cobertura</th>
+            <th style="width:130px">Cobertura (UF)</th>
+            <th>Observaciones</th>
+            <th style="width:32px;border-left:none" class="act"></th>
+          </tr>
+        </thead>
+        <tbody id="seguros-body"></tbody>
+      </table>
+      <button class="btn btn-add" onclick="agregarSeguro()">+ Agregar seguro</button>
+
+      <hr class="divider"/>
+
+      <!-- OBSERVACIONES -->
+      <span class="sec-label">Observaciones Generales</span>
+      <div class="field">
+        <textarea id="f-obs-gen" style="min-height:80px" placeholder="Comentarios adicionales, condiciones especiales o aclaraciones relevantes…"></textarea>
+      </div>
+
+      <hr class="divider"/>
+
+      <!-- COTIZACIÓN PROPIA (CONFIDENCIAL) -->
+      <span class="sec-label">Cotización en formato propio</span>
+      <div id="upload-zone" class="upload-section" onclick="document.getElementById('pdf-input').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="handleDrop(event)">
+        <div style="text-align:center;pointer-events:none">
+          <div class="upload-icon">📄</div>
+          <div class="upload-label">Arrastra tu archivo o haz clic para seleccionar</div>
+          <div class="upload-sub">PDF, Word o imagen · Máx 8 MB</div>
+        </div>
+      </div>
+      <input type="file" id="pdf-input" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="display:none" onchange="handlePdfFile(this.files)"/>
+      <div id="file-chip" class="file-chip" style="display:none">
+        <span class="file-chip-icon">📎</span>
+        <span class="file-chip-name" id="file-chip-name">archivo</span>
+        <button class="file-chip-remove" onclick="removeFile(event)">✕</button>
+      </div>
+
+      <hr class="divider"/>
+
+      <!-- CONDICIONES -->
+      <span class="sec-label">Condiciones Generales</span>
+      <div class="cond-list">
+        <div class="cond-item"><span class="cond-num">1.</span><span>La presente cotización tiene una validez de 5 días hábiles desde su emisión.</span></div>
+        <div class="cond-item"><span class="cond-num">2.</span><span>Para formalizar el servicio, el cliente debe emitir una Orden de Compra aceptando la cotización y sus condiciones. La orden de compra debe ser enviada de inmediato.</span></div>
+        <div class="cond-item"><span class="cond-num">3.</span><span>Condiciones de pago: 30 días contra recepción de factura.</span></div>
+        <div class="cond-item"><span class="cond-num">4.</span><span>Stand by / Espera: Si en origen o destino no existieran medios para la descarga o inconvenientes no imputables al transportista, se aplicará tarifa diaria.</span></div>
+        <div class="cond-item"><span class="cond-num">5.</span><span>Cualquier modificación de ruta, fechas o condiciones deberá comunicarse con al menos 24 horas de anticipación y podrá implicar ajuste de tarifa.</span></div>
+        <div class="cond-item"><span class="cond-num">6.</span><span>La coordinación de permisos de circulación especial (cargas sobredimensionadas) es responsabilidad del transportista, salvo acuerdo expreso en contrario.</span></div>
+        <div class="cond-item"><span class="cond-num">7.</span><span>Los pases de ingreso a faena son responsabilidad del cliente. El transportista proporcionará los antecedentes requeridos.</span></div>
+        <div class="cond-item"><span class="cond-num">8.</span><span>Será responsabilidad del cliente aportar la Guía de Despacho. El no portarla impide la tramitación de pólizas de seguro y la circulación del equipo.</span></div>
+      </div>
+
+      <hr class="divider"/>
+
+      <!-- TÉRMINOS DE LA LICITACIÓN -->
+      <div class="terms-box" id="terms-box">
+        <label class="terms-label">
+          <input type="checkbox" id="chk-terminos"/>
+          <span>He leído y acepto los términos de la licitación. Confirmo que la información ingresada es veraz y que puedo ejecutar el servicio cotizado en las fechas y condiciones indicadas.</span>
+        </label>
+      </div>
+
+    </div><!-- /sheet-body -->
+  </div><!-- /sheet -->
+
+  <!-- BOTTOM BAR -->
+  <div class="bottom-bar">
+    <div class="bottom-bar-left">
+      <button class="btn btn-print" onclick="imprimirDoc()">🖨 Imprimir</button>
+      <button class="btn btn-pdf" onclick="descargarPDF()">↓ PDF</button>
+      <button class="btn btn-ghost" onclick="guardarBorrador()">💾 Guardar borrador</button>
+    </div>
+    <button class="btn btn-send" id="btn-enviar" onclick="enviarCotizacion()">
+      Enviar cotización →
+    </button>
+  </div>
+
+</div><!-- /wrapper -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'https://transmatch.transmatchcl.workers.dev';
+const STORAGE_KEY = 'tm_cotiz_draft';
+let itemCount = 0, seguroCount = 0;
+let pdfData = null; // { nombre, tipo, base64 }
+let licitacionId = null; // ID real de la licitación para la API
+
+/* ── INIT ── */
+function init(){
+  document.getElementById('f-fecha').value = new Date().toISOString().split('T')[0];
+
+  const p = new URLSearchParams(window.location.search);
+  licitacionId = p.get('licitId') || null;
+
+  // Banner de licitación
+  const cod    = p.get('licitCod') || licitacionId || '—';
+  const equipo = p.get('equipo') || '—';
+  const ruta   = p.get('ruta') || '—';
+  if(licitacionId){
+    document.getElementById('licit-banner').style.display = 'flex';
+    document.getElementById('lb-cod').textContent    = cod;
+    document.getElementById('lb-equipo').textContent = equipo;
+    document.getElementById('lb-ruta').textContent   = ruta;
+    document.getElementById('f-id-licit').value = cod;
+  }
+  if(p.get('ruta'))         document.getElementById('f-ruta').value          = p.get('ruta');
+  if(p.get('fechaCarga'))   document.getElementById('f-fecha-carga').value   = p.get('fechaCarga');
+  if(p.get('fechaEntrega')) document.getElementById('f-fecha-entrega').value = p.get('fechaEntrega');
+
+  // Cargar borrador si corresponde a la misma licitación
+  const hasDraft = cargarBorrador();
+  if(!hasDraft){
+    agregarItem(); agregarItem(); agregarItem();
+    agregarSeguro(); agregarSeguro();
+  }
+  // Si licitId vino en URL, sobreescribir (readonly)
+  if(licitacionId) document.getElementById('f-id-licit').value = cod;
+
+  calcAll();
+  document.getElementById('sheet').addEventListener('input', ()=>{ calcAll(); autoSave(); });
+}
+
+/* ── ITEMS ── */
+function agregarItem(data){
+  itemCount++;
+  const i = itemCount;
+  const tr = document.createElement('tr');
+  tr.id = 'item-row-'+i;
+  tr.innerHTML =
+    '<td style="text-align:center;padding:6px 4px;color:#9CA3AF;font-size:11px;font-weight:600">'+contarItems()+'</td>'+
+    '<td><input type="text" id="r'+i+'-eq" placeholder="Descripción…" oninput="autoSave();document.getElementById(\'err-items\').classList.remove(\'show\')"/></td>'+
+    '<td><input type="text" id="r'+i+'-mod" placeholder="—" oninput="autoSave()"/></td>'+
+    '<td><input type="number" id="r'+i+'-yr" placeholder="—" min="1990" max="2099" style="text-align:center" oninput="autoSave()"/></td>'+
+    '<td><input type="number" id="r'+i+'-cant" placeholder="0" min="0" oninput="calcRow('+i+')" style="text-align:right"/></td>'+
+    '<td><input type="number" id="r'+i+'-tarifa" placeholder="0" min="0" oninput="calcRow('+i+')" style="text-align:right"/></td>'+
+    '<td class="ro" id="r'+i+'-sub" style="text-align:right">—</td>'+
+    '<td><input type="text" id="r'+i+'-unidad" placeholder="viaje" oninput="autoSave()"/></td>'+
+    '<td class="ro" id="r'+i+'-total" style="text-align:right">—</td>'+
+    '<td><input type="text" id="r'+i+'-obs" placeholder="—" oninput="autoSave()"/></td>'+
+    '<td class="act"><button class="btn btn-danger" onclick="eliminarItem('+i+')" title="Eliminar">✕</button></td>';
+  document.getElementById('items-body').appendChild(tr);
+  if(data){
+    ['eq','mod','yr','cant','tarifa','unidad','obs'].forEach(f=>{
+      const el = document.getElementById('r'+i+'-'+f);
+      if(el && data[f]) el.value = data[f];
+    });
+    calcRow(i);
+  }
+}
+
+function eliminarItem(i){
+  document.getElementById('item-row-'+i)?.remove();
+  renumerarItems(); calcAll(); autoSave();
+}
+
+function contarItems(){
+  return document.getElementById('items-body').querySelectorAll('tr').length;
+}
+function renumerarItems(){
+  document.getElementById('items-body').querySelectorAll('tr').forEach((tr,idx)=>{
+    const td = tr.querySelector('td:first-child');
+    if(td) td.textContent = idx+1;
+  });
+}
+
+/* ── SEGUROS ── */
+function agregarSeguro(data){
+  seguroCount++;
+  const s = seguroCount;
+  const tr = document.createElement('tr');
+  tr.id = 'seg-row-'+s;
+  tr.innerHTML =
+    '<td><input type="text" id="s'+s+'-tipo" placeholder="Ej: Responsabilidad Civil, Daño al equipo…" oninput="autoSave()"/></td>'+
+    '<td><input type="text" id="s'+s+'-uf" placeholder="Ej: 2000" style="text-align:right" oninput="autoSave()"/></td>'+
+    '<td><input type="text" id="s'+s+'-obs" placeholder="—" oninput="autoSave()"/></td>'+
+    '<td class="act"><button class="btn btn-danger" onclick="eliminarSeguro('+s+')" title="Eliminar">✕</button></td>';
+  document.getElementById('seguros-body').appendChild(tr);
+  if(data){
+    if(data.tipo) document.getElementById('s'+s+'-tipo').value = data.tipo;
+    if(data.uf)   document.getElementById('s'+s+'-uf').value   = data.uf;
+    if(data.obs)  document.getElementById('s'+s+'-obs').value  = data.obs;
+  }
+}
+
+function eliminarSeguro(s){
+  document.getElementById('seg-row-'+s)?.remove(); autoSave();
+}
+
+/* ── CALC ── */
+function fmt(n){
+  return n===0||isNaN(n) ? '—' : '$'+Math.round(n).toLocaleString('es-CL');
+}
+function calcRow(i){
+  const cant   = parseFloat(document.getElementById('r'+i+'-cant')?.value)||0;
+  const tarifa = parseFloat(document.getElementById('r'+i+'-tarifa')?.value)||0;
+  const sub = cant*tarifa;
+  const subEl = document.getElementById('r'+i+'-sub');
+  const totEl = document.getElementById('r'+i+'-total');
+  if(subEl) subEl.textContent = sub ? fmt(sub) : '—';
+  if(totEl) totEl.textContent = sub ? fmt(sub) : '—';
+  calcAll(); autoSave();
+  return sub;
+}
+function calcAll(){
+  let neto = 0;
+  document.getElementById('items-body').querySelectorAll('tr').forEach(tr=>{
+    const id = tr.id.replace('item-row-','');
+    neto += (parseFloat(document.getElementById('r'+id+'-cant')?.value)||0) *
+            (parseFloat(document.getElementById('r'+id+'-tarifa')?.value)||0);
+  });
+  const iva = neto*0.19, total = neto+iva;
+  document.getElementById('tf-neto').textContent  = neto  ? fmt(neto)  : '—';
+  document.getElementById('tf-iva').textContent   = iva   ? fmt(iva)   : '—';
+  document.getElementById('tf-total').textContent = total ? fmt(total) : '—';
+  return neto;
+}
+
+/* ── COLLECT / APPLY ── */
+function getNetoValue(){
+  let neto = 0;
+  document.getElementById('items-body').querySelectorAll('tr').forEach(tr=>{
+    const id = tr.id.replace('item-row-','');
+    neto += (parseFloat(document.getElementById('r'+id+'-cant')?.value)||0) *
+            (parseFloat(document.getElementById('r'+id+'-tarifa')?.value)||0);
+  });
+  return neto;
+}
+function collectItems(){
+  const rows = [];
+  document.getElementById('items-body').querySelectorAll('tr').forEach(tr=>{
+    const id = tr.id.replace('item-row-','');
+    rows.push({
+      eq:     document.getElementById('r'+id+'-eq')?.value||'',
+      mod:    document.getElementById('r'+id+'-mod')?.value||'',
+      yr:     document.getElementById('r'+id+'-yr')?.value||'',
+      cant:   document.getElementById('r'+id+'-cant')?.value||'',
+      tarifa: document.getElementById('r'+id+'-tarifa')?.value||'',
+      unidad: document.getElementById('r'+id+'-unidad')?.value||'',
+      obs:    document.getElementById('r'+id+'-obs')?.value||'',
+    });
+  });
+  return rows;
+}
+function collectSeguros(){
+  const rows = [];
+  document.getElementById('seguros-body').querySelectorAll('tr').forEach(tr=>{
+    const id = tr.id.replace('seg-row-','');
+    rows.push({
+      tipo: document.getElementById('s'+id+'-tipo')?.value||'',
+      uf:   document.getElementById('s'+id+'-uf')?.value||'',
+      obs:  document.getElementById('s'+id+'-obs')?.value||'',
+    });
+  });
+  return rows;
+}
+function collectData(){
+  return {
+    licitId:     licitacionId,
+    numCotiz:    document.getElementById('f-num-cotiz').value,
+    fecha:       document.getElementById('f-fecha').value,
+    idLicit:     document.getElementById('f-id-licit').value,
+    validez:     document.getElementById('f-validez').value,
+    ruta:        document.getElementById('f-ruta').value,
+    desc:        document.getElementById('f-desc').value,
+    fechaCarga:  document.getElementById('f-fecha-carga').value,
+    fechaEntreg: document.getElementById('f-fecha-entrega').value,
+    obsGen:      document.getElementById('f-obs-gen').value,
+    items:       collectItems(),
+    seguros:     collectSeguros(),
+    savedAt:     new Date().toISOString(),
+  };
+}
+function applyData(d){
+  if(!d) return;
+  const set = (id,v)=>{ const el=document.getElementById(id); if(el&&v!==undefined) el.value=v||''; };
+  set('f-num-cotiz',    d.numCotiz);
+  set('f-fecha',        d.fecha);
+  set('f-validez',      d.validez);
+  set('f-ruta',         d.ruta);
+  set('f-desc',         d.desc);
+  set('f-fecha-carga',  d.fechaCarga);
+  set('f-fecha-entrega',d.fechaEntreg);
+  set('f-obs-gen',      d.obsGen);
+  (d.items||d.rows||[]).forEach(r => agregarItem(r));
+  (d.seguros||[]).forEach(s => agregarSeguro(s));
+}
+
+/* ── DRAFT ── */
+function cargarBorrador(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return false;
+    const d = JSON.parse(raw);
+    // Solo cargar si es la misma licitación (o no hay licitId en el draft)
+    if(d.licitId && licitacionId && d.licitId !== licitacionId) return false;
+    applyData(d);
+    return true;
+  }catch(e){ return false; }
+}
+let _saveTimer = null;
+function autoSave(){
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(()=>{
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(collectData()));
+      const pill = document.getElementById('save-pill');
+      pill.style.display = 'flex';
+      setTimeout(()=> pill.style.display = 'none', 2000);
+    }catch(e){}
+  }, 800);
+}
+function guardarBorrador(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(collectData()));
+    showToast('Borrador guardado');
+  }catch(e){ showToast('Error al guardar','err'); }
+}
+
+/* ── VALIDATION ── */
+function clearErr(id){
+  document.getElementById(id)?.classList.remove('invalid');
+  document.getElementById('err-'+id)?.classList.remove('show');
+  document.getElementById('err-solicitud')?.classList.remove('show');
+}
+function validar(){
+  let ok = true;
+  const reqs = [
+    {id:'f-ruta',         err:'err-f-ruta'},
+    {id:'f-desc',         err:'err-f-desc'},
+    {id:'f-fecha-carga',  err:'err-f-fecha-carga'},
+    {id:'f-fecha-entrega',err:'err-f-fecha-entrega'},
+  ];
+  let solicitudFail = false;
+  reqs.forEach(({id,err})=>{
+    const el = document.getElementById(id);
+    if(!el || !el.value.trim()){
+      el?.classList.add('invalid');
+      document.getElementById(err)?.classList.add('show');
+      ok = false; solicitudFail = true;
+    }
+  });
+  if(solicitudFail){
+    document.getElementById('err-solicitud').classList.add('show');
+    document.getElementById('f-ruta').scrollIntoView({behavior:'smooth',block:'center'});
+  }
+
+  let tieneItem = false;
+  document.getElementById('items-body').querySelectorAll('tr').forEach(tr=>{
+    const id = tr.id.replace('item-row-','');
+    if(document.getElementById('r'+id+'-eq')?.value.trim() &&
+       document.getElementById('r'+id+'-tarifa')?.value.trim()) tieneItem = true;
+  });
+  if(!tieneItem){
+    ok = false;
+    const e = document.getElementById('err-items');
+    e.classList.add('show');
+    if(!solicitudFail) e.scrollIntoView({behavior:'smooth',block:'center'});
+  } else {
+    document.getElementById('err-items').classList.remove('show');
+  }
+
+  // Términos
+  if(!document.getElementById('chk-terminos').checked){
+    ok = false;
+    const tb = document.getElementById('terms-box');
+    tb.classList.add('invalid-terms');
+    document.getElementById('chk-terminos').onchange = function(){
+      if(this.checked) tb.classList.remove('invalid-terms');
+    };
+    if(!solicitudFail && tieneItem){
+      tb.scrollIntoView({behavior:'smooth',block:'center'});
+    }
+  }
+
+  return ok;
+}
+
+/* ── UPLOAD COTIZACIÓN PROPIA ── */
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  if(e.dataTransfer.files.length) handlePdfFile(e.dataTransfer.files);
+}
+function handlePdfFile(files){
+  if(!files||!files.length) return;
+  const file = files[0];
+  const allowed = ['.pdf','.doc','.docx','.jpg','.jpeg','.png'];
+  const ext = '.'+file.name.split('.').pop().toLowerCase();
+  if(!allowed.includes(ext)){ showToast('Usa PDF, Word o imagen','err'); return; }
+  if(file.size > 8*1024*1024){ showToast('El archivo supera 8 MB','err'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    pdfData = { nombre: file.name, tipo: file.type, base64: e.target.result.split(',')[1] };
+    document.getElementById('upload-zone').classList.add('has-file');
+    document.getElementById('file-chip').style.display = 'flex';
+    document.getElementById('file-chip-name').textContent = file.name;
+  };
+  reader.readAsDataURL(file);
+}
+function removeFile(e){
+  e.stopPropagation();
+  pdfData = null;
+  document.getElementById('upload-zone').classList.remove('has-file');
+  document.getElementById('file-chip').style.display = 'none';
+  document.getElementById('pdf-input').value = '';
+}
+
+/* ── ENVIAR ── */
+async function enviarCotizacion(){
+  calcAll();
+  if(!validar()){
+    showToast('Completa los campos obligatorios','err');
+    return;
+  }
+  if(!licitacionId){
+    showToast('No se encontró el ID de la licitación','err');
+    return;
+  }
+
+  const neto = getNetoValue();
+  if(!neto || neto <= 0){
+    showToast('El monto neto debe ser mayor a 0','err');
+    document.getElementById('err-items').classList.add('show');
+    return;
+  }
+
+  const fechaCarga   = document.getElementById('f-fecha-carga').value;
+  const fechaEntrega = document.getElementById('f-fecha-entrega').value;
+
+  const btn = document.getElementById('btn-enviar');
+  btn.disabled = true;
+  btn.textContent = 'Enviando…';
+
+  try{
+    // 1. Subir archivo propio si existe
+    let archivoPdfId = null, archivoPdfNombre = null;
+    if(pdfData){
+      btn.textContent = 'Subiendo archivo…';
+      const resP = await fetch(API+'/api/archivos/upload',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+        body:JSON.stringify({nombre:pdfData.nombre,tipo:pdfData.tipo,base64:pdfData.base64})
+      });
+      const dataP = await resP.json();
+      if(resP.ok){ archivoPdfId=dataP.id; archivoPdfNombre=pdfData.nombre; }
+    }
+
+    // 2. Enviar cotización con precio = monto NETO
+    btn.textContent = 'Enviando cotización…';
+    const res = await fetch(API+'/api/cotizaciones',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify({
+        licitacionId,
+        precio:       neto,           // ← monto NETO, sin IVA
+        tiempoEntrega:fechaEntrega,
+        fechaCargaISO:fechaCarga,
+        fechaEntregaISO:fechaEntrega,
+        descripción:  document.getElementById('f-obs-gen').value.trim() ||
+                      document.getElementById('f-desc').value.trim(),
+        incluye:      [],
+        archivoId:    null,
+        archivoNombre:null,
+        archivoPdfId,
+        archivoPdfNombre,
+      })
+    });
+    const data = await res.json();
+
+    if(res.ok){
+      // Limpiar borrador de esta licitación
+      localStorage.removeItem(STORAGE_KEY);
+      showToast('✓ Cotización enviada correctamente');
+      setTimeout(()=> window.location.href='/transportista-licitaciones.html', 1800);
+    } else {
+      throw new Error(data.error || 'Error al enviar');
+    }
+  }catch(err){
+    showToast(err.message||'Error de conexión','err');
+    btn.disabled = false;
+    btn.textContent = 'Enviar cotización →';
+  }
+}
+
+/* ── PRINT / PDF ── */
+function imprimirDoc(){ window.print(); }
+function descargarPDF(){
+  showToast('En el diálogo usa "Guardar como PDF"');
+  setTimeout(()=> window.print(), 500);
+}
+
+/* ── TOAST ── */
+function showToast(msg, type='ok'){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.toggle('err', type==='err');
+  t.classList.add('show');
+  setTimeout(()=> t.classList.remove('show','err'), 3000);
+}
+
+init();
+</script>
+
+</body>
+</html>

@@ -623,11 +623,15 @@ return (b/(1024*1024)).toFixed(1)+' MB';
 function abrirModal(id,nombre){
   selectedId=id;
   const l=allLicitaciones.find(x=>x.id===id);
-  if(l){ abrirModalCotizar(l); }
-  else {
-    document.getElementById('modal-licit-nombre').textContent=nombre;
-    document.getElementById('modal-cotizar').classList.add('open');
-  }
+  if(!l) return;
+  const p=new URLSearchParams();
+  p.set('licitId',  l.id);
+  p.set('licitCod', l.codigo||l.código||'');
+  p.set('equipo',   l.tipoEquipo+(l.marca?' '+l.marca:''));
+  p.set('ruta',     (l.origen||'')+(l.destino?' → '+l.destino:''));
+  if(l.fechaCarga)   p.set('fechaCarga',   l.fechaCarga);
+  if(l.fechaEntrega) p.set('fechaEntrega', l.fechaEntrega);
+  window.location.href='/cotizacion-editor.html?'+p.toString();
 }
 // Variables para archivos
 var cotizPdfData = null;
