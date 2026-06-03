@@ -348,10 +348,10 @@ input.invalid,textarea.invalid{border-color:#dc2626!important;background:#fff8f8
         <div style="text-align:center;pointer-events:none">
           <div class="upload-icon">📄</div>
           <div class="upload-label">Arrastra tu archivo o haz clic para seleccionar</div>
-          <div class="upload-sub">PDF, Word o imagen · Máx 8 MB</div>
+          <div class="upload-sub">PDF, Word, Excel o imagen · Máx 8 MB</div>
         </div>
       </div>
-      <input type="file" id="pdf-input" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="display:none" onchange="handlePdfFile(this.files)"/>
+      <input type="file" id="pdf-input" accept=".pdf,.doc,.docx,.xlsx,.xls,.jpg,.jpeg,.png" style="display:none" onchange="handlePdfFile(this.files)"/>
       <div id="file-chip" class="file-chip" style="display:none">
         <span class="file-chip-icon">📎</span>
         <span class="file-chip-name" id="file-chip-name">archivo</span>
@@ -706,9 +706,9 @@ function handleDrop(e){
 function handlePdfFile(files){
   if(!files||!files.length) return;
   const file = files[0];
-  const allowed = ['.pdf','.doc','.docx','.jpg','.jpeg','.png'];
+  const allowed = ['.pdf','.doc','.docx','.xlsx','.xls','.jpg','.jpeg','.png'];
   const ext = '.'+file.name.split('.').pop().toLowerCase();
-  if(!allowed.includes(ext)){ showToast('Usa PDF, Word o imagen','err'); return; }
+  if(!allowed.includes(ext)){ showToast('Usa PDF, Word, Excel o imagen','err'); return; }
   if(file.size > 8*1024*1024){ showToast('El archivo supera 8 MB','err'); return; }
   const reader = new FileReader();
   reader.onload = e => {
