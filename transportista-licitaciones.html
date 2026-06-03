@@ -469,13 +469,13 @@ function renderDetalleInline(l,yaCotize,miCotiz){
 if(yaCotize===undefined) yaCotize=misCotizaciones.has(l.id);
 if(miCotiz===undefined) miCotiz=(l.cotizaciones||[]).find(function(c){return c.transportistaId===userId;});
 let h='';
-h+=`<div style="padding-bottom:12px;margin-bottom:12px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:13px;color:#6B7280;margin-bottom:8px">${l.origen} → ${l.destino}</div>
+h+=`<div style="padding-bottom:12px;margin-bottom:12px;border-bottom:0.5px solid #E5E7EB">
 <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
 ${yaCotize?'<span class="badge badge-green">Cotizacion enviada</span>':'<span class="badge badge-orange">Abierta</span>'}
 ${l.fechaCarga?`<span class="tag">Carga: ${new Date(l.fechaCarga+'T12:00:00').toLocaleDateString('es-CL')}</span>`:''}
 ${l.fechaEntrega?`<span class="tag">Entrega: ${new Date(l.fechaEntrega+'T12:00:00').toLocaleDateString('es-CL')}</span>`:''}
 ${l.peso?`<span class="tag">${l.peso} ton</span>`:''}
-${l.dimensiones?`<span class="tag">${l.dimensiones}</span>`:''}
+${l.dimensiones?`<span class="tag">Dim: ${l.dimensiones}</span>`:''}
 ${l.plazo?`<span class="tag">Plazo: ${l.plazo}h</span>`:''}
 ${l.presupuesto?`<span class="tag">Máx. ${peso(l.presupuesto)}</span>`:''}
 </div></div>`;
@@ -584,11 +584,11 @@ h+=`<div style="padding:16px 18px">
 ${horasRestantes<6?`<div class="warn-box" style="margin:0 0 12px"><span>!</span><span>Cierra en ${horasRestantes} horas. ¡Date prisa!</span></div>`:''}
 <button class="btn btn-orange btn-full" onclick="abrirModal('${l.id}','${(l.tipoEquipo+' '+(l.marca||'')).replace(/'/g,"\\'")}')">
 Cotizar
-</button><div style="font-size:11px;color:#9CA3AF;text-align:center;margin-top:8px">Responde rápido — la velocidad afecta tu score</div></div>`;
+</button></div>`;
 }
 document.getElementById('modal-detalle-titulo').innerHTML = (l.código?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 6px;border-radius:4px;margin-right:6px">'+l.código+'</span>':'')+l.tipoEquipo+(l.marca?' — '+l.marca:'');
-// Título de la licitación en el header de la card (ya visible), solo retornamos el body
-return '<div style="padding:16px 18px">'+'<div style="margin-bottom:12px"><span style="font-size:13px;font-weight:700;color:#1e2d4e">'+(l.código?'<span style="font-size:11px;font-family:monospace;color:#9CA3AF;background:#f5f7fb;padding:1px 6px;border-radius:4px;margin-right:6px">'+l.código+'</span>':'')+l.tipoEquipo+(l.marca?' — '+l.marca:'')+'</span><br><span style="font-size:12px;color:#6B7280">'+l.origen+' → '+l.destino+'</span></div>'+h+'</div>';
+// El título y ruta ya se muestran en el header de la card, solo retornamos el body
+return h;
 }
 async function descargarArchivo(id,nombre){
 try{
