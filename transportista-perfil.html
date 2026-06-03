@@ -1565,7 +1565,7 @@ function initRutInputs() {
     }
   }
 
-  function cargarPrefsConfig(){
+  async function cargarPrefsConfig(){
     try {
       var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
       var ec = document.getElementById('notif-email-chk');
@@ -1575,9 +1575,17 @@ function initRutInputs() {
       if(wc && wc.checked){ var wi=document.getElementById('wa-input'); if(wi) wi.style.display='block'; }
       var waNum = document.getElementById('wa-numero');
       if(waNum && prefs.whatsapp) waNum.value = prefs.whatsapp;
+      // Cargar preferencias detalladas desde el backend (default: todas activas)
+      var notifPrefs = {};
+      try {
+        var me = await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+        var data = await me.json();
+        if(me.ok && data.user && data.user.notifPrefs) notifPrefs = data.user.notifPrefs;
+      } catch(e){}
       ['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
         var el = document.getElementById('pref-'+id);
-        if(el) el.checked = prefs['pref_'+id] !== false;
+        // Default ON: solo desmarcado si explícitamente es false
+        if(el) el.checked = notifPrefs[id] !== false;
       });
     } catch(e){}
   }
@@ -1585,11 +1593,18 @@ function initRutInputs() {
   async function guardarPrefsDetalle(){
     try {
       var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      var notifPrefs = {};
       ['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
         var el = document.getElementById('pref-'+id);
-        if(el) prefs['pref_'+id] = el.checked;
+        if(el){ prefs['pref_'+id] = el.checked; notifPrefs[id] = el.checked; }
       });
       localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+      // Guardar también en el backend para que los emails respeten la preferencia
+      await fetch(API+'/api/auth/me/prefs',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+        body:JSON.stringify({ notifPrefs: notifPrefs })
+      });
     } catch(e){}
   }
 

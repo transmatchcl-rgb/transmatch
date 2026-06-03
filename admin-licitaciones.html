@@ -236,6 +236,9 @@ let allLicit = [];
 let filtroEstado = '';
 
 function peso(n){ return n ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '--'; }
+function formatoRestante(ms){if(ms<=0)return 'Cerrada';var s=Math.floor(ms/1000),d=Math.floor(s/86400);s-=d*86400;var h=Math.floor(s/3600);s-=h*3600;var m=Math.floor(s/60);s-=m*60;if(d>0)return 'Cierra en '+d+'d '+h+'h';if(h>0)return 'Cierra en '+h+'h '+m+'m';if(m>0)return 'Cierra en '+m+'m '+s+'s';return 'Cierra en '+s+'s';}
+var _cdTimer=null;
+function iniciarCuentaRegresiva(){if(_cdTimer)clearInterval(_cdTimer);function tick(){var ahora=Date.now();document.querySelectorAll('.cuenta-regresiva').forEach(function(el){var resta=new Date(el.getAttribute('data-cierre')).getTime()-ahora;el.textContent=formatoRestante(resta);if(resta<=0){el.style.color='#9CA3AF';}else if(resta<3600000){el.style.color='#EF4444';}else if(resta<6*3600000){el.style.color='#F59E0B';}else{el.style.color='#9CA3AF';}});}tick();_cdTimer=setInterval(tick,1000);}
 function timeAgo(iso){
   const d=(Date.now()-new Date(iso).getTime())/60000;
   if(d<60) return 'hace '+Math.floor(d)+'m';
@@ -324,6 +327,7 @@ function filtrar(){
     return;
   }
   document.getElementById('lista-licitaciones').innerHTML=lista.map(renderCard).join('');
+  iniciarCuentaRegresiva();
 }
 
 function renderCard(l){
@@ -344,6 +348,7 @@ function renderCard(l){
       '<div class="li-right">'+
         '<div class="li-cotiz">'+nCotiz+' cotiz.</div>'+
         estadoBadge(l.estado)+
+        (l.estado==='abierta'&&l.cierreAt?'<div class="cuenta-regresiva" data-cierre="'+l.cierreAt+'" style="font-size:10px;color:#9CA3AF;margin-top:2px;text-align:right"></div>':'')+
       '</div>'+
       '<span class="li-arr" id="arr-'+l.id+'">›</span>'+
     '</div>'+

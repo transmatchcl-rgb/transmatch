@@ -254,6 +254,38 @@
   function peso(n){ return n ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '$0'; }
   function desde(iso){ if(!iso) return ''; const d=Math.floor((Date.now()-new Date(iso))/86400000); return d===0?'hoy':d===1?'hace 1d':'hace '+d+'d'; }
   function fecha(iso){ return iso ? new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}) : '--'; }
+  // ── Cuenta regresiva para cierre de licitaciones ──
+  function formatoRestante(ms){
+    if(ms<=0) return 'Cerrada';
+    var s=Math.floor(ms/1000);
+    var d=Math.floor(s/86400); s-=d*86400;
+    var h=Math.floor(s/3600); s-=h*3600;
+    var m=Math.floor(s/60); s-=m*60;
+    if(d>0) return 'Cierra en '+d+'d '+h+'h';
+    if(h>0) return 'Cierra en '+h+'h '+m+'m';
+    if(m>0) return 'Cierra en '+m+'m '+s+'s';
+    return 'Cierra en '+s+'s';
+  }
+  var _cdTimer=null;
+  function iniciarCuentaRegresiva(){
+    if(_cdTimer) clearInterval(_cdTimer);
+    function tick(){
+      var els=document.querySelectorAll('.cuenta-regresiva');
+      var ahora=Date.now();
+      els.forEach(function(el){
+        var cierre=new Date(el.getAttribute('data-cierre')).getTime();
+        var resta=cierre-ahora;
+        el.textContent=formatoRestante(resta);
+        // Colorear según urgencia
+        if(resta<=0){ el.style.color='#9CA3AF'; }
+        else if(resta < 3600000){ el.style.color='#EF4444'; }      // < 1h rojo
+        else if(resta < 6*3600000){ el.style.color='#F59E0B'; }    // < 6h ámbar
+        else { el.style.color='#9CA3AF'; }
+      });
+    }
+    tick();
+    _cdTimer=setInterval(tick,1000);
+  }
   function tieneBorradorGuardado(licitId){
     try{
       var email = localStorage.getItem('tm_email') || 'anon';
@@ -279,12 +311,18 @@
   }
 
   async function initApp(){
+    var miUserId = null;
+    var miEmail = (localStorage.getItem('tm_email')||'').toLowerCase();
+    var misCotizadas = new Set();   // ids de licitaciones donde ya cotizé
+    var misGanadas = new Set();     // ids adjudicadas a mí
 
     // ── 1. Datos del usuario ─────────────────────────────────
     try {
       const me = await api('/api/auth/me');
       if(me && me.ok){
         const u = me.data.user;
+        miUserId = u.id;
+        if(u.email) miEmail = (u.email||'').toLowerCase();
         const rating = u.rating || 5.0;
         const total  = u.totalTransportes || 0;
         document.getElementById('kpi-rating').textContent   = ''+rating+'/5';
@@ -345,6 +383,26 @@
     // ── 3. Licitaciones disponibles + transportes activos ────
     const r = await api('/api/licitaciones');
     const todas       = (r && r.ok) ? (r.data.licitaciones || []) : [];
+
+    // Detectar en qué licitaciones ya cotizé (por ID o email, lo que esté disponible)
+    todas.forEach(function(l){
+      var mia = (l.cotizaciones||[]).some(function(c){
+        return (miUserId && c.transportistaId===miUserId) ||
+               (miEmail && (c.transportistaEmail||'').toLowerCase()===miEmail);
+      });
+      if(mia) misCotizadas.add(l.id);
+    });
+    // Confirmar con el historial (fuente confiable, incluye cotizaciones ya cerradas)
+    try {
+      const hist = await api('/api/transportista/historial');
+      if(hist && hist.ok){
+        (hist.data.licitaciones||[]).forEach(function(lh){
+          if(lh.miCotizacion) misCotizadas.add(lh.id);
+          if(lh.gane) misGanadas.add(lh.id);
+        });
+      }
+    } catch(e){}
+
     const disponibles = todas.filter(function(l){ return l.estado==='abierta'; });
     const adjudicadas = todas.filter(function(l){ return l.estado==='adjudicada' || l.estado==='completada'; });
 
@@ -384,9 +442,10 @@
               '</div>' +
               '<div class="row-meta">' + l.origen + ' → ' + l.destino + ' · ' + desde(l.createdAt) + '</div>' +
             '</div>' +
-            (function(){var miCotiz=l.cotizaciones&&l.cotizaciones.find(function(c){return c.transportistaEmail===localStorage.getItem('tm_email')});var badge='';if(miCotiz){badge='<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#F0FDF4;color:#14532D">Cotizacion enviada</span>';}else if(tieneBorradorGuardado(l.id)){badge='<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#eef1f8;color:#1e2d4e">Borrador guardado</span>';}else{badge='<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#FFF7ED;color:#92400E">Disponible</span>';}return '<span style="flex-shrink:0">'+badge+'</span>';})() +
+            (function(){var badge='';if(misCotizadas.has(l.id)){badge='<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#F0FDF4;color:#14532D">Cotizacion enviada</span>';}else if(tieneBorradorGuardado(l.id)){badge='<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#eef1f8;color:#1e2d4e">Borrador guardado</span>';}else{badge='<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#FFF7ED;color:#92400E">Disponible</span>';}var cd=l.cierreAt?'<div class="cuenta-regresiva" data-cierre="'+l.cierreAt+'" style="font-size:10px;color:#9CA3AF;margin-top:3px;text-align:right"></div>':'';return '<span style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:2px">'+badge+cd+'</span>';})() +
           '</div>';
         }).join('');
+        iniciarCuentaRegresiva();
       }
     }
 
