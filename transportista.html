@@ -256,10 +256,12 @@
   function fecha(iso){ return iso ? new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}) : '--'; }
   function tieneBorradorGuardado(licitId){
     try{
-      var raw = localStorage.getItem('tm_cotiz_draft');
+      var email = localStorage.getItem('tm_email') || 'anon';
+      var raw = localStorage.getItem('tm_cotiz_draft:'+email+':'+licitId);
       if(!raw) return false;
       var d = JSON.parse(raw);
-      if(!d.licitId || String(d.licitId)!==String(licitId)) return false;
+      if(d.ownerEmail && d.ownerEmail !== email) return false;
+      if(d.licitId && String(d.licitId)!==String(licitId)) return false;
       var tieneItems = (d.items||[]).some(function(it){ return (it.eq&&it.eq.trim()) || (it.tarifa&&it.tarifa.trim()); });
       var tieneDatos = (d.ruta&&d.ruta.trim()) || (d.desc&&d.desc.trim()) || d.fechaCarga || d.fechaEntreg;
       return tieneItems || tieneDatos;

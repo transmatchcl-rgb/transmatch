@@ -403,7 +403,15 @@ input.invalid,textarea.invalid{border-color:#dc2626!important;background:#fff8f8
 
 <script>
 const API = 'https://transmatch.transmatchcl.workers.dev';
-const STORAGE_KEY = 'tm_cotiz_draft';
+// Clave de borrador específica por usuario Y por licitación, para que
+// el borrador de un transportista nunca aparezca en otro.
+function getStorageKey(){
+  const email = localStorage.getItem('tm_email') || 'anon';
+  const lic = licitacionId || 'sinlic';
+  return 'tm_cotiz_draft:' + email + ':' + lic;
+}
+// Limpia borradores viejos del esquema antiguo (clave global) para evitar fugas
+try{ localStorage.removeItem('tm_cotiz_draft'); }catch(e){}
 let itemCount = 0, seguroCount = 0;
 let pdfData = null; // { nombre, tipo, base64 }
 let licitacionId = null; // ID real de la licitación para la API
@@ -432,8 +440,7 @@ function init(){
     document.getElementById('f-id-licit').value = cod;
   }
   if(p.get('ruta'))         document.getElementById('f-ruta').value          = p.get('ruta');
-  if(p.get('fechaCarga'))   document.getElementById('f-fecha-carga').value   = p.get('fechaCarga');
-  if(p.get('fechaEntrega')) document.getElementById('f-fecha-entrega').value = p.get('fechaEntrega');
+  // Las fechas de carga/entrega NO se prellenan: el transportista debe elegirlas
 
   // ── MODO EDICIÓN: traer la cotización guardada del backend ──
   if(modoEditar && licitacionId){
@@ -634,6 +641,7 @@ function collectSeguros(){
 function collectData(){
   return {
     licitId:     licitacionId,
+    ownerEmail:  localStorage.getItem('tm_email') || 'anon',
     numCotiz:    document.getElementById('f-num-cotiz').value,
     fecha:       document.getElementById('f-fecha').value,
     idLicit:     document.getElementById('f-id-licit').value,
@@ -666,11 +674,13 @@ function applyData(d){
 /* ── DRAFT ── */
 function cargarBorrador(){
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(getStorageKey());
     if(!raw) return false;
     const d = JSON.parse(raw);
-    // Solo cargar si es la misma licitación (o no hay licitId en el draft)
-    if(d.licitId && licitacionId && d.licitId !== licitacionId) return false;
+    // Validar que el borrador corresponda a esta licitación Y a este usuario
+    const email = localStorage.getItem('tm_email') || 'anon';
+    if(d.licitId && licitacionId && String(d.licitId) !== String(licitacionId)) return false;
+    if(d.ownerEmail && d.ownerEmail !== email) return false;
     applyData(d);
     return true;
   }catch(e){ return false; }
@@ -680,7 +690,7 @@ function autoSave(){
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(()=>{
     try{
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(collectData()));
+      localStorage.setItem(getStorageKey(), JSON.stringify(collectData()));
       const pill = document.getElementById('save-pill');
       pill.style.display = 'flex';
       setTimeout(()=> pill.style.display = 'none', 2000);
@@ -689,7 +699,7 @@ function autoSave(){
 }
 function guardarBorrador(){
   try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(collectData()));
+    localStorage.setItem(getStorageKey(), JSON.stringify(collectData()));
     showToast('Borrador guardado');
   }catch(e){ showToast('Error al guardar','err'); }
 }
@@ -865,7 +875,7 @@ async function enviarCotizacion(){
 
     if(res.ok){
       // Limpiar borrador de esta licitación
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(getStorageKey());
       showToast(modoEditar ? '✓ Cotización actualizada' : '✓ Cotización enviada correctamente');
       setTimeout(()=> window.location.href='/transportista-licitaciones.html', 1800);
     } else {
