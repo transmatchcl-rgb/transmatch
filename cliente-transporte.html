@@ -514,6 +514,7 @@ async function descargar(archivoId, nombre){
   }
   function toggleUserMenu(e){
     e.stopPropagation();
+  var _mp=document.getElementById('nav-mobile-panel'); if(_mp) _mp.classList.remove('open');
     var m=document.getElementById('user-menu');
     var isOpen=m.style.display==='block';
     closeAllPanels();
@@ -521,6 +522,7 @@ async function descargar(archivoId, nombre){
   }
   function toggleNotifs(e){
     if(e) e.stopPropagation();
+    var _mp=document.getElementById('nav-mobile-panel'); if(_mp) _mp.classList.remove('open');
     var p=document.getElementById('notif-panel');
     var isOpen=p.style.display==='flex';
     closeAllPanels();
@@ -602,7 +604,16 @@ async function descargar(archivoId, nombre){
 
 function toggleMobileNav(){
   var p=document.getElementById('nav-mobile-panel');
-  if(p) p.classList.toggle('open');
+  if(!p) return;
+  var willOpen = !p.classList.contains('open');
+  // Cerrar otros menús (avatar y notificaciones) si existen
+  var um=document.getElementById('user-menu'); if(um) um.style.display='none';
+  var np=document.getElementById('notif-panel'); if(np) np.style.display='none';
+  if(typeof closeAllPanels==='function'){ try{closeAllPanels();}catch(e){} }
+  if(willOpen) p.classList.add('open'); else p.classList.remove('open');
+}
+function cerrarMenuMovil(){
+  var p=document.getElementById('nav-mobile-panel'); if(p) p.classList.remove('open');
 }
 document.addEventListener('click',function(e){
   var p=document.getElementById('nav-mobile-panel');

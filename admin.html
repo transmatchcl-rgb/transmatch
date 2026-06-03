@@ -766,7 +766,16 @@
 
 function toggleMobileNav(){
   var p=document.getElementById('nav-mobile-panel');
-  if(p) p.classList.toggle('open');
+  if(!p) return;
+  var willOpen = !p.classList.contains('open');
+  // Cerrar otros menús (avatar y notificaciones) si existen
+  var um=document.getElementById('user-menu'); if(um) um.style.display='none';
+  var np=document.getElementById('notif-panel'); if(np) np.style.display='none';
+  if(typeof closeAllPanels==='function'){ try{closeAllPanels();}catch(e){} }
+  if(willOpen) p.classList.add('open'); else p.classList.remove('open');
+}
+function cerrarMenuMovil(){
+  var p=document.getElementById('nav-mobile-panel'); if(p) p.classList.remove('open');
 }
 document.addEventListener('click',function(e){
   var p=document.getElementById('nav-mobile-panel');
