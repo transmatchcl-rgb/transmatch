@@ -372,9 +372,31 @@ allLicitaciones.push(lh);
 });
 }
 } catch(e) {}
+actualizarStats();
 filtrar();
 var _urlId=new URLSearchParams(window.location.search).get('id');
 if(_urlId){selectLicitacion(_urlId);}
+}
+function actualizarStats(){
+  // Disponibles: abiertas sin cotizar aún
+  var disponibles = allLicitaciones.filter(function(l){
+    return l.estado==='abierta' && !misCotizaciones.has(l.id);
+  }).length;
+  // Cotizaciones enviadas: cotizadas y aún abiertas (en espera)
+  var enviadas = allLicitaciones.filter(function(l){
+    return misCotizaciones.has(l.id) && l.estado==='abierta';
+  }).length;
+  // Adjudicaciones totales (transportes ganados)
+  var adjudicadas = licitacionesGanadas.size;
+  // Total de cotizaciones que envié (para la tasa)
+  var totalCotizadas = misCotizaciones.size;
+  var tasa = totalCotizadas>0 ? Math.round((adjudicadas/totalCotizadas)*100) : 0;
+
+  var set = function(id,val){ var el=document.getElementById(id); if(el) el.textContent=val; };
+  set('sc-disponibles', disponibles);
+  set('sc-enviadas', enviadas);
+  set('sc-adjudicadas', adjudicadas);
+  set('sc-tasa', totalCotizadas>0 ? tasa+'%' : '—');
 }
 function setTabChip(tab,el){
 document.querySelectorAll('.filter-chip').forEach(function(b){b.classList.remove('active');});
