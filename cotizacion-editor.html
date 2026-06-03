@@ -23,7 +23,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:all .15s;white-space:nowrap}
 .btn:hover{opacity:.88}
 .btn-save{background:#ff8904;color:#fff}
-.btn-send{background:#16a34a;color:#fff;font-size:14px;font-weight:600;padding:10px 24px}
+.btn-send{background:#ff8904;color:#fff;font-size:14px;font-weight:600;padding:10px 24px}
 .btn-send:disabled{opacity:.55;cursor:not-allowed}
 .btn-pdf{background:#1e2d4e;color:#fff}
 .btn-print{background:#374151;color:#fff}
@@ -263,7 +263,6 @@ input.invalid,textarea.invalid{border-color:#dc2626!important;background:#fff8f8
               <th style="width:100px">Sub Total Neto</th>
               <th style="width:76px">Unidad</th>
               <th style="width:100px">Total Neto</th>
-              <th style="width:130px">Observaciones</th>
               <th style="width:32px;border-left:none" class="act"></th>
             </tr>
           </thead>
@@ -272,17 +271,17 @@ input.invalid,textarea.invalid{border-color:#dc2626!important;background:#fff8f8
             <tr>
               <td colspan="8" class="lbl">Monto Neto</td>
               <td class="ro tot" id="tf-neto" style="background:#eef1f8;font-size:15px;color:#1e2d4e"></td>
-              <td style="background:#f8f9fc"></td><td style="background:#f8f9fc;border-left:none"></td>
+              <td style="background:#f8f9fc;border-left:none"></td>
             </tr>
             <tr>
               <td colspan="8" class="lbl" style="color:#374151">IVA 19%</td>
               <td class="ro" id="tf-iva"></td>
-              <td style="background:#f8f9fc"></td><td style="background:#f8f9fc;border-left:none"></td>
+              <td style="background:#f8f9fc;border-left:none"></td>
             </tr>
             <tr>
               <td colspan="8" class="lbl tot">TOTAL (con IVA)</td>
               <td class="ro tot" id="tf-total"></td>
-              <td style="background:#eef1f8"></td><td style="background:#eef1f8;border-left:none"></td>
+              <td style="background:#eef1f8;border-left:none"></td>
             </tr>
           </tfoot>
         </table>
@@ -390,8 +389,7 @@ input.invalid,textarea.invalid{border-color:#dc2626!important;background:#fff8f8
   <!-- BOTTOM BAR -->
   <div class="bottom-bar">
     <div class="bottom-bar-left">
-      <button class="btn btn-print" onclick="imprimirDoc()">🖨 Imprimir</button>
-      <button class="btn btn-pdf" onclick="descargarPDF()">↓ PDF</button>
+      <button class="btn btn-print" onclick="imprimirDoc()">🖨 Imprimir / PDF</button>
       <button class="btn btn-ghost" onclick="guardarBorrador()">💾 Guardar borrador</button>
     </div>
     <button class="btn btn-send" id="btn-enviar" onclick="enviarCotizacion()">
@@ -453,7 +451,7 @@ function agregarItem(data){
   const tr = document.createElement('tr');
   tr.id = 'item-row-'+i;
   tr.innerHTML =
-    '<td style="text-align:center;padding:6px 4px;color:#9CA3AF;font-size:11px;font-weight:600">'+contarItems()+'</td>'+
+    '<td style="text-align:center;padding:6px 4px;color:#9CA3AF;font-size:11px;font-weight:600">'+(contarItems()+1)+'</td>'+
     '<td><input type="text" id="r'+i+'-eq" placeholder="Descripción…" oninput="autoSave();document.getElementById(\'err-items\').classList.remove(\'show\')"/></td>'+
     '<td><input type="text" id="r'+i+'-mod" placeholder="—" oninput="autoSave()"/></td>'+
     '<td><input type="number" id="r'+i+'-yr" placeholder="—" min="1990" max="2099" style="text-align:center" oninput="autoSave()"/></td>'+
@@ -462,11 +460,10 @@ function agregarItem(data){
     '<td class="ro" id="r'+i+'-sub" style="text-align:right">—</td>'+
     '<td><input type="text" id="r'+i+'-unidad" placeholder="viaje" oninput="autoSave()"/></td>'+
     '<td class="ro" id="r'+i+'-total" style="text-align:right">—</td>'+
-    '<td><input type="text" id="r'+i+'-obs" placeholder="—" oninput="autoSave()"/></td>'+
     '<td class="act"><button class="btn btn-danger" onclick="eliminarItem('+i+')" title="Eliminar">✕</button></td>';
   document.getElementById('items-body').appendChild(tr);
   if(data){
-    ['eq','mod','yr','cant','tarifa','unidad','obs'].forEach(f=>{
+    ['eq','mod','yr','cant','tarifa','unidad'].forEach(f=>{
       const el = document.getElementById('r'+i+'-'+f);
       if(el && data[f]) el.value = data[f];
     });
@@ -562,7 +559,6 @@ function collectItems(){
       cant:   document.getElementById('r'+id+'-cant')?.value||'',
       tarifa: document.getElementById('r'+id+'-tarifa')?.value||'',
       unidad: document.getElementById('r'+id+'-unidad')?.value||'',
-      obs:    document.getElementById('r'+id+'-obs')?.value||'',
     });
   });
   return rows;
@@ -778,17 +774,32 @@ async function enviarCotizacion(){
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
       body:JSON.stringify({
         licitacionId,
-        precio:       neto,           // ← monto NETO, sin IVA
+        precio:       neto,           // ← monto NETO, sin IVA (usado para rankear)
         tiempoEntrega:fechaEntrega,
         fechaCargaISO:fechaCarga,
         fechaEntregaISO:fechaEntrega,
-        descripción:  document.getElementById('f-obs-gen').value.trim() ||
+        descripcion:  document.getElementById('f-obs-gen').value.trim() ||
                       document.getElementById('f-desc').value.trim(),
         incluye:      [],
         archivoId:    null,
         archivoNombre:null,
         archivoPdfId,
         archivoPdfNombre,
+        // ── Formulario completo (para revisar después) ──
+        formulario: {
+          fecha:        document.getElementById('f-fecha').value,
+          validez:      document.getElementById('f-validez').value,
+          ruta:         document.getElementById('f-ruta').value,
+          descripcion:  document.getElementById('f-desc').value,
+          fechaCarga,
+          fechaEntrega,
+          montoNeto:    neto,
+          iva:          Math.round(neto*0.19),
+          montoTotal:   Math.round(neto*1.19),
+          items:        collectItems(),
+          seguros:      collectSeguros(),
+          observaciones:document.getElementById('f-obs-gen').value,
+        },
       })
     });
     const data = await res.json();
@@ -810,10 +821,6 @@ async function enviarCotizacion(){
 
 /* ── PRINT / PDF ── */
 function imprimirDoc(){ window.print(); }
-function descargarPDF(){
-  showToast('En el diálogo usa "Guardar como PDF"');
-  setTimeout(()=> window.print(), 500);
-}
 
 /* ── TOAST ── */
 function showToast(msg, type='ok'){

@@ -329,6 +329,10 @@ catch(e){return null}
 async function initApp(){
 await cargarLicitaciones();
 }
+// Refrescar badges al volver a la página (ej. tras guardar un borrador)
+window.addEventListener('pageshow', function(e){
+  if(e.persisted && typeof allLicitaciones !== 'undefined' && allLicitaciones.length){ filtrar(); }
+});
 async function cargarLicitaciones(){
 document.getElementById('lista-licitaciones').innerHTML='<div style="padding:32px;text-align:center"><div class="spinner"></div></div>';
 const r=await api('/api/licitaciones');
@@ -370,6 +374,18 @@ function setTab(tab){
 tabActual = tab;
 filtrar();
 }
+function tieneBorradorGuardado(licitId){
+  try{
+    var raw = localStorage.getItem('tm_cotiz_draft');
+    if(!raw) return false;
+    var d = JSON.parse(raw);
+    if(!d.licitId) return false;
+    if(String(d.licitId) !== String(licitId)) return false;
+    var tieneItems = (d.items||[]).some(function(it){ return (it.eq&&it.eq.trim()) || (it.tarifa&&it.tarifa.trim()); });
+    var tieneDatos = (d.ruta&&d.ruta.trim()) || (d.desc&&d.desc.trim()) || d.fechaCarga || d.fechaEntreg;
+    return tieneItems || tieneDatos;
+  }catch(e){ return false; }
+}
 function filtrar(){
 const q=(document.getElementById('buscador').value||'').toLowerCase();
 var base=q?allLicitaciones.filter(l=>(l.tipoEquipo+l.origen+l.destino+l.marca).toLowerCase().includes(q)):allLicitaciones;
@@ -387,9 +403,12 @@ return;
 }
 document.getElementById('lista-licitaciones').innerHTML=lista.map(function(l){
 var yaCotize = misCotizaciones.has(l.id);
+var tieneBorrador = tieneBorradorGuardado(l.id) && l.estado==='abierta' && !yaCotize;
 var badgeHtml = yaCotize
   ? '<span class="badge badge-green">Cotizacion enviada</span>'
-  : '<span class="badge badge-orange">Disponible</span>';
+  : (tieneBorrador
+      ? '<span class="badge badge-blue">Borrador guardado</span>'
+      : '<span class="badge badge-orange">Disponible</span>');
 var miCotiz = (l.cotizaciones||[]).find(function(c){ return c.transportistaId===userId; });
 var precioMostrar = miCotiz ? miCotiz.precio : (l.presupuesto||null);
 // Detalle inline
