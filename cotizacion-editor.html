@@ -407,6 +407,8 @@ const STORAGE_KEY = 'tm_cotiz_draft';
 let itemCount = 0, seguroCount = 0;
 let pdfData = null; // { nombre, tipo, base64 }
 let licitacionId = null; // ID real de la licitación para la API
+let modoEditar = false;
+let cotizIdEditar = null;
 
 /* ── INIT ── */
 function init(){
@@ -416,6 +418,8 @@ function init(){
 
   const p = new URLSearchParams(window.location.search);
   licitacionId = p.get('licitId') || null;
+  modoEditar = p.get('editar')==='1';
+  cotizIdEditar = p.get('cotizId') || null;
 
   // Banner de licitación
   const cod    = p.get('licitCod') || licitacionId || '—';
@@ -431,6 +435,16 @@ function init(){
   if(p.get('fechaCarga'))   document.getElementById('f-fecha-carga').value   = p.get('fechaCarga');
   if(p.get('fechaEntrega')) document.getElementById('f-fecha-entrega').value = p.get('fechaEntrega');
 
+  // ── MODO EDICIÓN: traer la cotización guardada del backend ──
+  if(modoEditar && licitacionId){
+    document.getElementById('btn-enviar').textContent = 'Guardar cambios →';
+    cargarCotizacionExistente().then(()=>{
+      calcAll();
+      document.getElementById('sheet').addEventListener('input', ()=>{ calcAll(); autoSave(); });
+    });
+    return;
+  }
+
   // Cargar borrador si corresponde a la misma licitación
   const hasDraft = cargarBorrador();
   if(!hasDraft){
@@ -442,6 +456,48 @@ function init(){
 
   calcAll();
   document.getElementById('sheet').addEventListener('input', ()=>{ calcAll(); autoSave(); });
+}
+
+// Trae la cotización ya enviada y la carga en el formulario para editar
+async function cargarCotizacionExistente(){
+  try{
+    const res = await fetch(API+'/api/cotizaciones/mia/'+encodeURIComponent(licitacionId),{
+      headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}
+    });
+    const data = await res.json();
+    if(res.ok && data.cotizacion){
+      const c = data.cotizacion;
+      // Si guardó el formulario completo, restaurarlo
+      if(c.formulario){
+        const f = c.formulario;
+        if(f.validez)  document.getElementById('f-validez').value = f.validez;
+        if(f.ruta)     document.getElementById('f-ruta').value = f.ruta;
+        if(f.descripcion) document.getElementById('f-desc').value = f.descripcion;
+        if(f.fechaCarga)   document.getElementById('f-fecha-carga').value = f.fechaCarga;
+        if(f.fechaEntrega) document.getElementById('f-fecha-entrega').value = f.fechaEntrega;
+        if(f.observaciones) document.getElementById('f-obs-gen').value = f.observaciones;
+        (f.items||[]).forEach(it => agregarItem(it));
+        (f.seguros||[]).forEach(s => agregarSeguro(s));
+        if(!(f.items||[]).length){ agregarItem(); agregarItem(); agregarItem(); }
+        if(!(f.seguros||[]).length){ agregarSeguro(); agregarSeguro(); }
+      } else {
+        // Cotización antigua sin formulario: prellenar lo básico
+        if(c.fechaCargaISO)   document.getElementById('f-fecha-carga').value = c.fechaCargaISO;
+        if(c.fechaEntregaISO) document.getElementById('f-fecha-entrega').value = c.fechaEntregaISO;
+        if(c.descripcion)     document.getElementById('f-desc').value = c.descripcion;
+        // Una fila con el precio total como tarifa
+        agregarItem({ eq:'Servicio de transporte', cant:'1', tarifa:String(c.precio||''), unidad:'viaje' });
+        agregarItem(); agregarSeguro();
+      }
+      // Marcar términos como aceptados (ya había cotizado)
+      const chk = document.getElementById('chk-terminos'); if(chk) chk.checked = true;
+    } else {
+      // No se pudo cargar: arrancar vacío
+      agregarItem(); agregarItem(); agregarItem(); agregarSeguro(); agregarSeguro();
+    }
+  }catch(e){
+    agregarItem(); agregarItem(); agregarItem(); agregarSeguro(); agregarSeguro();
+  }
 }
 
 /* ── ITEMS ── */
@@ -767,47 +823,50 @@ async function enviarCotizacion(){
       if(resP.ok){ archivoPdfId=dataP.id; archivoPdfNombre=pdfData.nombre; }
     }
 
-    // 2. Enviar cotización con precio = monto NETO
-    btn.textContent = 'Enviando cotización…';
-    const res = await fetch(API+'/api/cotizaciones',{
+    // 2. Enviar/actualizar cotización con precio = monto NETO
+    btn.textContent = modoEditar ? 'Guardando cambios…' : 'Enviando cotización…';
+    const payload = {
+      licitacionId,
+      precio:       neto,           // ← monto NETO, sin IVA (usado para rankear)
+      tiempoEntrega:fechaEntrega,
+      fechaCargaISO:fechaCarga,
+      fechaEntregaISO:fechaEntrega,
+      descripcion:  document.getElementById('f-obs-gen').value.trim() ||
+                    document.getElementById('f-desc').value.trim(),
+      incluye:      [],
+      archivoId:    null,
+      archivoNombre:null,
+      archivoPdfId,
+      archivoPdfNombre,
+      // ── Formulario completo (para revisar/editar después) ──
+      formulario: {
+        fecha:        document.getElementById('f-fecha').value,
+        validez:      document.getElementById('f-validez').value,
+        ruta:         document.getElementById('f-ruta').value,
+        descripcion:  document.getElementById('f-desc').value,
+        fechaCarga,
+        fechaEntrega,
+        montoNeto:    neto,
+        iva:          Math.round(neto*0.19),
+        montoTotal:   Math.round(neto*1.19),
+        items:        collectItems(),
+        seguros:      collectSeguros(),
+        observaciones:document.getElementById('f-obs-gen').value,
+      },
+    };
+    if(modoEditar){ payload.cotizacionId = cotizIdEditar; }
+    const endpoint = modoEditar ? '/api/cotizaciones/editar' : '/api/cotizaciones';
+    const res = await fetch(API+endpoint,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
-      body:JSON.stringify({
-        licitacionId,
-        precio:       neto,           // ← monto NETO, sin IVA (usado para rankear)
-        tiempoEntrega:fechaEntrega,
-        fechaCargaISO:fechaCarga,
-        fechaEntregaISO:fechaEntrega,
-        descripcion:  document.getElementById('f-obs-gen').value.trim() ||
-                      document.getElementById('f-desc').value.trim(),
-        incluye:      [],
-        archivoId:    null,
-        archivoNombre:null,
-        archivoPdfId,
-        archivoPdfNombre,
-        // ── Formulario completo (para revisar después) ──
-        formulario: {
-          fecha:        document.getElementById('f-fecha').value,
-          validez:      document.getElementById('f-validez').value,
-          ruta:         document.getElementById('f-ruta').value,
-          descripcion:  document.getElementById('f-desc').value,
-          fechaCarga,
-          fechaEntrega,
-          montoNeto:    neto,
-          iva:          Math.round(neto*0.19),
-          montoTotal:   Math.round(neto*1.19),
-          items:        collectItems(),
-          seguros:      collectSeguros(),
-          observaciones:document.getElementById('f-obs-gen').value,
-        },
-      })
+      body:JSON.stringify(payload)
     });
     const data = await res.json();
 
     if(res.ok){
       // Limpiar borrador de esta licitación
       localStorage.removeItem(STORAGE_KEY);
-      showToast('✓ Cotización enviada correctamente');
+      showToast(modoEditar ? '✓ Cotización actualizada' : '✓ Cotización enviada correctamente');
       setTimeout(()=> window.location.href='/transportista-licitaciones.html', 1800);
     } else {
       throw new Error(data.error || 'Error al enviar');

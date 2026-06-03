@@ -853,6 +853,22 @@ link.download=nombre; link.click();
 }catch(e){toast('Error al descargar','err')}
 }
 function abrirEditarCotiz(licitacionId, nombre){
+  selectedId = licitacionId;
+  const l = allLicitaciones.find(x=>x.id===licitacionId);
+  if(!l){ return; }
+  const mc = (l.cotizaciones||[]).find(c=>c.transportistaId===userId);
+  const p = new URLSearchParams();
+  p.set('licitId',  l.id);
+  p.set('licitCod', l.codigo||l.código||'');
+  p.set('equipo',   l.tipoEquipo+(l.marca?' '+l.marca:''));
+  p.set('ruta',     (l.origen||'')+(l.destino?' → '+l.destino:''));
+  if(l.fechaCarga)   p.set('fechaCarga',   l.fechaCarga);
+  if(l.fechaEntrega) p.set('fechaEntrega', l.fechaEntrega);
+  p.set('editar', '1');
+  if(mc && mc.id) p.set('cotizId', mc.id);
+  window.location.href='/cotizacion-editor.html?'+p.toString();
+}
+function abrirEditarCotiz_OLD(licitacionId, nombre){
 selectedId = licitacionId;
 const mc = (allLicitaciones.find(x=>x.id===licitacionId)?.cotizaciones||[]).find(c=>c.transportistaId===userId);
 document.getElementById('modal-licit-nombre').textContent = nombre;
