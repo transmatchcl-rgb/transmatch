@@ -293,12 +293,22 @@
         const bienNombre = u.nombre || localStorage.getItem('tm_nombre') || '';
         const bienEl = document.getElementById('bienvenida');
         if(bienEl && bienNombre) bienEl.textContent = 'Bienvenido, ' + bienNombre;
-        // Valoracion detallada
+        // Valoracion detallada — diseño con estrellas
+        var estrellas = function(val){
+          var full = Math.floor(val), half = (val - full) >= 0.5;
+          var s = '';
+          for(var i=1;i<=5;i++){
+            if(i<=full) s += '<span style="color:#ff8904">★</span>';
+            else if(i===full+1 && half) s += '<span style="color:#ff8904">⯨</span>';
+            else s += '<span style="color:#e8eaf0">★</span>';
+          }
+          return s;
+        };
         document.getElementById('rating-content').innerHTML =
-          '<div style="text-align:center;margin-bottom:16px">' +
-            '<div style="font-size:48px;font-weight:800;color:#ff8904;line-height:1">' + rating + '</div>' +
-            '<div style="font-size:22px;color:#ff8904;margin:4px 0">' + rating+'/5' + '</div>' +
-            '<div style="font-size:13px;color:#6B7280">' + total + ' transporte' + (total!==1?'s':'') + ' completado' + (total!==1?'s':'') + '</div>' +
+          '<div style="text-align:center;margin-bottom:20px">' +
+            '<div style="font-size:30px;letter-spacing:2px;margin-bottom:6px">' + estrellas(rating) + '</div>' +
+            '<div style="font-size:32px;font-weight:800;color:#1e2d4e;line-height:1">' + rating + '<span style="font-size:16px;font-weight:600;color:#9CA3AF"> / 5</span></div>' +
+            '<div style="font-size:13px;color:#6B7280;margin-top:6px">' + (total>0 ? ('Basado en ' + total + ' transporte' + (total!==1?'s':'') + ' completado' + (total!==1?'s':'')) : 'Sin transportes completados aún') + '</div>' +
           '</div>' +
           [
             ['Comunicación', rating, 'Claridad y fluidez en la comunicación durante el proceso de transporte.'],
@@ -306,10 +316,10 @@
             ['Seriedad', rating, 'Profesionalismo, puntualidad y compromiso con el servicio.'],
             ['Documentación', rating, 'Entrega oportuna y correcta de todos los documentos requeridos.'],
           ].map(function(row){
-            return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">' +
+            return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">' +
               '<div style="font-size:12px;color:#6B7280;min-width:130px;cursor:help;border-bottom:1px dashed #D1D5DB" title="' + (row[2]||'') + '">' + row[0] + '</div>' +
-              '<div style="flex:1;height:6px;background:#e8eaf0;border-radius:3px"><div style="width:' + (row[1]/5*100) + '%;height:100%;background:#ff8904;border-radius:3px"></div></div>' +
-              '<div style="font-size:12px;font-weight:600;color:#374151;min-width:24px">' + row[1] + '</div>' +
+              '<div style="flex:1;height:6px;background:#e8eaf0;border-radius:3px;overflow:hidden"><div style="width:' + (row[1]/5*100) + '%;height:100%;background:#ff8904;border-radius:3px"></div></div>' +
+              '<div style="font-size:12px;font-weight:600;color:#374151;min-width:28px;text-align:right">' + row[1].toFixed(1) + '</div>' +
             '</div>';
           }).join('');
       }
