@@ -141,7 +141,7 @@
         <span class="nav-name">Trans<span>Match</span></span>
         <span class="nav-badge">ADMIN</span>
       </a>
-      <div class="nav-tabs">
+      <button class="nav-mobile-menu" onclick="toggleMobileNav()" aria-label="Menu"><span></span><span></span><span></span></button><div class="nav-tabs">
         <a href="/admin.html" class="nav-tab">Dashboard</a>
         <a href="/admin-licitaciones.html" class="nav-tab active">Licitaciones</a>
         <a href="/admin-cotizaciones.html" class="nav-tab">Cotizaciones</a>
@@ -154,6 +154,17 @@
     </div>
     <button class="logout-btn" onclick="localStorage.clear();window.location.replace('/admin-login.html')">Cerrar sesión</button>
   </nav>
+<div id="nav-mobile-panel" class="nav-mobile-panel">
+<a href="/admin.html" class="nav-mobile-link">Dashboard</a>
+<a href="/admin-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
+<a href="/admin-cotizaciones.html" class="nav-mobile-link">Cotizaciones</a>
+<a href="/admin-transportes.html" class="nav-mobile-link">Transportes</a>
+<a href="/admin-clientes.html" class="nav-mobile-link">Clientes</a>
+<a href="/admin-transportistas.html" class="nav-mobile-link">Transportistas</a>
+<a href="/admin-cobros.html" class="nav-mobile-link">Facturación</a>
+<a href="/admin-reportes.html" class="nav-mobile-link">Reportes</a>
+</div>
+
 
   <main>
     <div style="margin-bottom:18px">
@@ -486,6 +497,16 @@ async function generarCobro(id){
   document.getElementById('app').style.display='flex';
   cargar();
 })();
+
+function toggleMobileNav(){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p) p.classList.toggle('open');
+}
+document.addEventListener('click',function(e){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.nav-mobile-menu'))
+    p.classList.remove('open');
+});
 </script>
 </body>
 </html>

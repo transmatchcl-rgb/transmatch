@@ -118,7 +118,7 @@
   <nav class="nav">
     <div class="nav-left">
       <a href="/transportista.html" class="nav-logo"><div class="nav-icon">T</div><span class="nav-name">Trans<span>Match</span></span></a>
-      <div class="nav-links"><a href="/transportista.html" class="nav-link">Inicio</a><a href="/transportista-retornos.html" class="nav-link">Retornos</a><a href="/transportista-licitaciones.html" class="nav-link">Licitaciones</a><a href="/transportista-transporte.html" class="nav-link active">Transportes</a><a href="/transportista-cobros.html" class="nav-link">Facturacion</a><a href="/transportista-calendario.html" class="nav-link">Calendario</a><a href="/transportista-historial.html" class="nav-link">Historial</a></div>
+      <button class="nav-mobile-menu" onclick="toggleMobileNav()" aria-label="Menu"><span></span><span></span><span></span></button><div class="nav-links"><a href="/transportista.html" class="nav-link">Inicio</a><a href="/transportista-retornos.html" class="nav-link">Retornos</a><a href="/transportista-licitaciones.html" class="nav-link">Licitaciones</a><a href="/transportista-transporte.html" class="nav-link active">Transportes</a><a href="/transportista-cobros.html" class="nav-link">Facturacion</a><a href="/transportista-calendario.html" class="nav-link">Calendario</a><a href="/transportista-historial.html" class="nav-link">Historial</a></div>
     </div>
     <div style="display:flex;align-items:center;gap:12px;"><div class="nav-user-name" style="text-align:right"><div style="font-size:13px;color:#fff;font-weight:500" id="nav-nombre">--</div><div style="font-size:11px;color:#93C5FD" id="nav-empresa">--</div></div><div style="display:flex;align-items:center;gap:8px;"><div style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;" id="notif-btn" onclick="toggleNotifs(event)">
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -151,6 +151,16 @@
 </div>
 </div>
   </nav>
+<div id="nav-mobile-panel" class="nav-mobile-panel">
+<a href="/transportista.html" class="nav-mobile-link">Inicio</a>
+<a href="/transportista-retornos.html" class="nav-mobile-link">Retornos</a>
+<a href="/transportista-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
+<a href="/transportista-transporte.html" class="nav-mobile-link">Transportes</a>
+<a href="/transportista-cobros.html" class="nav-mobile-link">Facturacion</a>
+<a href="/transportista-calendario.html" class="nav-mobile-link">Calendario</a>
+<a href="/transportista-historial.html" class="nav-mobile-link">Historial</a>
+</div>
+
 <div id="notif-panel" onclick="event.stopPropagation()" style="display:none;position:fixed;top:60px;right:16px;width:360px;background:#fff;border-radius:14px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.14);z-index:500;overflow:hidden;max-height:520px;flex-direction:column">
   <!-- Header dinámico: cambia entre "Notificaciones" y "← Configuración" -->
   <div id="notif-header-main" style="padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
@@ -927,6 +937,16 @@ var ne=document.getElementById('nav-empresa');if(ne)ne.textContent=localStorage.
     } catch(e){}
   }
 
+
+function toggleMobileNav(){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p) p.classList.toggle('open');
+}
+document.addEventListener('click',function(e){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.nav-mobile-menu'))
+    p.classList.remove('open');
+});
 </script>
 
 <footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px">

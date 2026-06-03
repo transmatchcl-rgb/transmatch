@@ -95,7 +95,7 @@
 <nav class="nav">
   <div class="nav-left">
     <a href="/cliente.html" class="nav-logo"><div class="nav-icon">T</div><span class="nav-name">Trans<span>Match</span></span></a>
-    <div class="nav-links">
+    <button class="nav-mobile-menu" onclick="toggleMobileNav()" aria-label="Menu"><span></span><span></span><span></span></button><div class="nav-links">
       <a href="/cliente.html" class="nav-link">Inicio</a>
       <a href="/cliente-licitaciones.html" class="nav-link">Licitaciones</a>
       <a href="/cliente-retornos.html" class="nav-link active">Retornos</a>
@@ -127,6 +127,15 @@
     </div>
   </div>
 </nav>
+<div id="nav-mobile-panel" class="nav-mobile-panel">
+<a href="/cliente.html" class="nav-mobile-link">Inicio</a>
+<a href="/cliente-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
+<a href="/cliente-retornos.html" class="nav-mobile-link">Retornos</a>
+<a href="/cliente-transporte.html" class="nav-mobile-link">Transportes</a>
+<a href="/cliente-facturacion.html" class="nav-mobile-link">Facturacion</a>
+<a href="/cliente-calendario.html" class="nav-mobile-link">Calendario</a>
+</div>
+
 
 <main>
   <!-- Encabezado -->
@@ -952,5 +961,15 @@
    cargarNotificaciones();
    initApp();
  })();
+
+function toggleMobileNav(){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p) p.classList.toggle('open');
+}
+document.addEventListener('click',function(e){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.nav-mobile-menu'))
+    p.classList.remove('open');
+});
 </script>
 </body></html>

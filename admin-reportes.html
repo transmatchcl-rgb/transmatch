@@ -93,7 +93,7 @@
         <span class="nav-name">Trans<span>Match</span></span>
         <span class="nav-badge">ADMIN</span>
       </a>
-            <div class="nav-tabs">
+            <button class="nav-mobile-menu" onclick="toggleMobileNav()" aria-label="Menu"><span></span><span></span><span></span></button><div class="nav-tabs">
         <a href="/admin.html" class="nav-tab">Dashboard</a>
         <a href="/admin-licitaciones.html" class="nav-tab">Licitaciones</a>
         <a href="/admin-cotizaciones.html" class="nav-tab">Cotizaciones</a>
@@ -105,7 +105,18 @@
       </div>
       </div>
     <button class="logout-btn" onclick="localStorage.clear();window.location.replace('/admin-login.html')">Cerrar sesion</button>
-  </nav><main><div class="page-hdr"><div><div class="page-title">Reportes y métricas</div><div class="page-sub" id="reporte-fecha">Cargando datos...</div></div><div style="display:flex;gap:8px;align-items:center"><button class="btn btn-outline btn-sm" onclick="exportarCSV()">Exportar CSV</button></div></div><!-- KPIs principales --><div class="grid-4" id="kpis-grid"><div class="kpi"><div class="kpi-label">Cargando...</div></div></div><!-- Gráficos --><div class="grid-2"><div class="card"><div class="card-hdr"><span class="card-title">Licitaciónes por estado</span></div><div class="card-body"><div class="chart-wrap"><canvas id="chart-estados"></canvas></div></div></div><div class="card"><div class="card-hdr"><span class="card-title">Distribución de tipos de equipo</span></div><div class="card-body"><div class="chart-wrap"><canvas id="chart-equipos"></canvas></div></div></div></div><!-- Métricas de rendimiento --><div class="grid-3"><div class="card"><div class="card-hdr"><span class="card-title">Tasa de conversión</span></div><div class="card-body" id="métricas-conversion"><div class="empty">Cargando...</div></div></div><div class="card"><div class="card-hdr"><span class="card-title">Top rutas</span></div><div class="card-body" id="métricas-rutas"><div class="empty">Cargando...</div></div></div><div class="card"><div class="card-hdr"><span class="card-title">Top equipos solicitados</span></div><div class="card-body" id="métricas-equipos-top"><div class="empty">Cargando...</div></div></div></div><!-- Tabla transportistas --><div class="card"><div class="card-hdr"><span class="card-title">Ranking de transportistas</span><span style="font-size:12px;color:#9CA3AF">Por transportes completados y valoración</span></div><div style="overflow-x:auto"><table class="table" id="tabla-transportistas"><thead><tr><th>#</th><th>Transportista</th><th>Empresa</th><th>Transportes</th><th>Valoración</th><th>Estado</th></tr></thead><tbody id="tbody-transportistas"><tr><td colspan="6" class="empty">Cargando...</td></tr></tbody></table></div></div><!-- Tabla clientes --><div class="card"><div class="card-hdr"><span class="card-title">Actividad de clientes</span><span style="font-size:12px;color:#9CA3AF">Por licitaciónes publicadas</span></div><div style="overflow-x:auto"><table class="table"><thead><tr><th>#</th><th>Empresa</th><th>Plan</th><th>Licitaciones</th><th>Completadas</th><th>Gasto total</th></tr></thead><tbody id="tbody-clientes"><tr><td colspan="6" class="empty">Cargando...</td></tr></tbody></table></div></div><!-- Licitaciónes recientes --><div class="card"><div class="card-hdr"><span class="card-title">Últimas licitaciónes</span><a href="/admin.html" style="font-size:13px;color:#1d4ed8;text-decoration:none">Ver todas →</a></div><div style="overflow-x:auto"><table class="table"><thead><tr><th>Equipo</th><th>Ruta</th><th>Cliente</th><th>Cotizaciones</th><th>Valor adj.</th><th>Estado</th></tr></thead><tbody id="tbody-licitaciónes"><tr><td colspan="6" class="empty">Cargando...</td></tr></tbody></table></div></div></main></div><script>
+  </nav>
+<div id="nav-mobile-panel" class="nav-mobile-panel">
+<a href="/admin.html" class="nav-mobile-link">Dashboard</a>
+<a href="/admin-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
+<a href="/admin-cotizaciones.html" class="nav-mobile-link">Cotizaciones</a>
+<a href="/admin-transportes.html" class="nav-mobile-link">Transportes</a>
+<a href="/admin-clientes.html" class="nav-mobile-link">Clientes</a>
+<a href="/admin-transportistas.html" class="nav-mobile-link">Transportistas</a>
+<a href="/admin-cobros.html" class="nav-mobile-link">Facturación</a>
+<a href="/admin-reportes.html" class="nav-mobile-link">Reportes</a>
+</div>
+<main><div class="page-hdr"><div><div class="page-title">Reportes y métricas</div><div class="page-sub" id="reporte-fecha">Cargando datos...</div></div><div style="display:flex;gap:8px;align-items:center"><button class="btn btn-outline btn-sm" onclick="exportarCSV()">Exportar CSV</button></div></div><!-- KPIs principales --><div class="grid-4" id="kpis-grid"><div class="kpi"><div class="kpi-label">Cargando...</div></div></div><!-- Gráficos --><div class="grid-2"><div class="card"><div class="card-hdr"><span class="card-title">Licitaciónes por estado</span></div><div class="card-body"><div class="chart-wrap"><canvas id="chart-estados"></canvas></div></div></div><div class="card"><div class="card-hdr"><span class="card-title">Distribución de tipos de equipo</span></div><div class="card-body"><div class="chart-wrap"><canvas id="chart-equipos"></canvas></div></div></div></div><!-- Métricas de rendimiento --><div class="grid-3"><div class="card"><div class="card-hdr"><span class="card-title">Tasa de conversión</span></div><div class="card-body" id="métricas-conversion"><div class="empty">Cargando...</div></div></div><div class="card"><div class="card-hdr"><span class="card-title">Top rutas</span></div><div class="card-body" id="métricas-rutas"><div class="empty">Cargando...</div></div></div><div class="card"><div class="card-hdr"><span class="card-title">Top equipos solicitados</span></div><div class="card-body" id="métricas-equipos-top"><div class="empty">Cargando...</div></div></div></div><!-- Tabla transportistas --><div class="card"><div class="card-hdr"><span class="card-title">Ranking de transportistas</span><span style="font-size:12px;color:#9CA3AF">Por transportes completados y valoración</span></div><div style="overflow-x:auto"><table class="table" id="tabla-transportistas"><thead><tr><th>#</th><th>Transportista</th><th>Empresa</th><th>Transportes</th><th>Valoración</th><th>Estado</th></tr></thead><tbody id="tbody-transportistas"><tr><td colspan="6" class="empty">Cargando...</td></tr></tbody></table></div></div><!-- Tabla clientes --><div class="card"><div class="card-hdr"><span class="card-title">Actividad de clientes</span><span style="font-size:12px;color:#9CA3AF">Por licitaciónes publicadas</span></div><div style="overflow-x:auto"><table class="table"><thead><tr><th>#</th><th>Empresa</th><th>Plan</th><th>Licitaciones</th><th>Completadas</th><th>Gasto total</th></tr></thead><tbody id="tbody-clientes"><tr><td colspan="6" class="empty">Cargando...</td></tr></tbody></table></div></div><!-- Licitaciónes recientes --><div class="card"><div class="card-hdr"><span class="card-title">Últimas licitaciónes</span><a href="/admin.html" style="font-size:13px;color:#1d4ed8;text-decoration:none">Ver todas →</a></div><div style="overflow-x:auto"><table class="table"><thead><tr><th>Equipo</th><th>Ruta</th><th>Cliente</th><th>Cotizaciones</th><th>Valor adj.</th><th>Estado</th></tr></thead><tbody id="tbody-licitaciónes"><tr><td colspan="6" class="empty">Cargando...</td></tr></tbody></table></div></div></main></div><script>
  let chartEstados=null, chartEquipos=null;
  let _licitaciones=[], _usuarios=[];
 
@@ -305,6 +316,16 @@
  a.href=url;a.download=`TransMatch_Reporte_${new Date().toISOString().split('T')[0]}.csv`;
  a.click();URL.revokeObjectURL(url);
  }
+
+function toggleMobileNav(){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p) p.classList.toggle('open');
+}
+document.addEventListener('click',function(e){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.nav-mobile-menu'))
+    p.classList.remove('open');
+});
 </script>
 <footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px">
   <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">

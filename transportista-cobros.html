@@ -115,7 +115,7 @@
   <nav class="nav">
     <div class="nav-left">
       <a href="/transportista.html" class="nav-logo"><div class="nav-icon">T</div><span class="nav-name">Trans<span>Match</span></span></a>
-      <div class="nav-links"><a href="/transportista.html" class="nav-link">Inicio</a><a href="/transportista-retornos.html" class="nav-link">Retornos</a><a href="/transportista-licitaciones.html" class="nav-link">Licitaciones</a><a href="/transportista-transporte.html" class="nav-link">Transportes</a><a href="/transportista-cobros.html" class="nav-link active">Facturacion</a><a href="/transportista-calendario.html" class="nav-link">Calendario</a><a href="/transportista-historial.html" class="nav-link">Historial</a></div>
+      <button class="nav-mobile-menu" onclick="toggleMobileNav()" aria-label="Menu"><span></span><span></span><span></span></button><div class="nav-links"><a href="/transportista.html" class="nav-link">Inicio</a><a href="/transportista-retornos.html" class="nav-link">Retornos</a><a href="/transportista-licitaciones.html" class="nav-link">Licitaciones</a><a href="/transportista-transporte.html" class="nav-link">Transportes</a><a href="/transportista-cobros.html" class="nav-link active">Facturacion</a><a href="/transportista-calendario.html" class="nav-link">Calendario</a><a href="/transportista-historial.html" class="nav-link">Historial</a></div>
     </div>
     <div style="display:flex;align-items:center;gap:12px;position:relative"><div class="nav-user-name" style="text-align:right"><div style="font-size:13px;color:#fff;font-weight:500" id="nav-nombre">--</div><div style="font-size:11px;color:#93C5FD" id="nav-empresa">--</div></div>
     <div style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center" id="notif-btn" onclick="toggleNotifs(event)">
@@ -130,6 +130,16 @@
     </div>
     </div>
   </nav>
+<div id="nav-mobile-panel" class="nav-mobile-panel">
+<a href="/transportista.html" class="nav-mobile-link">Inicio</a>
+<a href="/transportista-retornos.html" class="nav-mobile-link">Retornos</a>
+<a href="/transportista-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
+<a href="/transportista-transporte.html" class="nav-mobile-link">Transportes</a>
+<a href="/transportista-cobros.html" class="nav-mobile-link">Facturacion</a>
+<a href="/transportista-calendario.html" class="nav-mobile-link">Calendario</a>
+<a href="/transportista-historial.html" class="nav-mobile-link">Historial</a>
+</div>
+
 
   <div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:340px;background:#fff;border-radius:14px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.14);z-index:500;overflow:hidden;max-height:480px;flex-direction:column">
     <div style="padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
@@ -571,6 +581,16 @@ document.addEventListener('click',function(){closeAllPanels();});
   cargarNotificaciones();
   cargar();
 })();
+
+function toggleMobileNav(){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p) p.classList.toggle('open');
+}
+document.addEventListener('click',function(e){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.nav-mobile-menu'))
+    p.classList.remove('open');
+});
 </script>
 <footer style="background:#1e2d4e;margin-top:auto;padding:20px 24px">
   <div style="max-width:960px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
