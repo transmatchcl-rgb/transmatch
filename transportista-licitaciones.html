@@ -469,7 +469,7 @@ function renderDetalleInline(l,yaCotize,miCotiz){
 if(yaCotize===undefined) yaCotize=misCotizaciones.has(l.id);
 if(miCotiz===undefined) miCotiz=(l.cotizaciones||[]).find(function(c){return c.transportistaId===userId;});
 let h='';
-h+=`<div style="padding-bottom:12px;margin-bottom:12px;border-bottom:0.5px solid #E5E7EB">
+h+=`<div style="padding:12px 0;margin-bottom:12px;border-bottom:0.5px solid #E5E7EB">
 <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
 ${yaCotize?'<span class="badge badge-green">Cotizacion enviada</span>':'<span class="badge badge-orange">Abierta</span>'}
 ${l.fechaCarga?`<span class="tag">Carga: ${new Date(l.fechaCarga+'T12:00:00').toLocaleDateString('es-CL')}</span>`:''}
