@@ -333,12 +333,13 @@
         if(bienEl && bienNombre) bienEl.textContent = 'Bienvenido, ' + bienNombre;
         // Valoracion detallada — diseño con estrellas
         var estrellas = function(val){
-          var full = Math.floor(val), half = (val - full) >= 0.5;
           var s = '';
           for(var i=1;i<=5;i++){
-            if(i<=full) s += '<span style="color:#ff8904">★</span>';
-            else if(i===full+1 && half) s += '<span style="color:#ff8904">⯨</span>';
-            else s += '<span style="color:#e8eaf0">★</span>';
+            var fill = Math.max(0, Math.min(1, val - (i-1))); // 0..1 para esta estrella
+            var pct = Math.round(fill*100);
+            s += '<span style="position:relative;display:inline-block;color:#e8eaf0">★' +
+                 '<span style="position:absolute;left:0;top:0;overflow:hidden;width:'+pct+'%;color:#ff8904">★</span>' +
+                 '</span>';
           }
           return s;
         };
