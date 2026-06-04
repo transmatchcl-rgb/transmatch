@@ -221,7 +221,7 @@ input.invalid,textarea.invalid{border-color:#dc2626!important;background:#fff8f8
 
       <!-- DATOS DE SOLICITUD -->
       <span class="sec-label">Datos de Solicitud</span>
-      <div id="err-solicitud" class="sec-err">⚠ Completa todos los campos obligatorios de esta sección.</div>
+      <div id="err-solicitud" class="sec-err">Completa todos los campos obligatorios de esta sección.</div>
       <div class="form-grid">
         <div class="field">
           <label>Ruta <span class="req-star">*</span></label>
@@ -249,7 +249,7 @@ input.invalid,textarea.invalid{border-color:#dc2626!important;background:#fff8f8
 
       <!-- DETALLE DEL SERVICIO -->
       <span class="sec-label">Detalle del Servicio <span class="req-star" style="font-size:11px">*</span></span>
-      <div id="err-items" class="sec-err" style="margin-top:10px">⚠ Agrega al menos un servicio con equipo y tarifa.</div>
+      <div id="err-items" class="sec-err" style="margin-top:10px">Agrega al menos un servicio con equipo y tarifa.</div>
       <div style="overflow-x:auto">
         <table class="items-table">
           <thead>
@@ -346,14 +346,14 @@ input.invalid,textarea.invalid{border-color:#dc2626!important;background:#fff8f8
         ondragleave="this.classList.remove('drag')"
         ondrop="handleDrop(event)">
         <div style="text-align:center;pointer-events:none">
-          <div class="upload-icon">📄</div>
+          <div class="upload-icon"></div>
           <div class="upload-label">Arrastra tu archivo o haz clic para seleccionar</div>
           <div class="upload-sub">PDF, Word, Excel o imagen · Máx 8 MB</div>
         </div>
       </div>
       <input type="file" id="pdf-input" accept=".pdf,.doc,.docx,.xlsx,.xls,.jpg,.jpeg,.png" style="display:none" onchange="handlePdfFile(this.files)"/>
       <div id="file-chip" class="file-chip" style="display:none">
-        <span class="file-chip-icon">📎</span>
+        <span class="file-chip-icon"></span>
         <span class="file-chip-name" id="file-chip-name">archivo</span>
         <button class="file-chip-remove" onclick="removeFile(event)">✕</button>
       </div>

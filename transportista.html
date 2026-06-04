@@ -491,21 +491,21 @@
       }
       // Iconos por tipo
       var iconMap = {
-        adjudicacion: '🏆',
-        licitacion_aprobada: '✅',
-        licitacion_rechazada: '❌',
-        licitacion_cerrada: '📋',
-        cotizaciones_disponibles: '🎯',
-        nueva_licitacion: '📣',
-        cobro_pendiente: '💰',
-        cobro_pagado: '✅',
-        cuenta_aprobada: '✅',
+        adjudicacion: '#16a34a',
+        licitacion_aprobada: '#16a34a',
+        licitacion_rechazada: '#EF4444',
+        licitacion_cerrada: '#1d4ed8',
+        cotizaciones_disponibles: '#FF8904',
+        nueva_licitacion: '#1e2d4e',
+        cobro_pendiente: '#FF8904',
+        cobro_pagado: '#16a34a',
+        cuenta_aprobada: '#16a34a',
       };
       list.innerHTML = notifs.slice(0,20).map(function(n){
-        var icono = iconMap[n.tipo] || '🔔';
+        var icono = iconMap[n.tipo] || '#9CA3AF';
         var bg = !n.leida ? 'background:#f0f4ff' : '';
         return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;' + bg + ';display:flex;gap:10px;align-items:flex-start">' +
-          '<div style="font-size:18px;flex-shrink:0;margin-top:1px">' + icono + '</div>' +
+          '<div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;background:' + icono + '"></div>' +
           '<div style="flex:1;min-width:0">' +
             '<div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4">' + n.mensaje + '</div>' +
             '<div style="font-size:11px;color:#9CA3AF">' + (typeof fecha === 'function' ? fecha(n.createdAt) : n.createdAt) + '</div>' +

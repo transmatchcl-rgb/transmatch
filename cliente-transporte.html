@@ -183,7 +183,7 @@ function render(){
         '</div>' +
         '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">' +
           '<span class="badge s-'+t.estado+'">'+estadoLabel(t.estado)+'</span>' +
-          (t.estadoDocumentos === 'oc_pendiente_factura' ? '<span class="badge" style="background:#FEF9C3;color:#854D0E">⚠️ Factura pendiente</span>' : '') +
+          (t.estadoDocumentos === 'oc_pendiente_factura' ? '<span class="badge" style="background:#FEF9C3;color:#854D0E">Factura pendiente</span>' : '') +
           '<span style="font-size:18px;color:#9CA3AF;transition:transform .2s" id="arr-'+t.id+'">›</span>' +
         '</div>' +
       '</div>' +
@@ -563,9 +563,19 @@ async function descargar(archivoId, nombre){
       var list = document.getElementById('notif-list');
       if(!list) return;
       if(!notifs.length){ list.innerHTML='<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Sin notificaciones</div>'; return; }
-      var iconMap = {licitacion_aprobada:'✅',licitacion_rechazada:'❌',cotizaciones_disponibles:'🎯',cuenta_aprobada:'✅',cobro_pendiente:'💰',cobro_pagado:'✅',adjudicacion:'🏆',licitacion_cerrada:'📋'};
+      var iconMap = {
+        adjudicacion: '#16a34a',
+        licitacion_aprobada: '#16a34a',
+        licitacion_rechazada: '#EF4444',
+        licitacion_cerrada: '#1d4ed8',
+        cotizaciones_disponibles: '#FF8904',
+        nueva_licitacion: '#1e2d4e',
+        cobro_pendiente: '#FF8904',
+        cobro_pagado: '#16a34a',
+        cuenta_aprobada: '#16a34a',
+      };
       list.innerHTML = notifs.slice(0,20).map(function(n){
-        var icono = iconMap[n.tipo]||'🔔';
+        var icono = iconMap[n.tipo]||'#9CA3AF';
         var bg = !n.leida ? 'background:#f0f4ff' : '';
         var ts = n.createdAt ? new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
         return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'+
