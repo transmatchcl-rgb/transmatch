@@ -969,11 +969,14 @@ async function verPreviewCotiz(licitacionId){
       if(f.fechaEntrega) html+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:0.5px solid #f0f0f0"><span style="color:#6B7280">Fecha de entrega</span><span style="color:#1e2d4e">'+f.fechaEntrega+'</span></div>';
       if(f.validez) html+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:0.5px solid #f0f0f0"><span style="color:#6B7280">Validez</span><span style="color:#1e2d4e">'+f.validez+'</span></div>';
       html+='</div>';
-      // Items
-      if((f.items||[]).length){
+      // Items (solo los que tienen datos reales)
+      var itemsLlenos = (f.items||[]).filter(function(it){
+        return (it.eq && it.eq.trim()) || (it.tarifa && parseFloat(it.tarifa)>0) || (it.total && parseFloat(it.total)>0);
+      });
+      if(itemsLlenos.length){
         html+='<div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Detalle del servicio</div>';
         html+='<div style="border:0.5px solid #E5E7EB;border-radius:8px;overflow:hidden;margin-bottom:16px">';
-        f.items.forEach(function(it,i){
+        itemsLlenos.forEach(function(it,i){
           html+='<div style="padding:10px 12px;'+(i>0?'border-top:0.5px solid #E5E7EB;':'')+'font-size:13px">'+
             '<div style="display:flex;justify-content:space-between"><span style="color:#1e2d4e;font-weight:500">'+(it.eq||'—')+(it.modelo?' · '+it.modelo:'')+'</span><span style="color:#1e2d4e;font-weight:600">'+fmt(it.total)+'</span></div>'+
             '<div style="color:#9CA3AF;font-size:12px;margin-top:2px">'+(it.cant||'1')+' x '+fmt(it.tarifa)+(it.unidad?' / '+it.unidad:'')+'</div>'+
