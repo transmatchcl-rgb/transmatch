@@ -800,7 +800,11 @@ var ne=document.getElementById('nav-empresa');if(ne)ne.textContent=localStorage.
     closeAllPanels();
     if(!isOpen&&m) m.style.display='block';
   }
-  document.addEventListener('click',function(){ closeAllPanels(); });
+  document.addEventListener('click',function(e){
+  if(e.target.closest('#notif-panel') || e.target.closest('#notif-btn') ||
+     e.target.closest('#user-menu') || e.target.closest('#nav-avatar')) return;
+  closeAllPanels();
+});
 
   async function cargarNotificaciones(){
     try {

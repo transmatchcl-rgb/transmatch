@@ -900,7 +900,12 @@ var isOpen=m&&m.style.display==='block';
 closeAllPanels();
 if(!isOpen&&m) m.style.display='block';
 }
-document.addEventListener('click',function(){ closeAllPanels(); });
+document.addEventListener('click',function(e){
+  // No cerrar si el clic fue dentro del panel de notificaciones, el menú de usuario o sus botones
+  if(e.target.closest('#notif-panel') || e.target.closest('#notif-btn') ||
+     e.target.closest('#user-menu') || e.target.closest('#nav-avatar')) return;
+  closeAllPanels();
+});
 async function cargarPosiciones(licitacionId) {
 try {
 const notifRes = await api('/api/notificaciones');

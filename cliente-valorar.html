@@ -339,7 +339,11 @@
     closeAllPanels();
     if(!isOpen){ p.style.display='flex'; cargarNotificaciones(); }
   }
-  document.addEventListener('click',function(){ closeAllPanels(); });
+  document.addEventListener('click',function(e){
+  if(e.target.closest('#notif-panel') || e.target.closest('#notif-btn') ||
+     e.target.closest('#user-menu') || e.target.closest('#nav-avatar')) return;
+  closeAllPanels();
+});
   function cerrarSesion(){localStorage.clear();window.location.replace('/index.html');}
   (function(){
     var n  = localStorage.getItem('tm_nombre')  || '';
