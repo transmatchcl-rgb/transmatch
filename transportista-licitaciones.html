@@ -630,7 +630,8 @@ h+=`<div style="padding:16px 18px">
 </div>
 </div>
 <div style="display:flex;gap:8px">
-${mc && mc.archivoId ? `<button class="btn btn-outline btn-sm" onclick="verArchivoCotiz('${mc.archivoId}','${mc.archivoNombre||'propuesta'}')">Ver propuesta</button>` : ''}
+<button class="btn btn-outline btn-sm" onclick="verPreviewCotiz('${l.id}')">Ver cotización</button>
+${mc && (mc.archivoPropioId || mc.archivoId) ? `<button class="btn btn-outline btn-sm" onclick="verArchivoCotiz('${mc.archivoPropioId || mc.archivoId}','${(mc.archivoPropioNombre || mc.archivoNombre || 'propuesta')}')">Ver archivo adjunto</button>` : ''}
 ${l.estado === 'abierta' ? `
 <button class="btn btn-outline btn-sm" onclick="abrirEditarCotiz('${l.id}','${(l.tipoEquipo+' '+(l.marca||'')).replace(/'/g,"\'")}')">Editar</button>
 <button class="btn btn-sm" style="background:#FEF2F2;color:#991B1B;border:1px solid #FECACA" onclick="eliminarCotizacion('${l.id}')">Eliminar</button>
@@ -905,14 +906,93 @@ else el.style.color = '#991B1B';
 } catch(e) {}
 }
 async function verArchivoCotiz(archivoId, nombre){
-try{
-const r=await api('/api/archivos/'+archivoId);
-if(!r||!r.ok){toast('Error al descargar','err');return}
-const {base64,tipo}=r.data;
-const link=document.createElement('a');
-link.href='data:'+(tipo||'application/octet-stream')+';base64,'+base64;
-link.download=nombre; link.click();
-}catch(e){toast('Error al descargar','err')}
+  try{
+    const r=await api('/api/archivos/'+archivoId);
+    if(!r||!r.ok){toast('Error al abrir el archivo','err');return}
+    const {base64,tipo}=r.data;
+    const mime = tipo||'application/octet-stream';
+    // Convertir base64 a Blob para poder previsualizar en el navegador
+    const bin = atob(base64);
+    const bytes = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    const blob = new Blob([bytes],{type:mime});
+    const url = URL.createObjectURL(blob);
+    const esVisible = mime.indexOf('pdf')!==-1 || mime.indexOf('image')!==-1;
+    if(esVisible){
+      // PDF e imágenes: previsualizar en nueva pestaña
+      window.open(url,'_blank');
+      setTimeout(()=>URL.revokeObjectURL(url),60000);
+    } else {
+      // Word/Excel u otros: el navegador no los muestra inline, se descargan
+      const link=document.createElement('a');
+      link.href=url; link.download=nombre; link.click();
+      setTimeout(()=>URL.revokeObjectURL(url),10000);
+      toast('Este formato se descarga para abrirlo');
+    }
+  }catch(e){toast('Error al abrir el archivo','err')}
+}
+async function verPreviewCotiz(licitacionId){
+  var titulo=document.getElementById('modal-detalle-titulo');
+  var body=document.getElementById('modal-detalle-body');
+  titulo.textContent='Tu cotización';
+  body.innerHTML='<div style="padding:24px;text-align:center"><div class="spinner"></div></div>';
+  document.getElementById('modal-detalle').classList.add('open');
+  try{
+    var r=await api('/api/cotizaciones/mia/'+licitacionId);
+    if(!r||!r.ok||!r.data.cotizacion){ body.innerHTML='<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">No se pudo cargar la cotización</div>'; return; }
+    var c=r.data.cotizacion;
+    var f=c.formulario;
+    var fmt=function(n){ return new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n||0); };
+    var html='';
+    if(!f){
+      // Cotización antigua sin formulario detallado
+      html='<div style="font-size:13px;color:#374151;line-height:1.8">'+
+        '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid #E5E7EB"><span style="color:#6B7280">Precio (neto)</span><span style="font-weight:700;color:#1e2d4e">'+fmt(c.precio)+'</span></div>'+
+        (c.fechaEntregaISO?'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid #E5E7EB"><span style="color:#6B7280">Fecha de entrega</span><span style="color:#1e2d4e">'+c.fechaEntregaISO+'</span></div>':'')+
+        (c.descripcion?'<div style="padding:8px 0"><div style="color:#6B7280;margin-bottom:4px">Descripción</div><div style="color:#1e2d4e">'+c.descripcion+'</div></div>':'')+
+        '</div><div style="font-size:12px;color:#9CA3AF;margin-top:12px">Esta cotización fue enviada antes del nuevo formato detallado.</div>';
+    } else {
+      // Datos generales
+      html+='<div style="margin-bottom:16px">';
+      if(f.ruta) html+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:0.5px solid #f0f0f0"><span style="color:#6B7280">Ruta</span><span style="color:#1e2d4e;text-align:right;max-width:60%">'+f.ruta+'</span></div>';
+      if(f.fechaCarga) html+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:0.5px solid #f0f0f0"><span style="color:#6B7280">Fecha de carga</span><span style="color:#1e2d4e">'+f.fechaCarga+'</span></div>';
+      if(f.fechaEntrega) html+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:0.5px solid #f0f0f0"><span style="color:#6B7280">Fecha de entrega</span><span style="color:#1e2d4e">'+f.fechaEntrega+'</span></div>';
+      if(f.validez) html+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:0.5px solid #f0f0f0"><span style="color:#6B7280">Validez</span><span style="color:#1e2d4e">'+f.validez+'</span></div>';
+      html+='</div>';
+      // Items
+      if((f.items||[]).length){
+        html+='<div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Detalle del servicio</div>';
+        html+='<div style="border:0.5px solid #E5E7EB;border-radius:8px;overflow:hidden;margin-bottom:16px">';
+        f.items.forEach(function(it,i){
+          html+='<div style="padding:10px 12px;'+(i>0?'border-top:0.5px solid #E5E7EB;':'')+'font-size:13px">'+
+            '<div style="display:flex;justify-content:space-between"><span style="color:#1e2d4e;font-weight:500">'+(it.eq||'—')+(it.modelo?' · '+it.modelo:'')+'</span><span style="color:#1e2d4e;font-weight:600">'+fmt(it.total)+'</span></div>'+
+            '<div style="color:#9CA3AF;font-size:12px;margin-top:2px">'+(it.cant||'1')+' x '+fmt(it.tarifa)+(it.unidad?' / '+it.unidad:'')+'</div>'+
+          '</div>';
+        });
+        html+='</div>';
+      }
+      // Totales
+      html+='<div style="background:#F9FAFB;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px">'+
+        '<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#6B7280">Monto neto</span><span style="color:#1e2d4e">'+fmt(f.montoNeto)+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#6B7280">IVA 19%</span><span style="color:#1e2d4e">'+fmt(f.iva)+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;padding:6px 0 0;margin-top:4px;border-top:0.5px solid #E5E7EB"><span style="font-weight:600;color:#1e2d4e">Total</span><span style="font-weight:700;color:#1e2d4e">'+fmt(f.montoTotal)+'</span></div>'+
+      '</div>';
+      // Seguros
+      if((f.seguros||[]).length){
+        html+='<div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Seguros</div>';
+        f.seguros.forEach(function(s){
+          if(!s.tipo&&!s.cobertura) return;
+          html+='<div style="font-size:13px;padding:6px 0;border-bottom:0.5px solid #f0f0f0"><span style="color:#1e2d4e;font-weight:500">'+(s.tipo||'—')+'</span>'+(s.cobertura?' · <span style="color:#6B7280">'+s.cobertura+' UF</span>':'')+(s.obs?'<div style="color:#9CA3AF;font-size:12px">'+s.obs+'</div>':'')+'</div>';
+        });
+        html+='<div style="margin-bottom:12px"></div>';
+      }
+      // Observaciones
+      if(f.observaciones) html+='<div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Observaciones</div><div style="font-size:13px;color:#374151;line-height:1.6">'+f.observaciones+'</div>';
+    }
+    body.innerHTML=html;
+  }catch(e){
+    body.innerHTML='<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Error al cargar la cotización</div>';
+  }
 }
 function abrirEditarCotiz(licitacionId, nombre){
   selectedId = licitacionId;
