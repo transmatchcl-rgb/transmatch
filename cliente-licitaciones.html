@@ -626,9 +626,14 @@ else toast((r&&r.data&&r.data.error)||'Error al enviar','err');
 
 async function confirmarAdj(){
 if(!pendingCotizId||!_selectedId)return;
-var cotizId=pendingCotizId;closeModal();
-var r=await api('/api/licitaciones/'+_selectedId+'/adjudicar','POST',{cotizacionId:cotizId});
-if(r&&r.ok){toast('Adjudicada. Datos del transportista revelados.');document.getElementById('modal-det').classList.remove('open');await cargarLicitaciones();}
+var cotizId=pendingCotizId;var licId=_selectedId;closeModal();
+var r=await api('/api/licitaciones/'+licId+'/adjudicar','POST',{cotizacionId:cotizId});
+if(r&&r.ok){
+  toast('Licitación adjudicada correctamente');
+  await cargarLicitaciones();
+  // Reabrir el detalle para mostrar el resultado (transportista adjudicado)
+  abrirDetalle(licId);
+}
 else toast((r&&r.data&&r.data.error)||'Error al adjudicar','err');
 }
 
