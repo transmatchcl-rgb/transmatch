@@ -466,12 +466,21 @@ return;
 }
 document.getElementById('lista-licitaciones').innerHTML=lista.map(function(l){
 var yaCotize = misCotizaciones.has(l.id);
+var gane = licitacionesGanadas.has(l.id);
+var estaResuelta = l.estado==='adjudicada' || l.estado==='completada';
 var tieneBorrador = tieneBorradorGuardado(l.id) && l.estado==='abierta' && !yaCotize;
-var badgeHtml = yaCotize
-  ? '<span class="badge badge-green">Cotizacion enviada</span>'
-  : (tieneBorrador
-      ? '<span class="badge badge-blue">Borrador guardado</span>'
-      : '<span class="badge badge-orange">Disponible</span>');
+var badgeHtml;
+if(gane){
+  badgeHtml = '<span class="badge badge-green">Adjudicada</span>';
+} else if(yaCotize && estaResuelta){
+  badgeHtml = '<span class="badge" style="background:#FEF2F2;color:#991B1B">No adjudicada</span>';
+} else if(yaCotize){
+  badgeHtml = '<span class="badge badge-green">Cotizacion enviada</span>';
+} else if(tieneBorrador){
+  badgeHtml = '<span class="badge badge-blue">Borrador guardado</span>';
+} else {
+  badgeHtml = '<span class="badge badge-orange">Disponible</span>';
+}
 var miCotiz = (l.cotizaciones||[]).find(function(c){ return (userId&&c.transportistaId===userId)||(miEmailGlobal&&(c.transportistaEmail||'').toLowerCase()===miEmailGlobal); });
 var precioMostrar = miCotiz ? miCotiz.precio : (l.presupuesto||null);
 // Detalle inline
@@ -536,7 +545,13 @@ if(miCotiz===undefined) miCotiz=(l.cotizaciones||[]).find(function(c){return c.t
 let h='';
 h+=`<div style="padding:12px 18px;margin-bottom:0;border-bottom:0.5px solid #E5E7EB">
 <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-${yaCotize?'<span class="badge badge-green">Cotizacion enviada</span>':'<span class="badge badge-orange">Abierta</span>'}
+${ licitacionesGanadas.has(l.id)
+   ? '<span class="badge badge-green">Adjudicada</span>'
+   : (yaCotize && (l.estado==='adjudicada'||l.estado==='completada')
+       ? '<span class="badge" style="background:#FEF2F2;color:#991B1B">No adjudicada</span>'
+       : (yaCotize
+           ? '<span class="badge badge-green">Cotizacion enviada</span>'
+           : '<span class="badge badge-orange">Abierta</span>')) }
 ${l.fechaCarga?`<span class="tag">Carga: ${new Date(l.fechaCarga+'T12:00:00').toLocaleDateString('es-CL')}</span>`:''}
 ${l.fechaEntrega?`<span class="tag">Entrega: ${new Date(l.fechaEntrega+'T12:00:00').toLocaleDateString('es-CL')}</span>`:''}
 ${l.peso?`<span class="tag">${l.peso} ton</span>`:''}
