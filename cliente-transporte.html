@@ -179,7 +179,7 @@ function render(){
   document.getElementById('lista').innerHTML = transportes.map(function(t){
     return '<div class="trn-card" id="card-'+t.id+'">' +
       '<div class="trn-hdr" onclick="toggleCard(\''+t.id+'\')">' +
-        '<span class="trn-código">'+t.código+'</span>' +
+        '<span class="trn-código">'+(t.codigo||t.código||'')+'</span>' +
         '<div class="trn-info">' +
           '<div class="trn-title">'+t.tipoEquipo+'</div>' +
           '<div class="trn-meta">'+t.origen+' → '+t.destino+' · '+t.transportistaEmpresa+'</div>' +
