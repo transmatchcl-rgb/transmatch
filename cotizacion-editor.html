@@ -615,12 +615,19 @@ function collectItems(){
   const rows = [];
   document.getElementById('items-body').querySelectorAll('tr').forEach(tr=>{
     const id = tr.id.replace('item-row-','');
+    const cantRaw   = document.getElementById('r'+id+'-cant')?.value||'';
+    const tarifaRaw = document.getElementById('r'+id+'-tarifa')?.value||'';
+    const cant   = parseFloat(String(cantRaw).replace(/[^\d.,]/g,'').replace(',','.')) || 0;
+    const tarifa = parseFloat(String(tarifaRaw).replace(/[^\d.,]/g,'').replace(',','.')) || 0;
+    const total  = cant * tarifa;
     rows.push({
       eq:     document.getElementById('r'+id+'-eq')?.value||'',
       mod:    document.getElementById('r'+id+'-mod')?.value||'',
+      modelo: document.getElementById('r'+id+'-mod')?.value||'',
       yr:     document.getElementById('r'+id+'-yr')?.value||'',
-      cant:   document.getElementById('r'+id+'-cant')?.value||'',
-      tarifa: document.getElementById('r'+id+'-tarifa')?.value||'',
+      cant:   cantRaw,
+      tarifa: tarifa,
+      total:  total,
       unidad: document.getElementById('r'+id+'-unidad')?.value||'',
     });
   });
@@ -630,9 +637,11 @@ function collectSeguros(){
   const rows = [];
   document.getElementById('seguros-body').querySelectorAll('tr').forEach(tr=>{
     const id = tr.id.replace('seg-row-','');
+    const uf = document.getElementById('s'+id+'-uf')?.value||'';
     rows.push({
       tipo: document.getElementById('s'+id+'-tipo')?.value||'',
-      uf:   document.getElementById('s'+id+'-uf')?.value||'',
+      uf:   uf,
+      cobertura: uf,
       obs:  document.getElementById('s'+id+'-obs')?.value||'',
     });
   });

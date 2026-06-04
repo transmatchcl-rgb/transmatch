@@ -977,9 +977,12 @@ async function verPreviewCotiz(licitacionId){
         html+='<div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Detalle del servicio</div>';
         html+='<div style="border:0.5px solid #E5E7EB;border-radius:8px;overflow:hidden;margin-bottom:16px">';
         itemsLlenos.forEach(function(it,i){
+          var tarifaNum = parseFloat(String(it.tarifa).replace(/[^\d.,]/g,'').replace(',','.'))||0;
+          var cantNum = parseFloat(String(it.cant).replace(/[^\d.,]/g,'').replace(',','.'))||1;
+          var totalNum = (it.total && parseFloat(it.total)>0) ? parseFloat(it.total) : (tarifaNum*cantNum);
           html+='<div style="padding:10px 12px;'+(i>0?'border-top:0.5px solid #E5E7EB;':'')+'font-size:13px">'+
-            '<div style="display:flex;justify-content:space-between"><span style="color:#1e2d4e;font-weight:500">'+(it.eq||'—')+(it.modelo?' · '+it.modelo:'')+'</span><span style="color:#1e2d4e;font-weight:600">'+fmt(it.total)+'</span></div>'+
-            '<div style="color:#9CA3AF;font-size:12px;margin-top:2px">'+(it.cant||'1')+' x '+fmt(it.tarifa)+(it.unidad?' / '+it.unidad:'')+'</div>'+
+            '<div style="display:flex;justify-content:space-between"><span style="color:#1e2d4e;font-weight:500">'+(it.eq||'—')+((it.modelo||it.mod)?' · '+(it.modelo||it.mod):'')+'</span><span style="color:#1e2d4e;font-weight:600">'+fmt(totalNum)+'</span></div>'+
+            '<div style="color:#9CA3AF;font-size:12px;margin-top:2px">'+(it.cant||'1')+' x '+fmt(tarifaNum)+(it.unidad?' / '+it.unidad:'')+'</div>'+
           '</div>';
         });
         html+='</div>';
@@ -994,8 +997,9 @@ async function verPreviewCotiz(licitacionId){
       if((f.seguros||[]).length){
         html+='<div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Seguros</div>';
         f.seguros.forEach(function(s){
-          if(!s.tipo&&!s.cobertura) return;
-          html+='<div style="font-size:13px;padding:6px 0;border-bottom:0.5px solid #f0f0f0"><span style="color:#1e2d4e;font-weight:500">'+(s.tipo||'—')+'</span>'+(s.cobertura?' · <span style="color:#6B7280">'+s.cobertura+' UF</span>':'')+(s.obs?'<div style="color:#9CA3AF;font-size:12px">'+s.obs+'</div>':'')+'</div>';
+          var cob = s.cobertura || s.uf || '';
+          if(!s.tipo && !cob) return;
+          html+='<div style="font-size:13px;padding:6px 0;border-bottom:0.5px solid #f0f0f0"><span style="color:#1e2d4e;font-weight:500">'+(s.tipo||'—')+'</span>'+(cob?' · <span style="color:#6B7280">'+cob+' UF</span>':'')+(s.obs?'<div style="color:#9CA3AF;font-size:12px">'+s.obs+'</div>':'')+'</div>';
         });
         html+='<div style="margin-bottom:12px"></div>';
       }
