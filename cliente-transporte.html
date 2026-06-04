@@ -43,6 +43,9 @@
   .s-carga_recogida{background:#EDE9FE;color:#5B21B6}
   .s-en_destino{background:#FFF7ED;color:#92400E}
   .s-entregado{background:#F0FDF4;color:#14532D}
+  .val-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid #F3F4F6}
+  .star{width:22px;height:22px;cursor:pointer;border-radius:3px;background:#E5E7EB;transition:background .15s}
+  .star.active{background:#FF8904}
   .trn-body{display:none;border-top:1px solid #f3f4f6;padding:20px}
   .trn-body.open{display:block}
 
@@ -323,6 +326,22 @@ function renderDetalle(t){
     h += '</div>';
   }
 
+  // Valoración del transportista (solo cuando el transporte está completado: entregado + facturado)
+  if(t.estado === 'entregado' && t.factura){
+    if(t.valoracion){
+      h += '<div style="margin-top:14px;padding:12px;background:#F0FDF4;border-radius:8px;font-size:13px;font-weight:500;color:#14532D">Valoración enviada — Promedio: '+t.valoracion.promedio+' / 5</div>';
+    } else {
+      h += '<div style="margin-top:14px;padding-top:14px;border-top:0.5px solid #E5E7EB"><div style="font-size:14px;font-weight:600;color:#111827;margin-bottom:4px">Valora el servicio</div>';
+      h += '<div style="font-size:12px;color:#6B7280;margin-bottom:14px">El transporte está completado. Cuéntanos cómo fue el servicio del transportista.</div>';
+      [['cumplimiento','Cumplimiento'],['seriedad','Seriedad'],['comunicacion','Comunicacion'],['estadoEquipo','Estado del equipo'],['documentacion','Documentacion'],['velocidad','Velocidad de respuesta']].forEach(function(kl){
+        h += '<div class="val-row"><span style="font-size:13px;color:#374151">'+kl[1]+'</span><div style="display:flex;gap:4px" id="stars-'+t.id+'-'+kl[0]+'">';
+        [1,2,3,4,5].forEach(function(n){ h += '<div class="star" onclick="setStar(\''+t.id+'\',\''+kl[0]+'\','+n+')"></div>'; });
+        h += '</div></div>';
+      });
+      h += '<button class="btn btn-orange btn-sm" style="width:100%;margin-top:14px;justify-content:center" onclick="enviarValoracion(\''+t.id+'\')">Enviar valoración</button></div>';
+    }
+  }
+
   return h;
 }
 
@@ -332,6 +351,30 @@ function toggleCard(id){
   var isOpen = body.classList.contains('open');
   body.classList.toggle('open', !isOpen);
   arr.style.transform = isOpen ? '' : 'rotate(90deg)';
+}
+
+var _valoraciones = {};
+function setStar(transporteId, campo, val){
+  if(!_valoraciones[transporteId]) _valoraciones[transporteId] = {};
+  _valoraciones[transporteId][campo] = val;
+  var stars = document.querySelectorAll('#stars-'+transporteId+'-'+campo+' .star');
+  stars.forEach(function(s,i){ s.classList.toggle('active', i < val); });
+}
+async function enviarValoracion(transporteId){
+  var campos = ['cumplimiento','seriedad','comunicacion','estadoEquipo','documentacion','velocidad'];
+  var scores = _valoraciones[transporteId] || {};
+  for(var i=0;i<campos.length;i++){ if(!scores[campos[i]]){ toast('Completa todos los criterios','err'); return; } }
+  var prom = Math.round(Object.values(scores).reduce(function(a,b){return a+b;},0)/campos.length*10)/10;
+  try {
+    var res = await fetch(API+'/api/valoraciones', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify({ transporteId:transporteId, scores:scores, promedio:prom })
+    });
+    var data = await res.json();
+    if(res.ok){ toast('Valoración enviada'); await cargar(); }
+    else toast((data&&data.error)||'Error al enviar la valoración','err');
+  } catch(e){ toast('Error al enviar la valoración','err'); }
 }
 
 async function subirOC(transporteId){
@@ -451,9 +494,11 @@ function abrirModalContactoCliente(transporteId){
 }
 
 function autocompletarMisDatosCliente(){
-  var n=document.getElementById('cc-nombre'); if(n) n.value=localStorage.getItem('tm_nombre')||'';
-  var t=document.getElementById('cc-telefono'); if(t) t.value=localStorage.getItem('tm_telefono')||'';
-  var e=document.getElementById('cc-email'); if(e) e.value=localStorage.getItem('tm_email')||'';
+  var u = window._miUsuario || {};
+  var n=document.getElementById('cc-nombre'); if(n) n.value=u.nombre||localStorage.getItem('tm_nombre')||'';
+  var c=document.getElementById('cc-cargo'); if(c) c.value=u.cargo||'';
+  var t=document.getElementById('cc-telefono'); if(t) t.value=u.telefono||u.whatsapp||'';
+  var e=document.getElementById('cc-email'); if(e) e.value=u.email||localStorage.getItem('tm_email')||'';
 }
 
 async function guardarContactoCliente(transporteId, modal){
