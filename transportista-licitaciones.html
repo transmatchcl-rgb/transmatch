@@ -315,6 +315,7 @@ document.getElementById('nav-avatar').textContent=(nombre[0]||'U').toUpperCase()
 var nn=document.getElementById('nav-nombre');if(nn)nn.textContent=nombre;
 var ne=document.getElementById('nav-empresa');if(ne)ne.textContent=empresa;
 let allLicitaciones=[],selectedId=null,misCotizaciones=new Set();
+var miEmailGlobal='';
 var userId='';
 var tabActual="todas";
 var historialNoGanadas={};
@@ -373,13 +374,15 @@ document.getElementById('lista-licitaciones').innerHTML='<div style="padding:32p
 const r=await api('/api/licitaciones');
 allLicitaciones=(r&&r.ok)?(r.data.licitaciones||[]):[];
 const token=localStorage.getItem('tm_token');
+var miEmail=(localStorage.getItem('tm_email')||'').toLowerCase();
 try{
 const me=await api('/api/auth/me');
-if(me&&me.ok)userId=me.data.user.id;
+if(me&&me.ok){ userId=me.data.user.id; if(me.data.user.email) miEmail=(me.data.user.email||'').toLowerCase(); }
 }catch(e){}
+miEmailGlobal=miEmail;
 misCotizaciones=new Set();
 allLicitaciones.forEach(l=>{
-if((l.cotizaciones||[]).find(c=>c.transportistaId===userId))misCotizaciones.add(l.id);
+if((l.cotizaciones||[]).find(c=>(userId&&c.transportistaId===userId)||(miEmail&&(c.transportistaEmail||'').toLowerCase()===miEmail)))misCotizaciones.add(l.id);
 });
 try {
 const hist = await api('/api/transportista/historial');
@@ -406,10 +409,11 @@ function actualizarStats(){
   var disponibles = allLicitaciones.filter(function(l){
     return l.estado==='abierta' && !misCotizaciones.has(l.id);
   }).length;
-  // Cotizaciones enviadas: cotizadas y aún abiertas (en espera)
-  var enviadas = allLicitaciones.filter(function(l){
-    return misCotizaciones.has(l.id) && l.estado==='abierta';
-  }).length;
+  // Cotizaciones enviadas: todas donde cotizé y aún no gané (en espera / en revisión)
+  var enviadas = 0;
+  misCotizaciones.forEach(function(id){
+    if(!licitacionesGanadas.has(id)) enviadas++;
+  });
   // Adjudicaciones totales (transportes ganados)
   var adjudicadas = licitacionesGanadas.size;
   // Total de cotizaciones que envié (para la tasa)
@@ -468,7 +472,7 @@ var badgeHtml = yaCotize
   : (tieneBorrador
       ? '<span class="badge badge-blue">Borrador guardado</span>'
       : '<span class="badge badge-orange">Disponible</span>');
-var miCotiz = (l.cotizaciones||[]).find(function(c){ return c.transportistaId===userId; });
+var miCotiz = (l.cotizaciones||[]).find(function(c){ return (userId&&c.transportistaId===userId)||(miEmailGlobal&&(c.transportistaEmail||'').toLowerCase()===miEmailGlobal); });
 var precioMostrar = miCotiz ? miCotiz.precio : (l.presupuesto||null);
 // Detalle inline
 var detalleHtml = renderDetalleInline(l, yaCotize, miCotiz);
