@@ -548,7 +548,7 @@ function verTodosDelDia(isoDate){
         var bg = !n.leida ? 'background:#f0f4ff' : '';
         var ts = n.createdAt ? new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
         return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'+
-          '<div style="font-size:18px;flex-shrink:0;margin-top:1px">'+icono+'</div>'+
+          '<div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;background:'+icono+'"></div>'+
           '<div style="flex:1;min-width:0">'+
             '<div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4">'+n.mensaje+'</div>'+
             '<div style="font-size:11px;color:#9CA3AF">'+ts+'</div>'+
