@@ -488,7 +488,8 @@ function renderDetalle(t){
   h+='<div style="font-size:12px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Documentos del transporte</div>';
   // OC del cliente
   h+='<div class="doc-card"><div class="doc-title">Orden de compra (cliente)</div>';
-  if(t.oc){
+  var ocReal = t.oc && t.oc.tipo !== 'oc_automatica';
+  if(ocReal){
     h+='<div class="doc-ok"><span>Subida el '+fechaHora(t.oc.subidoAt)+'</span><button class="btn btn-outline btn-sm" onclick="descargar(\''+t.oc.archivoId+'\',\''+t.oc.nombre+'\')">Descargar</button></div>';
   } else {
     h+='<div class="doc-wait">Pendiente — el cliente aún no ha subido la orden de compra</div>';

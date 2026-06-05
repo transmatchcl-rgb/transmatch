@@ -402,13 +402,14 @@ function filtrar(){
 
   var html = '<table class="tabla"><thead><tr><th>Codigo</th><th>Equipo</th><th>Ruta</th><th>Precio</th><th>Fecha</th><th>Estado</th><th>Documentos</th></tr></thead><tbody>';
   html += lista.map(function(t){
+    var ocReal = t.oc && t.oc.tipo !== 'oc_automatica';
     var estadoTxt, estadoCls;
     if(t.factura){                    estadoTxt='Facturado';   estadoCls='b-pagado'; }
-    else if(t.oc){                    estadoTxt='OC recibida'; estadoCls='b-oc'; }
+    else if(ocReal){                  estadoTxt='OC recibida'; estadoCls='b-oc'; }
     else if(t.estado==='entregado'){  estadoTxt='Entregado';   estadoCls='b-oc'; }
     else {                            estadoTxt='En curso';    estadoCls='b-pendiente'; }
     var docs = '';
-    if(t.oc)      docs += '<span class="badge b-oc" style="margin-right:4px">OC</span>';
+    if(ocReal)    docs += '<span class="badge b-oc" style="margin-right:4px">OC</span>';
     if(t.factura) docs += '<span class="badge b-factura">Factura</span>';
     return '<tr>'
       +'<td style="font-family:monospace;font-size:11px;color:#9CA3AF">'+(t.código||'--')+'</td>'

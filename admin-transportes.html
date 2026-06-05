@@ -436,7 +436,7 @@ function renderDetalle(t){
   // Documentos
   html+='<div class="det-section-title">Documentos</div>';
   html+='<div class="docs-row">';
-  if(t.oc && t.oc.archivoId){
+  if(t.oc && t.oc.archivoId && t.oc.tipo !== 'oc_automatica'){
     html+='<span class="doc-pill" onclick="descargar(\''+t.oc.archivoId+'\',\''+(t.oc.nombre||'orden_de_compra')+'\')">OC — '+(t.oc.nombre||'orden_de_compra.pdf')+'</span>';
   } else {
     html+='<span class="doc-pill no-doc">OC — Sin subir</span>';

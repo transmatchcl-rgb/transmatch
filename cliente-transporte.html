@@ -292,9 +292,10 @@ function renderDetalle(t){
   h += '<div class="tl-title" style="margin-bottom:10px">Documentos</div>';
 
   // OC — destacada, con llamada a la acción
-  h += '<div class="doc-section" style="border:0.5px solid '+(t.oc?'#BBF7D0':'#FDE68A')+';border-radius:10px;padding:14px;margin-bottom:10px;background:'+(t.oc?'#F0FDF4':'#FFFBEB')+'">';
+  var ocReal = t.oc && t.oc.tipo !== 'oc_automatica';
+  h += '<div class="doc-section" style="border:0.5px solid '+(ocReal?'#BBF7D0':'#FDE68A')+';border-radius:10px;padding:14px;margin-bottom:10px;background:'+(ocReal?'#F0FDF4':'#FFFBEB')+'">';
   h += '<div class="doc-title" style="color:#1e2d4e">Orden de compra <span style="font-size:10px;font-weight:400;color:#9CA3AF;margin-left:4px">— sube tu OC al inicio del transporte</span></div>';
-  if(t.oc){
+  if(ocReal){
     h += '<div class="doc-done">OC disponible desde '+fechaHora(t.oc.subidoAt)+' <button class="btn btn-outline btn-sm" onclick="descargar(\''+t.oc.archivoId+'\',\''+t.oc.nombre+'\')">Descargar OC</button></div>';
   } else {
     h += '<div style="font-size:12px;color:#92400E;margin-bottom:8px">Sube tu Orden de Compra para que el transportista pueda descargarla.</div>'
