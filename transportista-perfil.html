@@ -1784,6 +1784,17 @@ function initRutInputs() {
     } catch(e){}
   }
 
+  async function guardarPrefs(){
+    try {
+      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      var ec = document.getElementById('notif-email-chk');
+      if(ec) prefs.notifEmail = ec.checked;
+      localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+      if(typeof api === 'function'){
+        try { await api('/api/auth/me/prefs','POST',{ notifPrefs:{ email: ec?ec.checked:true } }); } catch(e){}
+      }
+    } catch(e){}
+  }
   async function guardarPrefsDetalle(){
     try {
       var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');

@@ -505,17 +505,11 @@ if(l.estado==='cerrada' && (l.totalCotizaciones||cotiz.length) > top3.length){
 }
 }
 
-// Valoracion
+// Valoracion: ahora se realiza en la sección Transportes, una vez completado el transporte
 if(l.estado==='adjudicada'&&!l.valoracion){
-h+='<div style="margin-top:16px;padding-top:16px;border-top:0.5px solid #E5E7EB"><div style="font-size:14px;font-weight:600;color:#111827;margin-bottom:14px">Valora el servicio</div>';
-[['cumplimiento','Cumplimiento'],['seriedad','Seriedad'],['comunicacion','Comunicacion'],['estadoEquipo','Estado del equipo'],['documentacion','Documentacion'],['velocidad','Velocidad de respuesta']].forEach(function(kl){
-h+='<div class="val-row"><span style="font-size:13px;color:#374151">'+kl[1]+'</span><div style="display:flex;gap:4px" id="stars-'+kl[0]+'">';
-[1,2,3,4,5].forEach(function(n){h+='<div class="star" onclick="setStar(\''+kl[0]+'\','+n+')"></div>'});
-h+='</div></div>';
-});
-h+='<button style="width:100%;margin-top:14px;padding:9px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:#16a34a;color:#fff" onclick="enviarValoracion(\''+l.id+'\')">Enviar valoracion</button></div>';
+h+='<div style="margin-top:16px;padding:12px;background:#eef1f8;border-radius:8px;font-size:13px;color:#1e2d4e">Podrás valorar al transportista en <strong>Transportes</strong> una vez que el transporte esté completado.</div>';
 }
-if(l.estado==='completada'&&l.valoracion){
+if((l.estado==='completada'||l.valoracion)&&l.valoracion){
 h+='<div style="margin-top:12px;padding:12px;background:#F0FDF4;border-radius:8px;font-size:13px;font-weight:500;color:#14532D">Valoracion enviada -- Promedio: '+l.valoracion.promedio+'</div>';
 }
 

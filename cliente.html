@@ -239,7 +239,7 @@
     var empresa = localStorage.getItem('tm_empresa') || '';
     var plan    = localStorage.getItem('tm_plan') || 'basico';
 
-    document.getElementById('bienvenida').textContent = 'Bienvenido, ' + (empresa||nombre);
+    document.getElementById('bienvenida').textContent = 'Bienvenido/a, ' + (nombre||empresa);
     var navN = document.getElementById('nav-nombre');
     var navE = document.getElementById('nav-empresa');
     if(navN) navN.textContent = nombre;

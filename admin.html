@@ -581,10 +581,16 @@
     el.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
     const r = await api('/api/retornos');
     if (!r || !r.ok) { el.innerHTML = '<div style="padding:32px;text-align:center;color:#9CA3AF;font-size:13px">Sin datos</div>'; return; }
-    const lista = r.data.retornos || [];
+    window._retornos = r.data.retornos || [];
+    renderRetornos(window._retornos);
+  }
+
+  function renderRetornos(lista) {
+    const el = document.getElementById('lista-retornos');
+    if (!el) return;
     if (!lista.length) { el.innerHTML = '<div style="padding:32px;text-align:center;color:#9CA3AF;font-size:13px">Sin retornos disponibles</div>'; return; }
     el.innerHTML = '<table class="table"><thead><tr><th>Transportista</th><th>Empresa</th><th>Origen</th><th>Destino</th><th>Fecha</th><th>Precio</th><th>Estado</th></tr></thead><tbody>'
-      + lista.map(x => '<tr><td style="font-weight:500">'+(x.transportistaNombre||'--')+'</td><td style="font-size:12px;color:#6B7280">'+(x.empresa||'--')+'</td><td>'+(x.origen||'--')+'</td><td>'+(x.destino||'--')+'</td><td style="font-size:12px">'+(x.fechaDisponible?new Date(x.fechaDisponible).toLocaleDateString('es-CL'):'--')+'</td><td style="font-weight:600;color:#1d4ed8">'+(x.precio?new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(x.precio):'A convenir')+'</td><td><span class="badge '+(x.estado==='disponible'?'badge-green':'badge-gray')+'">'+(x.estado||'disponible')+'</span></td></tr>').join('')
+      + lista.map(x => '<tr><td style="font-weight:500">'+(x.transportistaNombre||'--')+'</td><td style="font-size:12px;color:#6B7280">'+(x.empresa||x.transportistaEmpresa||'--')+'</td><td>'+(x.origen||x.ciudadOrigen||'--')+'</td><td>'+(x.destino||x.ciudadDestino||'--')+'</td><td style="font-size:12px">'+(x.fechaDisponible?new Date(x.fechaDisponible).toLocaleDateString('es-CL'):'--')+'</td><td style="font-weight:600;color:#1d4ed8">'+(x.precio?new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(x.precio):'A convenir')+'</td><td><span class="badge '+(x.estado==='disponible'?'badge-green':'badge-gray')+'">'+(x.estado||'disponible')+'</span></td></tr>').join('')
       + '</tbody></table>';
   }
 
@@ -755,6 +761,32 @@
     } else {
       toast((r && r.data && r.data.error)||'Error al aprobar', 'err');
     }
+  }
+
+  async function cerrarYEnviar(id, nCotiz) {
+    if(!confirm('¿Cerrar la licitación y enviar las TOP 3 cotizaciones al cliente?')) return;
+    const r = await api('/api/admin/licitacion/'+id+'/cerrar', 'POST', {});
+    if (r && r.ok) {
+      toast('Cotizaciones enviadas al cliente');
+      if(typeof closeModalLicit==='function') closeModalLicit();
+      await loadLicitaciones();
+      await loadDashboard();
+    } else {
+      toast((r && r.data && r.data.error)||'Error al cerrar la licitación', 'err');
+    }
+  }
+
+  function filtrarRetornos() {
+    const q = (document.getElementById('fil-ret-buscar')?.value||'').toLowerCase();
+    if (typeof window._retornos === 'undefined') { if(typeof loadRetornos==='function') loadRetornos(); return; }
+    const filtrados = q
+      ? window._retornos.filter(function(rt){
+          return (rt.ciudadOrigen||'').toLowerCase().includes(q) ||
+                 (rt.ciudadDestino||'').toLowerCase().includes(q) ||
+                 (rt.transportistaEmpresa||'').toLowerCase().includes(q);
+        })
+      : window._retornos;
+    if(typeof renderRetornos==='function') renderRetornos(filtrados);
   }
 
   async function rechazarLicitacionModal(id) {

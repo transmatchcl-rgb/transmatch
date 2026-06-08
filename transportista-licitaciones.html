@@ -188,6 +188,15 @@ if(el) el.checked = prefs['pref_'+id] !== false;
 });
 } catch(e){}
 }
+async function guardarPrefs(){
+try {
+var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+var ec = document.getElementById('notif-email-chk');
+if(ec) prefs.notifEmail = ec.checked;
+localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+if(typeof api === 'function'){ try { await api('/api/auth/me/prefs','POST',{ notifPrefs:{ email: ec?ec.checked:true } }); } catch(e){} }
+} catch(e){}
+}
 async function guardarPrefsDetalle(){
 try {
 var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
@@ -929,9 +938,9 @@ const fb = notif.datos.feedback;
 var elP = document.getElementById('pos-precio-' + licitacionId);
 var elE = document.getElementById('pos-entrega-' + licitacionId);
 var elV = document.getElementById('pos-valoracion-' + licitacionId);
-if (elP) elP.textContent = fb.posPrecio + '/' + fb.total;
-if (elE) elE.textContent = fb.posEntrega + '/' + fb.total;
-if (elV) elV.textContent = fb.posValoracion + '/' + fb.total;
+if (elP) { elP.textContent = fb.posPrecio; var sP=elP.nextElementSibling; if(sP) sP.textContent=' de '+fb.total; }
+if (elE) { elE.textContent = fb.posEntrega; var sE=elE.nextElementSibling; if(sE) sE.textContent=' de '+fb.total; }
+if (elV) { elV.textContent = fb.posValoracion; var sV=elV.nextElementSibling; if(sV) sV.textContent=' de '+fb.total; }
 [
 [elP, fb.posPrecio],
 [elE, fb.posEntrega],
