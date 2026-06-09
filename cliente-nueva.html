@@ -208,6 +208,9 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
   <div>
     <div style="font-size:22px;font-weight:700;color:#1e2d4e;margin-bottom:4px" id="page-title">Nueva licitacion</div>
     <div style="font-size:14px;color:#6B7280" id="page-sub">Completa los datos de tu solicitud de transporte</div>
+    <a href="/Terminos_y_Condiciones_Cliente.pdf" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:13px;font-weight:500;color:#1e2d4e;background:#eef1f8;padding:7px 12px;border-radius:7px;text-decoration:none">
+      Descargar Términos y Condiciones (PDF)
+    </a>
   </div>
   <div style="display:flex;gap:10px;align-items:center">
     <div style="position:relative" id="tipo-selector-wrap">
@@ -389,7 +392,12 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <div class="form-card" id="paso4">
 <div class="card-title">Revisar y publicar</div>
 <div id="resumen-content"></div>
-<div class="info-box" style="margin-top:16px">Al publicar, los transportistas verificados seran notificados y podran enviar cotizaciones dentro del plazo seleccionado.</div>
+<div class="info-box" style="margin-top:16px">Al publicar, los transportistas seran notificados y podran enviar cotizaciones dentro del plazo seleccionado.</div>
+<label style="display:flex;align-items:flex-start;gap:10px;margin-top:16px;cursor:pointer">
+  <input type="checkbox" id="acepta-tyc" style="width:18px;height:18px;accent-color:#1e2d4e;cursor:pointer;flex-shrink:0;margin-top:1px"/>
+  <span style="font-size:13px;color:#374151;line-height:1.5">Acepto los <a href="/Terminos_y_Condiciones_Cliente.pdf" target="_blank" rel="noopener" style="color:#1e2d4e;font-weight:600;text-decoration:underline">Términos y Condiciones</a> de TransMatch SpA.</span>
+</label>
+<div id="err-tyc" style="display:none;font-size:12px;color:#DC2626;margin-top:8px">Debes aceptar los Términos y Condiciones para publicar la licitación.</div>
 <div class="btn-row">
 <button class="btn btn-outline" onclick="irPaso(3)">Editar</button>
 <button class="btn btn-orange" id="btn-publicar" onclick="publicar()">Publicar licitacion</button>
@@ -596,6 +604,14 @@ if(btn)btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';
 }
 
 async function publicar(){
+var chkTyc=document.getElementById('acepta-tyc');
+var errTyc=document.getElementById('err-tyc');
+if(chkTyc && !chkTyc.checked){
+  if(errTyc) errTyc.style.display='block';
+  chkTyc.focus();
+  return;
+}
+if(errTyc) errTyc.style.display='none';
 var btn=document.getElementById('btn-publicar');
 btn.disabled=true;btn.textContent='Publicando...';
 var archivo=tipoLicitacion==='maquinaria'?archivoMaq:archivoCarga;
@@ -649,6 +665,7 @@ if(!res.ok)return;
 var data=await res.json();
 var l=data.licitacion;if(!l)return;
 modoEdicion=id;
+var _chkTyc=document.getElementById('acepta-tyc'); if(_chkTyc) _chkTyc.checked=true;
 tipoLicitacion=l.tipoLicitacion||(l.tipoCarga?'carga':'maquinaria');
 document.getElementById('paso0').style.display='none';
 document.getElementById('stepper').style.display='flex';

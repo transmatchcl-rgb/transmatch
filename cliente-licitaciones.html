@@ -245,6 +245,18 @@ document.dispatchEvent(new Event('_authReady'));
 </div>
 </div>
 
+<!-- Modal informe de adjudicacion -->
+<div class="modal-bg" id="modal-informe" onclick="if(event.target===this)this.classList.remove('open')" style="z-index:350">
+<div class="modal" style="max-width:640px;max-height:88vh;overflow-y:auto">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+<div style="font-size:16px;font-weight:700;color:#1e2d4e">Informe de adjudicación</div>
+<button onclick="document.getElementById('modal-informe').classList.remove('open')" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6B7280;line-height:1">&times;</button>
+</div>
+<div style="font-size:12px;color:#9CA3AF;margin-bottom:16px">Trazabilidad del proceso de licitación. Documento informativo de uso interno.</div>
+<div id="informe-body"></div>
+</div>
+</div>
+
 <!-- Modal detalle licitacion -->
 <div class="modal-bg" id="modal-det" onclick="if(event.target===this)this.classList.remove('open')">
 <div class="modal">
@@ -449,6 +461,7 @@ h+='<div style="font-size:13px;color:#374151;margin-bottom:3px"><strong>'+l.adju
 h+='<div style="font-size:13px;color:#374151;margin-bottom:3px">'+l.adjudicadaA.transportistaNombre+'</div>';
 if(l.adjudicadaA.transportistaTelefono)h+='<div style="font-size:13px;color:#374151;margin-bottom:3px">'+l.adjudicadaA.transportistaTelefono+'</div>';
 h+='<div style="font-size:14px;font-weight:700;color:#1e2d4e;margin-top:6px">'+peso(l.adjudicadaA.precio)+'</div>';
+h+='<button onclick="verInformeAdjudicacion(\''+l.id+'\')" style="margin-top:12px;width:100%;padding:9px;background:#fff;color:#14532D;border:1px solid #BBF7D0;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer">Ver informe de adjudicación</button>';
 h+='</div>';
 }
 
@@ -494,13 +507,20 @@ h+='<button style="width:100%;justify-content:center;padding:9px;border-radius:8
 h+='</div>';
 });
 var extras=cotiz.slice(3);
-// Botón para solicitar más cotizaciones (si la licitación está en revisión y hay más disponibles)
+// Botón para solicitar más cotizaciones (solo Pro/Enterprise; básico ve mensaje de upgrade)
 if(l.estado==='cerrada' && (l.totalCotizaciones||cotiz.length) > top3.length){
   var disponiblesMas=(l.totalCotizaciones||cotiz.length)-top3.length;
+  var _plan=(window._miUsuario&&window._miUsuario.plan)||localStorage.getItem('tm_plan')||'';
+  var _esPro=(_plan==='pro'||_plan==='enterprise');
   h+='<div style="padding:14px;border:1.5px dashed #E5E7EB;border-radius:10px;text-align:center;margin-top:6px">';
-  h+='<div style="font-size:13px;color:#6B7280;margin-bottom:10px">¿Ninguna te convence? Hay '+disponiblesMas+' cotización'+(disponiblesMas>1?'es':'')+' más disponible'+(disponiblesMas>1?'s':'')+'.</div>';
-  h+='<button onclick="solicitarMasCotizaciones(\''+l.id+'\')" style="padding:8px 16px;background:#1e2d4e;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer">Solicitar más cotizaciones</button>';
-  h+='<div style="font-size:11px;color:#9CA3AF;margin-top:8px">Las cotizaciones actuales se mantendrán visibles.</div>';
+  if(_esPro){
+    h+='<div style="font-size:13px;color:#6B7280;margin-bottom:10px">¿Ninguna te convence? Hay '+disponiblesMas+' cotización'+(disponiblesMas>1?'es':'')+' más disponible'+(disponiblesMas>1?'s':'')+'.</div>';
+    h+='<button onclick="solicitarMasCotizaciones(\''+l.id+'\')" style="padding:8px 16px;background:#1e2d4e;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer">Solicitar más cotizaciones</button>';
+    h+='<div style="font-size:11px;color:#9CA3AF;margin-top:8px">Las cotizaciones actuales se mantendrán visibles.</div>';
+  } else {
+    h+='<div style="font-size:13px;color:#6B7280;margin-bottom:6px">Solicitar más cotizaciones es una función de los planes <strong>Pro</strong> y <strong>Enterprise</strong>.</div>';
+    h+='<div style="font-size:12px;color:#9CA3AF">Con tu plan actual puedes elegir entre las 3 cotizaciones recibidas.</div>';
+  }
   h+='</div>';
 }
 }
@@ -583,6 +603,55 @@ function verPreviewCotiz(idx){
   }
   body.innerHTML=html;
   document.getElementById('modal-preview-cotiz').classList.add('open');
+}
+
+function verInformeAdjudicacion(licId){
+  var l=allLicitaciones.find(function(x){return x.id===licId;});
+  if(!l){toast('No se encontró la licitación','err');return;}
+  var enviadas=l.cotizacionesEnviadas||[];
+  var adj=l.adjudicadaA||{};
+  var fmt=function(f){ if(!f)return '—'; try{return new Date(f).toLocaleDateString('es-CL');}catch(e){return f;} };
+  var h='';
+  // Encabezado de la licitación
+  h+='<div style="background:#f8f9fb;border-radius:10px;padding:14px;margin-bottom:16px">';
+  h+='<div style="font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:6px">'+(l.codigo?l.codigo+' — ':'')+(l.tipoEquipo||'')+(l.marca?' '+l.marca:'')+'</div>';
+  h+='<div style="font-size:12px;color:#6B7280">Ruta: '+(l.origen||'')+' → '+(l.destino||'')+'</div>';
+  h+='<div style="font-size:12px;color:#6B7280">Fecha de adjudicación: '+fmt(l.adjudicadaAt)+'</div>';
+  h+='<div style="font-size:12px;color:#6B7280">Cotizaciones evaluadas: '+enviadas.length+'</div>';
+  h+='</div>';
+  // Tabla de cotizaciones presentadas
+  h+='<div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Cotizaciones presentadas</div>';
+  if(enviadas.length===0){
+    h+='<div style="font-size:13px;color:#9CA3AF;padding:12px 0">No hay cotizaciones registradas para esta licitación.</div>';
+  } else {
+    enviadas.forEach(function(c,i){
+      var esGanadora=(adj.cotizacionId&&c.id===adj.cotizacionId)||(adj.transportistaId&&c.transportistaId===adj.transportistaId)||(adj.precio&&c.precio===adj.precio&&i===0);
+      var bg=esGanadora?'#F0FDF4':'#fff';
+      var bd=esGanadora?'#BBF7D0':'#E5E7EB';
+      h+='<div style="border:1px solid '+bd+';background:'+bg+';border-radius:10px;padding:12px 14px;margin-bottom:10px">';
+      h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">';
+      h+='<div style="font-size:14px;font-weight:600;color:#1e2d4e">Cotización '+(i+1)+(esGanadora?' <span style="font-size:11px;font-weight:500;color:#0F6E56;background:#E1F5EE;padding:2px 8px;border-radius:999px;margin-left:4px">Adjudicada</span>':'')+'</div>';
+      h+='<div style="font-size:15px;font-weight:700;color:#1e2d4e;text-align:right">'+peso(c.precio)+'<div style="font-size:10px;font-weight:400;color:#9CA3AF">monto neto</div></div>';
+      h+='</div>';
+      h+='<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:12px;color:#6B7280">';
+      if(c.fechaEntregaISO) h+='<span>Entrega: '+fmt(c.fechaEntregaISO)+'</span>';
+      else if(c.tiempoEntrega) h+='<span>Entrega: '+c.tiempoEntrega+'</span>';
+      if(typeof c.transportistaRating!=='undefined') h+='<span>Valoración: '+(c.transportistaRating||'—')+' ★</span>';
+      if(typeof c.score!=='undefined' && c.score) h+='<span>Score: '+Math.round(c.score)+'%</span>';
+      h+='</div>';
+      // Identidad solo de la ganadora (ya revelada al adjudicar)
+      if(esGanadora){
+        h+='<div style="margin-top:8px;padding-top:8px;border-top:0.5px solid #BBF7D0;font-size:12px;color:#14532D">';
+        h+='<strong>'+(adj.transportistaEmpresa||c.transportistaEmpresa||'')+'</strong>';
+        if(adj.transportistaNombre||c.transportistaNombre) h+=' · '+(adj.transportistaNombre||c.transportistaNombre);
+        h+='</div>';
+      }
+      h+='</div>';
+    });
+  }
+  h+='<div style="font-size:11px;color:#9CA3AF;margin-top:6px;line-height:1.5">Las cotizaciones se presentan de forma anónima durante la licitación. La identidad del transportista se revela únicamente al adjudicar. Criterio de evaluación: Precio (50%), Puntualidad de entrega (30%), Valoración (20%).</div>';
+  document.getElementById('informe-body').innerHTML=h;
+  document.getElementById('modal-informe').classList.add('open');
 }
 
 async function solicitarMasCotizaciones(id){
@@ -714,7 +783,10 @@ if(e)e.stopPropagation();var p=document.getElementById('notif-panel');
 var isOpen=p.style.display==='flex';closeAllPanels();
 if(!isOpen){p.style.display='flex';cargarNotificaciones();}
 }
-document.addEventListener('click',function(){closeAllPanels();});
+document.addEventListener('click',function(e){
+  if(e.target.closest('#notif-panel') || e.target.closest('#notif-btn') || e.target.closest('#user-menu') || e.target.closest('#nav-avatar')) return;
+  closeAllPanels();
+});
 function cerrarSesion(){localStorage.clear();window.location.replace('/index.html');}
 
 async function cargarNotificaciones(){

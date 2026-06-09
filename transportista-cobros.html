@@ -564,7 +564,11 @@ function closeAllPanels(){var m=document.getElementById('user-menu');var p=docum
 function toggleUserMenu(e){e.stopPropagation();
   var _mp=document.getElementById('nav-mobile-panel'); if(_mp) _mp.classList.remove('open');var m=document.getElementById('user-menu');var isOpen=m&&m.style.display==='block';closeAllPanels();if(!isOpen&&m)m.style.display='block';}
 function toggleNotifs(e){if(e)e.stopPropagation();var p=document.getElementById('notif-panel');var isOpen=p&&p.style.display==='flex';closeAllPanels();if(!isOpen&&p){p.style.display='flex';cargarNotificaciones();}}
-document.addEventListener('click',function(){closeAllPanels();});
+document.addEventListener('click',function(e){
+  if(e.target.closest('#notif-panel') || e.target.closest('#notif-btn') ||
+     e.target.closest('#user-menu') || e.target.closest('#nav-avatar')) return;
+  closeAllPanels();
+});
 
 (function(){
   var token=localStorage.getItem('tm_token');

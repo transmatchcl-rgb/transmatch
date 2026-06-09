@@ -479,8 +479,15 @@ function renderDetalle(t){
           '<span style="font-size:13px;font-weight:500;color:#1e2d4e">'+siguiente.icon+' '+siguiente.label+'</span>'+
           '<input class="nota-inp" id="nota-'+t.id+'" placeholder="Nota opcional (ej: Saliendo a las 08:00)"/>'+
           '<button class="btn btn-primary" onclick="actualizarEstado(\''+t.id+'\',\''+siguiente.id+'\')">Confirmar</button>'+
-        '</div>'+
-      '</div>';
+        '</div>';
+      // Opción de marcar como entregado directamente (si el siguiente paso no es ya "entregado")
+      if(siguiente.id!=='entregado'){
+        h+='<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid #e8eaf0;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">'+
+          '<span style="font-size:12px;color:#6B7280">¿El transporte ya fue entregado?</span>'+
+          '<button class="btn btn-outline btn-sm" style="color:#14532D;border-color:#BBF7D0" onclick="marcarEntregadoDirecto(\''+t.id+'\')">Marcar como entregado</button>'+
+        '</div>';
+      }
+      h+='</div>';
     }
   }
 
@@ -539,6 +546,14 @@ function toggleCard(id){
   var open=body.classList.contains('open');
   body.classList.toggle('open',!open);
   arr.style.transform=open?'':'rotate(90deg)';
+}
+
+async function marcarEntregadoDirecto(transporteId){
+  if(!confirm('¿Marcar este transporte como ENTREGADO? Se omitirán los estados intermedios. Esta acción confirma que la carga llegó a destino.')) return;
+  // Poner una nota automática en el campo si está vacío, para dejar registro del salto
+  var nota=document.getElementById('nota-'+transporteId);
+  if(nota && !nota.value.trim()) nota.value='Marcado como entregado directamente';
+  await actualizarEstado(transporteId, 'entregado');
 }
 
 async function actualizarEstado(transporteId, nuevoEstado){
