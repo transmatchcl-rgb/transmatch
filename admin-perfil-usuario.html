@@ -176,9 +176,9 @@
       equiposHtml = '<div class="card"><div class="card-hdr">Equipos registrados</div><div class="card-body">' + equiposInner + '</div></div>';
     }
 
-    // Sección usuarios adicionales solo para clientes
+    // Sección usuarios adicionales (clientes y transportistas)
     var usuariosHtml = '';
-    if (!isTransportista) {
+    {
       usuariosHtml = '<div class="card"><div class="card-hdr">Usuarios adicionales de empresa</div><div class="card-body">' +
         '<div style="font-size:13px;color:#6B7280;margin-bottom:12px">Define cuántos usuarios extra puede invitar esta empresa.</div>' +
         '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
