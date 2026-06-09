@@ -396,12 +396,12 @@ const token=localStorage.getItem('tm_token');
 var miEmail=(localStorage.getItem('tm_email')||'').toLowerCase();
 try{
 const me=await api('/api/auth/me');
-if(me&&me.ok){ userId=me.data.user.id; if(me.data.user.email) miEmail=(me.data.user.email||'').toLowerCase(); }
+if(me&&me.ok){ userId=me.data.user.id; if(me.data.user.email) miEmail=(me.data.user.email||'').toLowerCase(); window._esSubusuarioT=me.data.user.esSubusuario||false; }
 }catch(e){}
 miEmailGlobal=miEmail;
 misCotizaciones=new Set();
 allLicitaciones.forEach(l=>{
-if((l.cotizaciones||[]).find(c=>(userId&&c.transportistaId===userId)||(miEmail&&(c.transportistaEmail||'').toLowerCase()===miEmail)))misCotizaciones.add(l.id);
+if(l.empresaYaCotizo || (l.cotizaciones||[]).find(c=>(userId&&c.transportistaId===userId)||(miEmail&&(c.transportistaEmail||'').toLowerCase()===miEmail)))misCotizaciones.add(l.id);
 });
 try {
 const hist = await api('/api/transportista/historial');
@@ -658,7 +658,21 @@ setTimeout(function(){ cargarPosiciones('${l.id}'); }, 100);
 } else if(estaAdjudicada){
 h+=`<div style="padding:16px 18px"><div style="background:#F3F4F6;border-radius:8px;padding:14px;text-align:center"><div style="font-size:14px;color:#6B7280">Esta licitación ya fue adjudicada</div></div></div>`;
 } else {
-const mc = (l.cotizaciones||[]).find(function(c){ return c.transportistaId===userId; });
+const mc = (l.cotizaciones||[]).find(function(c){ return c.transportistaId===userId || (c.transportistaEmail&&miEmailGlobal&&c.transportistaEmail.toLowerCase()===miEmailGlobal); });
+// Cotización de otro usuario de la misma empresa (la madre ve la de un subusuario o viceversa)
+const mcEmpresa = !mc ? (l.cotizaciones||[]).find(function(c){ return c.transportistaEmpresa && l.empresaYaCotizo; }) : null;
+if(!mc && (l.empresaYaCotizo || mcEmpresa)){
+const ce = mcEmpresa || {};
+const precioE = ce.precio ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(ce.precio) : '—';
+h+=`<div style="padding:16px 18px">
+<div style="background:#eef1f8;border:1px solid #d6deef;border-radius:10px;padding:14px;margin-bottom:12px">
+<div style="font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:6px">Tu empresa ya cotizó esta licitación</div>
+<div style="font-size:12px;color:#6B7280;line-height:1.5">${ce.transportistaNombre?'Cotización enviada por <strong style="color:#1e2d4e">'+ce.transportistaNombre+'</strong>.':'Otro usuario de tu empresa ya envió una cotización.'} Solo se permite una cotización por empresa.</div>
+${ce.precio?`<div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 0 0;margin-top:8px;border-top:0.5px solid #d6deef"><span style="color:#6B7280">Precio cotizado</span><span style="font-weight:700;color:#1e2d4e">${precioE}</span></div>`:''}
+</div>
+<button class="btn btn-outline btn-sm" onclick="verPreviewCotiz('${l.id}')">Ver cotización</button>
+</div>`;
+} else {
 const precioFmt = mc ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(mc.precio) : '—';
 const entregaFmt = mc ? (mc.tiempoEntrega||'—') : '—';
 h+=`<div style="padding:16px 18px">
@@ -682,6 +696,7 @@ ${l.estado === 'abierta' ? `
 ` : ''}
 </div>
 </div>`;
+}
 }
 } else {
 const cierre=new Date(l.cierreAt);
