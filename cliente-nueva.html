@@ -574,6 +574,9 @@ document.getElementById('paso3').classList.remove('active');
 document.getElementById('paso4').classList.remove('active');
 if(paso===1){document.getElementById(tipoLicitacion==='maquinaria'?'paso1-maquinaria':'paso1-carga').classList.add('active');}
 else{document.getElementById('paso'+paso).classList.add('active');}
+// La opción "Cambiar tipo" del encabezado solo se muestra en el paso 1
+var _tel=document.getElementById('tipo-elegido');
+if(_tel) _tel.style.display=(paso===1)?'block':'none';
 currentStep=paso;updateStepper(paso);
 window.scrollTo({top:0,behavior:'smooth'});
 }
