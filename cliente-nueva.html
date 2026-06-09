@@ -564,7 +564,12 @@ if(errT) errT.style.display='none';
 if(paso===3){
 if(!document.getElementById('origen').value.trim()){showToast('Ingresa la ciudad de origen','err');return;}
 if(!document.getElementById('destino').value.trim()){showToast('Ingresa la ciudad de destino','err');return;}
-if(!document.getElementById('fechaCarga').value){showToast('Selecciona la fecha de carga','err');return;}
+var _fc=document.getElementById('fechaCarga').value;
+if(!_fc){showToast('Selecciona la fecha de carga','err');return;}
+var _min=new Date(); _min.setDate(_min.getDate()+3); _min.setHours(0,0,0,0);
+if(new Date(_fc+'T00:00:00') < _min){showToast('La fecha de carga debe ser al menos 3 días desde hoy','err');return;}
+var _fe=document.getElementById('fechaEntrega').value;
+if(_fe && new Date(_fe+'T00:00:00') < new Date(_fc+'T00:00:00')){showToast('La fecha de entrega no puede ser anterior a la de carga','err');return;}
 }
 if(paso===4)buildResumen();
 document.getElementById('paso1-maquinaria').classList.remove('active');
@@ -834,6 +839,23 @@ function toggleConfigNotif(){
   }
 
 if(editId) document.addEventListener('DOMContentLoaded', function(){ cargarEdicion(editId); });
+
+// Fecha mínima de carga: hoy + 3 días (se bloquean hoy y los 2 días siguientes)
+function aplicarFechaMinima(){
+  var d=new Date(); d.setDate(d.getDate()+3);
+  var min=d.toISOString().slice(0,10);
+  var fc=document.getElementById('fechaCarga'); if(fc) fc.min=min;
+  var fe=document.getElementById('fechaEntrega'); if(fe) fe.min=min;
+}
+document.addEventListener('DOMContentLoaded', aplicarFechaMinima);
+// La fecha de entrega no puede ser anterior a la fecha de carga elegida
+document.addEventListener('DOMContentLoaded', function(){
+  var fc=document.getElementById('fechaCarga');
+  if(fc) fc.addEventListener('change', function(){
+    var fe=document.getElementById('fechaEntrega');
+    if(fe && fc.value) fe.min=fc.value;
+  });
+});
 
 var _API='https://transmatch.transmatchcl.workers.dev';
 function closeAllPanels(){var p=document.getElementById('notif-panel');if(p)p.style.display='none';}
