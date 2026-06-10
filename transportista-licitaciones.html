@@ -91,7 +91,10 @@ textarea{resize:vertical;min-height:80px}
     .nav-mobile-menu{display:flex!important}
     .nav-user-name{display:none!important}
   }
-</style><script>
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
 const API='https://transmatch.transmatchcl.workers.dev';
 (async function(){
 const token=localStorage.getItem('tm_token');
@@ -1062,8 +1065,9 @@ async function verPreviewCotiz(licitacionId){
     }
     doc+=html+'</div>';
     // Botón imprimir/descargar (fuera del área que se imprime)
-    doc+='<div class="no-print" style="margin-top:20px;padding-top:16px;border-top:0.5px solid #E5E7EB;display:flex;justify-content:flex-end">'+
-      '<button onclick="imprimirCotizacionGuardada()" style="background:#1e2d4e;color:#fff;padding:10px 20px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer">Imprimir / Descargar PDF</button>'+
+    doc+='<div class="no-print" style="margin-top:20px;padding-top:16px;border-top:0.5px solid #E5E7EB;display:flex;justify-content:flex-end;gap:10px">'+
+      '<button onclick="imprimirCotizacionGuardada()" style="background:#fff;color:#1e2d4e;padding:10px 20px;border-radius:8px;border:1px solid #1e2d4e;font-size:13px;font-weight:600;cursor:pointer">Imprimir</button>'+
+      '<button id="btn-descargar-pdf" onclick="descargarCotizacionPDF()" style="background:#1e2d4e;color:#fff;padding:10px 20px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer">Descargar PDF</button>'+
     '</div>';
     body.innerHTML=doc;
   }catch(e){
@@ -1081,6 +1085,54 @@ function imprimirCotizacionGuardada(){
   win.document.close();
   win.focus();
   setTimeout(function(){ win.print(); }, 300);
+}
+
+async function descargarCotizacionPDF(){
+  var doc=document.getElementById('cotiz-doc');
+  if(!doc) return;
+  var btn=document.getElementById('btn-descargar-pdf');
+  var txtPrev = btn?btn.textContent:'';
+  if(btn){ btn.textContent='Generando...'; btn.disabled=true; }
+  try{
+    if(typeof html2canvas==='undefined' || !window.jspdf){ showToast('No se pudo generar el PDF, intenta imprimir','err'); return; }
+    var canvas=await html2canvas(doc,{scale:2,backgroundColor:'#ffffff',useCORS:true});
+    var img=canvas.toDataURL('image/png');
+    var jsPDF=window.jspdf.jsPDF;
+    var pdf=new jsPDF('p','mm','a4');
+    var pw=pdf.internal.pageSize.getWidth();
+    var ph=pdf.internal.pageSize.getHeight();
+    var margin=10;
+    var imgW=pw-margin*2;
+    var imgH=canvas.height*imgW/canvas.width;
+    var y=margin;
+    // Si el contenido es más alto que una página, partir en varias
+    if(imgH<=ph-margin*2){
+      pdf.addImage(img,'PNG',margin,y,imgW,imgH);
+    } else {
+      var remaining=imgH; var position=y; var pageContentH=ph-margin*2;
+      // Añadir la imagen completa y desplazar por páginas
+      var sY=0;
+      var ratio=canvas.width/imgW; // px por mm
+      var pagePx=pageContentH*ratio;
+      var pageNum=0;
+      while(sY<canvas.height){
+        var sliceH=Math.min(pagePx, canvas.height-sY);
+        var c2=document.createElement('canvas');
+        c2.width=canvas.width; c2.height=sliceH;
+        var ctx=c2.getContext('2d');
+        ctx.drawImage(canvas,0,sY,canvas.width,sliceH,0,0,canvas.width,sliceH);
+        var img2=c2.toDataURL('image/png');
+        if(pageNum>0) pdf.addPage();
+        pdf.addImage(img2,'PNG',margin,margin,imgW,sliceH/ratio);
+        sY+=sliceH; pageNum++;
+      }
+    }
+    pdf.save('Cotizacion-TransMatch.pdf');
+  }catch(e){
+    showToast('No se pudo generar el PDF','err');
+  }finally{
+    if(btn){ btn.textContent=txtPrev; btn.disabled=false; }
+  }
 }
 function abrirEditarCotiz(licitacionId, nombre){
   selectedId = licitacionId;
