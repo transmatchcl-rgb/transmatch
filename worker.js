@@ -135,6 +135,61 @@ function calcScore(cotizacion, fechaSolicitada) {
   return (precioScore * 0.50) + (fechaScore * 0.30) + (ratingScore * 0.20);
 }
 
+// Cierra automáticamente las licitaciones abiertas cuyo plazo (cierreAt) ya venció.
+// - Con cotizaciones: pasa a "cerrada" y envía las top 3 al cliente.
+// - Sin cotizaciones: pasa a "expirada".
+// Devuelve cuántas procesó. Es idempotente y seguro de llamar seguido.
+async function procesarLicitacionesVencidas(env) {
+  let procesadas = 0;
+  try {
+    const ids = JSON.parse(await env.LICITACIONES.get("all") || "[]");
+    const ahora = Date.now();
+    for (const id of ids) {
+      const raw = await env.LICITACIONES.get(id);
+      if (!raw) continue;
+      const l = JSON.parse(raw);
+      if (l.estado !== "abierta") continue;
+      if (!l.cierreAt) continue;
+      if (new Date(l.cierreAt).getTime() > ahora) continue; // aún no vence
+
+      const cotizaciones = l.cotizaciones || [];
+      if (cotizaciones.length > 0) {
+        // Rankear por score (50% precio neto / 30% puntualidad / 20% rating)
+        const todosPrecios = cotizaciones.map(c => c.precio);
+        const ranked = cotizaciones
+          .map(c => ({ ...c, _allPrecios: todosPrecios, score: calcScore({ ...c, _allPrecios: todosPrecios }, l.fechaCarga) }))
+          .sort((a, b) => b.score - a.score);
+        l.cotizaciones = ranked;
+        l.estado = "cerrada";
+        l.cerradaAt = new Date().toISOString();
+        l.ronda = l.ronda || 1;
+        l.cotizacionesEnviadas = ranked.slice(0, 3).map(cot => { if (!cot.id) cot.id = uid(); return cot; });
+        await env.LICITACIONES.put(id, JSON.stringify(l));
+        try {
+          await crearNotificacion(env, l.clienteId, "cotizaciones_disponibles",
+            `Tienes ${Math.min(3, ranked.length)} cotizaciones: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`,
+            { licitacionId: id });
+          await enviarEmail(env, { to: l.clienteEmail, subject: `Tienes cotizaciones listas - TransMatch`, html: emailCotizacionesListas(l, Math.min(3, ranked.length)) });
+          await registrarActividad(env,"licitacion_cerrada",`Licitación cerrada automáticamente con ${Math.min(3,ranked.length)} cotizaciones: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo });
+        } catch (e) {}
+      } else {
+        // Sin cotizaciones: expira
+        l.estado = "expirada";
+        l.expiradaAt = new Date().toISOString();
+        await env.LICITACIONES.put(id, JSON.stringify(l));
+        try {
+          await crearNotificacion(env, l.clienteId, "licitacion_cerrada",
+            `Tu licitación venció sin cotizaciones: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`,
+            { licitacionId: id });
+          await registrarActividad(env,"licitacion_expirada",`Licitación expirada sin cotizaciones: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo });
+        } catch (e) {}
+      }
+      procesadas++;
+    }
+  } catch (e) {}
+  return procesadas;
+}
+
 function puedeTransportar(tiposEquipo, licitacion) {
   if (!tiposEquipo || tiposEquipo.length === 0) return false;
   if (!licitacion.tipoEquipoRequerido || licitacion.tipoEquipoRequerido === "cualquiera") return true;
@@ -149,14 +204,21 @@ function anonimizarCliente(l) {
   return { ...l, clienteEmail:undefined, clienteNombre:undefined, clienteEmpresa: l.clienteEmpresa ? "Empresa verificada TransMatch" : "Empresa verificada" };
 }
 
-function anonimizarTransportista(c) {
-  return {
+function anonimizarTransportista(c, revelar) {
+  const base = {
     id:c.id, licitacionId:c.licitacionId, precio:c.precio, tiempoEntrega:c.tiempoEntrega,
     descripcion:c.descripcion, incluye:c.incluye, tiempoRespuesta:c.tiempoRespuesta,
     transportistaRating:c.transportistaRating, transportistaTransportes:c.transportistaTransportes,
     archivoId:c.archivoId, archivoNombre:c.archivoNombre, score:c.score, createdAt:c.createdAt,
     transportistaLabel:`Transportista Verificado ${c.transportistaRating||5}`,
   };
+  // Al adjudicar, se revela la cotizacion propia del transportista (junto con datos de contacto)
+  if (revelar) {
+    base.archivoPropioId = c.archivoPropioId||null;
+    base.archivoPropioNombre = c.archivoPropioNombre||null;
+    base.formulario = c.formulario||null;
+  }
+  return base;
 }
 
 async function enviarEmail(env, { to, subject, html }) {
@@ -207,6 +269,55 @@ function emailLicitacionAprobada(l) {
     </div>
     ${btnEmail('https://transmatch.cl/cliente-licitaciones.html','Ver mi licitacion')}`, "Tu licitacion fue aprobada - TransMatch");
 }
+
+function emailNuevaLicitacionTransportista(l) {
+  return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Nueva licitación disponible</h2>
+    <p style="font-size:14px;color:#6B7280;margin:0 0 20px">Hay una nueva solicitud de transporte que puedes cotizar.</p>
+    <div style="background:#F9FAFB;border-radius:8px;padding:16px;margin-bottom:20px">
+      <div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>Carga:</strong> ${l.tipoEquipo}${l.marca?' - '+l.marca:''}</div>
+      <div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>Ruta:</strong> ${l.origen} - ${l.destino}</div>
+      <div style="font-size:13px;color:#374151"><strong>Plazo para cotizar:</strong> ${l.plazo||'24'} horas</div>
+    </div>
+    ${btnEmail('https://transmatch.cl/transportista-licitaciones.html','Ver y cotizar','#FF8904')}`, "Nueva licitación disponible - TransMatch");
+}
+
+function emailNuevaLicitacionAdmin(l) {
+  return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Nueva licitación pendiente de aprobación</h2>
+    <p style="font-size:14px;color:#6B7280;margin:0 0 20px">Un cliente publicó una licitación. El plazo para los transportistas ya está corriendo, apruébala lo antes posible.</p>
+    <div style="background:#F9FAFB;border-radius:8px;padding:16px;margin-bottom:20px">
+      <div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>Cliente:</strong> ${l.clienteEmpresa||l.clienteNombre||'--'}</div>
+      <div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>Carga:</strong> ${l.tipoEquipo}${l.marca?' - '+l.marca:''}</div>
+      <div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>Ruta:</strong> ${l.origen} - ${l.destino}</div>
+      <div style="font-size:13px;color:#374151"><strong>Plazo:</strong> ${l.plazo||'24'} horas (cierra ${new Date(l.cierreAt).toLocaleString('es-CL')})</div>
+    </div>
+    ${btnEmail('https://transmatch.cl/admin-licitaciones.html','Revisar y aprobar','#1e2d4e')}`, "Nueva licitación pendiente - TransMatch");
+}
+
+// Notifica por email a todos los transportistas activos que pueden cotizar esta licitación.
+// Respeta la preferencia notifPrefs['nueva-licit'] (activada por defecto).
+async function notificarNuevaLicitacionTransportistas(env, l) {
+  try {
+    const lista = await env.USERS.list();
+    for (const key of lista.keys) {
+      if (key.name.startsWith("id:")) continue;
+      const raw = await env.USERS.get(key.name);
+      if (!raw) continue;
+      const u = JSON.parse(raw);
+      if (u.role !== "transportista" || u.estado !== "activo") continue;
+      // Solo a quienes pueden transportar este tipo de carga
+      if (!puedeTransportar(u.tiposEquipo || [], l)) continue;
+      // Notificación in-app siempre
+      try { await crearNotificacion(env, u.id, "nueva_licitacion", `Nueva licitación: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`, { licitacionId: l.id }); } catch(e) {}
+      // Email solo si la preferencia 'nueva-licit' está activa (default: activa)
+      const prefs = u.notifPrefs || {};
+      const emailActivo = prefs['nueva-licit'] !== false; // undefined o true => enviar
+      if (emailActivo && u.email) {
+        try { await enviarEmail(env, { to: u.email, subject: "Nueva licitación disponible - TransMatch", html: emailNuevaLicitacionTransportista(l) }); } catch(e) {}
+      }
+    }
+  } catch(e) {}
+}
+
 
 function emailCotizacionesListas(l, nCotiz) {
   return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Tienes cotizaciones listas!</h2>
@@ -297,6 +408,22 @@ async function verificarVencimiento(env, ov) {
   return ov;
 }
 
+// Devuelve el conjunto de emails de la empresa del usuario (el propio + subusuarios si es cuenta madre).
+// Para subusuarios devuelve solo su propio email (cada uno ve lo suyo; solo la madre ve todo).
+async function emailsEmpresa(env, user) {
+  const emails = new Set([user.email.toLowerCase()]);
+  if (!user.esSubusuario) {
+    const raw = await env.USERS.get(user.email);
+    if (raw) {
+      const u = JSON.parse(raw);
+      if (Array.isArray(u.empresaMiembros)) {
+        for (const em of u.empresaMiembros) { if (em) emails.add(em.toLowerCase()); }
+      }
+    }
+  }
+  return emails;
+}
+
 async function crearNotificacion(env, userId, tipo, mensaje, datos={}) {
   const id = uid();
   const notif = { id, userId, tipo, mensaje, datos, leida:false, createdAt:new Date().toISOString() };
@@ -304,6 +431,20 @@ async function crearNotificacion(env, userId, tipo, mensaje, datos={}) {
   const idx = JSON.parse(await env.SESSIONS.get(`notifs:${userId}`) || "[]");
   idx.unshift(id);
   await env.SESSIONS.put(`notifs:${userId}`, JSON.stringify(idx.slice(0,50)));
+}
+
+// Registra un evento en el feed de actividad global (visible para el admin).
+// tipo: licitacion_creada | licitacion_aprobada | licitacion_rechazada | cotizacion_enviada |
+//       licitacion_cerrada | licitacion_adjudicada | transporte_completado | transportista_registrado |
+//       transportista_aprobado | cliente_registrado | retorno_publicado | licitacion_expirada
+async function registrarActividad(env, tipo, mensaje, datos={}) {
+  try {
+    const evento = { id: uid(), tipo, mensaje, datos, createdAt:new Date().toISOString() };
+    // Guardar el evento dentro del índice mismo (1 sola escritura en vez de 2)
+    const feed = JSON.parse(await env.SESSIONS.get("actividad:index") || "[]");
+    feed.unshift(evento);
+    await env.SESSIONS.put("actividad:index", JSON.stringify(feed.slice(0,50))); // últimos 50 eventos
+  } catch(e) {}
 }
 
 async function handleRequest(request, env) {
@@ -374,6 +515,7 @@ async function handleRequest(request, env) {
     }
 
     const token = await signToken({ id:user.id, email:emailLower, role:user.role, nombre:user.nombre, empresa:user.empresa, plan:user.plan }, env.JWT_SECRET);
+    if(user.role==="transportista") await registrarActividad(env,"transportista_registrado",`Nuevo transportista registrado (pendiente de aprobación): ${user.empresa||user.nombre}`,{ transportistaId:user.id });
     return ok({ token, user:{ id:user.id, email:emailLower, role:user.role, nombre:user.nombre, empresa:user.empresa, plan:user.plan } });
   }
 
@@ -439,7 +581,7 @@ async function handleRequest(request, env) {
     const raw = await env.USERS.get(user.email);
     if (!raw) return err("Usuario no encontrado",404);
     const u = JSON.parse(raw);
-    return ok({ user:{ id:u.id, email:u.email, role:u.role, nombre:u.nombre, empresa:u.empresa, plan:u.plan, rating:u.rating, totalTransportes:u.totalTransportes, estado:u.estado, notifEmail:u.notifEmail, notifWhatsapp:u.notifWhatsapp, whatsapp:u.whatsapp, telefono:u.telefono, ciudad:u.ciudad, rut:u.rut, rutEmpresa:u.rutEmpresa, cargo:u.cargo, giro:u.giro, telEmpresa:u.telEmpresa, ciudadEmpresa:u.ciudadEmpresa, direccion:u.direccion, web:u.web, descripcion:u.descripcion, anosExperiencia:u.anosExperiencia, zonas:u.zonas||[], equipos:u.equipos||[], tiposEquipo:u.tiposEquipo||[], facturacion:u.facturacion||{}, contactoOperaciones:u.contactoOperaciones, contactoComercial:u.contactoComercial, contactoFacturacion:u.contactoFacturacion, industrias:u.industrias||[], max_usuarios:u.max_usuarios||0, esSubusuario:u.esSubusuario||false, empresaMadreId:u.empresaMadreId||null, empresaMiembros:u.empresaMiembros||[], permisos:u.permisos||{}, perfilCompletitud:u.perfilCompletitud||0, totalCotizaciones:u.totalCotizaciones||0 } });
+    return ok({ user:{ id:u.id, email:u.email, role:u.role, nombre:u.nombre, empresa:u.empresa, plan:u.plan, rating:u.rating, totalTransportes:u.totalTransportes, estado:u.estado, notifEmail:u.notifEmail, notifWhatsapp:u.notifWhatsapp, whatsapp:u.whatsapp, telefono:u.telefono, ciudad:u.ciudad, rut:u.rut, rutEmpresa:u.rutEmpresa, cargo:u.cargo, giro:u.giro, telEmpresa:u.telEmpresa, ciudadEmpresa:u.ciudadEmpresa, direccion:u.direccion, web:u.web, descripcion:u.descripcion, anosExperiencia:u.anosExperiencia, zonas:u.zonas||[], equipos:u.equipos||[], tiposEquipo:u.tiposEquipo||[], facturacion:u.facturacion||{}, contactoOperaciones:u.contactoOperaciones, contactoComercial:u.contactoComercial, contactoFacturacion:u.contactoFacturacion, industrias:u.industrias||[], max_usuarios:u.max_usuarios||0, esSubusuario:u.esSubusuario||false, empresaMadreId:u.empresaMadreId||null, empresaMiembros:u.empresaMiembros||[], permisos:u.permisos||{}, perfilCompletitud:u.perfilCompletitud||0, totalCotizaciones:u.totalCotizaciones||0, notifPrefs:u.notifPrefs||{} } });
   }
 
   if (path === "/api/licitaciones" && method === "POST") {
@@ -454,12 +596,16 @@ async function handleRequest(request, env) {
     const idxC = JSON.parse(await env.LICITACIONES.get("cliente:"+user.id)||"[]"); idxC.unshift(id); await env.LICITACIONES.put("cliente:"+user.id, JSON.stringify(idxC));
     const idxA = JSON.parse(await env.LICITACIONES.get("all")||"[]"); idxA.unshift(id); await env.LICITACIONES.put("all", JSON.stringify(idxA));
     await crearNotificacion(env,"admin","nueva_licitacion",`Nueva licitacion: ${licitacion.tipoEquipo} - ${origen} - ${destino}`,{ licitacionId:id });
+    if(env.ADMIN_EMAIL){ try{ await enviarEmail(env,{ to:env.ADMIN_EMAIL, subject:"Nueva licitación pendiente de aprobación - TransMatch", html:emailNuevaLicitacionAdmin(licitacion) }); }catch(e){} }
+    await registrarActividad(env,"licitacion_creada",`${user.empresa||user.nombre||'Cliente'} publicó una licitación: ${licitacion.tipoEquipo} (${origen} → ${destino})`,{ licitacionId:id, codigo, empresa:user.empresa });
     return ok({ ok:true, id, mensaje:"Licitacion enviada." });
   }
 
   if (path === "/api/licitaciones" && method === "GET") {
     const user = await getUser(request, env);
     if (!user) return err("No autenticado",401);
+    // Cierre lazy: procesar licitaciones vencidas en cada carga (respaldo del cron)
+    await procesarLicitacionesVencidas(env);
     let ids = [];
     if (user.role==="admin") ids = JSON.parse(await env.LICITACIONES.get("all")||"[]");
     else if (user.role==="cliente") {
@@ -488,14 +634,15 @@ async function handleRequest(request, env) {
     }
     else if (user.role==="transportista") ids = JSON.parse(await env.LICITACIONES.get("all")||"[]");
     let equiposTransportista = [];
-    if (user.role==="transportista") { const rawT = await env.USERS.get(user.email); if (rawT) equiposTransportista = JSON.parse(rawT).tiposEquipo||[]; }
+    let emailsEmpresaT = null;
+    if (user.role==="transportista") { const rawT = await env.USERS.get(user.email); if (rawT) equiposTransportista = JSON.parse(rawT).tiposEquipo||[]; emailsEmpresaT = await emailsEmpresa(env, user); }
     const licitaciones = [];
     for (const id of ids.slice(0,100)) {
       const raw = await env.LICITACIONES.get(id); if (!raw) continue;
       let l = JSON.parse(raw);
       if (!l.codigo) { l.codigo = await generarCodigo(env,'LIC'); await env.LICITACIONES.put(id, JSON.stringify(l)); }
       if (user.role==="transportista") {
-        if (["abierta","cerrada"].includes(l.estado)) { if (!puedeTransportar(equiposTransportista,l)) continue; licitaciones.push(anonimizarCliente(l)); }
+        if (["abierta","cerrada"].includes(l.estado)) { if (!puedeTransportar(equiposTransportista,l)) continue; const _anon=anonimizarCliente(l); _anon.empresaYaCotizo=(l.cotizaciones||[]).some(c=>c.transportistaId===user.id || (c.transportistaEmail&&emailsEmpresaT.has(c.transportistaEmail.toLowerCase()))); licitaciones.push(_anon); }
         else if (["adjudicada","completada"].includes(l.estado) && l.adjudicadaA?.transportistaEmail===user.email) licitaciones.push(l);
         else continue;
       } else if (user.role==="cliente") {
@@ -515,7 +662,7 @@ async function handleRequest(request, env) {
     const l = JSON.parse(raw);
     if(user.role==="cliente"){ const _eid=(user.esSubusuario?(user.empresaMadreId||user.id):user.id); if((l.empresaId||l.clienteId)!==_eid) return err("Sin acceso",403); }
     if (user.role==="transportista") { if(!["abierta","cerrada"].includes(l.estado)) return err("Sin acceso",403); return ok({ licitacion:anonimizarCliente(l) }); }
-    if (user.role==="cliente") { const lCopy={...l}; lCopy.cotizaciones=(l.cotizacionesEnviadas||[]).map(anonimizarTransportista); lCopy.totalCotizaciones=(l.cotizaciones||[]).length; return ok({ licitacion:lCopy }); }
+    if (user.role==="cliente") { const lCopy={...l}; const adjId=l.adjudicadaA?.cotizacionId; lCopy.cotizaciones=(l.cotizacionesEnviadas||[]).map(c=>anonimizarTransportista(c, l.estado==="adjudicada" && c.id===adjId)); lCopy.totalCotizaciones=(l.cotizaciones||[]).length; return ok({ licitacion:lCopy }); }
     return ok({ licitacion:l });
   }
 
@@ -534,20 +681,21 @@ async function handleRequest(request, env) {
   if (path === "/api/cotizaciones" && method === "POST") {
     const user = await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
-    const { licitacionId, precio, tiempoEntrega, fechaEntregaISO, descripcion, incluye, archivoId, archivoNombre } = body;
+    const { licitacionId, precio, tiempoEntrega, fechaEntregaISO, fechaCargaISO, descripcion, incluye, archivoId, archivoNombre, archivoPdfId, archivoPdfNombre, formulario } = body;
     if (!licitacionId||!precio) return err("licitacionId y precio son requeridos");
-    if (!archivoId) return err("Debes adjuntar el archivo con tu propuesta");
     const raw = await env.LICITACIONES.get(licitacionId); if(!raw) return err("No encontrada",404);
     const l = JSON.parse(raw);
     if (l.estado!=="abierta") return err("Esta licitacion no esta abierta");
-    if ((l.cotizaciones||[]).find(c=>c.transportistaId===user.id)) return err("Ya enviaste una cotizacion");
+    const emailsT = await emailsEmpresa(env, user);
+    if ((l.cotizaciones||[]).find(c=>c.transportistaId===user.id || (c.transportistaEmail&&emailsT.has(c.transportistaEmail.toLowerCase())))) return err("Tu empresa ya envió una cotización para esta licitación");
     const rawUser = await env.USERS.get(user.email); const userData = rawUser ? JSON.parse(rawUser) : {};
-    const cotizacion = { id:uid(), codigo:await generarCodigo(env,'COT'), licitacionId, transportistaId:user.id, transportistaNombre:user.nombre, transportistaEmpresa:user.empresa, transportistaEmail:user.email, transportistaTelefono:userData.telefono||"", transportistaRating:userData.rating||5.0, transportistaTransportes:userData.totalTransportes||0, precio:parseFloat(precio), tiempoEntrega:tiempoEntrega||"", fechaEntregaISO:fechaEntregaISO||null, descripcion:descripcion||"", incluye:incluye||[], archivoId:archivoId||null, archivoNombre:archivoNombre||null, tiempoRespuesta:Math.floor((Date.now()-new Date(l.createdAt).getTime())/60000), score:0, createdAt:new Date().toISOString() };
+    const cotizacion = { id:uid(), codigo:await generarCodigo(env,'COT'), licitacionId, transportistaId:user.id, transportistaNombre:user.nombre, transportistaEmpresa:user.empresa, transportistaEmail:user.email, transportistaTelefono:userData.telefono||"", transportistaRating:userData.rating||5.0, transportistaTransportes:userData.totalTransportes||0, precio:parseFloat(precio), tiempoEntrega:tiempoEntrega||"", fechaCargaISO:fechaCargaISO||null, fechaEntregaISO:fechaEntregaISO||null, descripcion:descripcion||"", incluye:incluye||[], archivoId:archivoId||null, archivoNombre:archivoNombre||null, archivoPropioId:archivoPdfId||null, archivoPropioNombre:archivoPdfNombre||null, formulario:formulario||null, tiempoRespuesta:Math.floor((Date.now()-new Date(l.createdAt).getTime())/60000), score:0, createdAt:new Date().toISOString() };
     l.cotizaciones = [...(l.cotizaciones||[]), cotizacion];
     const todosPrecios = l.cotizaciones.map(c=>c.precio);
     l.cotizaciones = l.cotizaciones.map(c=>({...c,_allPrecios:todosPrecios,score:calcScore({...c,_allPrecios:todosPrecios},l.fechaCarga)})).sort((a,b)=>b.score-a.score);
     await env.LICITACIONES.put(licitacionId, JSON.stringify(l));
     await crearNotificacion(env,"admin","nueva_cotizacion",`Nueva cotizacion: ${l.tipoEquipo} - ${l.origen}-${l.destino} - ${formatCLP(parseFloat(precio))}`,{ licitacionId, cotizacionId:cotizacion.id });
+    await registrarActividad(env,"cotizacion_enviada",`${user.empresa||user.nombre||'Transportista'} cotizó ${formatCLP(parseFloat(precio))} en ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId, cotizacionId:cotizacion.id, codigo:l.codigo });
     return ok({ ok:true, mensaje:"Cotizacion enviada." });
   }
 
@@ -559,6 +707,9 @@ async function handleRequest(request, env) {
     await env.LICITACIONES.put(id, JSON.stringify(l));
     await crearNotificacion(env,l.clienteId,"licitacion_aprobada",`Tu licitacion fue aprobada: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`,{ licitacionId:id });
     await enviarEmail(env,{ to:l.clienteEmail, subject:"Tu licitacion fue aprobada - TransMatch", html:emailLicitacionAprobada(l) });
+    // Notificar a los transportistas elegibles (in-app + email según preferencia)
+    await notificarNuevaLicitacionTransportistas(env, l);
+    await registrarActividad(env,"licitacion_aprobada",`Licitación aprobada y publicada: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo });
     return ok({ ok:true });
   }
 
@@ -569,6 +720,7 @@ async function handleRequest(request, env) {
     const l=JSON.parse(raw); l.estado="rechazada"; l.motivoRechazo=body.motivo||"";
     await env.LICITACIONES.put(id, JSON.stringify(l));
     await crearNotificacion(env,l.clienteId,"licitacion_rechazada",`Tu licitacion fue rechazada: ${body.motivo||"Contacta al administrador"}`,{ licitacionId:id });
+    await registrarActividad(env,"licitacion_rechazada",`Licitación rechazada: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo, motivo:body.motivo||"" });
     return ok({ ok:true });
   }
 
@@ -578,9 +730,15 @@ async function handleRequest(request, env) {
     const l=JSON.parse(raw); if(l.estado!=="abierta") return err("No esta abierta");
     const cotizaciones=l.cotizaciones||[]; if(cotizaciones.length===0) return err("Sin cotizaciones");
     l.estado="cerrada"; l.cerradaAt=new Date().toISOString(); l.ronda=1;
-    l.cotizacionesEnviadas=cotizaciones.slice(0,3).map(cot=>{ if(!cot.id) cot.id=uid(); return cot; });
+    // Rankear por score (50% precio neto / 30% puntualidad / 20% rating) antes de enviar top 3
+    const todosPrecios=cotizaciones.map(c=>c.precio);
+    const ranked=cotizaciones
+      .map(c=>({ ...c, _allPrecios:todosPrecios, score:calcScore({ ...c, _allPrecios:todosPrecios }, l.fechaCarga) }))
+      .sort((a,b)=>b.score-a.score);
+    l.cotizacionesEnviadas=ranked.slice(0,3).map(cot=>{ if(!cot.id) cot.id=uid(); return cot; });
     await env.LICITACIONES.put(id, JSON.stringify(l));
     await crearNotificacion(env,l.clienteId,"cotizaciones_disponibles",`Tienes ${Math.min(3,cotizaciones.length)} cotizaciones: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`,{ licitacionId:id });
+    await registrarActividad(env,"licitacion_cerrada",`Licitación cerrada con ${Math.min(3,cotizaciones.length)} cotizaciones enviadas al cliente: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo });
     await enviarEmail(env,{ to:l.clienteEmail, subject:`Tienes cotizaciones listas - TransMatch`, html:emailCotizacionesListas(l,Math.min(3,cotizaciones.length)) });
     return ok({ ok:true, enviadas:Math.min(3,cotizaciones.length) });
   }
@@ -611,20 +769,43 @@ async function handleRequest(request, env) {
     l.estado="anulada"; l.anuladaAt=new Date().toISOString(); l.motivoAnulacion=body.motivo; l.anuladaPor=user.role;
     await env.LICITACIONES.put(id, JSON.stringify(l));
     await crearNotificacion(env,"admin","licitacion_anulada",`Licitacion anulada por cliente: ${l.tipoEquipo} - ${l.origen} - ${l.destino}. Motivo: ${body.motivo}`,{ licitacionId:id });
+    // Notificar a todos los transportistas que cotizaron que la licitación fue anulada
+    const yaNotif=new Set();
+    for(const c of (l.cotizaciones||[])){
+      if(c.transportistaId && !yaNotif.has(c.transportistaId)){
+        yaNotif.add(c.transportistaId);
+        try{ await crearNotificacion(env,c.transportistaId,"licitacion_anulada",`La licitación fue anulada y no se adjudicó: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`,{ licitacionId:id }); }catch(e){}
+        if(c.transportistaEmail){
+          try{ await enviarEmail(env,{ to:c.transportistaEmail, subject:"Licitación anulada - TransMatch", html:emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Licitación anulada</h2><p style="font-size:14px;color:#6B7280;margin:0 0 20px">La licitación en la que cotizaste fue anulada por el cliente y no se adjudicará.</p><div style="background:#F9FAFB;border-radius:8px;padding:16px;margin-bottom:20px"><div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>Carga:</strong> ${l.tipoEquipo}${l.marca?' - '+l.marca:''}</div><div style="font-size:13px;color:#374151"><strong>Ruta:</strong> ${l.origen} - ${l.destino}</div></div><p style="font-size:13px;color:#6B7280">Puedes revisar otras licitaciones disponibles en tu panel.</p>`,"Licitación anulada - TransMatch") }); }catch(e){}
+        }
+      }
+    }
+    await registrarActividad(env,"licitacion_anulada",`Licitación anulada por el cliente: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, motivo:body.motivo });
     return ok({ ok:true });
   }
 
   if (path.startsWith("/api/licitaciones/")&&path.endsWith("/mas-cotizaciones")&&method==="POST") {
     const id=path.split("/")[3]; const user=await getUser(request,env); const d=deny(user,"cliente"); if(d) return d;
-    if (!["pro","enterprise"].includes(user.plan)) return err("Requiere plan Pro o Enterprise",403);
+    // El plan que cuenta es el de la empresa (cuenta madre). Si es subusuario, leer el plan de la madre.
+    let planEfectivo=user.plan;
+    if(user.esSubusuario && user.empresaMadreId){
+      const rawMadre=await env.USERS.get("id:"+user.empresaMadreId);
+      let emailMadre=rawMadre;
+      if(emailMadre){ const m=await env.USERS.get(emailMadre); if(m) planEfectivo=JSON.parse(m).plan; }
+    }
+    if(!["pro","enterprise"].includes(planEfectivo)) return err("Solicitar más cotizaciones es una función de los planes Pro y Enterprise. Tu plan actual recibe las 3 cotizaciones iniciales.",403);
     const raw=await env.LICITACIONES.get(id); if(!raw) return err("No encontrada",404);
     const l=JSON.parse(raw); if((l.empresaId||l.clienteId)!==(user.esSubusuario?(user.empresaMadreId||user.id):user.id)) return err("Sin acceso",403);
     if(l.estado!=="cerrada") return err("No esta en revision");
     const yaIds=new Set((l.cotizacionesEnviadas||[]).map(c=>c.id));
-    const extras=(l.cotizaciones||[]).filter(c=>!yaIds.has(c.id)).slice(0,3);
-    if(extras.length===0) return err("Sin mas cotizaciones");
+    // Ordenar todas las cotizaciones por score y tomar las siguientes 3 que aún no se mostraron
+    const restantes=(l.cotizaciones||[]).filter(c=>!yaIds.has(c.id)).sort((a,b)=>(b.score||0)-(a.score||0));
+    const extras=restantes.slice(0,3);
+    if(extras.length===0) return err("No hay más cotizaciones disponibles");
+    // Acumular: se mantienen las anteriores y se agregan las nuevas
     l.cotizacionesEnviadas=[...(l.cotizacionesEnviadas||[]),...extras]; l.ronda=(l.ronda||1)+1;
     await env.LICITACIONES.put(id, JSON.stringify(l));
+    await registrarActividad(env,"mas_cotizaciones",`Cliente solicitó más cotizaciones: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id });
     return ok({ ok:true, nuevas:extras.length });
   }
 
@@ -639,7 +820,7 @@ async function handleRequest(request, env) {
     if(!cotiz) { const enviadas=l.cotizacionesEnviadas||[]; const idxMatch=cotizacionId.match(/^cotiz_(\d+)$/); if(idxMatch){cotiz=enviadas[parseInt(idxMatch[1])];if(cotiz?.id)cotiz=(l.cotizaciones||[]).find(c=>c.id===cotiz.id)||cotiz;}else{cotiz=enviadas.find(c=>c.id===cotizacionId);} }
     if(!cotiz) return err("Cotizacion no encontrada");
     l.estado="adjudicada"; l.adjudicadaAt=new Date().toISOString();
-    l.adjudicadaA={ cotizacionId, precio:cotiz.precio, transportistaId:cotiz.transportistaId, transportistaNombre:cotiz.transportistaNombre, transportistaEmpresa:cotiz.transportistaEmpresa, transportistaEmail:cotiz.transportistaEmail, transportistaTelefono:cotiz.transportistaTelefono, tiempoEntrega:cotiz.tiempoEntrega };
+    l.adjudicadaA={ cotizacionId, precio:cotiz.precio, transportistaId:cotiz.transportistaId, transportistaNombre:cotiz.transportistaNombre, transportistaEmpresa:cotiz.transportistaEmpresa, transportistaEmail:cotiz.transportistaEmail, transportistaTelefono:cotiz.transportistaTelefono, tiempoEntrega:cotiz.tiempoEntrega, archivoPropioId:cotiz.archivoPropioId||null, archivoPropioNombre:cotiz.archivoPropioNombre||null, formulario:cotiz.formulario||null };
     await env.LICITACIONES.put(id, JSON.stringify(l));
     const codigoTRN=await generarCodigo(env,"TRN"); const transporteId=uid();
     const transporte={ id:transporteId, codigo:codigoTRN, licitacionId:id, empresaId:l.empresaId||l.clienteId, creadoPorEmail:l.creadoPorEmail||l.clienteEmail, creadoPorNombre:l.creadoPorNombre||l.clienteNombre||'', licitacionCodigo:l.codigo||"", tipoEquipo:l.tipoEquipo+(l.marca?" - "+l.marca:""), origen:l.origen, destino:l.destino, precio:cotiz.precio, clienteEmail:l.clienteEmail, clienteEmpresa:l.clienteEmpresa, clienteNombre:l.clienteNombre||"", clienteTelefono:l.clienteTelefono||"", transportistaEmail:cotiz.transportistaEmail, transportistaNombre:cotiz.transportistaNombre, transportistaEmpresa:cotiz.transportistaEmpresa, transportistaTelefono:cotiz.transportistaTelefono||"", estado:"preparacion", estadoDocumentos:"pendiente", historial:[{ estado:"preparacion", nota:"Transporte creado al adjudicar", fecha:new Date().toISOString(), actor:"Sistema" }], oc:null, factura:null, adjudicadoAt:new Date().toISOString() };
@@ -647,14 +828,26 @@ async function handleRequest(request, env) {
     const allT=JSON.parse(await env.RETORNOS.get("transportes:all")||"[]"); allT.unshift(transporteId); await env.RETORNOS.put("transportes:all", JSON.stringify(allT));
     const ov = await crearOV(env, { transporteId, licitacion:l, cotizacion:cotiz });
     await crearNotificacion(env,cotiz.transportistaId,"adjudicacion",`Ganaste: ${l.tipoEquipo} - ${l.origen} - ${l.destino} - ${formatCLP(cotiz.precio)}`,{ licitacionId:id, clienteEmpresa:l.clienteEmpresa, clienteEmail:l.clienteEmail, ovId:ov.id_ov });
+    await registrarActividad(env,"licitacion_adjudicada",`Licitación adjudicada a ${cotiz.transportistaEmpresa||cotiz.transportistaNombre} por ${formatCLP(cotiz.precio)}: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo, ovId:ov.id_ov });
     await enviarEmail(env,{ to:cotiz.transportistaEmail, subject:`Ganaste! ${l.tipoEquipo} - TransMatch`, html:emailAdjudicacionGanada(l,cotiz) });
     await crearNotificacion(env,cotiz.transportistaId,"ov_condicional",`OV ${ov.id_ov} creada. Comision estimada: ${formatCLP(ov.comision_estimada)}.`,{ ovId:ov.id_ov });
     const todasCotiz=l.cotizaciones||[];
-    const porPrecio=[...todasCotiz].sort((a,b)=>a.precio-b.precio);
+    const total=todasCotiz.length;
+    // Ranking por precio (menor es mejor)
+    const porPrecio=[...todasCotiz].sort((a,b)=>(a.precio||0)-(b.precio||0));
+    // Ranking por fecha de entrega (más temprana es mejor)
+    const fEntrega=function(c){ var f=(c.formulario&&c.formulario.fechaEntrega)||c.fechaEntregaISO||c.tiempoEntrega; var t=f?new Date(f).getTime():NaN; return isNaN(t)?Infinity:t; };
+    const porEntrega=[...todasCotiz].sort((a,b)=>fEntrega(a)-fEntrega(b));
+    // Ranking por valoración histórica del transportista (mayor es mejor)
+    const porValoracion=[...todasCotiz].sort((a,b)=>(b.transportistaRating||0)-(a.transportistaRating||0));
     for (const c of todasCotiz) {
       if(c.transportistaId===cotiz.transportistaId) continue;
-      const pos=porPrecio.findIndex(x=>x.id===c.id)+1;
-      await crearNotificacion(env,c.transportistaId,"licitacion_cerrada",`La licitacion fue adjudicada a otro. Estabas en posicion ${pos} de ${todasCotiz.length} por precio.`,{ licitacionId:id });
+      const posPrecio=porPrecio.findIndex(x=>x.id===c.id)+1;
+      const posEntrega=porEntrega.findIndex(x=>x.id===c.id)+1;
+      const posValoracion=porValoracion.findIndex(x=>x.id===c.id)+1;
+      await crearNotificacion(env,c.transportistaId,"licitacion_cerrada",
+        `La licitacion fue adjudicada a otro transportista.`,
+        { licitacionId:id, feedback:{ posPrecio, posEntrega, posValoracion, total } });
     }
     return ok({ ok:true, transportista:l.adjudicadaA, ovId:ov.id_ov });
   }
@@ -662,18 +855,39 @@ async function handleRequest(request, env) {
   if (path === "/api/valoraciones" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"cliente"); if(d) return d;
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
-    const { licitacionId, scores, promedio, comentario } = body; if(!licitacionId) return err("licitacionId requerido");
-    const raw=await env.LICITACIONES.get(licitacionId); if(!raw) return err("No encontrada",404);
-    const l=JSON.parse(raw); if(l.clienteEmail!==user.email) return err("Sin acceso",403);
-    if(l.estado!=="adjudicada") return err("Solo puedes valorar licitaciones adjudicadas");
-    if(l.valoracion) return err("Ya valoraste");
+    const { transporteId, scores, promedio, comentario } = body;
+    let { licitacionId } = body;
+    if(!transporteId && !licitacionId) return err("transporteId requerido");
     const prom=promedio||(scores?Math.round((Object.values(scores).reduce((a,b)=>a+b,0)/Object.values(scores).length)*10)/10:5);
-    l.valoracion={ scores:scores||{}, promedio:prom, comentario:comentario||"", createdAt:new Date().toISOString() }; l.estado="completada";
-    await env.LICITACIONES.put(licitacionId, JSON.stringify(l));
-    if(l.adjudicadaA?.transportistaEmail) {
-      const rawT=await env.USERS.get(l.adjudicadaA.transportistaEmail);
-      if(rawT){ const t=JSON.parse(rawT); const prev=t.totalTransportes||0; t.totalTransportes=prev+1; t.rating=Math.round(((((t.rating||5)*prev)+prom)/t.totalTransportes)*10)/10; await env.USERS.put(l.adjudicadaA.transportistaEmail, JSON.stringify(t)); }
+
+    // Flujo principal: valorar desde el transporte (debe estar entregado + facturado)
+    let transporte=null;
+    if(transporteId){
+      const rawT=await env.RETORNOS.get("transporte:"+transporteId); if(!rawT) return err("Transporte no encontrado",404);
+      transporte=JSON.parse(rawT);
+      const miEmpId=user.esSubusuario?(user.empresaMadreId||user.id):user.id;
+      if((transporte.empresaId||transporte.clienteId)!==miEmpId) return err("Sin acceso",403);
+      if(transporte.estado!=="entregado" || !transporte.factura) return err("Solo puedes valorar transportes completados");
+      if(transporte.valoracion) return err("Ya valoraste este transporte");
+      licitacionId=transporte.licitacionId;
     }
+
+    const raw=await env.LICITACIONES.get(licitacionId); if(!raw) return err("Licitación no encontrada",404);
+    const l=JSON.parse(raw); if(l.clienteEmail!==user.email && (l.empresaId||l.clienteId)!==(user.esSubusuario?(user.empresaMadreId||user.id):user.id)) return err("Sin acceso",403);
+    if(l.valoracion) return err("Ya valoraste");
+    const valoracion={ scores:scores||{}, promedio:prom, comentario:comentario||"", createdAt:new Date().toISOString() };
+    l.valoracion=valoracion; l.estado="completada";
+    await env.LICITACIONES.put(licitacionId, JSON.stringify(l));
+    // Marcar el transporte como valorado
+    if(transporte){
+      transporte.valoracion=valoracion;
+      await env.RETORNOS.put("transporte:"+transporteId, JSON.stringify(transporte));
+    }
+    if(l.adjudicadaA?.transportistaEmail) {
+      const rawU=await env.USERS.get(l.adjudicadaA.transportistaEmail);
+      if(rawU){ const tu=JSON.parse(rawU); const prev=tu.totalTransportes||0; tu.totalTransportes=prev+1; tu.rating=Math.round(((((tu.rating||5)*prev)+prom)/tu.totalTransportes)*10)/10; await env.USERS.put(l.adjudicadaA.transportistaEmail, JSON.stringify(tu)); }
+    }
+    await registrarActividad(env,"transporte_completado",`Transporte completado y valorado (${prom}★): ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId, codigo:l.codigo, promedio:prom });
     return ok({ ok:true, promedio:prom });
   }
 
@@ -689,6 +903,7 @@ async function handleRequest(request, env) {
     const retorno={ id, transportistaId:user.id, transportistaNombre:user.nombre, transportistaEmpresa:user.empresa, transportistaEmail:user.email, transportistaRating:user.rating||5.0, ciudadOrigen, ciudadDestino, fecha:fechaDesde||fecha||null, fechaDesde:fechaDesde||null, fechaHasta:fechaHasta||null, equipo:equipo||"", capacidad:capacidad||"", precio:precio?parseFloat(precio):null, descripcion:descripcion||"", estado:"disponible", createdAt:new Date().toISOString() };
     await env.RETORNOS.put(id, JSON.stringify(retorno));
     const idx=JSON.parse(await env.RETORNOS.get("all")||"[]"); idx.unshift(id); await env.RETORNOS.put("all", JSON.stringify(idx));
+    await registrarActividad(env,"retorno_publicado",`${user.empresa||user.nombre||'Transportista'} publicó un retorno: ${ciudadOrigen} → ${ciudadDestino}`,{ retornoId:id });
     return ok({ ok:true, id, mensaje:"Retorno publicado." });
   }
 
@@ -844,6 +1059,167 @@ async function handleRequest(request, env) {
     return ok({ ok:true });
   }
 
+  // POST /api/notificaciones-equipo — notificación interna de vencimiento de documentos
+  if (path === "/api/notificaciones-equipo" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
+    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    if(!body.mensaje) return err("mensaje requerido");
+    await crearNotificacion(env, user.id, body.tipo||"vencimiento_documento", body.mensaje, body.datos||{});
+    return ok({ ok:true });
+  }
+
+  // ── SEED DE DATOS DE PRUEBA (solo admin, temporal) ──────────────
+  if (path === "/api/admin/seed-demo" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    let body={}; try{body=await request.json();}catch(e){}
+
+    // 1. Encontrar cliente y transportistas (auto-detección o por email)
+    const lista = await env.USERS.list();
+    let cliente=null; const transportistasReales=[];
+    for (const key of lista.keys) {
+      const raw=await env.USERS.get(key.name); if(!raw) continue;
+      const u=JSON.parse(raw);
+      if(u.role==="cliente" && !u.esSubusuario){
+        if(body.clienteEmail){ if(u.email===body.clienteEmail) cliente=u; }
+        else if(!cliente) cliente=u;
+      }
+      if(u.role==="transportista" && u.estado==="activo") transportistasReales.push(u);
+    }
+    if(!cliente) return err("No se encontró ningún cliente. Crea una cuenta de cliente primero o pasa clienteEmail.");
+
+    // 2. Pool de transportistas para las cotizaciones: reales primero, luego ficticios
+    const ficticios=[
+      { id:"demo-t1", nombre:"Felipe Soto",     empresa:"Transportes Andinos SpA",    email:"felipe@andinos.cl",      telefono:"+56 9 7012 3456", rating:4.8, totalTransportes:34 },
+      { id:"demo-t2", nombre:"María González",  empresa:"Logística del Sur Ltda",     email:"maria@logsur.cl",        telefono:"+56 9 7023 4567", rating:4.6, totalTransportes:21 },
+      { id:"demo-t3", nombre:"Jorge Riquelme",  empresa:"Cargas Pesadas Atacama",     email:"jorge@cpatacama.cl",     telefono:"+56 9 7034 5678", rating:4.9, totalTransportes:52 },
+      { id:"demo-t4", nombre:"Daniela Muñoz",   empresa:"TransNorte Maquinaria",      email:"daniela@transnorte.cl",  telefono:"+56 9 7045 6789", rating:4.3, totalTransportes:12 },
+      { id:"demo-t5", nombre:"Rodrigo Vera",    empresa:"Fletes Cordillera SpA",      email:"rodrigo@cordillera.cl",  telefono:"+56 9 7056 7890", rating:4.7, totalTransportes:40 },
+      { id:"demo-t6", nombre:"Camila Torres",   empresa:"Heavy Haul Chile",          email:"camila@heavyhaul.cl",    telefono:"+56 9 7067 8901", rating:4.5, totalTransportes:28 },
+      { id:"demo-t7", nombre:"Sebastián Rojas", empresa:"Transportes Quilín",        email:"sebastian@quilin.cl",    telefono:"+56 9 7078 9012", rating:4.2, totalTransportes:9  },
+      { id:"demo-t8", nombre:"Antonia Fuentes", empresa:"MaqTrans Biobío",           email:"antonia@maqtrans.cl",    telefono:"+56 9 7089 0123", rating:4.95, totalTransportes:61 }
+    ];
+    const pool=[];
+    for(const t of transportistasReales){ if(pool.length>=8) break; pool.push({ id:t.id, nombre:t.nombre, empresa:t.empresa, email:t.email, telefono:t.telefono||"", rating:t.rating||5.0, totalTransportes:t.totalTransportes||0, real:true }); }
+    for(const f of ficticios){ if(pool.length>=8) break; if(pool.some(p=>p.email===f.email)) continue; pool.push(f); }
+
+    // 3. Plantillas de licitaciones
+    const ahora=Date.now();
+    const plantillas=[
+      { tipoEquipo:"Motoniveladora", marca:"Komatsu GD555", origen:"Santiago", destino:"Calama",      tipoLicitacion:"maquinaria", peso:"18.000 kg", base:1900000 },
+      { tipoEquipo:"Excavadora",     marca:"Caterpillar 320", origen:"Antofagasta", destino:"Iquique", tipoLicitacion:"maquinaria", peso:"22.000 kg", base:1450000 },
+      { tipoEquipo:"Cargador frontal", marca:"Volvo L120", origen:"Concepción", destino:"Temuco",     tipoLicitacion:"maquinaria", peso:"16.500 kg", base:980000 },
+      { tipoEquipo:"Carga general",  marca:"", origen:"Valparaíso", destino:"La Serena",               tipoLicitacion:"carga", tipoCarga:"Estructura metálica", peso:"12.000 kg", base:760000 }
+    ];
+    // estados según body.modo: 'variado' (default), 'abierta', 'cerrada'
+    const modo=body.modo||"variado";
+    const estadosPorIndice = modo==="abierta" ? ["abierta","abierta","abierta","abierta"]
+      : modo==="cerrada" ? ["cerrada","cerrada","cerrada","cerrada"]
+      : ["abierta","cerrada","adjudicada","pendiente_admin"];
+
+    const creadas=[];
+    for(let i=0;i<4;i++){
+      const pl=plantillas[i];
+      const id=uid(); const codigo=await generarCodigo(env,'LIC');
+      const fechaCarga=new Date(ahora+(3+i)*86400000).toISOString().slice(0,10);
+      const fechaEntregaBase=new Date(ahora+(5+i)*86400000);
+      // Generar 8 cotizaciones variadas
+      const cotizaciones=pool.map((t,j)=>{
+        const precio=Math.round((pl.base*(0.9+(j*0.03)))/1000)*1000; // precios escalonados
+        const diasEntrega=2+(j%4);
+        const fEntrega=new Date(fechaEntregaBase.getTime()+ (j%4)*86400000);
+        return {
+          id:uid(), codigo:"COT-DEMO-"+(i+1)+"-"+(j+1), licitacionId:id,
+          transportistaId:t.id, transportistaNombre:t.nombre, transportistaEmpresa:t.empresa,
+          transportistaEmail:t.email, transportistaTelefono:t.telefono||"",
+          transportistaRating:t.rating, transportistaTransportes:t.totalTransportes,
+          precio:precio, tiempoEntrega:diasEntrega+" días", fechaCargaISO:fechaCarga,
+          fechaEntregaISO:fEntrega.toISOString().slice(0,10),
+          descripcion:"Servicio de transporte "+pl.tipoEquipo.toLowerCase()+" puerta a puerta.",
+          incluye:["Seguro de carga","Permisos de circulación"], archivoId:null, archivoNombre:null,
+          archivoPropioId:null, archivoPropioNombre:null,
+          formulario:{ fechaEntrega:fEntrega.toISOString().slice(0,10), items:[{ descripcion:pl.tipoEquipo, cantidad:1, tarifa:precio, total:precio }], seguros:[{ tipo:"Carga", cobertura:"2000 UF" }] },
+          tiempoRespuesta:10+j*5, score:0, createdAt:new Date(ahora - (8-j)*3600000).toISOString()
+        };
+      });
+
+      const lic={
+        id, codigo, clienteId:cliente.id, clienteEmail:cliente.email, clienteEmpresa:cliente.empresa||"",
+        clienteNombre:cliente.nombre||"", clienteTelefono:cliente.telefono||"",
+        empresaId:cliente.id, creadoPorEmail:cliente.email, creadoPorNombre:cliente.nombre||"", esCreadoPorSubusuario:false,
+        tipoLicitacion:pl.tipoLicitacion, tipoEquipo:pl.tipoEquipo, tipoEquipoRequerido:"cualquiera",
+        marca:pl.marca||"", tipoCarga:pl.tipoCarga||"", cantidadBultos:"", pesoPorBulto:"", peso:pl.peso||"",
+        dimensiones:"", descripcion:"Solicitud de transporte de "+pl.tipoEquipo+" desde "+pl.origen+" a "+pl.destino+".",
+        origen:pl.origen, destino:pl.destino, fechaCarga, fechaEntrega:fechaEntregaBase.toISOString().slice(0,10),
+        plazo:"24", archivoId:null, archivoNombre:null,
+        estado:estadosPorIndice[i], cotizaciones:cotizaciones, cotizacionesEnviadas:[], ronda:0,
+        createdAt:new Date(ahora-12*3600000).toISOString(),
+        cierreAt:new Date(ahora+12*3600000).toISOString(), _demo:true
+      };
+
+      // Rankear y aplicar según estado
+      const precios=cotizaciones.map(c=>c.precio);
+      const ranked=cotizaciones.map(c=>({ ...c, _allPrecios:precios, score:calcScore({ ...c, _allPrecios:precios }, fechaCarga) })).sort((a,b)=>b.score-a.score);
+      lic.cotizaciones=ranked;
+      if(lic.estado==="cerrada" || lic.estado==="adjudicada"){
+        lic.cerradaAt=new Date(ahora-2*3600000).toISOString(); lic.ronda=1;
+        lic.cotizacionesEnviadas=ranked.slice(0,3);
+      }
+      if(lic.estado==="adjudicada"){
+        const ganadora=ranked[0];
+        lic.adjudicadaA={ cotizacionId:ganadora.id, transportistaId:ganadora.transportistaId, transportistaEmpresa:ganadora.transportistaEmpresa, transportistaNombre:ganadora.transportistaNombre, transportistaEmail:ganadora.transportistaEmail, transportistaTelefono:ganadora.transportistaTelefono, precio:ganadora.precio, archivoPropioId:ganadora.archivoPropioId, archivoPropioNombre:ganadora.archivoPropioNombre };
+        lic.adjudicadaAt=new Date(ahora-1*3600000).toISOString();
+        // Crear transporte para la adjudicada
+        const codigoTRN=await generarCodigo(env,"TRN"); const transporteId=uid();
+        const transporte={ id:transporteId, codigo:codigoTRN, licitacionId:id, empresaId:cliente.id, creadoPorEmail:cliente.email, creadoPorNombre:cliente.nombre||'', licitacionCodigo:codigo, tipoEquipo:pl.tipoEquipo+(pl.marca?" - "+pl.marca:""), origen:pl.origen, destino:pl.destino, precio:ganadora.precio, clienteEmail:cliente.email, clienteEmpresa:cliente.empresa, clienteNombre:cliente.nombre||"", clienteTelefono:cliente.telefono||"", transportistaEmail:ganadora.transportistaEmail, transportistaNombre:ganadora.transportistaNombre, transportistaEmpresa:ganadora.transportistaEmpresa, transportistaTelefono:ganadora.transportistaTelefono||"", estado:"preparacion", estadoDocumentos:"pendiente", historial:[{ estado:"preparacion", nota:"Transporte creado al adjudicar", fecha:new Date().toISOString(), actor:"Sistema" }], oc:null, factura:null, adjudicadoAt:new Date().toISOString(), _demo:true };
+        await env.RETORNOS.put("transporte:"+transporteId, JSON.stringify(transporte));
+        const allT=JSON.parse(await env.RETORNOS.get("transportes:all")||"[]"); allT.unshift(transporteId); await env.RETORNOS.put("transportes:all", JSON.stringify(allT));
+      }
+
+      await env.LICITACIONES.put(id, JSON.stringify(lic));
+      const idxC=JSON.parse(await env.LICITACIONES.get("cliente:"+cliente.id)||"[]"); idxC.unshift(id); await env.LICITACIONES.put("cliente:"+cliente.id, JSON.stringify(idxC));
+      const idxA=JSON.parse(await env.LICITACIONES.get("all")||"[]"); idxA.unshift(id); await env.LICITACIONES.put("all", JSON.stringify(idxA));
+      creadas.push({ codigo, estado:lic.estado, equipo:pl.tipoEquipo, cotizaciones:cotizaciones.length });
+    }
+
+    return ok({ ok:true, cliente:cliente.email, transportistasReales:transportistasReales.length, licitaciones:creadas });
+  }
+
+  // ── FIN SEED ────────────────────────────────────────────────
+  if (path === "/api/conductores" && method === "GET") {
+    const user=await getUser(request,env); const d=deny(user,"transportista","admin"); if(d) return d;
+    const email=url.searchParams.get("email")||user.email;
+    if(email!==user.email&&user.role!=="admin") return err("Sin acceso",403);
+    const raw=await env.USERS.get(email); if(!raw) return err("No encontrado",404);
+    return ok({ conductores:JSON.parse(raw).conductores||[] });
+  }
+
+  if (path === "/api/conductores" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
+    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    if(!body.nombre||!body.rut) return err("Nombre y RUT son requeridos");
+    const raw=await env.USERS.get(user.email); if(!raw) return err("No encontrado",404);
+    const u=JSON.parse(raw); if(!u.conductores) u.conductores=[];
+    const conductor={
+      id:uid(), nombre:body.nombre, rut:body.rut, telefono:body.telefono||"",
+      carnetFrenteId:body.carnetFrenteId||null, carnetFrenteNombre:body.carnetFrenteNombre||null,
+      carnetReversoId:body.carnetReversoId||null, carnetReversoNombre:body.carnetReversoNombre||null,
+      licenciaFrenteId:body.licenciaFrenteId||null, licenciaFrenteNombre:body.licenciaFrenteNombre||null,
+      licenciaReversoId:body.licenciaReversoId||null, licenciaReversoNombre:body.licenciaReversoNombre||null,
+      createdAt:new Date().toISOString()
+    };
+    u.conductores.push(conductor);
+    await env.USERS.put(user.email, JSON.stringify(u));
+    return ok({ ok:true, id:conductor.id });
+  }
+
+  if (path.startsWith("/api/conductores/")&&path.split("/").length===4&&method==="DELETE") {
+    const conductorId=path.split("/")[3]; const user=await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
+    const raw=await env.USERS.get(user.email); if(!raw) return err("No encontrado",404);
+    const u=JSON.parse(raw); u.conductores=(u.conductores||[]).filter(c=>c.id!==conductorId);
+    await env.USERS.put(user.email, JSON.stringify(u));
+    return ok({ ok:true });
+  }
+
   if (path === "/api/notificaciones" && method === "GET") {
     const user=await getUser(request,env); if(!user) return err("No autenticado",401);
     const userId=user.role==="admin"?"admin":user.id;
@@ -902,6 +1278,13 @@ async function handleRequest(request, env) {
     const archivo=JSON.parse(raw);
     if(url.searchParams.get("info")==="1") return ok({ id:archivo.id, nombre:archivo.nombre, tipo:archivo.tipo, createdAt:archivo.createdAt });
     return ok({ id:archivo.id, nombre:archivo.nombre, tipo:archivo.tipo, base64:archivo.base64 });
+  }
+
+  // GET /api/admin/actividad — feed de actividad de toda la plataforma
+  if (path === "/api/admin/actividad" && method === "GET") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    const feed = JSON.parse(await env.SESSIONS.get("actividad:index") || "[]");
+    return ok({ actividad: feed.slice(0,50) });
   }
 
   if (path === "/api/admin/stats" && method === "GET") {
@@ -1004,7 +1387,7 @@ async function handleRequest(request, env) {
     const raw=await env.USERS.get(email.toLowerCase()); if(!raw) return err("No encontrado",404);
     const u=JSON.parse(raw); u.estado=accion==="aprobar"?"activo":"rechazado"; u.revisadoAt=new Date().toISOString();
     await env.USERS.put(email.toLowerCase(), JSON.stringify(u));
-    if(accion==="aprobar"){ await crearNotificacion(env,u.id,"cuenta_aprobada","Tu cuenta fue aprobada! Ya puedes ver licitaciones y cotizar.",{}); await enviarEmail(env,{ to:u.email, subject:"Tu cuenta TransMatch fue aprobada", html:emailCuentaAprobada(u.nombre) }); }
+    if(accion==="aprobar"){ await crearNotificacion(env,u.id,"cuenta_aprobada","Tu cuenta fue aprobada! Ya puedes ver licitaciones y cotizar.",{}); await enviarEmail(env,{ to:u.email, subject:"Tu cuenta TransMatch fue aprobada", html:emailCuentaAprobada(u.nombre) }); await registrarActividad(env,"transportista_aprobado",`Transportista aprobado: ${u.empresa||u.nombre}`,{ transportistaId:u.id }); }
     return ok({ ok:true });
   }
 
@@ -1393,8 +1776,9 @@ async function handleRequest(request, env) {
 
   if (path === "/api/transportes" && method === "GET") {
     const user=await getUser(request,env); if(!user) return err("No autenticado",401);
+    const emailsT = user.role==="transportista" ? await emailsEmpresa(env, user) : null;
     const allIds=JSON.parse(await env.RETORNOS.get("transportes:all")||"[]"); const transportes=[];
-    for(const id of allIds){ const raw=await env.RETORNOS.get("transporte:"+id); if(!raw) continue; const t=JSON.parse(raw); if(user.role==="admin"){ transportes.push(t); continue; } if(user.role==="cliente"){ const miEmpId=user.esSubusuario?(user.empresaMadreId||user.id):user.id; if((t.empresaId||t.clienteId)===miEmpId) transportes.push(t); } if(user.role==="transportista"&&t.transportistaEmail===user.email) transportes.push(t); }
+    for(const id of allIds){ const raw=await env.RETORNOS.get("transporte:"+id); if(!raw) continue; const t=JSON.parse(raw); if(user.role==="admin"){ transportes.push(t); continue; } if(user.role==="cliente"){ const miEmpId=user.esSubusuario?(user.empresaMadreId||user.id):user.id; if((t.empresaId||t.clienteId)===miEmpId) transportes.push(t); } if(user.role==="transportista"&&t.transportistaEmail&&emailsT.has(t.transportistaEmail.toLowerCase())) transportes.push(t); }
     return ok({ transportes });
   }
 
@@ -1467,22 +1851,6 @@ async function handleRequest(request, env) {
       await enviarEmail(env,{ to:ov.transportistaEmail, subject:`Comision confirmada - ${ov.id_ov} - TransMatch`, html:emailOVConfirmada(ov) });
       break;
     }
-    return ok({ ok:true, archivoId });
-  }
-
-  if (path.match(/^\/api\/transportes\/[^/]+\/generar-oc$/)&&method==="POST") {
-    const user=await getUser(request,env); if(!user) return err("No autenticado",401);
-    if(user.role!=="cliente") return err("Solo clientes",403);
-    const id=path.split("/")[3]; const raw=await env.RETORNOS.get("transporte:"+id); if(!raw) return err("No encontrado",404);
-    const t=JSON.parse(raw); if((t.empresaId||t.clienteId)!==(user.esSubusuario?(user.empresaMadreId||user.id):user.id)) return err("Sin acceso",403);
-    if(t.oc) return err("Ya existe una OC para este transporte");
-    const rawU=await env.USERS.get(user.email); const u=rawU?JSON.parse(rawU):{};
-    const ocData={ tipo:"oc_automatica", numero:"OC-"+t.codigo, fecha:new Date().toISOString(), cliente:{ nombre:u.nombre||"", empresa:u.empresa||"", rut:u.rut||"", email:user.email }, transportista:{ nombre:t.transportistaNombre, empresa:t.transportistaEmpresa, email:t.transportistaEmail, telefono:t.transportistaTelefono||"" }, transporte:{ codigo:t.codigo, origen:t.origen, destino:t.destino, tipoEquipo:t.tipoEquipo, precio:t.precio }, generadoAt:new Date().toISOString() };
-    const archivoId=uid();
-    await env.ARCHIVOS.put(archivoId, JSON.stringify({ base64:btoa(JSON.stringify(ocData)), mimeType:"application/json", nombre:"OC-"+t.codigo+".json", tipo:"oc_automatica", createdAt:new Date().toISOString() }));
-    t.oc={ archivoId, nombre:"OC-"+t.codigo+".json", subidoAt:new Date().toISOString(), subidoPor:"sistema", tipo:"oc_automatica" };
-    await env.RETORNOS.put("transporte:"+id, JSON.stringify(t));
-    await crearNotificacion(env, t.transportistaId||"", "oc_disponible", "El documento de adjudicacion esta disponible.", { transporteId:id });
     return ok({ ok:true, archivoId });
   }
 
@@ -1590,8 +1958,9 @@ async function handleRequest(request, env) {
   if (path === "/api/transportista/historial" && method === "GET") {
     const user=await getUser(request,env); if(!user) return err("No autenticado",401);
     if(user.role!=="transportista") return err("Solo transportistas",403);
+    const emailsT = await emailsEmpresa(env, user);
     const ids=JSON.parse(await env.LICITACIONES.get("all")||"[]"); const resultado=[];
-    for(const id of ids.slice(0,200)){ const raw=await env.LICITACIONES.get(id); if(!raw) continue; const l=JSON.parse(raw); const miCotiz=(l.cotizaciones||[]).find(c=>c.transportistaEmail===user.email); const laGane=l.adjudicadaA&&l.adjudicadaA.transportistaEmail===user.email; if(!miCotiz&&!laGane) continue; resultado.push({ id:l.id, codigo:l.codigo, tipoEquipo:l.tipoEquipo, marca:l.marca, origen:l.origen, destino:l.destino, estado:l.estado, createdAt:l.createdAt, adjudicadaAt:l.adjudicadaAt, miCotizacion:miCotiz?{ id:miCotiz.id, precio:miCotiz.precio, tiempoEntrega:miCotiz.tiempoEntrega, score:miCotiz.score, createdAt:miCotiz.createdAt }:null, gane:laGane, precioAdjudicado:laGane?l.adjudicadaA.precio:null, valoracion:laGane?(l.valoracion||null):null }); }
+    for(const id of ids.slice(0,200)){ const raw=await env.LICITACIONES.get(id); if(!raw) continue; const l=JSON.parse(raw); const miCotiz=(l.cotizaciones||[]).find(c=>c.transportistaEmail&&emailsT.has(c.transportistaEmail.toLowerCase())); const laGane=l.adjudicadaA&&l.adjudicadaA.transportistaEmail&&emailsT.has(l.adjudicadaA.transportistaEmail.toLowerCase()); if(!miCotiz&&!laGane) continue; resultado.push({ id:l.id, codigo:l.codigo, tipoEquipo:l.tipoEquipo, marca:l.marca, origen:l.origen, destino:l.destino, estado:l.estado, createdAt:l.createdAt, adjudicadaAt:l.adjudicadaAt, miCotizacion:miCotiz?{ id:miCotiz.id, precio:miCotiz.precio, tiempoEntrega:miCotiz.tiempoEntrega, score:miCotiz.score, createdAt:miCotiz.createdAt, creadoPor:miCotiz.transportistaNombre||'' }:null, gane:laGane, precioAdjudicado:laGane?l.adjudicadaA.precio:null, valoracion:laGane?(l.valoracion||null):null }); }
     return ok({ licitaciones:resultado });
   }
 
@@ -1622,20 +1991,35 @@ async function handleRequest(request, env) {
   if (path === "/api/cotizaciones/editar" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
-    const { licitacionId, precio, tiempoEntrega, descripcion, archivoId, archivoNombre } = body;
+    const { licitacionId, precio, tiempoEntrega, fechaCargaISO, fechaEntregaISO, descripcion, archivoId, archivoNombre, archivoPdfId, archivoPdfNombre, formulario } = body;
     if(!licitacionId||!precio) return err("licitacionId y precio requeridos");
     const raw=await env.LICITACIONES.get(licitacionId); if(!raw) return err("No encontrada",404);
     const l=JSON.parse(raw); if(l.estado!=="abierta") return err("Solo puedes editar cotizaciones de licitaciones abiertas");
     const idx=(l.cotizaciones||[]).findIndex(c=>c.transportistaId===user.id);
     if(idx===-1) return err("No tienes una cotización en esta licitación");
     l.cotizaciones[idx].precio=parseFloat(precio); l.cotizaciones[idx].tiempoEntrega=tiempoEntrega||l.cotizaciones[idx].tiempoEntrega;
+    if(fechaCargaISO!==undefined) l.cotizaciones[idx].fechaCargaISO=fechaCargaISO;
+    if(fechaEntregaISO!==undefined) l.cotizaciones[idx].fechaEntregaISO=fechaEntregaISO;
     if(descripcion!==undefined) l.cotizaciones[idx].descripcion=descripcion;
     if(archivoId){ l.cotizaciones[idx].archivoId=archivoId; l.cotizaciones[idx].archivoNombre=archivoNombre; }
+    if(archivoPdfId){ l.cotizaciones[idx].archivoPropioId=archivoPdfId; l.cotizaciones[idx].archivoPropioNombre=archivoPdfNombre; }
+    if(formulario!==undefined) l.cotizaciones[idx].formulario=formulario;
     l.cotizaciones[idx].editadoAt=new Date().toISOString();
     const todosPrecios=l.cotizaciones.map(c=>c.precio);
     l.cotizaciones=l.cotizaciones.map(c=>({...c,_allPrecios:todosPrecios,score:calcScore({...c,_allPrecios:todosPrecios},l.fechaCarga)})).sort((a,b)=>b.score-a.score);
     await env.LICITACIONES.put(licitacionId, JSON.stringify(l));
     return ok({ ok:true, mensaje:"Cotización actualizada" });
+  }
+
+  // GET cotización propia del transportista (para editar en el formulario)
+  if (path.match(/^\/api\/cotizaciones\/mia\/[^\/]+$/) && method === "GET") {
+    const user=await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
+    const licitacionId=path.split("/")[4];
+    const raw=await env.LICITACIONES.get(licitacionId); if(!raw) return err("No encontrada",404);
+    const l=JSON.parse(raw);
+    const mc=(l.cotizaciones||[]).find(c=>c.transportistaId===user.id || (c.transportistaEmail&&c.transportistaEmail.toLowerCase()===user.email.toLowerCase()));
+    if(!mc) return err("No tienes una cotización en esta licitación",404);
+    return ok({ cotizacion:mc });
   }
 
   if (path === "/api/cotizaciones/eliminar" && method === "POST") {
@@ -1895,7 +2279,6 @@ async function handleRequest(request, env) {
 
   // ── FIN MULTI-USUARIO ──────────────────────────────────────────
 
-  return corsResponse(JSON.stringify({ error:"Ruta no encontrada" }), 404);
   // POST /api/transportes/:id/equipo
   if (path.match(/^\/api\/transportes\/[^/]+\/equipo$/) && method === "POST") {
     const user = await getUser(request, env); if(!user) return err("No autenticado",401);
@@ -1975,4 +2358,10 @@ async function handleRequest(request, env) {
   return corsResponse(JSON.stringify({ error:"Ruta no encontrada" }), 404);
 }
 
-export default { fetch: handleRequest };
+export default {
+  fetch: handleRequest,
+  async scheduled(event, env, ctx) {
+    // Ejecutado por el Cron Trigger de Cloudflare (ej: cada 10 min)
+    ctx.waitUntil(procesarLicitacionesVencidas(env));
+  }
+};
