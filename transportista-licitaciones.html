@@ -509,9 +509,9 @@ var precioMostrar = miCotiz ? miCotiz.precio : (l.presupuesto||null);
 var detalleHtml = renderDetalleInline(l, yaCotize, miCotiz);
 return '<div class="licit-card" id="licit-card-'+l.id+'">'+
   '<div class="licit-hdr" onclick="toggleLicit(\''+l.id+'\')">' +
-    '<div class="li-code">'+(l.código||l.codigo||'LIC')+'</div>'+
+    '<div class="li-code">'+(l.codigo||l.codigo||'LIC')+'</div>'+
     '<div class="li-body">'+
-      '<div class="li-name">'+(l.código?'<span style="font-size:10px;font-family:monospace;color:#9CA3AF;margin-right:6px">'+l.código+'</span>':'')+l.tipoEquipo+(l.marca?' — '+l.marca:'')+'</div>'+
+      '<div class="li-name">'+(l.codigo?'<span style="font-size:10px;font-family:monospace;color:#9CA3AF;margin-right:6px">'+l.codigo+'</span>':'')+l.tipoEquipo+(l.marca?' — '+l.marca:'')+'</div>'+
       '<div class="li-meta">'+l.origen+' → '+l.destino+' · '+desde(l.createdAt)+'</div>'+
     '</div>'+
     '<div class="li-right">'+
@@ -710,7 +710,7 @@ ${horasRestantes<6?`<div class="warn-box" style="margin:0 0 12px"><span>!</span>
 Cotizar
 </button></div>`;
 }
-document.getElementById('modal-detalle-titulo').innerHTML = (l.código?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 6px;border-radius:4px;margin-right:6px">'+l.código+'</span>':'')+l.tipoEquipo+(l.marca?' — '+l.marca:'');
+document.getElementById('modal-detalle-titulo').innerHTML = (l.codigo?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 6px;border-radius:4px;margin-right:6px">'+l.codigo+'</span>':'')+l.tipoEquipo+(l.marca?' — '+l.marca:'');
 // El título y ruta ya se muestran en el header de la card, solo retornamos el body
 return h;
 }
@@ -769,7 +769,7 @@ function abrirModal(id,nombre){
   if(!l) return;
   const p=new URLSearchParams();
   p.set('licitId',  l.id);
-  p.set('licitCod', l.codigo||l.código||'');
+  p.set('licitCod', l.codigo||l.codigo||'');
   p.set('equipo',   l.tipoEquipo+(l.marca?' '+l.marca:''));
   p.set('ruta',     (l.origen||'')+(l.destino?' → '+l.destino:''));
   if(l.fechaCarga)   p.set('fechaCarga',   l.fechaCarga);
@@ -1141,7 +1141,7 @@ function abrirEditarCotiz(licitacionId, nombre){
   const mc = (l.cotizaciones||[]).find(c=>c.transportistaId===userId);
   const p = new URLSearchParams();
   p.set('licitId',  l.id);
-  p.set('licitCod', l.codigo||l.código||'');
+  p.set('licitCod', l.codigo||l.codigo||'');
   p.set('equipo',   l.tipoEquipo+(l.marca?' '+l.marca:''));
   p.set('ruta',     (l.origen||'')+(l.destino?' → '+l.destino:''));
   if(l.fechaCarga)   p.set('fechaCarga',   l.fechaCarga);

@@ -435,7 +435,7 @@
       } else {
         elDisp.innerHTML = disponibles.slice(0,5).map(function(l){
           return '<div class="row" onclick="nav(this)" data-href="/transportista-licitaciones.html" data-lid="'+l.id+'" style="cursor:pointer" >' +
-            '<div style="font-size:10px;font-weight:700;font-family:monospace;background:#eef1f8;color:#1e2d4e;padding:3px 7px;border-radius:5px;flex-shrink:0;white-space:nowrap;align-self:center">'+(l.código||l.codigo||'LIC')+'</div>' +
+            '<div style="font-size:10px;font-weight:700;font-family:monospace;background:#eef1f8;color:#1e2d4e;padding:3px 7px;border-radius:5px;flex-shrink:0;white-space:nowrap;align-self:center">'+(l.codigo||l.codigo||'LIC')+'</div>' +
             '<div class="row-body">' +
               '<div class="row-name">' +
                 l.tipoEquipo + (l.marca?' — '+l.marca:'') +

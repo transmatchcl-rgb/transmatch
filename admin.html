@@ -315,7 +315,7 @@
        : pendL.slice(0,5).map(function(l) {
            return '<div class="row" style="cursor:pointer" onclick="verDetalleLicit(\''+l.id+'\')">'+
            '<div class="row-body">'+
-           '<div class="row-name">'+(l.código?'<span style="font-size:10px;font-family:monospace;color:#9CA3AF;margin-right:4px">'+l.código+'</span>':'')+l.tipoEquipo+(l.marca?' - '+l.marca:'')+'</div>'+
+           '<div class="row-name">'+(l.codigo?'<span style="font-size:10px;font-family:monospace;color:#9CA3AF;margin-right:4px">'+l.codigo+'</span>':'')+l.tipoEquipo+(l.marca?' - '+l.marca:'')+'</div>'+
            '<div class="row-meta">'+(l.clienteEmpresa||'--')+' · '+l.origen+' -> '+l.destino+'</div>'+
            '</div>'+
            '<div style="display:flex;gap:6px;flex-shrink:0">'+
@@ -338,7 +338,7 @@
  document.getElementById('dash-licitaciones').innerHTML = abiertas.length === 0
  ? `<div style="padding:16px;text-align:center;color:#9CA3AF;font-size:14px;">Sin licitaciones abiertas </div>`
  : abiertas.slice(0,5).map(l => `
- <div class="row" style="cursor:pointer" onclick="verDetalleLicit('${l.id}')"><div style="font-size:14px;color:#9CA3AF">▶</div><div class="row-body"><div class="row-name">${l.código?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+ l.código +'</span>':''}${l.tipoEquipo}${l.marca?' — '+l.marca:''}</div><div class="row-meta">${l.clienteEmpresa||'-'} · ${l.origen} → ${l.destino} · ${(l.cotizaciones||[]).length} cotizaciones</div></div>
+ <div class="row" style="cursor:pointer" onclick="verDetalleLicit('${l.id}')"><div style="font-size:14px;color:#9CA3AF">▶</div><div class="row-body"><div class="row-name">${l.codigo?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+ l.codigo +'</span>':''}${l.tipoEquipo}${l.marca?' — '+l.marca:''}</div><div class="row-meta">${l.clienteEmpresa||'-'} · ${l.origen} → ${l.destino} · ${(l.cotizaciones||[]).length} cotizaciones</div></div>
  ${estadoBadge(l.estado)}
  </div>`).join('');
  } else {
@@ -411,7 +411,7 @@
  if (l.estado==='abierta' && nCotiz>0) {
  acciones.push(`<button class="btn btn-primary btn-sm" onclick="cerrarYEnviar('${l.id}',${nCotiz})">Enviar TOP 3 →</button>`);
  }
- return `<div class="row" style="cursor:pointer;" onclick="verDetalleLicit('${l.id}')"><div style="font-size:20px;flex-shrink:0;"></div><div class="row-body"><div class="row-name">${l.código?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+ l.código +'</span>':''}${l.tipoEquipo}${l.marca?' — '+l.marca:''}</div><div class="row-meta">${l.clienteEmpresa||'-'} · ${l.origen}→${l.destino} · ${timeAgo(l.createdAt)}</div>
+ return `<div class="row" style="cursor:pointer;" onclick="verDetalleLicit('${l.id}')"><div style="font-size:20px;flex-shrink:0;"></div><div class="row-body"><div class="row-name">${l.codigo?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+ l.codigo +'</span>':''}${l.tipoEquipo}${l.marca?' — '+l.marca:''}</div><div class="row-meta">${l.clienteEmpresa||'-'} · ${l.origen}→${l.destino} · ${timeAgo(l.createdAt)}</div>
  ${acciones.length>0?`<div style="display:flex;gap:6px;margin-top:6px" onclick="event.stopPropagation()">${acciones.join('')}</div>`:''}
  </div><div class="row-right" style="display:flex;align-items:center;gap:8px;">
  ${nCotiz>0?`<span style="font-size:12px;color:#FF8904;font-weight:500;">${nCotiz} cotiz.</span>`:''}
@@ -553,7 +553,7 @@
   async function exportarLicitaciones() {
     const rows = [['ID','Codigo','Empresa','Equipo','Origen','Destino','Estado','Cotizaciones','Fecha']];
     allLicitaciones.forEach(l => {
-      rows.push([l.id, l.código||'', l.clienteEmpresa||'', (l.tipoEquipo||'')+(l.marca?' - '+l.marca:''),
+      rows.push([l.id, l.codigo||'', l.clienteEmpresa||'', (l.tipoEquipo||'')+(l.marca?' - '+l.marca:''),
         l.origen||'', l.destino||'', l.estado||'', (l.cotizaciones||[]).length,
         (l.createdAt||'').split('T')[0]]);
     });
@@ -631,7 +631,7 @@
 
     // Titulo
     document.getElementById('ml-titulo').innerHTML =
-      (l.código ? '<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 6px;border-radius:4px;margin-right:8px">'+l.código+'</span>' : '')
+      (l.codigo ? '<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 6px;border-radius:4px;margin-right:8px">'+l.codigo+'</span>' : '')
       + (l.tipoEquipo||'') + (l.marca ? ' — '+l.marca : '');
 
     // Badge estado
@@ -639,7 +639,7 @@
 
     // Info grid
     const infoItems = [
-      ['Codigo', l.código||'--'],
+      ['Codigo', l.codigo||'--'],
       ['Cliente', l.clienteEmpresa || l.clienteEmail],
       ['Contacto', l.clienteNombre||'--'],
       ['Email', l.estado === 'adjudicada' || l.estado === 'completada' ? l.clienteEmail : 'Oculto hasta adjudicar'],
@@ -689,7 +689,7 @@
           return '<div style="background:#f8f9fc;border-radius:8px;padding:12px;margin-bottom:8px;">' +
             '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">' +
             '<div style="font-size:13px;font-weight:600;color:#111827">' +
-              (cotiz.código ? '<span style="font-size:10px;font-family:monospace;color:#9CA3AF;margin-right:4px">'+cotiz.código+'</span>' : '') +
+              (cotiz.codigo ? '<span style="font-size:10px;font-family:monospace;color:#9CA3AF;margin-right:4px">'+cotiz.codigo+'</span>' : '') +
               (cotiz.transportistaNombre||'—')+' — '+(cotiz.transportistaEmpresa||'—') +
             '</div>' +
             '<div style="font-size:16px;font-weight:700;color:#1d4ed8">' + formatPeso(cotiz.precio) + '</div>' +

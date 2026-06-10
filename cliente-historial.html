@@ -197,7 +197,7 @@ function filtrar(){
  }
 
  document.getElementById('lista-historial').innerHTML=lista.map(l=>`
- <div class="licit-row" onclick="verDetalle('${l.id}')"><div class="lr-icon"></div><div class="lr-body"><div class="lr-name">${l.código?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+ l.código +'</span>':''}${l.tipoEquipo}${l.marca?' — '+l.marca:''}</div><div class="lr-meta">${l.origen} → ${l.destino} · ${fecha(l.fechaCarga)}
+ <div class="licit-row" onclick="verDetalle('${l.id}')"><div class="lr-icon"></div><div class="lr-body"><div class="lr-name">${l.codigo?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+ l.codigo +'</span>':''}${l.tipoEquipo}${l.marca?' — '+l.marca:''}</div><div class="lr-meta">${l.origen} → ${l.destino} · ${fecha(l.fechaCarga)}
  ${l.adjudicadaA?` · <strong>${l.adjudicadaA.transportistaEmpresa}</strong>`:''}
  </div></div><div class="lr-right">
  ${bdg(l.estado)}
@@ -209,7 +209,7 @@ function filtrar(){
  function verDetalle(id){
  const l=allLicitaciones.find(x=>x.id===id);
  if(!l)return;
- document.getElementById('det-titulo').textContent=`${l.código?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+ l.código +'</span>':''}${l.tipoEquipo}${l.marca?' — '+l.marca:''}`;
+ document.getElementById('det-titulo').textContent=`${l.codigo?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+ l.codigo +'</span>':''}${l.tipoEquipo}${l.marca?' — '+l.marca:''}`;
  const filas=[
  ['Estado',bdg(l.estado)],
  ['Origen',l.origen],

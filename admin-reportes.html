@@ -297,7 +297,7 @@
  document.getElementById('tbody-licitaciones').innerHTML=licitaciones.length===0
  ?'<tr><td colspan="6" class="empty">Sin licitaciones</td></tr>'
  :licitaciones.slice(0,15).map(l=>`
- <tr><td style="font-weight:500;color:#111827;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.código?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+ l.código +'</span>':''}${l.tipoEquipo}${l.marca?' — '+l.marca:''}</div></td><td style="font-size:12px;color:#6B7280;white-space:nowrap">${l.origen} → ${l.destino}</td><td style="font-size:12px">${l.clienteEmpresa||'—'}</td><td style="text-align:center;font-weight:600;color:#FF8904">${(l.cotizaciones||[]).length}</td><td style="font-weight:600;color:#1e2d4e">${l.adjudicadaA?peso(l.adjudicadaA.precio):'—'}</td><td>${estadoBadge(l.estado)}</td></tr>`).join('');
+ <tr><td style="font-weight:500;color:#111827;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.codigo?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+ l.codigo +'</span>':''}${l.tipoEquipo}${l.marca?' — '+l.marca:''}</div></td><td style="font-size:12px;color:#6B7280;white-space:nowrap">${l.origen} → ${l.destino}</td><td style="font-size:12px">${l.clienteEmpresa||'—'}</td><td style="text-align:center;font-weight:600;color:#FF8904">${(l.cotizaciones||[]).length}</td><td style="font-weight:600;color:#1e2d4e">${l.adjudicadaA?peso(l.adjudicadaA.precio):'—'}</td><td>${estadoBadge(l.estado)}</td></tr>`).join('');
  }
 
  function exportarCSV(){

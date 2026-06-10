@@ -327,7 +327,7 @@
     } else {
       elList.innerHTML = licitaciones.slice(0,5).map(function(l){
         var nC = (l.cotizaciones||[]).length;
-        var codTag = '<div style="font-size:10px;font-weight:700;font-family:monospace;background:#eef1f8;color:#1e2d4e;padding:3px 7px;border-radius:5px;flex-shrink:0;white-space:nowrap;align-self:center">'+(l.código||l.codigo||'LIC')+'</div>';
+        var codTag = '<div style="font-size:10px;font-weight:700;font-family:monospace;background:#eef1f8;color:#1e2d4e;padding:3px 7px;border-radius:5px;flex-shrink:0;white-space:nowrap;align-self:center">'+(l.codigo||l.codigo||'LIC')+'</div>';
         var inner = codTag
           + '<div style="flex:1;min-width:0">'
           + '<div style="font-size:13px;font-weight:600;color:#1e2d4e">'+l.tipoEquipo+(l.marca?' \u2014 '+l.marca:'')+'</div>'

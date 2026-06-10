@@ -318,7 +318,7 @@ function filtrar(){
   if(filtroEstado) lista=lista.filter(l=>l.estado===filtroEstado);
   if(q) lista=lista.filter(l=>(
     (l.tipoEquipo||'')+(l.marca||'')+(l.origen||'')+(l.destino||'')+
-    (l.clienteEmpresa||'')+(l.codigo||l.código||'')
+    (l.clienteEmpresa||'')+(l.codigo||l.codigo||'')
   ).toLowerCase().includes(q));
 
   if(lista.length===0){
@@ -331,7 +331,7 @@ function filtrar(){
 }
 
 function renderCard(l){
-  const codigo=l.codigo||l.código||'—';
+  const codigo=l.codigo||l.codigo||'—';
   const nCotiz=(l.cotizaciones||[]).length;
   const detalleId='det-'+l.id;
   return '<div class="licit-card" id="licit-card-'+l.id+'">'+
@@ -370,7 +370,7 @@ function renderDetalle(l){
 
   // Grid info principal
   var items=[
-    ['Código',l.codigo||l.código||'—'],
+    ['Código',l.codigo||l.codigo||'—'],
     ['Cliente',l.clienteEmpresa||'—'],
     ['Contacto',l.clienteNombre||'—'],
     ['Email cliente',l.clienteEmail||'—'],
@@ -399,7 +399,7 @@ function renderDetalle(l){
     html+='<div class="det-section-title">Transportistas invitados a cotizar</div>';
     html+='<div class="inv-list">';
     cotizaciones.forEach(function(c,i){
-      var invCode='INV-'+(l.codigo||l.código||'LIC')+'-'+String(i+1).padStart(2,'0');
+      var invCode='INV-'+(l.codigo||l.codigo||'LIC')+'-'+String(i+1).padStart(2,'0');
       html+='<div class="inv-row">'+
         '<div class="inv-code">'+invCode+'</div>'+
         '<div>'+
@@ -421,7 +421,7 @@ function renderDetalle(l){
     sorted.forEach(function(c,i){
       var sc=Math.round((c.score||0)*100);
       var esGan=adjId&&c.id===adjId;
-      var cotCodigo=c.codigo||c.código||('COT-'+String(i+1).padStart(3,'0'));
+      var cotCodigo=c.codigo||c.codigo||('COT-'+String(i+1).padStart(3,'0'));
       html+='<div class="cotiz-item'+(esGan?' winner':'')+'">'+
         '<div class="cotiz-top">'+
           '<div>'+
