@@ -293,9 +293,9 @@
     document.getElementById('mt-nombre').textContent     = t.nombre || '--';
     document.getElementById('mt-email').textContent      = t.email || '--';
     document.getElementById('mt-empresa').textContent    = t.empresa || '--';
-    document.getElementById('mt-rut').textContent        = t.rut || '--';
+    document.getElementById('mt-rut').textContent        = t.rutEmpresa || '--';
     document.getElementById('mt-contacto').textContent   = t.nombre || '--';
-    document.getElementById('mt-teléfono').textContent   = t.teléfono || '--';
+    document.getElementById('mt-teléfono').textContent   = t.telefono || '--';
     document.getElementById('mt-transportes').textContent = (t.totalTransportes || 0) + ' completados';
     document.getElementById('mt-fecha').textContent      = t.createdAt ? new Date(t.createdAt).toLocaleDateString('es-CL') : '--';
     document.getElementById('mt-rating').textContent     = '★ ' + (t.rating || 5.0);
