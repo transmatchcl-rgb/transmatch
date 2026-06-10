@@ -158,6 +158,8 @@ input.invalid,textarea.invalid{border-color:#dc2626!important;background:#fff8f8
   .field input[readonly]{background:transparent!important}
 }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -389,7 +391,8 @@ input.invalid,textarea.invalid{border-color:#dc2626!important;background:#fff8f8
   <!-- BOTTOM BAR -->
   <div class="bottom-bar">
     <div class="bottom-bar-left">
-      <button class="btn btn-print" onclick="imprimirDoc()">Imprimir / PDF</button>
+      <button class="btn btn-print" onclick="descargarDocPDF()" id="btn-desc-pdf">Descargar PDF</button>
+      <button class="btn btn-ghost" onclick="imprimirDoc()">Imprimir</button>
       <button class="btn btn-ghost" onclick="guardarBorrador()">Guardar borrador</button>
     </div>
     <button class="btn btn-send" id="btn-enviar" onclick="enviarCotizacion()">
@@ -899,6 +902,46 @@ async function enviarCotizacion(){
 
 /* ── PRINT / PDF ── */
 function imprimirDoc(){ window.print(); }
+
+async function descargarDocPDF(){
+  var sheet=document.getElementById('sheet');
+  if(!sheet) return;
+  var btn=document.getElementById('btn-desc-pdf');
+  var txtPrev=btn?btn.textContent:'';
+  if(btn){ btn.textContent='Generando...'; btn.disabled=true; }
+  try{
+    if(typeof html2canvas==='undefined' || !window.jspdf){ showToast('No se pudo generar el PDF, usa Imprimir','err'); return; }
+    var canvas=await html2canvas(sheet,{scale:2,backgroundColor:'#ffffff',useCORS:true});
+    var jsPDF=window.jspdf.jsPDF;
+    var pdf=new jsPDF('p','mm','a4');
+    var pw=pdf.internal.pageSize.getWidth();
+    var ph=pdf.internal.pageSize.getHeight();
+    var margin=10;
+    var imgW=pw-margin*2;
+    var imgH=canvas.height*imgW/canvas.width;
+    if(imgH<=ph-margin*2){
+      pdf.addImage(canvas.toDataURL('image/png'),'PNG',margin,margin,imgW,imgH);
+    } else {
+      var ratio=canvas.width/imgW;
+      var pagePx=(ph-margin*2)*ratio;
+      var sY=0, pageNum=0;
+      while(sY<canvas.height){
+        var sliceH=Math.min(pagePx, canvas.height-sY);
+        var c2=document.createElement('canvas');
+        c2.width=canvas.width; c2.height=sliceH;
+        c2.getContext('2d').drawImage(canvas,0,sY,canvas.width,sliceH,0,0,canvas.width,sliceH);
+        if(pageNum>0) pdf.addPage();
+        pdf.addImage(c2.toDataURL('image/png'),'PNG',margin,margin,imgW,sliceH/ratio);
+        sY+=sliceH; pageNum++;
+      }
+    }
+    pdf.save('Cotizacion-TransMatch.pdf');
+  }catch(e){
+    showToast('No se pudo generar el PDF','err');
+  }finally{
+    if(btn){ btn.textContent=txtPrev; btn.disabled=false; }
+  }
+}
 
 /* ── TOAST ── */
 function showToast(msg, type='ok'){
