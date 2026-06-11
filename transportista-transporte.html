@@ -339,8 +339,14 @@ function renderDetalle(t){
   var fechaEnt=t.fechaEntrega?new Date(t.fechaEntrega+'T12:00:00'):null;
   var vence=fechaEnt&&fechaEnt<=hoy&&t.estado!=='entregado';
   var h='';
+  var puede = (t.puedoGestionar !== false);
 
-  // Banner vencimiento
+  // Asignación interna + ceder
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:'+(puede?'#f8f9fc':'#FFFBEB')+';border:0.5px solid '+(puede?'#e8eaf0':'#FDE68A')+';border-radius:8px;padding:10px 14px;margin-bottom:14px">';
+  h+='<div style="font-size:12px;color:#374151"><span style="color:#9CA3AF">Asignado a:</span> <strong style="color:#1e2d4e">'+(t.asignadoNombre||t.transportistaNombre||'—')+'</strong>'+(puede?'':' · <span style="color:#92400E;font-weight:600">solo lectura</span>')+'</div>';
+  if(puede) h+='<button class="btn btn-outline btn-sm" onclick="abrirModalCeder(\''+t.id+'\')">Ceder adjudicación</button>';
+  h+='</div>';
+
   if(vence){
     h+='<div style="background:#fff7ed;border-left:3px solid #f97316;padding:10px 14px;font-size:12px;color:#c2410c;font-weight:600;margin-bottom:14px">Entrega comprometida vencida. Actualiza el estado al llegar a destino.</div>';
   }
@@ -430,10 +436,10 @@ function renderDetalle(t){
       });
       h+='</div>';
     }
-    h+='<div style="margin-top:12px"><button class="btn btn-outline btn-sm" onclick="abrirModalPatente(\''+t.id+'\')">Cambiar equipo</button></div>';
+    if(puede) h+='<div style="margin-top:12px"><button class="btn btn-outline btn-sm" onclick="abrirModalPatente(\''+t.id+'\')">Cambiar equipo</button></div>';
   } else {
     h+='<div style="font-size:13px;color:#9CA3AF;margin-bottom:12px">Aún no has asignado el equipo específico para este transporte.</div>';
-    h+='<button class="btn btn-orange btn-sm" onclick="abrirModalPatente(\''+t.id+'\')">Asignar equipo / Ingresar patente</button>';
+    if(puede) h+='<button class="btn btn-orange btn-sm" onclick="abrirModalPatente(\''+t.id+'\')">Asignar equipo / Ingresar patente</button>';
   }
   h+='</div>';
 
@@ -442,7 +448,7 @@ function renderDetalle(t){
   h+='<div style="border:0.5px solid #e8eaf0;border-radius:10px;padding:14px;margin-bottom:16px">';
   h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
   h+='<div style="font-size:12px;font-weight:700;color:#1e2d4e;text-transform:uppercase;letter-spacing:.04em">Tu contacto operacional</div>';
-  if(cOpsT.length<2) h+='<button class="btn btn-outline btn-sm" onclick="abrirModalContacto(\''+t.id+'\',\'transportista\')">+ Agregar contacto</button>';
+  if(puede&&cOpsT.length<2) h+='<button class="btn btn-outline btn-sm" onclick="abrirModalContacto(\''+t.id+'\',\'transportista\')">+ Agregar contacto</button>';
   h+='</div>';
   if(cOpsT.length===0){
     h+='<div style="font-size:12px;color:#9CA3AF">Agrega el contacto de quien estará a cargo del transporte (conductor, encargado).</div>';
@@ -455,7 +461,7 @@ function renderDetalle(t){
         +(c.telefono?'<div>'+c.telefono+'</div>':'')
         +(c.email?'<div><a href="mailto:'+c.email+'" style="color:#1e2d4e">'+c.email+'</a></div>':'')
         +'</div>';
-      h+='<button onclick="eliminarContactoOp(\''+t.id+'\',\'transportista\','+ci+')" style="background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:16px;padding:2px">×</button>';
+      h+=(puede?'<button onclick="eliminarContactoOp(\''+t.id+'\',\'transportista\','+ci+')" style="background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:16px;padding:2px">×</button>':'');
       h+='</div>';
     });
   }
@@ -470,7 +476,7 @@ function renderDetalle(t){
   h+='</div></div>';
 
   // Actualizar estado
-  if(t.estado!=='entregado'){
+  if(puede&&t.estado!=='entregado'){
     var siguiente=ESTADOS[idx+1];
     if(siguiente){
       h+='<div class="estado-form">'+
@@ -507,8 +513,8 @@ function renderDetalle(t){
   if(t.factura){
     h+='<div class="doc-ok"><span>Subida el '+fechaHora(t.factura.subidoAt)+'</span><button class="btn btn-outline btn-sm" onclick="descargar(\''+t.factura.archivoId+'\',\''+t.factura.nombre+'\')">Descargar</button></div>';
   } else {
-    h+='<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Sube tu factura para registrar el cobro en el sistema.</div>'+
-      '<input type="file" id="fac-file-'+t.id+'" accept=".pdf,.doc,.docx" style="font-size:13px;margin-bottom:8px;display:block"/>'+
+    h+='<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Sube tu factura para registrar el cobro en el sistema.</div>';
+    if(puede) h+='<input type="file" id="fac-file-'+t.id+'" accept=".pdf,.doc,.docx" style="font-size:13px;margin-bottom:8px;display:block"/>'+
       '<button class="btn btn-orange btn-sm" onclick="subirFactura(\''+t.id+'\')">Subir factura</button>';
   }
   h+='</div>';
@@ -517,8 +523,8 @@ function renderDetalle(t){
   if(t.guiaDespacho){
     h+='<div class="doc-ok"><span>Subida el '+fechaHora(t.guiaDespacho.subidoAt)+'</span><button class="btn btn-outline btn-sm" onclick="descargar(\''+t.guiaDespacho.archivoId+'\',\''+t.guiaDespacho.nombre+'\')">Descargar</button></div>';
   } else {
-    h+='<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Opcional — sube la guía de despacho si el cliente lo requiere.</div>'+
-      '<input type="file" id="guia-file-'+t.id+'" accept=".pdf,.doc,.docx" style="font-size:13px;margin-bottom:8px;display:block"/>'+
+    h+='<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Opcional — sube la guía de despacho si el cliente lo requiere.</div>';
+    if(puede) h+='<input type="file" id="guia-file-'+t.id+'" accept=".pdf,.doc,.docx" style="font-size:13px;margin-bottom:8px;display:block"/>'+
       '<button class="btn btn-outline btn-sm" onclick="subirGuia(\''+t.id+'\')">Subir guía</button>';
   }
   h+='</div>';
@@ -705,10 +711,21 @@ function abrirModalContacto(transporteId, rol){
   modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
 }
 
-function autocompletarMisDatos(){
-  var n=document.getElementById('mc-nombre'); if(n) n.value=localStorage.getItem('tm_nombre')||'';
-  var t=document.getElementById('mc-telefono'); if(t) t.value=localStorage.getItem('tm_telefono')||'';
-  var e=document.getElementById('mc-email'); if(e) e.value=localStorage.getItem('tm_email')||'';
+async function autocompletarMisDatos(){
+  var limpio=function(v){ return (!v||v==='undefined'||v==='null')?'':v; };
+  // Fallback inmediato con localStorage saneado
+  var n=document.getElementById('mc-nombre'); if(n&&!n.value) n.value=limpio(localStorage.getItem('tm_nombre'));
+  var t=document.getElementById('mc-telefono'); if(t&&!t.value) t.value=limpio(localStorage.getItem('tm_telefono'));
+  var e=document.getElementById('mc-email'); if(e&&!e.value) e.value=limpio(localStorage.getItem('tm_email'));
+  // Datos reales y completos desde el perfil
+  try{
+    var res=await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    var d=await res.json(); var u=(d&&d.user)||{};
+    var nn=document.getElementById('mc-nombre'); if(nn) nn.value=u.nombre||nn.value||'';
+    var cc=document.getElementById('mc-cargo'); if(cc&&!cc.value) cc.value=u.cargo||'';
+    var tt=document.getElementById('mc-telefono'); if(tt) tt.value=u.telefono||u.whatsapp||tt.value||'';
+    var ee=document.getElementById('mc-email'); if(ee) ee.value=u.email||ee.value||'';
+  }catch(err){}
 }
 
 async function guardarContactoOp(transporteId, rol, modal){
@@ -780,6 +797,46 @@ async function subirGuia(transporteId){
     } catch(e){toast('Error de conexion','err');}
   };
   reader.readAsDataURL(file);
+}
+
+async function abrirModalCeder(transporteId){
+  var res=await fetch(API+'/api/transportes/'+transporteId,{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+  var d=await res.json();
+  if(!res.ok){ toast(d.error||'No se pudo cargar','err'); return; }
+  var t=d.transporte||{};
+  var actual=(t.asignadoEmailActual||'').toLowerCase();
+  var miembros=(t.miembrosEmpresa||[]).filter(function(m){ return (m.email||'').toLowerCase()!==actual; });
+  if(!miembros.length){ toast('No hay otros usuarios en tu empresa a quien ceder'); return; }
+  var modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  var opciones=miembros.map(function(m){ return '<option value="'+m.email+'">'+(m.nombre||m.email)+(m.esMadre?' (cuenta madre)':'')+'</option>'; }).join('');
+  var inner=document.createElement('div');
+  inner.style.cssText='background:#fff;border-radius:16px;padding:28px;width:100%;max-width:420px';
+  inner.innerHTML='<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Ceder adjudicación</div>'
+    +'<div style="font-size:12px;color:#9CA3AF;margin-bottom:18px">El usuario que elijas pasará a gestionar este transporte. Tú dejarás de poder editarlo (salvo que seas la cuenta madre).</div>'
+    +'<label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Ceder a</label>'
+    +'<select id="ceder-sel" style="width:100%;padding:10px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:14px;margin-bottom:20px">'+opciones+'</select>'
+    +'<div style="display:flex;gap:10px;justify-content:flex-end">'
+    +'<button id="ceder-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
+    +'<button id="ceder-ok" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Ceder</button>'
+    +'</div>';
+  modal.appendChild(inner); document.body.appendChild(modal);
+  modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
+  document.getElementById('ceder-cancel').onclick=function(){ modal.remove(); };
+  document.getElementById('ceder-ok').onclick=async function(){
+    var email=document.getElementById('ceder-sel').value;
+    var btn=this; btn.disabled=true; btn.textContent='Cediendo...';
+    try{
+      var r=await fetch(API+'/api/transportes/'+transporteId+'/ceder',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+        body:JSON.stringify({email:email})
+      });
+      var dd=await r.json();
+      if(r.ok){ modal.remove(); toast('Adjudicación cedida'); await cargar(); }
+      else { toast(dd.error||'Error','err'); btn.disabled=false; btn.textContent='Ceder'; }
+    }catch(e){ toast('Error de conexión','err'); btn.disabled=false; btn.textContent='Ceder'; }
+  };
 }
 
 async function descargar(archivoId,nombre){

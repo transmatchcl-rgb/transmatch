@@ -134,10 +134,11 @@ async function doLogin() {
 
     if (res.ok) {
       localStorage.setItem('tm_token',   data.token);
-      localStorage.setItem('tm_role',    data.role);
-      localStorage.setItem('tm_nombre',  data.nombre);
-      localStorage.setItem('tm_empresa', data.empresa);
-      localStorage.setItem('tm_email',   data.email);
+      localStorage.setItem('tm_role',    data.role || '');
+      localStorage.setItem('tm_nombre',  data.nombre || '');
+      localStorage.setItem('tm_empresa', data.empresa || '');
+      localStorage.setItem('tm_email',   data.email || '');
+      localStorage.setItem('tm_telefono',data.telefono || '');
       localStorage.setItem('tm_plan',    data.plan || 'basico');
 
       if (data.role === 'transportista') {
