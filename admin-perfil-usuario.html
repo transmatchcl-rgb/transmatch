@@ -190,6 +190,22 @@
         '</div></div>';
     }
 
+    // Sección plan solo para clientes (los transportistas no tienen plan)
+    var planHtml = '';
+    if (!isTransportista) {
+      planHtml = '<div class="card"><div class="card-hdr">Plan activo</div><div class="card-body">' +
+        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+          '<select id="sel-plan" class="plan-select">' +
+            '<option value="basico"' + (u.plan === 'basico' ? ' selected' : '') + '>Básico (1 UF/mes)</option>' +
+            '<option value="pro"' + (u.plan === 'pro' ? ' selected' : '') + '>Pro (2 UF/mes)</option>' +
+            '<option value="enterprise"' + (u.plan === 'enterprise' ? ' selected' : '') + '>Enterprise (a cotizar)</option>' +
+          '</select>' +
+          '<button onclick="cambiarPlan()" style="background:#1e2d4e;color:#fff;padding:9px 18px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Guardar plan</button>' +
+        '</div>' +
+        '<div style="font-size:12px;color:#9CA3AF;margin-top:8px">Plan actual: <strong>' + (u.plan || 'Sin plan') + '</strong></div>' +
+      '</div></div>';
+    }
+
     var html =
       // ── Header ──
       '<div class="card"><div class="card-body">' +
@@ -230,18 +246,8 @@
         '</div>' +
       '</div></div>' +
 
-      // ── Plan ──
-      '<div class="card"><div class="card-hdr">Plan activo</div><div class="card-body">' +
-        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
-          '<select id="sel-plan" class="plan-select">' +
-            '<option value="basico"' + (u.plan === 'basico' ? ' selected' : '') + '>Básico (1 UF/mes)</option>' +
-            '<option value="pro"' + (u.plan === 'pro' ? ' selected' : '') + '>Pro (2 UF/mes)</option>' +
-            '<option value="enterprise"' + (u.plan === 'enterprise' ? ' selected' : '') + '>Enterprise (a cotizar)</option>' +
-          '</select>' +
-          '<button onclick="cambiarPlan()" style="background:#1e2d4e;color:#fff;padding:9px 18px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Guardar plan</button>' +
-        '</div>' +
-        '<div style="font-size:12px;color:#9CA3AF;margin-top:8px">Plan actual: <strong>' + (u.plan || 'Sin plan') + '</strong></div>' +
-      '</div></div>' +
+      // ── Plan (solo clientes) ──
+      planHtml +
 
       // ── Usuarios adicionales / Equipos ──
       usuariosHtml +
