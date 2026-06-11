@@ -503,7 +503,13 @@ if(fc||fe){
 h+='<button onclick="verPreviewCotiz('+i+')" style="display:block;width:100%;margin-bottom:8px;padding:7px;background:#EFF6FF;color:#1e2d4e;border:0.5px solid #BFDBFE;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer">Ver cotización completa</button>';
 h+='<div class="score-bar"><div class="score-fill" style="width:'+sc+'%"></div></div>';
 h+='<div style="display:flex;justify-content:space-between;font-size:11px;color:#9CA3AF;margin-top:3px;margin-bottom:10px"><span>Score TransMatch</span><span>'+sc+'%</span></div>';
-h+='<button style="width:100%;justify-content:center;padding:9px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:#FF8904;color:#fff" onclick="adjudicarPorIdx(this)" data-idx="'+i+'" data-precio="'+c.precio+'">Adjudicar esta cotizacion</button>';
+if(l.estado==='adjudicada'||l.estado==='completada'){
+  if(c.id && l.adjudicadaA && c.id===l.adjudicadaA.cotizacionId){
+    h+='<div style="width:100%;box-sizing:border-box;text-align:center;padding:9px;border-radius:8px;font-size:13px;font-weight:600;background:#F0FDF4;color:#14532D;border:0.5px solid #BBF7D0">Cotización adjudicada</div>';
+  }
+} else if(l.estado==='abierta'||l.estado==='cerrada'){
+  h+='<button style="width:100%;justify-content:center;padding:9px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:#FF8904;color:#fff" onclick="adjudicarPorIdx(this)" data-idx="'+i+'" data-precio="'+c.precio+'">Adjudicar esta cotizacion</button>';
+}
 h+='</div>';
 });
 var extras=cotiz.slice(3);
