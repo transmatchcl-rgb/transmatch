@@ -1718,7 +1718,13 @@ function initRutInputs() {
       try{
         var res=await fetch(API+'/api/mi-empresa/invitar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({emailInvitado:email,permisos:permisos})});
         var d=await res.json();
-        if(res.ok){modal.remove();alert('Invitación enviada a '+email);cargarUsuariosT();}
+        if(res.ok){
+          modal.remove();
+          if(d.emailEnviado){ alert('Invitación enviada a '+email); }
+          else if(d.linkInvitacion){ prompt('La invitación se creó, pero el email no se pudo enviar automáticamente. Copia este link y envíaselo al usuario:', d.linkInvitacion); }
+          else { alert('Invitación creada para '+email); }
+          cargarUsuariosT();
+        }
         else{alert(d.error||'Error');btn.disabled=false;btn.textContent='Enviar invitación';}
       }catch(e){alert('Error de conexión');btn.disabled=false;btn.textContent='Enviar invitación';}
     };
