@@ -479,13 +479,6 @@ function renderDetalle(t){
   }
   html+='</div>';
 
-  // Acciones admin
-  html+='<div class="det-actions">';
-  if(t.estado!=='entregado'){
-    html+='<button class="btn btn-primary" onclick="event.stopPropagation();abrirModalEstado(\''+t.id+'\',\''+t.estado+'\',\''+t.codigo+'\')">Cambiar estado</button>';
-  }
-  html+='</div>';
-
   return html;
 }
 
