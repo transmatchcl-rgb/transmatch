@@ -145,61 +145,6 @@
   </main>
 </div>
 
-<!-- Modal perfil transportista -->
-<div class="modal-bg" id="modal-t">
-  <div class="modal">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
-      <div>
-        <div style="font-size:20px;font-weight:700;color:#1e2d4e" id="mt-nombre">--</div>
-        <div style="font-size:13px;color:#6B7280;margin-top:2px" id="mt-email">--</div>
-      </div>
-      <button onclick="document.getElementById('modal-t').classList.remove('open')" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6B7280">x</button>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px">
-      <div style="background:#f8f9fc;border-radius:8px;padding:12px">
-        <div style="font-size:11px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:6px">Estado cuenta</div>
-        <div id="mt-estado-badge"></div>
-      </div>
-      <div style="background:#f8f9fc;border-radius:8px;padding:12px">
-        <div style="font-size:11px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:6px">Valoración</div>
-        <div style="font-size:18px;font-weight:700;color:#ff8904" id="mt-rating">★ --</div>
-      </div>
-    </div>
-
-    <div style="background:#f8f9fc;border-radius:10px;padding:14px;margin-bottom:14px">
-      <div class="section-label" style="color:#1d4ed8">Empresa</div>
-      <div class="info-grid">
-        <div class="info-cell"><div class="k">Razón social</div><div class="v" id="mt-empresa">--</div></div>
-        <div class="info-cell"><div class="k">RUT</div><div class="v" id="mt-rut">--</div></div>
-        <div class="info-cell"><div class="k">Contacto</div><div class="v" id="mt-contacto">--</div></div>
-        <div class="info-cell"><div class="k">Teléfono</div><div class="v" id="mt-teléfono">--</div></div>
-        <div class="info-cell"><div class="k">Transportes</div><div class="v" id="mt-transportes">--</div></div>
-        <div class="info-cell"><div class="k">Registro</div><div class="v" id="mt-fecha">--</div></div>
-      </div>
-    </div>
-
-    <div style="background:#f8f9fc;border-radius:10px;padding:14px;margin-bottom:14px">
-      <div class="section-label" style="color:#1d4ed8">Equipos registrados</div>
-      <div id="mt-equipos" style="font-size:13px;color:#6B7280">--</div>
-    </div>
-
-    <div style="margin-bottom:14px">
-      <div class="section-label" style="color:#9CA3AF">Cambiar estado</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-green" onclick="aprobar(selEmail,'aprobar')">Aprobar</button>
-        <button class="btn btn-red" onclick="aprobar(selEmail,'rechazar')">Rechazar</button>
-        <button class="btn btn-outline" style="color:#EF4444;border-color:#FECACA" onclick="gestionarUsuario(selEmail,'suspendido')">Suspender</button>
-        <button class="btn btn-outline" style="color:#14532D;border-color:#BBF7D0" onclick="gestionarUsuario(selEmail,'activo')">Reactivar</button>
-      </div>
-    </div>
-
-    <div style="display:flex;justify-content:space-between;gap:8px;padding-top:14px;border-top:0.5px solid #e8eaf0">
-      <button class="btn btn-primary" onclick="window.location.href='/admin-perfil-usuario.html?email='+encodeURIComponent(selEmail)">Ver perfil completo →</button>
-      <button class="btn btn-outline" onclick="document.getElementById('modal-t').classList.remove('open')">Cerrar</button>
-    </div>
-  </div>
-</div>
 
 <div id="toast"></div>
 
@@ -258,7 +203,7 @@
     document.getElementById('lista-transportistas').innerHTML = lista.length === 0
       ? '<div class="empty">Sin resultados</div>'
       : lista.map((t, i) =>
-          '<div class="row" onclick="verDetalle(\'' + t.email + '\')">' +
+          '<div class="row" style="cursor:pointer" onclick="irPerfil(\'' + t.email + '\')">' +
           '<div class="av" style="background:' + avColors[i % avColors.length] + '">' + (t.nombre[0] || 'T').toUpperCase() + '</div>' +
           '<div class="row-body">' +
             '<div class="row-name">' + t.nombre + '</div>' +
@@ -272,59 +217,19 @@
               '<button class="btn btn-green btn-sm" onclick="event.stopPropagation();aprobar(\'' + t.email + '\',\'aprobar\')">Aprobar</button>' +
               '<button class="btn btn-red btn-sm" onclick="event.stopPropagation();aprobar(\'' + t.email + '\',\'rechazar\')">Rechazar</button>'
             : '') +
+            '<a href="/admin-perfil-usuario.html?email=' + encodeURIComponent(t.email) + '" class="btn btn-outline btn-sm" onclick="event.stopPropagation()">Ver perfil</a>' +
           '</div>' +
           '</div>'
         ).join('');
   }
 
-  function verDetalle(email) {
-    selEmail = email;
-    const t = allT.find(x => x.email === email);
-    if (!t) return;
-
-    const estadoMap = {
-      activo:    ['#F0FDF4', '#14532D', 'Activo'],
-      suspendido:['#FEF2F2', '#991B1B', 'Suspendido'],
-      pendiente: ['#FFF7ED', '#92400E', 'Pendiente'],
-      rechazado: ['#FEF2F2', '#991B1B', 'Rechazado'],
-    };
-    const [ebg, ecol, elbl] = estadoMap[t.estado] || ['#F9FAFB', '#6B7280', t.estado];
-
-    document.getElementById('mt-nombre').textContent     = t.nombre || '--';
-    document.getElementById('mt-email').textContent      = t.email || '--';
-    document.getElementById('mt-empresa').textContent    = t.empresa || '--';
-    document.getElementById('mt-rut').textContent        = t.rutEmpresa || '--';
-    document.getElementById('mt-contacto').textContent   = t.nombre || '--';
-    document.getElementById('mt-teléfono').textContent   = t.telefono || '--';
-    document.getElementById('mt-transportes').textContent = (t.totalTransportes || 0) + ' completados';
-    document.getElementById('mt-fecha').textContent      = t.createdAt ? new Date(t.createdAt).toLocaleDateString('es-CL') : '--';
-    document.getElementById('mt-rating').textContent     = '★ ' + (t.rating || 5.0);
-
-    document.getElementById('mt-estado-badge').innerHTML =
-      '<span style="background:' + ebg + ';color:' + ecol + ';font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px">' + elbl + '</span>';
-
-    const equipos = t.equipos || [];
-    document.getElementById('mt-equipos').innerHTML = equipos.length === 0
-      ? '<span style="color:#9CA3AF">Sin equipos registrados</span>'
-      : equipos.map(e =>
-          '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid #e8eaf0;font-size:12px">' +
-          '<span style="color:#374151;font-weight:500">' + e.tipo + '</span>' +
-          '<span style="color:#6B7280">' + (e.capacidad ? e.capacidad + ' ton' : '') + (e.dimensiones ? ' · ' + e.dimensiones : '') + '</span>' +
-          '</div>'
-        ).join('');
-
-    document.getElementById('modal-t').classList.add('open');
+  function irPerfil(email) {
+    window.location.href = '/admin-perfil-usuario.html?email=' + encodeURIComponent(email);
   }
 
   async function aprobar(email, accion) {
     const r = await apiFetch('/api/admin/aprobar-transportista', 'POST', { email, accion });
-    if (r && r.ok) { toast(accion === 'aprobar' ? 'Transportista aprobado' : 'Transportista rechazado'); document.getElementById('modal-t').classList.remove('open'); initPage(); }
-    else toast('Error', 'err');
-  }
-
-  async function gestionarUsuario(email, estado) {
-    const r = await apiFetch('/api/admin/gestionar-usuario', 'POST', { email, estado });
-    if (r && r.ok) { toast('Usuario actualizado'); document.getElementById('modal-t').classList.remove('open'); initPage(); }
+    if (r && r.ok) { toast(accion === 'aprobar' ? 'Transportista aprobado' : 'Transportista rechazado'); initPage(); }
     else toast('Error', 'err');
   }
 

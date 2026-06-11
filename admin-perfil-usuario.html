@@ -308,7 +308,13 @@
   }
 
   async function cambiarEstado(estado) {
-    var r = await api('/api/admin/gestionar-usuario', 'POST', { email: userData.email, estado: estado });
+    var r;
+    // Aprobar/rechazar un transportista pendiente usa el endpoint que envía email + notificación de aprobación
+    if (userData.role === 'transportista' && userData.estado === 'pendiente' && (estado === 'activo' || estado === 'rechazado')) {
+      r = await api('/api/admin/aprobar-transportista', 'POST', { email: userData.email, accion: estado === 'activo' ? 'aprobar' : 'rechazar' });
+    } else {
+      r = await api('/api/admin/gestionar-usuario', 'POST', { email: userData.email, estado: estado });
+    }
     if (r && r.ok) {
       userData.estado = estado;
       renderEstado(estado);
