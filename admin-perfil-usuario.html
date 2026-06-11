@@ -111,6 +111,7 @@
 <script>
   const API = 'https://transmatch.transmatchcl.workers.dev';
   var userData = null;
+  var todosUsuarios = [];
 
   function toast(msg, type) {
     var el = document.getElementById('toast');
@@ -151,6 +152,7 @@
     if (!r || !r.ok) { document.getElementById('contenido').innerHTML = '<div class="empty">Error al cargar</div>'; return; }
 
     userData = (r.data.usuarios || []).find(function(u) { return u.email === email; });
+    todosUsuarios = r.data.usuarios || [];
     if (!userData) { document.getElementById('contenido').innerHTML = '<div class="empty">Usuario no encontrado</div>'; return; }
 
     var isTransportista = userData.role === 'transportista';
@@ -179,6 +181,35 @@
     // Sección usuarios adicionales (clientes y transportistas)
     var usuariosHtml = '';
     {
+      var subusuarios = (todosUsuarios || []).filter(function(x){ return x.empresaMadreId && x.empresaMadreId === u.id; });
+      var madreSuspendida = u.estado !== 'activo';
+      var subsListHtml = '';
+      if (subusuarios.length === 0) {
+        subsListHtml = '<div style="font-size:13px;color:#9CA3AF;margin-top:14px;padding-top:14px;border-top:0.5px solid #e8eaf0">Aún no hay sub-usuarios que hayan aceptado la invitación.</div>';
+      } else {
+        subsListHtml = '<div style="margin-top:14px;padding-top:14px;border-top:0.5px solid #e8eaf0">' +
+          '<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">Sub-usuarios de la empresa</div>' +
+          subusuarios.map(function(s){
+            var estBg, estColor, estLabel;
+            if (madreSuspendida)         { estBg='#FEF2F2'; estColor='#991B1B'; estLabel='Suspendido (empresa)'; }
+            else if (s.desactivadoManual){ estBg='#FFFBEB'; estColor='#92400E'; estLabel='Desactivado'; }
+            else                         { estBg='#F0FDF4'; estColor='#14532D'; estLabel='Activo'; }
+            var btn = s.desactivadoManual
+              ? '<button onclick="toggleSubusuario(\'' + s.email + '\',true)" style="background:#1e2d4e;color:#fff;padding:6px 14px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Activar</button>'
+              : '<button onclick="toggleSubusuario(\'' + s.email + '\',false)" style="background:#fff;color:#ff8904;border:1.5px solid #ff8904;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Desactivar</button>';
+            return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:0.5px solid #f3f4f6">' +
+              '<div style="min-width:0">' +
+                '<div style="font-size:13px;font-weight:500;color:#1e2d4e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (s.nombre || '--') + '</div>' +
+                '<div style="font-size:12px;color:#6B7280">' + s.email + '</div>' +
+              '</div>' +
+              '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">' +
+                '<span style="background:' + estBg + ';color:' + estColor + ';font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px">' + estLabel + '</span>' +
+                btn +
+              '</div>' +
+            '</div>';
+          }).join('') +
+        '</div>';
+      }
       usuariosHtml = '<div class="card"><div class="card-hdr">Usuarios adicionales de empresa</div><div class="card-body">' +
         '<div style="font-size:13px;color:#6B7280;margin-bottom:12px">Define cuántos usuarios extra puede invitar esta empresa.</div>' +
         '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
@@ -186,7 +217,8 @@
         '<input type="number" id="inp-max-usuarios" min="0" max="50" value="' + (u.max_usuarios || 0) + '" style="width:80px;padding:8px 10px;border:1px solid #e8eaf0;border-radius:7px;font-size:14px;text-align:center"/>' +
         '<button onclick="guardarMaxUsuarios()" style="background:#1e2d4e;color:#fff;padding:8px 18px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Guardar</button>' +
         '</div>' +
-        '<div style="font-size:12px;color:#9CA3AF;margin-top:8px">Actualmente tiene <strong>' + (u.empresaMiembros || []).length + '</strong> usuario(s) extra activo(s).</div>' +
+        '<div style="font-size:12px;color:#9CA3AF;margin-top:8px">' + subusuarios.length + ' sub-usuario(s) en la empresa · cupo: ' + (u.max_usuarios || 0) + '</div>' +
+        subsListHtml +
         '</div></div>';
     }
 
@@ -345,6 +377,16 @@
       toast('Guardado: ' + max + ' usuario(s) extra');
     } else {
       toast('Error al guardar', 'err');
+    }
+  }
+
+  async function toggleSubusuario(email, activar) {
+    var r = await api('/api/admin/subusuario-activacion', 'POST', { email: email, activo: activar });
+    if (r && r.ok) {
+      toast(activar ? 'Sub-usuario activado' : 'Sub-usuario desactivado');
+      cargar();
+    } else {
+      toast('Error al actualizar', 'err');
     }
   }
 
