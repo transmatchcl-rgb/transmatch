@@ -62,7 +62,7 @@ btn.style.color=isPass?"#1e2d4e":"#9CA3AF";
   </div>
   <div class="field">
     <label for="password">Contrasena</label>
-    <div style="position:relative"><input type="password" id="password" placeholder="Tu contrasena" autocomplete="current-password" style="padding-right:42px"/><button type="button" onclick="togglePass('password',this)" tabindex="-1" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:16px;padding:0;line-height:1">&#128065;</button></div>
+    <div style="position:relative"><input type="password" id="password" placeholder="Tu contrasena" autocomplete="current-password" style="padding-right:42px"/><button type="button" onclick="togglePass('password',this)" tabindex="-1" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:16px;padding:0;line-height:1"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
   </div>
 
   <button class="btn btn-primary" id="btn-login" onclick="doLogin()">Iniciar sesion</button>
@@ -134,11 +134,10 @@ async function doLogin() {
 
     if (res.ok) {
       localStorage.setItem('tm_token',   data.token);
-      localStorage.setItem('tm_role',    data.role || '');
-      localStorage.setItem('tm_nombre',  data.nombre || '');
-      localStorage.setItem('tm_empresa', data.empresa || '');
-      localStorage.setItem('tm_email',   data.email || '');
-      localStorage.setItem('tm_telefono',data.telefono || '');
+      localStorage.setItem('tm_role',    data.role);
+      localStorage.setItem('tm_nombre',  data.nombre);
+      localStorage.setItem('tm_empresa', data.empresa);
+      localStorage.setItem('tm_email',   data.email);
       localStorage.setItem('tm_plan',    data.plan || 'basico');
 
       if (data.role === 'transportista') {
