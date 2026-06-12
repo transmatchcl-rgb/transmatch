@@ -237,12 +237,12 @@ input.invalid,textarea.invalid{border-color:#dc2626!important;background:#fff8f8
         </div>
         <div class="field">
           <label>Fecha de carga <span class="req-star">*</span></label>
-          <input type="date" id="f-fecha-carga" onchange="clearErr('f-fecha-carga')"/>
+          <input type="date" id="f-fecha-carga" onchange="this.blur();clearErr('f-fecha-carga')"/>
           <span class="field-err" id="err-f-fecha-carga">Selecciona la fecha de carga</span>
         </div>
         <div class="field">
           <label>Fecha de entrega <span class="req-star">*</span></label>
-          <input type="date" id="f-fecha-entrega" onchange="clearErr('f-fecha-entrega')"/>
+          <input type="date" id="f-fecha-entrega" onchange="this.blur();clearErr('f-fecha-entrega')"/>
           <span class="field-err" id="err-f-fecha-entrega">Selecciona la fecha de entrega</span>
         </div>
       </div>
