@@ -211,10 +211,29 @@ function renderDetalle(t){
   // Equipo asignado
   if(t.equipoAsignado&&t.equipoAsignado.patente){
     var eq=t.equipoAsignado;
-    h+='<div style="background:#fff;border-radius:7px;padding:8px 10px;margin-top:4px;font-size:12px;color:#374151">'
-      +'<strong>Equipo:</strong> '+(eq.tipo||'')
-      +(eq.marca?' '+eq.marca:'')+(eq.modelo?' '+eq.modelo:'')
-      +' · <strong style="font-family:monospace">'+eq.patente+'</strong>'
+    h+='<div style="background:#fff;border-radius:7px;padding:10px 12px;margin-top:4px;font-size:12px;color:#374151">'
+      +'<div style="font-weight:600;color:#1e2d4e;margin-bottom:4px">Equipo asignado</div>'
+      +(eq.tipo||'')+(eq.marca?' '+eq.marca:'')+(eq.modelo?' '+eq.modelo:'')
+      +' · <strong style="font-family:monospace">'+eq.patente+'</strong>';
+    var eqBtns='';
+    if(eq.documentos){
+      Object.values(eq.documentos).forEach(function(doc){
+        if(!doc||!doc.archivoId) return;
+        eqBtns+='<button onclick="descargar(\''+doc.archivoId+'\',\''+(doc.label||doc.key||'documento')+'\')" style="padding:4px 10px;border:1px solid #e8eaf0;border-radius:7px;background:#fff;font-size:11px;color:#374151;cursor:pointer">'+(doc.label||doc.key)+'</button>';
+      });
+    }
+    if(eqBtns) h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">'+eqBtns+'</div>';
+    h+='</div>';
+  }
+  // Conductor asignado
+  if(t.conductorAsignado&&t.conductorAsignado.nombre){
+    var cd=t.conductorAsignado;
+    function dlc(id,lbl){ return id?'<button onclick="descargar(\''+id+'\',\''+lbl+'\')" style="padding:4px 10px;border:1px solid #e8eaf0;border-radius:7px;background:#fff;font-size:11px;color:#374151;cursor:pointer">'+lbl+'</button>':''; }
+    var cdBtns=dlc(cd.carnetFrenteId,'Carnet frente')+dlc(cd.carnetReversoId,'Carnet reverso')+dlc(cd.licenciaFrenteId,'Licencia frente')+dlc(cd.licenciaReversoId,'Licencia reverso');
+    h+='<div style="background:#fff;border-radius:7px;padding:10px 12px;margin-top:8px;font-size:12px;color:#374151">'
+      +'<div style="font-weight:600;color:#1e2d4e;margin-bottom:4px">Conductor asignado</div>'
+      +'<strong>'+cd.nombre+'</strong> · RUT '+cd.rut+(cd.telefono?' · '+cd.telefono:'')
+      +(cdBtns?'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">'+cdBtns+'</div>':'')
       +'</div>';
   }
   // Contactos operacionales del transportista

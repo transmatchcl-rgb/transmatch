@@ -339,14 +339,8 @@ function renderDetalle(t){
   var fechaEnt=t.fechaEntrega?new Date(t.fechaEntrega+'T12:00:00'):null;
   var vence=fechaEnt&&fechaEnt<=hoy&&t.estado!=='entregado';
   var h='';
-  var puede = (t.puedoGestionar !== false);
 
-  // Asignación interna + ceder
-  h+='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:'+(puede?'#f8f9fc':'#FFFBEB')+';border:0.5px solid '+(puede?'#e8eaf0':'#FDE68A')+';border-radius:8px;padding:10px 14px;margin-bottom:14px">';
-  h+='<div style="font-size:12px;color:#374151"><span style="color:#9CA3AF">Asignado a:</span> <strong style="color:#1e2d4e">'+(t.asignadoNombre||t.transportistaNombre||'—')+'</strong>'+(puede?'':' · <span style="color:#92400E;font-weight:600">solo lectura</span>')+'</div>';
-  if(puede) h+='<button class="btn btn-outline btn-sm" onclick="abrirModalCeder(\''+t.id+'\')">Ceder adjudicación</button>';
-  h+='</div>';
-
+  // Banner vencimiento
   if(vence){
     h+='<div style="background:#fff7ed;border-left:3px solid #f97316;padding:10px 14px;font-size:12px;color:#c2410c;font-weight:600;margin-bottom:14px">Entrega comprometida vencida. Actualiza el estado al llegar a destino.</div>';
   }
@@ -433,13 +427,34 @@ function renderDetalle(t){
         var color=dias<0?'#991B1B':dias<=15?'#92400E':'#14532D';
         var texto=dias<0?'Vencido':dias===0?'Vence hoy':dias<=15?'Vence en '+dias+'d':'Vigente';
         h+='<span style="background:'+bg+';color:'+color+';font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px">'+(doc.label||doc.key)+' · '+texto+'</span>';
+        if(doc.archivoId) h+='<button class="btn btn-outline btn-sm" style="padding:2px 8px;font-size:11px" onclick="descargar(\''+doc.archivoId+'\',\''+(doc.label||doc.key||'documento')+'\')">Descargar</button>';
       });
       h+='</div>';
     }
-    if(puede) h+='<div style="margin-top:12px"><button class="btn btn-outline btn-sm" onclick="abrirModalPatente(\''+t.id+'\')">Cambiar equipo</button></div>';
+    h+='<div style="margin-top:12px"><button class="btn btn-outline btn-sm" onclick="abrirModalPatente(\''+t.id+'\')">Cambiar equipo</button></div>';
   } else {
     h+='<div style="font-size:13px;color:#9CA3AF;margin-bottom:12px">Aún no has asignado el equipo específico para este transporte.</div>';
-    if(puede) h+='<button class="btn btn-orange btn-sm" onclick="abrirModalPatente(\''+t.id+'\')">Asignar equipo / Ingresar patente</button>';
+    h+='<button class="btn btn-orange btn-sm" onclick="abrirModalPatente(\''+t.id+'\')">Asignar equipo / Ingresar patente</button>';
+  }
+  h+='</div>';
+
+  // ── CONDUCTOR ASIGNADO ────────────────────────────────────────
+  h+='<div style="border:0.5px solid #e8eaf0;border-radius:10px;padding:14px;margin-bottom:16px">';
+  h+='<div style="font-size:12px;font-weight:700;color:#1e2d4e;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Conductor asignado</div>';
+  if(t.conductorAsignado&&t.conductorAsignado.nombre){
+    var cd=t.conductorAsignado;
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
+    h+='<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Nombre</div><div style="font-size:14px;font-weight:700;color:#1e2d4e">'+cd.nombre+'</div></div>';
+    h+='<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">RUT</div><div style="font-size:13px;color:#374151">'+cd.rut+'</div></div>';
+    if(cd.telefono) h+='<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Telefono</div><div style="font-size:13px;color:#374151">'+cd.telefono+'</div></div>';
+    h+='</div>';
+    function dlCond(id,nom,lbl){ return id?'<button class="btn btn-outline btn-sm" onclick="descargar(\''+id+'\',\''+(nom||lbl)+'\')">'+lbl+'</button>':'<span style="font-size:12px;color:#9CA3AF">'+lbl+': no cargado</span>'; }
+    h+='<div style="font-size:11px;font-weight:600;color:#6B7280;margin-bottom:6px">Documentos del conductor</div>';
+    h+='<div style="display:flex;flex-wrap:wrap;gap:6px">'+dlCond(cd.carnetFrenteId,cd.carnetFrenteNombre,'Carnet frente')+dlCond(cd.carnetReversoId,cd.carnetReversoNombre,'Carnet reverso')+dlCond(cd.licenciaFrenteId,cd.licenciaFrenteNombre,'Licencia frente')+dlCond(cd.licenciaReversoId,cd.licenciaReversoNombre,'Licencia reverso')+'</div>';
+    h+='<div style="margin-top:12px"><button class="btn btn-outline btn-sm" onclick="abrirModalConductor(\''+t.id+'\')">Cambiar conductor</button></div>';
+  } else {
+    h+='<div style="font-size:13px;color:#9CA3AF;margin-bottom:12px">Aun no has asignado el conductor para este transporte.</div>';
+    h+='<button class="btn btn-orange btn-sm" onclick="abrirModalConductor(\''+t.id+'\')">Asignar conductor</button>';
   }
   h+='</div>';
 
@@ -448,7 +463,7 @@ function renderDetalle(t){
   h+='<div style="border:0.5px solid #e8eaf0;border-radius:10px;padding:14px;margin-bottom:16px">';
   h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
   h+='<div style="font-size:12px;font-weight:700;color:#1e2d4e;text-transform:uppercase;letter-spacing:.04em">Tu contacto operacional</div>';
-  if(puede&&cOpsT.length<2) h+='<button class="btn btn-outline btn-sm" onclick="abrirModalContacto(\''+t.id+'\',\'transportista\')">+ Agregar contacto</button>';
+  if(cOpsT.length<2) h+='<button class="btn btn-outline btn-sm" onclick="abrirModalContacto(\''+t.id+'\',\'transportista\')">+ Agregar contacto</button>';
   h+='</div>';
   if(cOpsT.length===0){
     h+='<div style="font-size:12px;color:#9CA3AF">Agrega el contacto de quien estará a cargo del transporte (conductor, encargado).</div>';
@@ -461,7 +476,7 @@ function renderDetalle(t){
         +(c.telefono?'<div>'+c.telefono+'</div>':'')
         +(c.email?'<div><a href="mailto:'+c.email+'" style="color:#1e2d4e">'+c.email+'</a></div>':'')
         +'</div>';
-      h+=(puede?'<button onclick="eliminarContactoOp(\''+t.id+'\',\'transportista\','+ci+')" style="background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:16px;padding:2px">×</button>':'');
+      h+='<button onclick="eliminarContactoOp(\''+t.id+'\',\'transportista\','+ci+')" style="background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:16px;padding:2px">×</button>';
       h+='</div>';
     });
   }
@@ -476,7 +491,7 @@ function renderDetalle(t){
   h+='</div></div>';
 
   // Actualizar estado
-  if(puede&&t.estado!=='entregado'){
+  if(t.estado!=='entregado'){
     var siguiente=ESTADOS[idx+1];
     if(siguiente){
       h+='<div class="estado-form">'+
@@ -513,8 +528,8 @@ function renderDetalle(t){
   if(t.factura){
     h+='<div class="doc-ok"><span>Subida el '+fechaHora(t.factura.subidoAt)+'</span><button class="btn btn-outline btn-sm" onclick="descargar(\''+t.factura.archivoId+'\',\''+t.factura.nombre+'\')">Descargar</button></div>';
   } else {
-    h+='<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Sube tu factura para registrar el cobro en el sistema.</div>';
-    if(puede) h+='<input type="file" id="fac-file-'+t.id+'" accept=".pdf,.doc,.docx" style="font-size:13px;margin-bottom:8px;display:block"/>'+
+    h+='<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Sube tu factura para registrar el cobro en el sistema.</div>'+
+      '<input type="file" id="fac-file-'+t.id+'" accept=".pdf,.doc,.docx" style="font-size:13px;margin-bottom:8px;display:block"/>'+
       '<button class="btn btn-orange btn-sm" onclick="subirFactura(\''+t.id+'\')">Subir factura</button>';
   }
   h+='</div>';
@@ -523,8 +538,8 @@ function renderDetalle(t){
   if(t.guiaDespacho){
     h+='<div class="doc-ok"><span>Subida el '+fechaHora(t.guiaDespacho.subidoAt)+'</span><button class="btn btn-outline btn-sm" onclick="descargar(\''+t.guiaDespacho.archivoId+'\',\''+t.guiaDespacho.nombre+'\')">Descargar</button></div>';
   } else {
-    h+='<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Opcional — sube la guía de despacho si el cliente lo requiere.</div>';
-    if(puede) h+='<input type="file" id="guia-file-'+t.id+'" accept=".pdf,.doc,.docx" style="font-size:13px;margin-bottom:8px;display:block"/>'+
+    h+='<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Opcional — sube la guía de despacho si el cliente lo requiere.</div>'+
+      '<input type="file" id="guia-file-'+t.id+'" accept=".pdf,.doc,.docx" style="font-size:13px;margin-bottom:8px;display:block"/>'+
       '<button class="btn btn-outline btn-sm" onclick="subirGuia(\''+t.id+'\')">Subir guía</button>';
   }
   h+='</div>';
@@ -582,6 +597,32 @@ async function actualizarEstado(transporteId, nuevoEstado){
   } catch(e){toast('Error de conexión','err');}
 }
 
+var EQ_DOCS=[['permiso_circulacion','Permiso de Circulacion'],['revision_tecnica','Revision Tecnica'],['gases','Gases'],['seguro_obligatorio','Seguro Obligatorio'],['poliza_empresa','Poliza empresa']];
+var eqFileBuffer={};
+function eqDocInputHtml(key,label){
+  return '<div><label style="font-size:11px;color:#374151;display:block;margin-bottom:4px">'+label+'</label>'
+    +'<label id="eqdz-'+key+'" style="display:block;border:1px dashed #cbd2de;border-radius:8px;padding:8px 10px;font-size:12px;color:#9CA3AF;cursor:pointer;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Subir archivo<input type="file" style="display:none" onchange="handleEqFile(\''+key+'\',this)"/></label></div>';
+}
+function handleEqFile(key,input){
+  var f=input.files[0]; if(!f) return;
+  if(f.size>8*1024*1024){ toast('Archivo demasiado grande. Maximo 8 MB','err'); return; }
+  var reader=new FileReader();
+  reader.onload=function(e){
+    eqFileBuffer[key]={nombre:f.name,base64:e.target.result.split(',')[1],mimeType:f.type};
+    var dz=document.getElementById('eqdz-'+key);
+    if(dz){ dz.childNodes[0].nodeValue=f.name; dz.style.color='#1e2d4e'; dz.style.borderColor='#ff8904'; }
+  };
+  reader.readAsDataURL(f);
+}
+async function subirArchivoBuf(buf){
+  if(!buf) return null;
+  try{
+    var res=await fetch(API+'/api/archivos/upload',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({nombre:buf.nombre,tipo:buf.mimeType,base64:buf.base64})});
+    if(res.ok){ var d=await res.json(); return {id:d.id,nombre:buf.nombre}; }
+  }catch(e){ console.error('upload',e); }
+  return null;
+}
+
 async function abrirModalPatente(transporteId){
   // Cargar equipos del transportista para autocomplete
   var equipos=[];
@@ -599,6 +640,9 @@ async function abrirModalPatente(transporteId){
     return '<option value="'+eq.id+'">'+eq.tipo+(eq.patente?' — '+eq.patente:'')+(eq.marca?' ('+eq.marca+')':'')+'</option>';
   }).join('');
 
+  eqFileBuffer={};
+  var docInputsHtml=EQ_DOCS.map(function(p){ return eqDocInputHtml(p[0],p[1]); }).join('');
+
   inner.innerHTML='<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Asignar equipo</div>'
     +'<div style="font-size:12px;color:#9CA3AF;margin-bottom:20px">Selecciona de tu flota o ingresa la patente manualmente</div>'
     +(equipos.length?'<div style="margin-bottom:16px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Seleccionar de mi flota</label>'
@@ -612,6 +656,8 @@ async function abrirModalPatente(transporteId){
     +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Modelo</label><input type="text" id="mp-modelo" placeholder="Ej: FH16" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
     +'</div></div>'
     +'<div id="mp-docs-section"></div>'
+    +'<div id="mp-upload-section" style="margin-top:14px;padding-top:14px;border-top:0.5px solid #f3f4f6"><div style="font-size:12px;font-weight:600;color:#6B7280;margin-bottom:8px">Documentos del equipo (opcional)</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+docInputsHtml+'</div>'
+    +'<label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:#374151;cursor:pointer"><input type="checkbox" id="mp-guardar" style="width:16px;height:16px"/> Guardar este equipo en mi perfil</label></div>'
     +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">'
     +'<button id="mp-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
     +'<button id="mp-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar</button>'
@@ -627,8 +673,10 @@ async function abrirModalPatente(transporteId){
 
 function autocompletarEquipo(sel){
   var equipos=window._mpEquipos||[];
+  var up=document.getElementById('mp-upload-section');
   var eq=equipos.find(function(e){return e.id===sel.value;});
-  if(!eq) return;
+  if(!eq){ if(up) up.style.display='block'; var sec0=document.getElementById('mp-docs-section'); if(sec0) sec0.innerHTML=''; return; }
+  if(up) up.style.display='none';
   var p=document.getElementById('mp-patente'); if(p) p.value=eq.patente||'';
   var t=document.getElementById('mp-tipo'); if(t) t.value=eq.tipo||'';
   var m=document.getElementById('mp-marca'); if(m) m.value=eq.marca||'';
@@ -662,13 +710,26 @@ async function guardarEquipoAsignado(transporteId, modal){
   var sel=document.getElementById('mp-select');
   var equipos=window._mpEquipos||[];
   var eqReg=sel&&sel.value?equipos.find(function(e){return e.id===sel.value;}):null;
+  var saveBtn=document.getElementById('mp-save'); if(saveBtn){ saveBtn.disabled=true; saveBtn.textContent='Guardando...'; }
+  var documentos=eqReg?eqReg.documentos:undefined;
+  if(!eqReg){
+    var docsObj={};
+    for(var i=0;i<EQ_DOCS.length;i++){
+      var k=EQ_DOCS[i][0], lbl=EQ_DOCS[i][1];
+      if(eqFileBuffer[k]){
+        var subido=await subirArchivoBuf(eqFileBuffer[k]);
+        if(subido) docsObj[k]={key:k,label:lbl,archivoId:subido.id,archivoNombre:subido.nombre};
+      }
+    }
+    if(Object.keys(docsObj).length) documentos=docsObj;
+  }
   var payload={
     patente:patente,
     tipo:(document.getElementById('mp-tipo').value||'').trim()||undefined,
     marca:(document.getElementById('mp-marca').value||'').trim()||undefined,
     modelo:(document.getElementById('mp-modelo').value||'').trim()||undefined,
     equipoId:eqReg?eqReg.id:undefined,
-    documentos:eqReg?eqReg.documentos:undefined,
+    documentos:documentos,
   };
   try{
     var res=await fetch(API+'/api/transportes/'+transporteId+'/equipo',{
@@ -676,9 +737,109 @@ async function guardarEquipoAsignado(transporteId, modal){
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
       body:JSON.stringify(payload)
     });
-    if(res.ok){ toast('Equipo asignado correctamente'); modal.remove(); await cargar(); setTimeout(function(){toggleCard(transporteId);},200); }
-    else { var d=await res.json(); toast(d.error||'Error al guardar','err'); }
-  }catch(e){ toast('Error de conexión','err'); }
+    if(res.ok){
+      var chk=document.getElementById('mp-guardar');
+      if(!eqReg && chk && chk.checked){
+        try{ await fetch(API+'/api/equipos',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({tipo:payload.tipo||'Equipo',marca:payload.marca,modelo:payload.modelo,patente:payload.patente,documentos:documentos||{}})}); }catch(e){}
+      }
+      toast('Equipo asignado correctamente'); modal.remove(); await cargar(); setTimeout(function(){toggleCard(transporteId);},200);
+    }
+    else { var d=await res.json(); toast(d.error||'Error al guardar','err'); if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Guardar'; } }
+  }catch(e){ toast('Error de conexión','err'); if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Guardar'; } }
+}
+
+var CD_DOCS=[['carnetFrente','Carnet frente'],['carnetReverso','Carnet reverso'],['licenciaFrente','Licencia frente'],['licenciaReverso','Licencia reverso']];
+var cdFileBuffer={};
+function cdDocInputHtml(key,label){
+  return '<div><label style="font-size:11px;color:#374151;display:block;margin-bottom:4px">'+label+'</label>'
+    +'<label id="cddz-'+key+'" style="display:block;border:1px dashed #cbd2de;border-radius:8px;padding:8px 10px;font-size:12px;color:#9CA3AF;cursor:pointer;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Subir archivo<input type="file" style="display:none" onchange="handleCdFile(\''+key+'\',this)"/></label></div>';
+}
+function handleCdFile(key,input){
+  var f=input.files[0]; if(!f) return;
+  if(f.size>8*1024*1024){ toast('Archivo demasiado grande. Maximo 8 MB','err'); return; }
+  var reader=new FileReader();
+  reader.onload=function(e){
+    cdFileBuffer[key]={nombre:f.name,base64:e.target.result.split(',')[1],mimeType:f.type};
+    var dz=document.getElementById('cddz-'+key);
+    if(dz){ dz.childNodes[0].nodeValue=f.name; dz.style.color='#1e2d4e'; dz.style.borderColor='#ff8904'; }
+  };
+  reader.readAsDataURL(f);
+}
+
+async function abrirModalConductor(transporteId){
+  var conductores=[];
+  try{ var r=await fetch(API+'/api/conductores',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}}); var d=await r.json(); conductores=d.conductores||[]; }catch(e){}
+  cdFileBuffer={};
+  var optsHtml=conductores.map(function(c){ return '<option value="'+c.id+'">'+c.nombre+' — '+c.rut+'</option>'; }).join('');
+  var docInputsHtml=CD_DOCS.map(function(p){ return cdDocInputHtml(p[0],p[1]); }).join('');
+  var modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  var inner=document.createElement('div');
+  inner.style.cssText='background:#fff;border-radius:16px;padding:28px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto';
+  inner.innerHTML='<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Asignar conductor</div>'
+    +'<div style="font-size:12px;color:#9CA3AF;margin-bottom:20px">Selecciona de tus conductores o ingresa los datos manualmente</div>'
+    +(conductores.length?'<div style="margin-bottom:16px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Seleccionar registrado</label><select id="cd-select" onchange="autocompletarConductor(this)" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"><option value="">— Seleccionar conductor —</option>'+optsHtml+'</select></div>':'')
+    +'<div style="padding-top:14px;border-top:0.5px solid #f3f4f6;margin-bottom:8px"><div style="font-size:12px;font-weight:600;color:#6B7280;margin-bottom:10px">O ingresa manualmente</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Nombre *</label><input type="text" id="cd-nombre" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">RUT *</label><input type="text" id="cd-rut" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Telefono</label><input type="text" id="cd-telefono" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'</div></div>'
+    +'<div id="cd-upload-section" style="margin-top:8px"><div style="font-size:12px;font-weight:600;color:#6B7280;margin-bottom:8px">Documentos del conductor</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+docInputsHtml+'</div>'
+    +'<label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:#374151;cursor:pointer"><input type="checkbox" id="cd-guardar" style="width:16px;height:16px"/> Guardar este conductor en mi perfil</label></div>'
+    +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">'
+    +'<button id="cd-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
+    +'<button id="cd-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar</button>'
+    +'</div>';
+  modal.appendChild(inner); document.body.appendChild(modal);
+  window._cdConductores=conductores;
+  document.getElementById('cd-cancel').onclick=function(){ modal.remove(); };
+  document.getElementById('cd-save').onclick=function(){ guardarConductorAsignado(transporteId,modal); };
+  modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
+}
+
+function autocompletarConductor(sel){
+  var conds=window._cdConductores||[];
+  var up=document.getElementById('cd-upload-section');
+  var c=conds.find(function(x){return x.id===sel.value;});
+  if(!c){ if(up) up.style.display='block'; return; }
+  if(up) up.style.display='none';
+  var n=document.getElementById('cd-nombre'); if(n) n.value=c.nombre||'';
+  var r=document.getElementById('cd-rut'); if(r) r.value=c.rut||'';
+  var tel=document.getElementById('cd-telefono'); if(tel) tel.value=c.telefono||'';
+}
+
+async function guardarConductorAsignado(transporteId, modal){
+  var sel=document.getElementById('cd-select');
+  var conds=window._cdConductores||[];
+  var cReg=sel&&sel.value?conds.find(function(x){return x.id===sel.value;}):null;
+  var nombre=(document.getElementById('cd-nombre').value||'').trim();
+  var rut=(document.getElementById('cd-rut').value||'').trim();
+  var telefono=(document.getElementById('cd-telefono').value||'').trim();
+  if(!nombre||!rut){ toast('Nombre y RUT son requeridos','err'); return; }
+  var saveBtn=document.getElementById('cd-save'); if(saveBtn){ saveBtn.disabled=true; saveBtn.textContent='Guardando...'; }
+  var payload={ nombre:nombre, rut:rut, telefono:telefono, conductorId:cReg?cReg.id:undefined };
+  if(cReg){
+    payload.carnetFrenteId=cReg.carnetFrenteId; payload.carnetFrenteNombre=cReg.carnetFrenteNombre;
+    payload.carnetReversoId=cReg.carnetReversoId; payload.carnetReversoNombre=cReg.carnetReversoNombre;
+    payload.licenciaFrenteId=cReg.licenciaFrenteId; payload.licenciaFrenteNombre=cReg.licenciaFrenteNombre;
+    payload.licenciaReversoId=cReg.licenciaReversoId; payload.licenciaReversoNombre=cReg.licenciaReversoNombre;
+  } else {
+    if(cdFileBuffer.carnetFrente){ var a1=await subirArchivoBuf(cdFileBuffer.carnetFrente); if(a1){ payload.carnetFrenteId=a1.id; payload.carnetFrenteNombre=a1.nombre; } }
+    if(cdFileBuffer.carnetReverso){ var a2=await subirArchivoBuf(cdFileBuffer.carnetReverso); if(a2){ payload.carnetReversoId=a2.id; payload.carnetReversoNombre=a2.nombre; } }
+    if(cdFileBuffer.licenciaFrente){ var a3=await subirArchivoBuf(cdFileBuffer.licenciaFrente); if(a3){ payload.licenciaFrenteId=a3.id; payload.licenciaFrenteNombre=a3.nombre; } }
+    if(cdFileBuffer.licenciaReverso){ var a4=await subirArchivoBuf(cdFileBuffer.licenciaReverso); if(a4){ payload.licenciaReversoId=a4.id; payload.licenciaReversoNombre=a4.nombre; } }
+  }
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/conductor',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(payload)});
+    if(res.ok){
+      var chk=document.getElementById('cd-guardar');
+      if(!cReg && chk && chk.checked){
+        try{ await fetch(API+'/api/conductores',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({nombre:nombre,rut:rut,telefono:telefono,carnetFrenteId:payload.carnetFrenteId,carnetFrenteNombre:payload.carnetFrenteNombre,carnetReversoId:payload.carnetReversoId,carnetReversoNombre:payload.carnetReversoNombre,licenciaFrenteId:payload.licenciaFrenteId,licenciaFrenteNombre:payload.licenciaFrenteNombre,licenciaReversoId:payload.licenciaReversoId,licenciaReversoNombre:payload.licenciaReversoNombre})}); }catch(e){}
+      }
+      toast('Conductor asignado correctamente'); modal.remove(); await cargar(); setTimeout(function(){toggleCard(transporteId);},200);
+    } else { var d=await res.json(); toast(d.error||'Error al guardar','err'); if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Guardar'; } }
+  }catch(e){ toast('Error de conexión','err'); if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Guardar'; } }
 }
 
 function abrirModalContacto(transporteId, rol){
@@ -711,21 +872,10 @@ function abrirModalContacto(transporteId, rol){
   modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
 }
 
-async function autocompletarMisDatos(){
-  var limpio=function(v){ return (!v||v==='undefined'||v==='null')?'':v; };
-  // Fallback inmediato con localStorage saneado
-  var n=document.getElementById('mc-nombre'); if(n&&!n.value) n.value=limpio(localStorage.getItem('tm_nombre'));
-  var t=document.getElementById('mc-telefono'); if(t&&!t.value) t.value=limpio(localStorage.getItem('tm_telefono'));
-  var e=document.getElementById('mc-email'); if(e&&!e.value) e.value=limpio(localStorage.getItem('tm_email'));
-  // Datos reales y completos desde el perfil
-  try{
-    var res=await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
-    var d=await res.json(); var u=(d&&d.user)||{};
-    var nn=document.getElementById('mc-nombre'); if(nn) nn.value=u.nombre||nn.value||'';
-    var cc=document.getElementById('mc-cargo'); if(cc&&!cc.value) cc.value=u.cargo||'';
-    var tt=document.getElementById('mc-telefono'); if(tt) tt.value=u.telefono||u.whatsapp||tt.value||'';
-    var ee=document.getElementById('mc-email'); if(ee) ee.value=u.email||ee.value||'';
-  }catch(err){}
+function autocompletarMisDatos(){
+  var n=document.getElementById('mc-nombre'); if(n) n.value=localStorage.getItem('tm_nombre')||'';
+  var t=document.getElementById('mc-telefono'); if(t) t.value=localStorage.getItem('tm_telefono')||'';
+  var e=document.getElementById('mc-email'); if(e) e.value=localStorage.getItem('tm_email')||'';
 }
 
 async function guardarContactoOp(transporteId, rol, modal){
@@ -797,46 +947,6 @@ async function subirGuia(transporteId){
     } catch(e){toast('Error de conexion','err');}
   };
   reader.readAsDataURL(file);
-}
-
-async function abrirModalCeder(transporteId){
-  var res=await fetch(API+'/api/transportes/'+transporteId,{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
-  var d=await res.json();
-  if(!res.ok){ toast(d.error||'No se pudo cargar','err'); return; }
-  var t=d.transporte||{};
-  var actual=(t.asignadoEmailActual||'').toLowerCase();
-  var miembros=(t.miembrosEmpresa||[]).filter(function(m){ return (m.email||'').toLowerCase()!==actual; });
-  if(!miembros.length){ toast('No hay otros usuarios en tu empresa a quien ceder'); return; }
-  var modal=document.createElement('div');
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
-  var opciones=miembros.map(function(m){ return '<option value="'+m.email+'">'+(m.nombre||m.email)+(m.esMadre?' (cuenta madre)':'')+'</option>'; }).join('');
-  var inner=document.createElement('div');
-  inner.style.cssText='background:#fff;border-radius:16px;padding:28px;width:100%;max-width:420px';
-  inner.innerHTML='<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Ceder adjudicación</div>'
-    +'<div style="font-size:12px;color:#9CA3AF;margin-bottom:18px">El usuario que elijas pasará a gestionar este transporte. Tú dejarás de poder editarlo (salvo que seas la cuenta madre).</div>'
-    +'<label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Ceder a</label>'
-    +'<select id="ceder-sel" style="width:100%;padding:10px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:14px;margin-bottom:20px">'+opciones+'</select>'
-    +'<div style="display:flex;gap:10px;justify-content:flex-end">'
-    +'<button id="ceder-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
-    +'<button id="ceder-ok" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Ceder</button>'
-    +'</div>';
-  modal.appendChild(inner); document.body.appendChild(modal);
-  modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
-  document.getElementById('ceder-cancel').onclick=function(){ modal.remove(); };
-  document.getElementById('ceder-ok').onclick=async function(){
-    var email=document.getElementById('ceder-sel').value;
-    var btn=this; btn.disabled=true; btn.textContent='Cediendo...';
-    try{
-      var r=await fetch(API+'/api/transportes/'+transporteId+'/ceder',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
-        body:JSON.stringify({email:email})
-      });
-      var dd=await r.json();
-      if(r.ok){ modal.remove(); toast('Adjudicación cedida'); await cargar(); }
-      else { toast(dd.error||'Error','err'); btn.disabled=false; btn.textContent='Ceder'; }
-    }catch(e){ toast('Error de conexión','err'); btn.disabled=false; btn.textContent='Ceder'; }
-  };
 }
 
 async function descargar(archivoId,nombre){

@@ -932,21 +932,43 @@ async function cargarEquipos() {
           +'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
           +'Agregar foto</div>' : '')
         +'</div></div>';
-      return '<div class="eq-row" style="flex-direction:column;align-items:stretch;padding:16px">'
-        +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">'
-        +'<div style="flex:1">'
+      // Resumen de documentos obligatorios (5) para la card colapsada
+      var reqKeys = ['permiso_circulacion','revision_tecnica','gases','seguro_obligatorio','poliza_empresa'];
+      var docsEq = eq.documentos || {};
+      var subidos = reqKeys.filter(function(k){ return docsEq[k] && docsEq[k].archivoId; }).length;
+      var completo = subidos >= reqKeys.length;
+      var pillBg = completo ? '#DCFCE7' : '#FEF3C7';
+      var pillColor = completo ? '#14532D' : '#92400E';
+      return '<div class="eq-row" style="flex-direction:column;align-items:stretch;padding:0;overflow:hidden">'
+        +'<div onclick="toggleEqCard(this)" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px;cursor:pointer">'
+        +'<div style="flex:1;min-width:0">'
         +'<div class="eq-name">'+eq.tipo+(eq.marca?' — '+eq.marca:'')+(eq.modelo?' '+eq.modelo:'')+(eq.ano?' ('+eq.ano+')':'')+'</div>'
         +(meta.length?'<div class="eq-meta">'+meta.join(' · ')+'</div>':'')
-        +(eq.descripcion?'<div class="eq-meta" style="color:#9CA3AF">'+eq.descripcion+'</div>':'')
         +'</div>'
-        +'<button class="btn btn-red btn-sm" style="flex-shrink:0" onclick="eliminarEquipo(\''+eq.id+'\')">Eliminar</button>'
+        +'<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">'
+        +'<span style="font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;white-space:nowrap;background:'+pillBg+';color:'+pillColor+'">'+subidos+'/'+reqKeys.length+' docs</span>'
+        +'<button class="btn btn-red btn-sm" onclick="event.stopPropagation();eliminarEquipo(\''+eq.id+'\')">Eliminar</button>'
+        +'<svg class="eq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" style="transition:transform .2s;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>'
         +'</div>'
+        +'</div>'
+        +'<div class="eq-card-body" style="display:none;padding:0 16px 16px;border-top:1px solid #eef0f5">'
+        +(eq.descripcion?'<div class="eq-meta" style="color:#9CA3AF;margin-top:12px">'+eq.descripcion+'</div>':'')
         + fotosHtml
         + renderAlertasVencimiento(eq.documentos)
         + renderDocumentos(eq.id, eq.documentos)
         +'</div>';
     }).join('');
   } catch(e) { el.innerHTML='<div style="text-align:center;padding:16px;color:#EF4444;font-size:13px">Error al cargar equipos</div>'; }
+}
+
+function toggleEqCard(head){
+  var card = head.parentNode;
+  var body = card.querySelector('.eq-card-body');
+  if(!body) return;
+  var chev = head.querySelector('.eq-chevron');
+  var cerrado = (body.style.display === 'none' || body.style.display === '');
+  body.style.display = cerrado ? 'block' : 'none';
+  if(chev) chev.style.transform = cerrado ? 'rotate(180deg)' : 'rotate(0deg)';
 }
 
 // ── CONDUCTORES ──────────────────────────────────────────────
@@ -1000,15 +1022,25 @@ async function cargarConductores() {
         if(!id) return '<span style="font-size:12px;color:#9CA3AF">'+label+': no cargado</span>';
         return '<button class="btn btn-outline btn-sm" onclick="verImagenConductor(\''+id+'\',\''+(nombre||label)+'\')">'+label+'</button>';
       }
-      return '<div class="eq-row" style="flex-direction:column;align-items:stretch;padding:16px">'
-        +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">'
-        +'<div style="flex:1">'
+      var docsCond = [c.carnetFrenteId, c.carnetReversoId, c.licenciaFrenteId, c.licenciaReversoId];
+      var condSubidos = docsCond.filter(function(x){ return !!x; }).length;
+      var condCompleto = condSubidos >= 4;
+      var cPillBg = condCompleto ? '#DCFCE7' : '#FEF3C7';
+      var cPillColor = condCompleto ? '#14532D' : '#92400E';
+      return '<div class="eq-row" style="flex-direction:column;align-items:stretch;padding:0;overflow:hidden">'
+        +'<div onclick="toggleEqCard(this)" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px;cursor:pointer">'
+        +'<div style="flex:1;min-width:0">'
         +'<div class="eq-name">'+c.nombre+'</div>'
         +'<div class="eq-meta">RUT: '+c.rut+(c.telefono?' · '+c.telefono:'')+'</div>'
         +'</div>'
-        +'<button class="btn btn-red btn-sm" style="flex-shrink:0" onclick="eliminarConductor(\''+c.id+'\')">Eliminar</button>'
+        +'<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">'
+        +'<span style="font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;white-space:nowrap;background:'+cPillBg+';color:'+cPillColor+'">'+condSubidos+'/4 docs</span>'
+        +'<button class="btn btn-red btn-sm" onclick="event.stopPropagation();eliminarConductor(\''+c.id+'\')">Eliminar</button>'
+        +'<svg class="eq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" style="transition:transform .2s;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>'
         +'</div>'
-        +'<div style="margin-top:12px"><div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Carnet de identidad</div>'
+        +'</div>'
+        +'<div class="eq-card-body" style="display:none;padding:0 16px 16px;border-top:1px solid #eef0f5">'
+        +'<div style="margin-top:14px"><div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Carnet de identidad</div>'
         +'<div style="display:flex;gap:8px;flex-wrap:wrap">'+docLink(c.carnetFrenteId,c.carnetFrenteNombre,'Carnet frente')+docLink(c.carnetReversoId,c.carnetReversoNombre,'Carnet reverso')+'</div></div>'
         +'<div style="margin-top:12px"><div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Licencia de conducir</div>'
         +'<div style="display:flex;gap:8px;flex-wrap:wrap">'+docLink(c.licenciaFrenteId,c.licenciaFrenteNombre,'Licencia frente')+docLink(c.licenciaReversoId,c.licenciaReversoNombre,'Licencia reverso')+'</div></div>'
