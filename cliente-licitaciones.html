@@ -515,12 +515,11 @@ h+='</div>';
 var extras=cotiz.slice(3);
 // Botón para solicitar más cotizaciones (solo Pro/Enterprise; básico ve mensaje de upgrade)
 if(l.estado==='cerrada' && (l.totalCotizaciones||cotiz.length) > top3.length){
-  var disponiblesMas=(l.totalCotizaciones||cotiz.length)-top3.length;
   var _plan=(window._miUsuario&&window._miUsuario.plan)||localStorage.getItem('tm_plan')||'';
   var _esPro=(_plan==='pro'||_plan==='enterprise');
   h+='<div style="padding:14px;border:1.5px dashed #E5E7EB;border-radius:10px;text-align:center;margin-top:6px">';
   if(_esPro){
-    h+='<div style="font-size:13px;color:#6B7280;margin-bottom:10px">¿Ninguna te convence? Hay '+disponiblesMas+' cotización'+(disponiblesMas>1?'es':'')+' más disponible'+(disponiblesMas>1?'s':'')+'.</div>';
+    h+='<div style="font-size:13px;color:#6B7280;margin-bottom:10px">¿Ninguna te convence? Hay más cotizaciones disponibles.</div>';
     h+='<button onclick="solicitarMasCotizaciones(\''+l.id+'\')" style="padding:8px 16px;background:#1e2d4e;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer">Solicitar más cotizaciones</button>';
     h+='<div style="font-size:11px;color:#9CA3AF;margin-top:8px">Las cotizaciones actuales se mantendrán visibles.</div>';
   } else {
