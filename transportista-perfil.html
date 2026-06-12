@@ -405,7 +405,8 @@
     <div class="pane" id="pane-equipos">
       
       <div id="lista-eq"></div>
-      <div class="add-form">
+      <div id="btn-eq-wrap" style="margin-top:8px"><button class="btn btn-orange" onclick="abrirForm('eq')">+ Agregar equipo</button></div>
+      <div class="add-form" id="form-eq" style="display:none">
         <div class="add-title">Agregar equipo</div>
         <div class="grid2">
           <div class="fg full">
@@ -518,14 +519,15 @@
           </div>
 <div class="ok" id="ok-eq">✓ Equipo agregado correctamente</div>
         <div class="err" id="err-eq"></div>
-        <div style="margin-top:14px"><button class="btn btn-orange" onclick="agregarEquipo()">+ Agregar equipo</button></div>
+        <div style="margin-top:14px;display:flex;gap:10px"><button class="btn btn-orange" onclick="agregarEquipo()">+ Agregar equipo</button><button class="btn btn-outline" onclick="cerrarForm('eq')">Cancelar</button></div>
       </div>
     </div>
 
     <!-- CONDUCTORES -->
     <div class="pane" id="pane-conductores">
       <div id="lista-cond"></div>
-      <div class="add-form">
+      <div id="btn-cond-wrap" style="margin-top:8px"><button class="btn btn-orange" onclick="abrirForm('cond')">+ Agregar conductor</button></div>
+      <div class="add-form" id="form-cond" style="display:none">
         <div class="add-title">Agregar conductor</div>
         <div class="grid2">
           <div class="fg"><label>Nombre completo *</label><input type="text" id="cond-nombre" placeholder="Ej: Juan Pérez González"/></div>
@@ -566,7 +568,7 @@
         </div>
 
         <div class="err" id="err-cond"></div>
-        <div style="margin-top:14px"><button class="btn btn-orange" onclick="agregarConductor()">+ Agregar conductor</button></div>
+        <div style="margin-top:14px;display:flex;gap:10px"><button class="btn btn-orange" onclick="agregarConductor()">+ Agregar conductor</button><button class="btn btn-outline" onclick="cerrarForm('cond')">Cancelar</button></div>
       </div>
     </div>
 
@@ -971,6 +973,19 @@ function toggleEqCard(head){
   if(chev) chev.style.transform = cerrado ? 'rotate(180deg)' : 'rotate(0deg)';
 }
 
+function abrirForm(which){
+  var form=document.getElementById('form-'+which);
+  var btn=document.getElementById('btn-'+which+'-wrap');
+  if(form) form.style.display='block';
+  if(btn) btn.style.display='none';
+}
+function cerrarForm(which){
+  var form=document.getElementById('form-'+which);
+  var btn=document.getElementById('btn-'+which+'-wrap');
+  if(form) form.style.display='none';
+  if(btn) btn.style.display='block';
+}
+
 // ── CONDUCTORES ──────────────────────────────────────────────
 function toast(msg, type){
   var t=document.getElementById('_toast');
@@ -1098,6 +1113,7 @@ async function agregarConductor() {
         var dz=document.getElementById('dz-'+k); if(dz){ dz.textContent='Subir imagen (JPG o PNG)'; dz.classList.remove('has-file'); }
       });
       await cargarConductores();
+      cerrarForm('cond');
     } else { var dd=await res.json(); errEl.textContent=dd.error||'Error al agregar conductor'; errEl.style.display='block'; }
   } catch(e){ errEl.textContent='Error de conexión'; errEl.style.display='block'; }
   finally { if(btn){ btn.disabled=false; btn.textContent='+ Agregar conductor'; } }
@@ -1240,6 +1256,7 @@ async function agregarEquipo() {
       var descAd=document.getElementById('dv-adicional-desc'); if(descAd) descAd.value='';
       renderFotosPreviewNew();
       cargarEquipos();
+      cerrarForm('eq');
       setTimeout(function(){ okEl.style.display='none'; },3000);
     } else { var d=await res.json(); errEl.textContent=d.error||'Error al agregar equipo'; errEl.style.display='block'; }
   } catch(e) { errEl.textContent='Error de conexión'; errEl.style.display='block'; }
