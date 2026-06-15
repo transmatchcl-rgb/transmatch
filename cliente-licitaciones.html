@@ -642,7 +642,7 @@ function verInformeAdjudicacion(licId){
       if(c.fechaEntregaISO) h+='<span>Entrega: '+fmt(c.fechaEntregaISO)+'</span>';
       else if(c.tiempoEntrega) h+='<span>Entrega: '+c.tiempoEntrega+'</span>';
       if(typeof c.transportistaRating!=='undefined') h+='<span>Valoración: '+(c.transportistaRating||'—')+' ★</span>';
-      if(typeof c.score!=='undefined' && c.score) h+='<span>Score: '+Math.round(c.score)+'%</span>';
+      if(typeof c.score!=='undefined' && c.score) h+='<span>Score: '+Math.round(c.score*100)+'%</span>';
       h+='</div>';
       // Identidad solo de la ganadora (ya revelada al adjudicar)
       if(esGanadora){
