@@ -61,6 +61,8 @@
 
   .grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px}
   @media(max-width:500px){.grid-2{grid-template-columns:1fr}}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+  @media(max-width:700px){.grid-3{grid-template-columns:1fr}}
   .stat{background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.05);padding:16px 18px}
   .stat-label{font-size:12px;color:#6B7280;margin-bottom:6px}
   .stat-val{font-size:26px;font-weight:700}
@@ -158,11 +160,16 @@
     </div>
 
     <!-- Stats -->
-    <div class="grid-2">
+    <div class="grid-3">
       <div class="stat">
-        <div class="stat-label">Gasto total</div>
+        <div class="stat-label">Total adjudicado</div>
+        <div class="stat-val" id="st-adjudicado" style="color:#1e2d4e;font-size:22px">—</div>
+        <div class="stat-sub">En curso y completados</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Total facturado</div>
         <div class="stat-val" id="st-gasto" style="color:#1e2d4e;font-size:22px">—</div>
-        <div class="stat-sub">Transportes facturados</div>
+        <div class="stat-sub">Con factura emitida</div>
       </div>
       <div class="stat">
         <div class="stat-label">Licitaciones completadas</div>
@@ -206,12 +213,6 @@
       </div>
       <div id="tabla-transportes"><div class="empty"><div class="spinner" style="width:22px;height:22px;border-width:2px;margin:0 auto 8px"></div>Cargando...</div></div>
     </div>
-
-    <!-- Documentos -->
-    <div class="card">
-      <div class="card-hdr"><span class="card-title">Ordenes de compra y facturas</span></div>
-      <div id="lista-docs"><div class="empty">Cargando documentos...</div></div>
-    </div>
   </main>
 </div>
 <div id="toast"></div>
@@ -219,7 +220,6 @@
 <script>
 var API = 'https://transmatch.transmatchcl.workers.dev';
 var todosTransportes = [];
-var todosDocs = [];
 var chartInstance = null;
 
 function peso(n){ return n ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '$0'; }
@@ -363,23 +363,16 @@ async function cargar(){
       var o = document.createElement('option'); o.value=k; o.textContent=mesLabel(k); sel.appendChild(o);
     });
 
-    // Docs
-    todosDocs = [];
-    todosTransportes.forEach(function(t){
-      if(t.oc)      todosDocs.push({tipo:'OC',      nombre:t.oc.nombre||'orden_de_compra.pdf',  archivoId:t.oc.archivoId,      fecha:t.oc.subidoAt,      transporte:t.codigo||t.id, precio:t.precio});
-      if(t.factura) todosDocs.push({tipo:'Factura', nombre:t.factura.nombre||'factura.pdf',      archivoId:t.factura.archivoId, fecha:t.factura.subidoAt, transporte:t.codigo||t.id, precio:t.precio});
-    });
-    todosDocs.sort(function(a,b){ return new Date(b.fecha)-new Date(a.fecha); });
-
     // Stats
+    var adjudicado = todosTransportes.reduce(function(s,t){ return s+(t.precio||0); }, 0);
     var gasto = todosTransportes.filter(function(t){ return t.factura; }).reduce(function(s,t){ return s+(t.precio||0); }, 0);
     var licitCompletadas = todosTransportes.filter(function(t){ return t.factura; }).length;
+    document.getElementById('st-adjudicado').textContent   = peso(adjudicado);
     document.getElementById('st-gasto').textContent        = peso(gasto);
     document.getElementById('st-licitaciones').textContent = licitCompletadas;
 
     renderChart(todosTransportes);
     filtrar();
-    renderDocs();
   } catch(e){
     document.getElementById('tabla-transportes').innerHTML = '<div class="empty">Error al cargar</div>';
   }
@@ -409,8 +402,8 @@ function filtrar(){
     else if(t.estado==='entregado'){  estadoTxt='Entregado';   estadoCls='b-oc'; }
     else {                            estadoTxt='En curso';    estadoCls='b-pendiente'; }
     var docs = '';
-    if(ocReal)    docs += '<span class="badge b-oc" style="margin-right:4px">OC</span>';
-    if(t.factura) docs += '<span class="badge b-factura">Factura</span>';
+    if(ocReal && t.oc)    docs += '<button class="btn btn-outline btn-sm" style="margin-right:6px" onclick="descargar(\''+t.oc.archivoId+'\',\''+(t.oc.nombre||'orden_de_compra.pdf')+'\')">OC</button>';
+    if(t.factura) docs += '<button class="btn btn-outline btn-sm" onclick="descargar(\''+t.factura.archivoId+'\',\''+(t.factura.nombre||'factura.pdf')+'\')">Factura</button>';
     return '<tr>'
       +'<td style="font-family:monospace;font-size:11px;color:#9CA3AF">'+(t.codigo||'--')+'</td>'
       +'<td style="font-weight:500;color:#1e2d4e">'+(t.tipoEquipo||'--')+'</td>'
@@ -423,24 +416,6 @@ function filtrar(){
   }).join('');
   html += '</tbody></table>';
   document.getElementById('tabla-transportes').innerHTML = html;
-}
-
-function renderDocs(){
-  if(todosDocs.length===0){
-    document.getElementById('lista-docs').innerHTML = '<div class="empty">Los documentos apareceran aquí cuando el transportista suba la OC y tu emitas la factura</div>';
-    return;
-  }
-  document.getElementById('lista-docs').innerHTML = todosDocs.map(function(doc){
-    var esOC = doc.tipo==='OC';
-    return '<div class="doc-row">'
-      +'<div class="doc-icon" style="background:'+(esOC?'#eef1f8':'#F0FDF4')+';color:'+(esOC?'#1e2d4e':'#14532D')+'">'+(esOC?'OC':'FA')+'</div>'
-      +'<div class="doc-body">'
-        +'<div class="doc-name">'+doc.nombre+'</div>'
-        +'<div class="doc-meta">'+doc.tipo+' · '+(doc.transporte||'--')+' · '+fechaCorta(doc.fecha)+(doc.precio?' · '+peso(doc.precio):'')+'</div>'
-      +'</div>'
-      +'<button class="btn btn-outline btn-sm" onclick="descargar(\''+doc.archivoId+'\',\''+doc.nombre+'\')">Descargar</button>'
-      +'</div>';
-  }).join('');
 }
 
 async function descargar(id, nombre){
