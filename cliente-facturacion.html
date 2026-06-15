@@ -405,7 +405,7 @@ function filtrar(){
     var ocReal = t.oc && t.oc.tipo !== 'oc_automatica';
     var estadoTxt, estadoCls;
     if(t.factura){                    estadoTxt='Facturado';   estadoCls='b-pagado'; }
-    else if(ocReal){                  estadoTxt='OC recibida'; estadoCls='b-oc'; }
+    else if(ocReal){                  estadoTxt='OC subida';   estadoCls='b-oc'; }
     else if(t.estado==='entregado'){  estadoTxt='Entregado';   estadoCls='b-oc'; }
     else {                            estadoTxt='En curso';    estadoCls='b-pendiente'; }
     var docs = '';
