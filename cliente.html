@@ -319,8 +319,8 @@
     }
 
     // Lista licitaciones
-    var badgeMap = {pendiente_admin:'badge-gray',abierta:'badge-orange',cerrada:'badge-blue',adjudicada:'badge-green',completada:'badge-green',rechazada:'badge-red'};
-    var labelMap = {pendiente_admin:'En revisión',abierta:'Abierta',cerrada:'Con cotizaciones',adjudicada:'Adjudicada',completada:'Completada',rechazada:'Rechazada'};
+    var badgeMap = {pendiente_admin:'badge-gray',abierta:'badge-orange',cerrada:'badge-blue',adjudicada:'badge-green',completada:'badge-green',rechazada:'badge-red',anulada:'badge-gray'};
+    var labelMap = {pendiente_admin:'En revisión',abierta:'Abierta',cerrada:'Con cotizaciones',adjudicada:'Adjudicada',completada:'Completada',rechazada:'Rechazada',anulada:'Anulada'};
     var elList = document.getElementById('lista-licitaciones');
     if(licitaciones.length===0){
       elList.innerHTML = '<div style="padding:32px;text-align:center;color:#9CA3AF;font-size:13px">Aun no tienes licitaciones<br><a href="/cliente-nueva.html" style="color:#ff8904;font-weight:500">Publicar la primera</a></div>';
@@ -335,7 +335,7 @@
           + '</div>'
           + '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'
           + (nC>0 ? '<span style="font-size:11px;color:#ff8904;font-weight:500">'+nC+' cotiz.</span>' : '')
-          + '<span class="badge '+badgeMap[l.estado]+'">'+labelMap[l.estado]+'</span>'
+          + '<span class="badge '+(badgeMap[l.estado]||'badge-gray')+'">'+(labelMap[l.estado]||'\u2014')+'</span>'
           + '</div>';
         return '<div style="display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:0.5px solid #f3f4f6;cursor:pointer" onclick="window.location.href=\'/cliente-licitaciones.html?id='+l.id+'\';" onmouseover="this.style.background=\'#f5f7fb\'" onmouseout="this.style.background=\'\'">'+inner+'</div>';
       }).join('');
