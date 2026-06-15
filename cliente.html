@@ -277,6 +277,18 @@
     }
     var licitaciones = data.licitaciones || [];
 
+    // Estado real de cada transporte (para distinguir "en curso" de ya entregado/completado)
+    var transPorLic = {};
+    try {
+      var dataT = await apiCall('/api/transportes');
+      (((dataT && dataT.transportes) || [])).forEach(function(t){ if(t.licitacionId) transPorLic[t.licitacionId] = t; });
+    } catch(e){}
+    function transporteEnCurso(l){
+      var t = transPorLic[l.id];
+      if(!t) return true; // recién adjudicada, transporte aún sin avanzar
+      return t.estado !== 'entregado' && t.estado !== 'completado' && !t.factura;
+    }
+
     var activas     = licitaciones.filter(function(l){ return l.estado==='abierta'||l.estado==='cerrada'; });
     var completadas = licitaciones.filter(function(l){ return l.estado==='completada'; });
     var adjudicadas = licitaciones.filter(function(l){ return l.estado==='adjudicada'; });
@@ -296,7 +308,7 @@
     conCotiz.forEach(function(l){
       acciones.push({ color:'#ff8904', titulo:'Cotizaciones listas para revisar', sub: l.tipoEquipo+(l.marca?' \u2014 '+l.marca:'')+' \u00b7 '+l.origen+' \u2192 '+l.destino, href:'/cliente-licitaciones.html?id='+l.id });
     });
-    adjudicadas.forEach(function(l){
+    adjudicadas.filter(transporteEnCurso).forEach(function(l){
       acciones.push({ color:'#1e2d4e', titulo:'Transporte en curso', sub: l.tipoEquipo+' \u00b7 '+l.origen+' \u2192 '+l.destino+(l.adjudicadaA?' \u00b7 '+peso(l.adjudicadaA.precio):''), href:'/cliente-transporte.html' });
     });
     licitaciones.filter(function(l){ return l.estado==='pendiente_admin'; }).forEach(function(l){
@@ -342,9 +354,10 @@
     }
 
     // Transportes en curso
-    if(adjudicadas.length>0){
+    var transEnCurso = adjudicadas.filter(transporteEnCurso);
+    if(transEnCurso.length>0){
       document.getElementById('card-transportes').style.display = 'block';
-      document.getElementById('lista-transportes').innerHTML = adjudicadas.map(function(l){
+      document.getElementById('lista-transportes').innerHTML = transEnCurso.map(function(l){
         var inner = '<div style="width:10px;height:10px;border-radius:50%;background:#ff8904;flex-shrink:0"></div>'
           + '<div style="flex:1">'
           + '<div style="font-size:13px;font-weight:500;color:#1e2d4e">'+l.tipoEquipo+(l.marca?' \u2014 '+l.marca:'')+'</div>'
