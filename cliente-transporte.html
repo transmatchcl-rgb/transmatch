@@ -183,6 +183,7 @@ function render(){
         '<div class="trn-info">' +
           '<div class="trn-title">'+t.tipoEquipo+'</div>' +
           '<div class="trn-meta">'+t.origen+' → '+t.destino+' · '+t.transportistaEmpresa+'</div>' +
+          (t.licitacionCodigo ? '<div class="trn-meta" style="margin-top:1px">Licitación: '+(t.licitacionId ? '<a href="/cliente-licitaciones.html?id='+t.licitacionId+'" onclick="event.stopPropagation()" style="color:#1d4ed8;text-decoration:none;font-weight:600">'+t.licitacionCodigo+'</a>' : '<span style="font-weight:600;color:#1e2d4e">'+t.licitacionCodigo+'</span>')+'</div>' : '') +
         '</div>' +
         '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">' +
           '<span class="badge s-'+t.estado+'">'+estadoLabel(t.estado)+'</span>' +
