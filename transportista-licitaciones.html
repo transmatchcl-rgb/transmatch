@@ -292,8 +292,7 @@ el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity=
 function peso(n){return new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n)}
 function formatoRestante(ms){
   if(ms<=0) return 'Cerrada';
-  var s=Math.floor(ms/1000),d=Math.floor(s/86400);s-=d*86400;var h=Math.floor(s/3600);s-=h*3600;var m=Math.floor(s/60);s-=m*60;
-  if(d>0) return 'Cierra en '+d+'d '+h+'h';
+  var s=Math.floor(ms/1000);var h=Math.floor(s/3600);s-=h*3600;var m=Math.floor(s/60);s-=m*60;
   if(h>0) return 'Cierra en '+h+'h '+m+'m';
   if(m>0) return 'Cierra en '+m+'m '+s+'s';
   return 'Cierra en '+s+'s';

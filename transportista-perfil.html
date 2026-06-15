@@ -61,6 +61,9 @@
   .eq-name{font-size:13px;font-weight:600;color:#1e2d4e}
   .eq-meta{font-size:11px;color:#6B7280;margin-top:3px}
   .add-form{background:#f8f9fc;border-radius:12px;border:0.5px solid #e8eaf0;padding:20px;margin-top:16px}
+  .eqc-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:20px}
+  .eqc-card{background:#fff;border-radius:16px;padding:28px;width:100%;max-width:620px;max-height:90vh;overflow-y:auto}
+  @media(max-width:600px){.eqc-card{padding:20px}}
   .add-title{font-size:14px;font-weight:600;color:#1e2d4e;margin-bottom:14px}
   .zona-card{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1.5px solid #e8eaf0;border-radius:10px;cursor:pointer;transition:all .15s;margin-bottom:10px;user-select:none}
   .zona-card:hover{border-color:#1e2d4e}
@@ -406,7 +409,8 @@
       
       <div id="lista-eq"></div>
       <div id="btn-eq-wrap" style="margin-top:8px"><button class="btn btn-orange" onclick="abrirForm('eq')">+ Agregar equipo</button></div>
-      <div class="add-form" id="form-eq" style="display:none">
+      <div class="eqc-overlay" id="form-eq" style="display:none" onclick="if(event.target===this)cerrarForm('eq')">
+        <div class="eqc-card">
         <div class="add-title">Agregar equipo</div>
         <div class="grid2">
           <div class="fg full">
@@ -520,6 +524,7 @@
 <div class="ok" id="ok-eq">✓ Equipo agregado correctamente</div>
         <div class="err" id="err-eq"></div>
         <div style="margin-top:14px;display:flex;gap:10px"><button class="btn btn-orange" onclick="agregarEquipo()">+ Agregar equipo</button><button class="btn btn-outline" onclick="cerrarForm('eq')">Cancelar</button></div>
+        </div>
       </div>
     </div>
 
@@ -527,7 +532,8 @@
     <div class="pane" id="pane-conductores">
       <div id="lista-cond"></div>
       <div id="btn-cond-wrap" style="margin-top:8px"><button class="btn btn-orange" onclick="abrirForm('cond')">+ Agregar conductor</button></div>
-      <div class="add-form" id="form-cond" style="display:none">
+      <div class="eqc-overlay" id="form-cond" style="display:none" onclick="if(event.target===this)cerrarForm('cond')">
+        <div class="eqc-card">
         <div class="add-title">Agregar conductor</div>
         <div class="grid2">
           <div class="fg"><label>Nombre completo *</label><input type="text" id="cond-nombre" placeholder="Ej: Juan Pérez González"/></div>
@@ -569,6 +575,7 @@
 
         <div class="err" id="err-cond"></div>
         <div style="margin-top:14px;display:flex;gap:10px"><button class="btn btn-orange" onclick="agregarConductor()">+ Agregar conductor</button><button class="btn btn-outline" onclick="cerrarForm('cond')">Cancelar</button></div>
+        </div>
       </div>
     </div>
 
@@ -975,15 +982,13 @@ function toggleEqCard(head){
 
 function abrirForm(which){
   var form=document.getElementById('form-'+which);
-  var btn=document.getElementById('btn-'+which+'-wrap');
-  if(form) form.style.display='block';
-  if(btn) btn.style.display='none';
+  if(form) form.style.display='flex';
+  document.body.style.overflow='hidden';
 }
 function cerrarForm(which){
   var form=document.getElementById('form-'+which);
-  var btn=document.getElementById('btn-'+which+'-wrap');
   if(form) form.style.display='none';
-  if(btn) btn.style.display='block';
+  document.body.style.overflow='';
 }
 
 // ── CONDUCTORES ──────────────────────────────────────────────
