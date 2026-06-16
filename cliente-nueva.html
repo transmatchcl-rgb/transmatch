@@ -585,8 +585,8 @@ if(!document.getElementById('origen').value.trim()){showToast('Ingresa la ciudad
 if(!document.getElementById('destino').value.trim()){showToast('Ingresa la ciudad de destino','err');return;}
 var _fc=document.getElementById('fechaCarga').value;
 if(!_fc){showToast('Selecciona la fecha de carga','err');return;}
-var _min=new Date(); _min.setDate(_min.getDate()+3); _min.setHours(0,0,0,0);
-if(new Date(_fc+'T00:00:00') < _min){showToast('La fecha de carga debe ser al menos 3 días desde hoy','err');return;}
+var _min=new Date(); _min.setDate(_min.getDate()+2); _min.setHours(0,0,0,0);
+if(new Date(_fc+'T00:00:00') < _min){showToast('La fecha de carga debe ser desde pasado mañana en adelante','err');return;}
 var _fe=document.getElementById('fechaEntrega').value;
 if(_fe && new Date(_fe+'T00:00:00') < new Date(_fc+'T00:00:00')){showToast('La fecha de entrega no puede ser anterior a la de carga','err');return;}
 }
@@ -862,10 +862,12 @@ function toggleConfigNotif(){
 
 if(editId) document.addEventListener('DOMContentLoaded', function(){ cargarEdicion(editId); });
 
-// Fecha mínima de carga: hoy + 3 días (se bloquean hoy y los 2 días siguientes)
+// Fecha mínima de carga: hoy + 2 días (se bloquea hoy y el día siguiente; mínimo = pasado mañana)
 function aplicarFechaMinima(){
-  var d=new Date(); d.setDate(d.getDate()+3);
-  var min=d.toISOString().slice(0,10);
+  var d=new Date(); d.setDate(d.getDate()+2);
+  // Construir YYYY-MM-DD en hora LOCAL (no UTC) para evitar corrimiento de día en Chile.
+  var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+  var min=y+'-'+m+'-'+dd;
   var fc=document.getElementById('fechaCarga'); if(fc) fc.min=min;
   var fe=document.getElementById('fechaEntrega'); if(fe) fe.min=min;
 }
