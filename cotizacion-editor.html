@@ -249,6 +249,51 @@ input.invalid,textarea.invalid{border-color:#dc2626!important;background:#fff8f8
 
       <hr class="divider"/>
 
+      <!-- EQUIPO QUE UTILIZARÉ -->
+      <span class="sec-label">Equipo que utilizaré <span class="req-star" style="font-size:11px">*</span></span>
+      <div class="field" style="margin-top:8px;max-width:520px">
+        <select id="f-equipo-util" onchange="clearErr('f-equipo-util');autoSave()">
+            <option value="">Seleccionar equipo...</option>
+            <option value="Cama baja 2 ejes">Cama baja 2 ejes (hasta 30 ton)</option>
+            <option value="Cama baja 3 ejes">Cama baja 3 ejes (hasta 50 ton)</option>
+            <option value="Cama baja 4 ejes">Cama baja 4 ejes (60-70 ton)</option>
+            <option value="Cama baja con dolly">Cama baja con dolly (80-90 ton)</option>
+            <option value="Cama baja punta de lanza">Cama baja punta de lanza (sobredimensionada)</option>
+            <option value="Cama baja hidráulica multieje">Cama baja hidráulica multieje (+100 ton)</option>
+            <option value="Camilla">Camilla</option>
+            <option value="Cama cuna">Cama cuna / cureña</option>
+            <option value="Tren modular">Tren modular (+150 ton)</option>
+            <option value="Palote 30 ton">Palote 30 ton</option>
+            <option value="Palote 50 ton">Palote 50 ton</option>
+            <option value="Rampla abierta">Rampla abierta (plataforma seca)</option>
+            <option value="Rampla con baranda">Rampla con baranda</option>
+            <option value="Rampla extensible">Rampla extensible (18-24 m)</option>
+            <option value="Camión pluma 5 ton">Camión pluma 5 ton</option>
+            <option value="Camión pluma 8 ton">Camión pluma 8 ton</option>
+            <option value="Camión pluma 12 ton">Camión pluma 12 ton</option>
+            <option value="Camión pluma 20 ton">Camión pluma 20 ton</option>
+            <option value="Tracto pluma con rampla">Tracto pluma con rampla</option>
+            <option value="Furgón">Camión furgón (cerrado)</option>
+            <option value="Sider">Camión sider (lonas corredizas)</option>
+            <option value="Encapsulado">Encapsulado</option>
+            <option value="Tolva 10 m3">Camión tolva 10 m3</option>
+            <option value="Tolva 15 m3">Camión tolva 15 m3</option>
+            <option value="Tolva 20 m3">Camión tolva 20 m3</option>
+            <option value="Tolva roquera">Camión tolva roquera</option>
+            <option value="Aljibe 10.000 L">Camión aljibe 10.000 L</option>
+            <option value="Aljibe 20.000 L">Camión aljibe 20.000 L</option>
+            <option value="Aljibe 30.000 L">Camión aljibe 30.000 L</option>
+            <option value="Cisterna 20.000 L">Cisterna 20.000 L</option>
+            <option value="Cisterna 30.000 L">Cisterna 30.000 L</option>
+            <option value="Cisterna 45.000 L">Cisterna 45.000 L</option>
+            <option value="Portacontenedor">Camión portacontenedor</option>
+            <option value="Tractocamión">Tractocamión</option>
+        </select>
+        <span class="field-err" id="err-f-equipo-util">Indica el equipo específico que usarás</span>
+      </div>
+
+      <hr class="divider"/>
+
       <!-- DETALLE DEL SERVICIO -->
       <span class="sec-label">Detalle del Servicio <span class="req-star" style="font-size:11px">*</span></span>
       <div id="err-items" class="sec-err" style="margin-top:10px">Agrega al menos un servicio con equipo y tarifa.</div>
@@ -458,7 +503,7 @@ function init(){
   // Cargar borrador si corresponde a la misma licitación
   const hasDraft = cargarBorrador();
   if(!hasDraft){
-    agregarItem(); agregarItem(); agregarItem();
+    agregarItem();
     agregarSeguro(); agregarSeguro();
   }
   // Si licitId vino en URL, sobreescribir (readonly)
@@ -486,9 +531,10 @@ async function cargarCotizacionExistente(){
         if(f.fechaCarga)   document.getElementById('f-fecha-carga').value = f.fechaCarga;
         if(f.fechaEntrega) document.getElementById('f-fecha-entrega').value = f.fechaEntrega;
         if(f.observaciones) document.getElementById('f-obs-gen').value = f.observaciones;
+        if(f.equipoUtilizado) document.getElementById('f-equipo-util').value = f.equipoUtilizado;
         (f.items||[]).forEach(it => agregarItem(it));
         (f.seguros||[]).forEach(s => agregarSeguro(s));
-        if(!(f.items||[]).length){ agregarItem(); agregarItem(); agregarItem(); }
+        if(!(f.items||[]).length){ agregarItem(); }
         if(!(f.seguros||[]).length){ agregarSeguro(); agregarSeguro(); }
       } else {
         // Cotización antigua sin formulario: prellenar lo básico
@@ -497,16 +543,16 @@ async function cargarCotizacionExistente(){
         if(c.descripcion)     document.getElementById('f-desc').value = c.descripcion;
         // Una fila con el precio total como tarifa
         agregarItem({ eq:'Servicio de transporte', cant:'1', tarifa:String(c.precio||''), unidad:'viaje' });
-        agregarItem(); agregarSeguro();
+        agregarSeguro();
       }
       // Marcar términos como aceptados (ya había cotizado)
       const chk = document.getElementById('chk-terminos'); if(chk) chk.checked = true;
     } else {
       // No se pudo cargar: arrancar vacío
-      agregarItem(); agregarItem(); agregarItem(); agregarSeguro(); agregarSeguro();
+      agregarItem(); agregarSeguro(); agregarSeguro();
     }
   }catch(e){
-    agregarItem(); agregarItem(); agregarItem(); agregarSeguro(); agregarSeguro();
+    agregarItem(); agregarSeguro(); agregarSeguro();
   }
 }
 
@@ -824,6 +870,14 @@ async function enviarCotizacion(){
     return;
   }
 
+  const equipoUtil = document.getElementById('f-equipo-util').value;
+  if(!equipoUtil){
+    showToast('Indica el equipo que utilizarás','err');
+    document.getElementById('err-f-equipo-util').classList.add('show');
+    document.getElementById('f-equipo-util').scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+
   const fechaCarga   = document.getElementById('f-fecha-carga').value;
   const fechaEntrega = document.getElementById('f-fecha-entrega').value;
 
@@ -874,6 +928,7 @@ async function enviarCotizacion(){
         items:        collectItems(),
         seguros:      collectSeguros(),
         observaciones:document.getElementById('f-obs-gen').value,
+        equipoUtilizado: equipoUtil,
       },
     };
     if(modoEditar){ payload.cotizacionId = cotizIdEditar; }

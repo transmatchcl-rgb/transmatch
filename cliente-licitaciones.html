@@ -560,6 +560,7 @@ function verPreviewCotiz(idx){
   // Datos generales (sin info del transportista)
   if(f){
     html+='<div style="margin-bottom:16px">';
+    if(f.equipoUtilizado)html+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:0.5px solid #f0f0f0"><span style="color:#6B7280">Equipo</span><span style="color:#1e2d4e;font-weight:600;text-align:right;max-width:60%">'+f.equipoUtilizado+'</span></div>';
     if(f.ruta)html+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:0.5px solid #f0f0f0"><span style="color:#6B7280">Ruta</span><span style="color:#1e2d4e;text-align:right;max-width:60%">'+f.ruta+'</span></div>';
     if(f.fechaCarga)html+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:0.5px solid #f0f0f0"><span style="color:#6B7280">Fecha de carga</span><span style="color:#1e2d4e">'+f.fechaCarga+'</span></div>';
     if(f.fechaEntrega)html+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:0.5px solid #f0f0f0"><span style="color:#6B7280">Fecha de entrega</span><span style="color:#1e2d4e">'+f.fechaEntrega+'</span></div>';
