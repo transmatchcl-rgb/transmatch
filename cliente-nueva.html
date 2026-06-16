@@ -250,14 +250,17 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <div class="form-group">
 <label>Tipo de equipo requerido <span class="required">*</span></label>
 <div id="equipo-requerido-list" style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
-<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Cama baja estandar (40 - 60 ton)" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Cama baja estandar (40 - 60 ton)</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Cama baja reforzada (60 - 100 ton)" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Cama baja reforzada (60 - 100 ton)</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Cama baja super reforzada / modular (+100 ton)" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Cama baja super reforzada / modular (+100 ton)</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Plataforma abierta (rampla)" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Plataforma abierta (rampla)</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Plataforma con baranda (rampla)" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Plataforma con baranda (rampla)</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Camion pluma" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Camion pluma</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Cama baja" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Cama baja</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Camilla" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Camilla</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Equipo modular" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Equipo modular</label>
 <label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Palote" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Palote</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Camilla (15 ton)" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Camilla (15 ton)</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Rampla / plataforma" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Rampla / plataforma</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Camión pluma" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Camión pluma (autocarga)</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Otro" onchange="handleEqReq(this);toggleOtroReq()" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Otro (especificar)</label>
+<div id="otro-req-wrap" style="display:none">
+<input type="text" id="otro-req-text" placeholder="Especifica el equipo" maxlength="80" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box" oninput="var e=document.getElementById('err-otro-req');if(e)e.style.display='none'"/>
+<div id="err-otro-req" style="display:none;font-size:12px;color:#DC2626;margin-top:4px">Especifica el equipo.</div>
+</div>
 </div>
 <div class="hint">Puedes seleccionar hasta 2 opciones</div>
 </div>
@@ -307,14 +310,18 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <div class="form-group">
 <label>Tipo de equipo requerido <span class="required">*</span></label>
 <div id="equipo-requerido-carga-list" style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
-<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Cama baja estandar (40 - 60 ton)" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Cama baja estandar (40 - 60 ton)</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Cama baja reforzada (60 - 100 ton)" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Cama baja reforzada (60 - 100 ton)</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Cama baja super reforzada / modular (+100 ton)" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Cama baja super reforzada / modular (+100 ton)</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Plataforma abierta (rampla)" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Plataforma abierta (rampla)</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Plataforma con baranda (rampla)" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Plataforma con baranda (rampla)</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Camion pluma" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Camion pluma</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Palote" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Palote</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Camilla (15 ton)" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Camilla (15 ton)</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Rampla / plataforma" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Rampla / plataforma</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Camión pluma" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Camión pluma (autocarga)</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Cama cuna" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Cama cuna</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Furgón / Sider" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Furgón / Sider (cerrado)</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Tolva" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Tolva</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Portacontenedor" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Portacontenedor</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Camión plano" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Camión plano</label>
+<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Otro" onchange="handleEqCarga(this);toggleOtroCarga()" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Otro (especificar)</label>
+<div id="otro-carga-wrap" style="display:none">
+<input type="text" id="otro-carga-text" placeholder="Especifica el equipo" maxlength="80" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box" oninput="var e=document.getElementById('err-otro-carga');if(e)e.style.display='none'"/>
+<div id="err-otro-carga" style="display:none;font-size:12px;color:#DC2626;margin-top:4px">Especifica el equipo.</div>
+</div>
 </div>
 <div class="hint">Puedes seleccionar hasta 2 opciones</div>
 <input type="hidden" id="tipoEquipoCarga" value=""/>
@@ -446,7 +453,10 @@ var hi=document.getElementById('tipoEquipoCarga');if(hi)hi.value=vals.join(' / '
 
 function getEqRequeridoCarga(){
 var vals=[];
-document.querySelectorAll('.eq-carga-cb:checked').forEach(function(c){vals.push(c.value);});
+document.querySelectorAll('.eq-carga-cb:checked').forEach(function(c){
+if(c.value==='Otro'){var t=(document.getElementById('otro-carga-text').value||'').trim();if(t)vals.push(t);}
+else vals.push(c.value);
+});
 return vals.join(' / ');
 }
 
@@ -462,9 +472,14 @@ else{lbl.style.borderColor='#E5E7EB';lbl.style.background='';}
 
 function getEqRequerido(){
 var vals=[];
-document.querySelectorAll('.eq-req-cb:checked').forEach(function(c){vals.push(c.value)});
+document.querySelectorAll('.eq-req-cb:checked').forEach(function(c){
+if(c.value==='Otro'){var t=(document.getElementById('otro-req-text').value||'').trim();if(t)vals.push(t);}
+else vals.push(c.value);
+});
 return vals.join(' / ');
 }
+function toggleOtroReq(){var cb=document.querySelector('.eq-req-cb[value="Otro"]');var w=document.getElementById('otro-req-wrap');var on=cb&&cb.checked;if(w)w.style.display=on?'block':'none';if(!on){var t=document.getElementById('otro-req-text');if(t)t.value='';}}
+function toggleOtroCarga(){var cb=document.querySelector('.eq-carga-cb[value="Otro"]');var w=document.getElementById('otro-carga-wrap');var on=cb&&cb.checked;if(w)w.style.display=on?'block':'none';if(!on){var t=document.getElementById('otro-carga-text');if(t)t.value='';}}
 
 function toggleOtroEquipo(val){
 /* ya no se usa: el tipo de maquinaria es un campo de texto libre */
@@ -550,10 +565,12 @@ document.getElementById('archivo-input-'+key).value='';
 function irPaso(paso){
 if(paso===2){
 if(tipoLicitacion==='maquinaria'){
+var _ocm=document.querySelector('.eq-req-cb[value="Otro"]');if(_ocm&&_ocm.checked&&!(document.getElementById('otro-req-text').value||'').trim()){showToast('Especifica el equipo en "Otro"','err');var _e=document.getElementById('err-otro-req');if(_e)_e.style.display='block';return;}
 if(!getEqRequerido()){showToast('Selecciona al menos un tipo de equipo requerido','err');return;}
 if(!document.getElementById('tipoEquipo').value.trim()){showToast('Indica el tipo de maquinaria','err');return;}
 if(!modoEdicion&&!archivoMaq){showToast('Debes adjuntar el archivo de especificaciones','err');return;}
 }else{
+var _occ=document.querySelector('.eq-carga-cb[value="Otro"]');if(_occ&&_occ.checked&&!(document.getElementById('otro-carga-text').value||'').trim()){showToast('Especifica el equipo en "Otro"','err');var _e=document.getElementById('err-otro-carga');if(_e)_e.style.display='block';return;}
 if(!getEqRequeridoCarga()){showToast('Selecciona al menos un tipo de equipo requerido','err');return;}
 if(!modoEdicion&&!archivoCarga){showToast('Debes adjuntar el archivo de especificaciones','err');return;}
 }
@@ -692,6 +709,9 @@ var vals=l.tipoEquipoRequerido.split(' / ');
 document.querySelectorAll('.eq-req-cb').forEach(function(cb){
 if(vals.indexOf(cb.value)>=0){cb.checked=true;var lbl=cb.closest('label');if(lbl){lbl.style.borderColor='#1e2d4e';lbl.style.background='#eef1f8';}}
 });
+var _known=[];document.querySelectorAll('.eq-req-cb').forEach(function(cb){if(cb.value!=='Otro')_known.push(cb.value);});
+var _custom=vals.filter(function(v){return v&&_known.indexOf(v)<0;});
+if(_custom.length){var _oc=document.querySelector('.eq-req-cb[value="Otro"]');if(_oc){_oc.checked=true;var _l=_oc.closest('label');if(_l){_l.style.borderColor='#1e2d4e';_l.style.background='#eef1f8';}}document.getElementById('otro-req-text').value=_custom.join(' / ');toggleOtroReq();}
 }
 if(l.marca)document.getElementById('marca').value=l.marca;
 if(l.peso)document.getElementById('pesoMaq').value=l.peso;

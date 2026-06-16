@@ -332,37 +332,56 @@
         <div class="card-title">Equipos que opero</div>
         <p style="font-size:13px;color:#6B7280;margin-bottom:18px">Selecciona los equipos con los que tu empresa opera. Solo verás licitaciones compatibles con tu flota.</p>
         <div id="eq-tipos-maquinaria" style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
-          <div class="zona-card" onclick="toggleTipoEquipo('Cama baja estandar (40 - 60 ton)',this)">
-            <input type="checkbox" class="eq-tipo-cb" value="Cama baja estandar (40 - 60 ton)" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
-            <div><div class="zona-title">Cama baja estandar</div><div class="zona-sub">40 - 60 ton</div></div>
+                    <div class="zona-card" onclick="toggleTipoEquipo('Cama baja',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Cama baja" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Cama baja</div></div>
           </div>
-          <div class="zona-card" onclick="toggleTipoEquipo('Cama baja reforzada (60 - 100 ton)',this)">
-            <input type="checkbox" class="eq-tipo-cb" value="Cama baja reforzada (60 - 100 ton)" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
-            <div><div class="zona-title">Cama baja reforzada</div><div class="zona-sub">60 - 100 ton</div></div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Camilla',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Camilla" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Camilla</div></div>
           </div>
-          <div class="zona-card" onclick="toggleTipoEquipo('Cama baja super reforzada / modular (+100 ton)',this)">
-            <input type="checkbox" class="eq-tipo-cb" value="Cama baja super reforzada / modular (+100 ton)" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
-            <div><div class="zona-title">Cama baja super reforzada / modular</div><div class="zona-sub">+100 ton</div></div>
-          </div>
-          <div class="zona-card" onclick="toggleTipoEquipo('Plataforma abierta (rampla)',this)">
-            <input type="checkbox" class="eq-tipo-cb" value="Plataforma abierta (rampla)" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
-            <div><div class="zona-title">Plataforma abierta (rampla)</div></div>
-          </div>
-          <div class="zona-card" onclick="toggleTipoEquipo('Plataforma con baranda (rampla)',this)">
-            <input type="checkbox" class="eq-tipo-cb" value="Plataforma con baranda (rampla)" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
-            <div><div class="zona-title">Plataforma con baranda (rampla)</div></div>
-          </div>
-          <div class="zona-card" onclick="toggleTipoEquipo('Camion pluma',this)">
-            <input type="checkbox" class="eq-tipo-cb" value="Camion pluma" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
-            <div><div class="zona-title">Camion pluma</div></div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Equipo modular',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Equipo modular" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Equipo modular</div></div>
           </div>
           <div class="zona-card" onclick="toggleTipoEquipo('Palote',this)">
             <input type="checkbox" class="eq-tipo-cb" value="Palote" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
             <div><div class="zona-title">Palote</div></div>
           </div>
-          <div class="zona-card" onclick="toggleTipoEquipo('Camilla (15 ton)',this)">
-            <input type="checkbox" class="eq-tipo-cb" value="Camilla (15 ton)" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
-            <div><div class="zona-title">Camilla</div><div class="zona-sub">15 ton</div></div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Rampla / plataforma',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Rampla / plataforma" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Rampla / plataforma</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Camión pluma',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Camión pluma" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Camión pluma</div><div class="zona-sub">autocarga</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Cama cuna',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Cama cuna" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Cama cuna</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Furgón / Sider',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Furgón / Sider" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Furgón / Sider</div><div class="zona-sub">cerrado</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Tolva',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Tolva" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Tolva</div><div class="zona-sub">granel</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Portacontenedor',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Portacontenedor" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Portacontenedor</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Camión plano',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Camión plano" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Camión plano</div><div class="zona-sub">plataforma rígida</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Otro',this);toggleOtroTipo()">
+            <input type="checkbox" class="eq-tipo-cb" value="Otro" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()" onchange="toggleOtroTipo()"/>
+            <div><div class="zona-title">Otro</div><div class="zona-sub">Especificar</div></div>
+          </div>
+          <div id="tipo-otro-wrap" style="display:none;margin-bottom:8px">
+            <input type="text" id="tipo-otro-text" placeholder="Especifica el equipo" maxlength="80" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box"/>
           </div>
         </div>
         <div class="ok" id="ok-tipos-eq">Equipos guardados correctamente</div>
@@ -419,20 +438,56 @@
         <div class="grid2">
           <div class="fg full">
             <label>Tipo de equipo *</label>
-            <select id="eq-tipo">
-              <option value="">Seleccionar...</option>
-              <optgroup label="Equipos">
-                <option>Cama baja estandar (40 - 60 ton)</option>
-                <option>Cama baja reforzada (60 - 100 ton)</option>
-                <option>Cama baja super reforzada / modular (+100 ton)</option>
-                <option>Plataforma abierta (rampla)</option>
-                <option>Plataforma con baranda (rampla)</option>
-                <option>Camion pluma</option>
-                <option>Palote</option>
-                <option>Camilla (15 ton)</option>
-                <option>Tractocamión</option>
+            <select id="eq-tipo" onchange="onEqTipoChange()">
+                            <option value="">Seleccionar...</option>
+              <optgroup label="Transporte de Maquinaria">
+                <option value="Cama baja 2 ejes">Cama baja 2 ejes (hasta 30 ton)</option>
+                <option value="Cama baja 3 ejes">Cama baja 3 ejes (hasta 50 ton)</option>
+                <option value="Cama baja 4 ejes">Cama baja 4 ejes (60-70 ton)</option>
+                <option value="Cama baja con dolly">Cama baja con dolly (80-90 ton)</option>
+                <option value="Cama baja punta de lanza">Cama baja punta de lanza (sobredimensionada)</option>
+                <option value="Cama baja hidráulica multieje">Cama baja hidráulica multieje (+100 ton)</option>
+                <option value="Camilla">Camilla</option>
+                <option value="Tren modular">Tren modular (+150 ton)</option>
+                <option value="Palote 30 ton">Palote 30 ton</option>
+                <option value="Palote 50 ton">Palote 50 ton</option>
+                <option value="Rampla abierta">Rampla abierta (plataforma seca)</option>
+                <option value="Rampla con baranda">Rampla con baranda</option>
+                <option value="Rampla extensible">Rampla extensible (18-24 m)</option>
+                <option value="Camión pluma 5 ton">Camión pluma 5 ton</option>
+                <option value="Camión pluma 8 ton">Camión pluma 8 ton</option>
+                <option value="Camión pluma 12 ton">Camión pluma 12 ton</option>
+                <option value="Camión pluma 20 ton">Camión pluma 20 ton</option>
+                <option value="Tracto pluma con rampla">Tracto pluma con rampla</option>
+              </optgroup>
+              <optgroup label="Transporte de Carga General">
+                <option value="Rampla abierta">Rampla abierta (plataforma seca)</option>
+                <option value="Rampla con baranda">Rampla con baranda</option>
+                <option value="Rampla extensible">Rampla extensible (18-24 m)</option>
+                <option value="Camión pluma 5 ton">Camión pluma 5 ton</option>
+                <option value="Camión pluma 8 ton">Camión pluma 8 ton</option>
+                <option value="Camión pluma 12 ton">Camión pluma 12 ton</option>
+                <option value="Camión pluma 20 ton">Camión pluma 20 ton</option>
+                <option value="Tracto pluma con rampla">Tracto pluma con rampla</option>
+                <option value="Cama cuna">Cama cuna / cureña</option>
+                <option value="Furgón">Camión furgón (cerrado)</option>
+                <option value="Sider">Camión sider (lonas corredizas)</option>
+                <option value="Tolva 10 m3">Camión tolva 10 m3</option>
+                <option value="Tolva 15 m3">Camión tolva 15 m3</option>
+                <option value="Tolva 20 m3">Camión tolva 20 m3</option>
+                <option value="Portacontenedor">Camión portacontenedor</option>
+                <option value="Camión Plano 5 ton">Camión Plano 5 ton</option>
+                <option value="Camión Plano 10 ton">Camión Plano 10 ton</option>
+                <option value="Camión Plano 15 ton">Camión Plano 15 ton</option>
+              </optgroup>
+              <optgroup label="Tractor / Unidad">
+                <option value="Tractocamión">Tractocamión</option>
+              </optgroup>
+              <optgroup label="Otro">
+                <option value="Otro">Otro (especificar)</option>
               </optgroup>
             </select>
+            <div id="eq-tipo-otro-wrap" style="display:none;margin-top:8px"><input type="text" id="eq-tipo-otro" placeholder="Especifica el equipo" maxlength="80" style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box"/></div>
           </div>
           <div class="fg"><label>Marca</label><input type="text" id="eq-marca" placeholder="Ej: Volvo"/></div>
           <div class="fg"><label>Modelo</label><input type="text" id="eq-modelo" placeholder="Ej: FH16"/></div>
@@ -868,11 +923,18 @@ function toggleTipoEquipo(val, card) {
   card.classList.toggle('selected', cb.checked);
 }
 
+function onEqTipoChange(){var sel=document.getElementById('eq-tipo');var w=document.getElementById('eq-tipo-otro-wrap');var on=sel&&sel.value==='Otro';if(w)w.style.display=on?'block':'none';if(!on){var t=document.getElementById('eq-tipo-otro');if(t)t.value='';}}
+function toggleOtroTipo(){var cb=document.querySelector('.eq-tipo-cb[value="Otro"]');var w=document.getElementById('tipo-otro-wrap');var on=cb&&cb.checked;if(w)w.style.display=on?'block':'none';if(!on){var t=document.getElementById('tipo-otro-text');if(t)t.value='';}}
 async function guardarTiposEquipo() {
   var tiposSeleccionados = [];
+  var _otroT='';
   document.querySelectorAll('.eq-tipo-cb').forEach(function(cb){
-    if(cb.checked) tiposSeleccionados.push(cb.value);
+    if(!cb.checked) return;
+    if(cb.value==='Otro'){ _otroT=(document.getElementById('tipo-otro-text').value||'').trim(); if(_otroT) tiposSeleccionados.push(_otroT); }
+    else tiposSeleccionados.push(cb.value);
   });
+  var _otroCb=document.querySelector('.eq-tipo-cb[value="Otro"]');
+  if(_otroCb&&_otroCb.checked&&!_otroT){ var _e=document.getElementById('err-tipos-eq'); if(_e){_e.textContent='Especifica el equipo en "Otro"';_e.style.display='block';} return; }
   var okEl=document.getElementById('ok-tipos-eq');
   var errEl=document.getElementById('err-tipos-eq');
   try {
@@ -1191,10 +1253,12 @@ function renderAlertasVencimiento(documentos) {
 }
 
 async function agregarEquipo() {
-  var tipo=document.getElementById('eq-tipo').value;
+  var _selTipo=document.getElementById('eq-tipo').value;
+  var tipo=_selTipo;
+  if(_selTipo==='Otro'){ tipo=(document.getElementById('eq-tipo-otro').value||'').trim(); }
   var okEl=document.getElementById('ok-eq'); var errEl=document.getElementById('err-eq');
   okEl.style.display='none'; errEl.style.display='none';
-  if (!tipo) { errEl.textContent='Selecciona el tipo de equipo'; errEl.style.display='block'; return; }
+  if (!tipo) { errEl.textContent=_selTipo==='Otro'?'Especifica el equipo en "Otro"':'Selecciona el tipo de equipo'; errEl.style.display='block'; return; }
   try {
     var res = await fetch(API+'/api/equipos', {
       method:'POST',
@@ -1258,7 +1322,7 @@ async function agregarEquipo() {
       // Reset
       docsBuffer = {}; fotosBufferNew = [];
       okEl.style.display='block';
-      ['eq-tipo','eq-marca','eq-modelo','eq-ano','eq-patente','eq-cap','eq-largo','eq-ancho','eq-alto','eq-desc'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+      ['eq-tipo','eq-tipo-otro','eq-marca','eq-modelo','eq-ano','eq-patente','eq-cap','eq-largo','eq-ancho','eq-alto','eq-desc'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; }); if(typeof onEqTipoChange==='function')onEqTipoChange();
       ['permiso_circulacion','revision_tecnica','gases','seguro_obligatorio','poliza_empresa','adicional'].forEach(function(k){
         var dz=document.getElementById('dz-'+k); if(dz){dz.textContent='Subir archivo (PDF o imagen)';dz.classList.remove('has-file');}
         var df=document.getElementById('df-'+k); if(df) df.value='';
