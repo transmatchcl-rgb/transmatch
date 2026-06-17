@@ -268,6 +268,15 @@ async function api(path,method,body){
   return{ok:r.ok,data:await r.json()};
 }
 
+async function descargarArchivo(id,nombre){
+  const r=await api('/api/archivos/'+id);
+  if(!r||!r.ok){toast('Error al descargar','err');return;}
+  const link=document.createElement('a');
+  link.href='data:'+(r.data.tipo||'application/octet-stream')+';base64,'+r.data.base64;
+  link.download=nombre||'archivo';
+  link.click();
+}
+
 function toast(msg,type){
   const el=document.getElementById('toast');
   el.textContent=msg;
@@ -369,20 +378,44 @@ function renderDetalle(l){
   var html='';
 
   // Grid info principal
+  var tipoLic=l.tipoLicitacion||'maquinaria';
   var items=[
-    ['Código',l.codigo||l.codigo||'—'],
+    ['Código',l.codigo||'—'],
+    ['Tipo de licitación',tipoLic==='maquinaria'?'Maquinaria pesada':'Carga general'],
     ['Cliente',l.clienteEmpresa||'—'],
     ['Contacto',l.clienteNombre||'—'],
     ['Email cliente',l.clienteEmail||'—'],
-    ['Origen',l.origen||'—'],
-    ['Destino',l.destino||'—'],
-    ['Fecha carga',fechaCorta(l.fechaCarga)],
-    ['Fecha entrega',fechaCorta(l.fechaEntrega)],
-    ['Peso',l.peso?l.peso+' ton':'—'],
-    ['Dimensiones',l.dimensiones||'—'],
-    ['Plazo cotiz.',l.plazo?l.plazo+'h':'—'],
-    ['Ronda',l.ronda||1],
+    ['Teléfono cliente',l.clienteTelefono||'—'],
+    ['Equipo de transporte requerido',l.tipoEquipoRequerido||'—'],
   ];
+  if(tipoLic==='maquinaria'){
+    items.push(['Maquinaria',l.tipoEquipo||'—']);
+    items.push(['Marca',l.marca||'—']);
+    items.push(['Modelo',l.modelo||'—']);
+    items.push(['Cantidad de equipos',l.cantidadEquipos||'—']);
+  }else{
+    items.push(['Tipo de carga',l.tipoCarga||l.tipoEquipo||'—']);
+    items.push(['Cantidad de equipos',l.cantidadEquipos||'—']);
+    items.push(['Volumen',l.volumen?l.volumen+' m³':'—']);
+    items.push(['N° de bultos',l.cantidadBultos||'—']);
+    items.push(['Peso por bulto',l.pesoPorBulto?l.pesoPorBulto+' kg':'—']);
+  }
+  items.push(['Origen',l.origen||'—']);
+  if(l.direccionOrigen) items.push(['Dirección de origen',l.direccionOrigen]);
+  items.push(['Destino',l.destino||'—']);
+  if(l.direccionDestino) items.push(['Dirección de destino',l.direccionDestino]);
+  items.push(['Fecha carga',fechaCorta(l.fechaCarga)+(l.horaCarga?' '+l.horaCarga:'')]);
+  items.push(['Fecha entrega',fechaCorta(l.fechaEntrega)+(l.horaDescarga?' '+l.horaDescarga:'')]);
+  if(l.contactoOrigenNombre||l.contactoOrigenTelefono||l.contactoOrigenEmail){
+    items.push(['Contacto en origen',[l.contactoOrigenNombre,l.contactoOrigenTelefono,l.contactoOrigenEmail].filter(Boolean).join(' · ')||'—']);
+  }
+  if(l.contactoDestinoNombre||l.contactoDestinoTelefono||l.contactoDestinoEmail){
+    items.push(['Contacto en destino',[l.contactoDestinoNombre,l.contactoDestinoTelefono,l.contactoDestinoEmail].filter(Boolean).join(' · ')||'—']);
+  }
+  items.push(['Peso',l.peso?l.peso+' ton':'—']);
+  items.push(['Dimensiones',l.dimensiones||'—']);
+  items.push(['Plazo cotiz.',l.plazo?l.plazo+'h':'—']);
+  items.push(['Ronda',l.ronda||1]);
   html+='<div class="det-grid">'+items.map(function(it){
     return '<div class="det-cell"><div class="det-label">'+it[0]+'</div><div class="det-val">'+it[1]+'</div></div>';
   }).join('')+'</div>';
@@ -391,6 +424,13 @@ function renderDetalle(l){
   if(l.descripcion||l.descripción){
     html+='<div class="det-desc"><strong style="font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em">Condiciones especiales</strong><br style="margin-bottom:6px">'+
     (l.descripcion||l.descripción)+'</div>';
+  }
+
+  // Archivo de especificaciones
+  if(l.archivoId){
+    html+='<div class="det-desc"><strong style="font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em">Archivo de especificaciones</strong><br style="margin-bottom:6px">'+
+    '<button onclick="descargarArchivo(\''+l.archivoId+'\',\''+(l.archivoNombre||'archivo').replace(/'/g,"\\'")+'\')" style="margin-top:6px;padding:8px 14px;border-radius:7px;border:1px solid #E5E7EB;background:#fff;cursor:pointer;font-size:13px;color:#1e2d4e;font-weight:500">&#11015; '+(l.archivoNombre||'Descargar archivo')+'</button>'+
+    '</div>';
   }
 
   // Transportistas invitados a cotizar
