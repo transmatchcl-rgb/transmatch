@@ -515,15 +515,19 @@ ${ licitacionesGanadas.has(l.id)
        : (yaCotize
            ? '<span class="badge badge-green">Cotizacion enviada</span>'
            : '<span class="badge badge-orange">Abierta</span>')) }
-${l.fechaCarga?`<span class="tag">Carga: ${new Date(l.fechaCarga+'T12:00:00').toLocaleDateString('es-CL')}</span>`:''}
-${l.fechaEntrega?`<span class="tag">Entrega: ${new Date(l.fechaEntrega+'T12:00:00').toLocaleDateString('es-CL')}</span>`:''}
+${l.fechaCarga?`<span class="tag">Carga: ${new Date(l.fechaCarga+'T12:00:00').toLocaleDateString('es-CL')}${l.horaCarga?' '+l.horaCarga:''}</span>`:''}
+${l.fechaEntrega?`<span class="tag">Entrega: ${new Date(l.fechaEntrega+'T12:00:00').toLocaleDateString('es-CL')}${l.horaDescarga?' '+l.horaDescarga:''}</span>`:''}
 ${l.peso?`<span class="tag">${l.peso} ton</span>`:''}
+${l.volumen?`<span class="tag">Vol: ${l.volumen} m³</span>`:''}
+${l.cantidadEquipos?`<span class="tag">Cant. equipos: ${l.cantidadEquipos}</span>`:''}
+${l.cantidadBultos?`<span class="tag">N° bultos: ${l.cantidadBultos}</span>`:''}
+${l.pesoPorBulto?`<span class="tag">Peso/bulto: ${l.pesoPorBulto} kg</span>`:''}
 ${l.dimensiones?`<span class="tag">Dim: ${l.dimensiones}</span>`:''}
 ${l.plazo?`<span class="tag">Plazo: ${l.plazo}h</span>`:''}
 ${l.presupuesto?`<span class="tag">Máx. ${peso(l.presupuesto)}</span>`:''}
 </div></div>`;
-if(l.descripción){
-h+=`<div style="padding:14px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Condiciones especiales</div><div style="font-size:13px;color:#6B7280;line-height:1.6">${l.descripción}</div></div>`;
+if(l.descripcion){
+h+=`<div style="padding:14px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Observaciones</div><div style="font-size:13px;color:#6B7280;line-height:1.6">${l.descripcion}</div></div>`;
 }
 if(l.archivoId && licitacionesGanadas.has(l.id)){
 h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Descargar especificaciones técnicas</div><button onclick="descargarArchivo('${l.archivoId}','${l.archivoNombre||'especificaciónes'}')"
@@ -534,6 +538,25 @@ ${l.archivoNombre||'especificaciónes técnicas'}
 }
 if(l.tipoEquipoRequerido && l.tipoEquipoRequerido !== 'cualquiera'){
 h+=`<div style="padding:10px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:2px">Equipo requerido</div><div style="font-size:13px;color:#374151">${l.tipoEquipoRequerido}</div></div>`;
+}
+if(l.marca || l.modelo || l.tipoCarga){
+h+=`<div style="padding:10px 18px;border-bottom:0.5px solid #E5E7EB">
+${l.marca?`<div style="margin-bottom:6px"><div style="font-size:12px;font-weight:600;color:#374151">Marca</div><div style="font-size:13px;color:#374151">${l.marca}</div></div>`:''}
+${l.modelo?`<div style="margin-bottom:6px"><div style="font-size:12px;font-weight:600;color:#374151">Modelo</div><div style="font-size:13px;color:#374151">${l.modelo}</div></div>`:''}
+${l.tipoCarga?`<div><div style="font-size:12px;font-weight:600;color:#374151">Tipo de carga</div><div style="font-size:13px;color:#374151">${l.tipoCarga}</div></div>`:''}
+</div>`;
+}
+if(l.direccionOrigen || l.direccionDestino){
+h+=`<div style="padding:10px 18px;border-bottom:0.5px solid #E5E7EB">
+${l.direccionOrigen?`<div style="margin-bottom:6px"><div style="font-size:12px;font-weight:600;color:#374151">Dirección de origen</div><div style="font-size:13px;color:#374151">${l.direccionOrigen}</div></div>`:''}
+${l.direccionDestino?`<div><div style="font-size:12px;font-weight:600;color:#374151">Dirección de destino</div><div style="font-size:13px;color:#374151">${l.direccionDestino}</div></div>`:''}
+</div>`;
+}
+if(l.contactoOrigenNombre||l.contactoOrigenTelefono||l.contactoOrigenEmail||l.contactoDestinoNombre||l.contactoDestinoTelefono||l.contactoDestinoEmail){
+h+=`<div style="padding:10px 18px;border-bottom:0.5px solid #E5E7EB">
+${(l.contactoOrigenNombre||l.contactoOrigenTelefono||l.contactoOrigenEmail)?`<div style="margin-bottom:6px"><div style="font-size:12px;font-weight:600;color:#374151">Contacto en origen</div><div style="font-size:13px;color:#374151">${[l.contactoOrigenNombre,l.contactoOrigenTelefono,l.contactoOrigenEmail].filter(Boolean).join(' · ')}</div></div>`:''}
+${(l.contactoDestinoNombre||l.contactoDestinoTelefono||l.contactoDestinoEmail)?`<div><div style="font-size:12px;font-weight:600;color:#374151">Contacto en destino</div><div style="font-size:13px;color:#374151">${[l.contactoDestinoNombre,l.contactoDestinoTelefono,l.contactoDestinoEmail].filter(Boolean).join(' · ')}</div></div>`:''}
+</div>`;
 }
 if(yaCotize){
 const histData = historialNoGanadas[l.id];
