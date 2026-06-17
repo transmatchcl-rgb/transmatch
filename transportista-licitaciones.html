@@ -524,6 +524,8 @@ ${l.cantidadBultos?`<span class="tag">N° bultos: ${l.cantidadBultos}</span>`:''
 ${l.pesoPorBulto?`<span class="tag">Peso/bulto: ${l.pesoPorBulto} kg</span>`:''}
 ${l.dimensiones?`<span class="tag">Dim: ${l.dimensiones}</span>`:''}
 ${l.plazo?`<span class="tag">Plazo: ${l.plazo}h</span>`:''}
+${l.valorSeguro?`<span class="tag">Seguro aprox: $${Number(l.valorSeguro).toLocaleString('es-CL')}</span>`:''}
+${(l.tipoEntregaDestino && l.tipoEntregaDestino!=='no_aplica')?`<span class="tag">Entrega: ${l.tipoEntregaDestino==='mina'?'Dentro de la mina':'En garita'}</span>`:''}
 ${l.presupuesto?`<span class="tag">Máx. ${peso(l.presupuesto)}</span>`:''}
 </div></div>`;
 if(l.descripcion){
@@ -550,6 +552,12 @@ if(l.direccionOrigen || l.direccionDestino){
 h+=`<div style="padding:10px 18px;border-bottom:0.5px solid #E5E7EB">
 ${l.direccionOrigen?`<div style="margin-bottom:6px"><div style="font-size:12px;font-weight:600;color:#374151">Dirección de origen</div><div style="font-size:13px;color:#374151">${l.direccionOrigen}</div></div>`:''}
 ${l.direccionDestino?`<div><div style="font-size:12px;font-weight:600;color:#374151">Dirección de destino</div><div style="font-size:13px;color:#374151">${l.direccionDestino}</div></div>`:''}
+</div>`;
+}
+if(Array.isArray(l.paradas) && l.paradas.length>0){
+h+=`<div style="padding:10px 18px;border-bottom:0.5px solid #E5E7EB">
+<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">Paradas intermedias</div>
+${l.paradas.map(function(p,i){return `<div style="font-size:13px;color:#374151;margin-bottom:4px">${i+1}. ${p.direccion||'—'}${p.horario?' · '+p.horario:''}${p.contacto?' · '+p.contacto:''}</div>`;}).join('')}
 </div>`;
 }
 if(l.contactoOrigenNombre||l.contactoOrigenTelefono||l.contactoOrigenEmail||l.contactoDestinoNombre||l.contactoDestinoTelefono||l.contactoDestinoEmail){

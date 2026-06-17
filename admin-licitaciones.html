@@ -404,6 +404,10 @@ function renderDetalle(l){
   if(l.direccionOrigen) items.push(['Dirección de origen',l.direccionOrigen]);
   items.push(['Destino',l.destino||'—']);
   if(l.direccionDestino) items.push(['Dirección de destino',l.direccionDestino]);
+  if(tipoLic==='maquinaria'){
+    var tEntMap={mina:'Dentro de la mina',garita:'En garita',no_aplica:'No aplica'};
+    items.push(['Tipo de entrega',tEntMap[l.tipoEntregaDestino]||'No aplica']);
+  }
   items.push(['Fecha carga',fechaCorta(l.fechaCarga)+(l.horaCarga?' '+l.horaCarga:'')]);
   items.push(['Fecha entrega',fechaCorta(l.fechaEntrega)+(l.horaDescarga?' '+l.horaDescarga:'')]);
   if(l.contactoOrigenNombre||l.contactoOrigenTelefono||l.contactoOrigenEmail){
@@ -415,10 +419,23 @@ function renderDetalle(l){
   items.push(['Peso',l.peso?l.peso+' ton':'—']);
   items.push(['Dimensiones',l.dimensiones||'—']);
   items.push(['Plazo cotiz.',l.plazo?l.plazo+'h':'—']);
+  items.push(['Valor seguro aprox.',l.valorSeguro?'$'+Number(l.valorSeguro).toLocaleString('es-CL'):'—']);
   items.push(['Ronda',l.ronda||1]);
   html+='<div class="det-grid">'+items.map(function(it){
     return '<div class="det-cell"><div class="det-label">'+it[0]+'</div><div class="det-val">'+it[1]+'</div></div>';
   }).join('')+'</div>';
+
+  // Paradas intermedias (solo carga general)
+  if(tipoLic!=='maquinaria' && Array.isArray(l.paradas) && l.paradas.length>0){
+    html+='<div class="det-desc"><strong style="font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em">Paradas intermedias</strong>'+
+    l.paradas.map(function(p,i){
+      return '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #f3f4f6"><strong>Parada '+(i+1)+':</strong> '+(p.direccion||'—')+
+        (p.horario?' · '+p.horario:'')+
+        (p.contacto?' · '+p.contacto:'')+
+      '</div>';
+    }).join('')+
+    '</div>';
+  }
 
   // Descripción
   if(l.descripcion||l.descripción){

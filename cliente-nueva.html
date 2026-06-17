@@ -381,7 +381,21 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <div class="form-group"><label>Ciudad de destino <span class="required">*</span></label><input type="text" id="destino" placeholder="Ej: Antofagasta" autocomplete="off"/></div>
 </div>
 <div class="form-group"><label>Dirección de origen</label><input type="text" id="direccionOrigen" placeholder="Ej: Faena El Teniente, sector norte" autocomplete="off"/></div>
+<div class="form-group" id="paradas-section" style="display:none">
+<label>Paradas intermedias (opcional)</label>
+<div id="paradas-list"></div>
+<button type="button" class="btn btn-outline" id="btn-agregar-parada" style="margin-top:8px" onclick="agregarParada()">+ Agregar parada</button>
+</div>
 <div class="form-group"><label>Dirección de destino</label><input type="text" id="direccionDestino" placeholder="Ej: Bodega central, acceso camiones" autocomplete="off"/></div>
+<div class="form-group" id="tipo-entrega-section" style="display:none">
+<label>Tipo de entrega en destino</label>
+<div class="plazo-grid">
+<div class="plazo-btn selected" onclick="selectTipoEntrega(this,'no_aplica')" data-val="no_aplica"><div class="plazo-val" style="font-size:13px">No aplica</div></div>
+<div class="plazo-btn" onclick="selectTipoEntrega(this,'mina')" data-val="mina"><div class="plazo-val" style="font-size:13px">Dentro de la mina</div></div>
+<div class="plazo-btn" onclick="selectTipoEntrega(this,'garita')" data-val="garita"><div class="plazo-val" style="font-size:13px">En garita</div></div>
+</div>
+<input type="hidden" id="tipoEntregaDestino" value="no_aplica"/>
+</div>
 <div class="grid-2">
 <div class="form-group"><label>Fecha de carga <span class="required">*</span></label><input type="date" id="fechaCarga" autocomplete="off"/></div>
 <div class="form-group"><label>Hora de carga (opcional)</label><input type="time" id="horaCarga" autocomplete="off"/></div>
@@ -408,6 +422,10 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 
 <div class="form-card" id="paso3">
 <div class="card-title">Configuracion de la licitacion</div>
+<div class="form-group">
+<label>Valor aproximado del seguro necesario (CLP)</label>
+<input type="number" id="valorSeguro" placeholder="Ej: 50000000" min="0" step="1" autocomplete="off"/>
+</div>
 <div class="form-group">
 <label>Plazo para recibir cotizaciones <span class="required">*</span></label>
 <div class="plazo-grid">
@@ -521,8 +539,66 @@ document.getElementById(tipo==='maquinaria'?'paso1-maquinaria':'paso1-carga').cl
 var tel=document.getElementById('tipo-elegido');
 var tlbl=document.getElementById('tipo-elegido-label');
 if(tel&&tlbl){tlbl.textContent=tipo==='maquinaria'?'Maquinaria pesada':'Carga general';tel.style.display='block';}
+toggleCamposPorTipoRuta();
 currentStep=1;updateStepper(1);
 window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function toggleCamposPorTipoRuta(){
+var esCarga=tipoLicitacion==='carga';
+var pSec=document.getElementById('paradas-section');if(pSec)pSec.style.display=esCarga?'block':'none';
+var tSec=document.getElementById('tipo-entrega-section');if(tSec)tSec.style.display=esCarga?'none':'block';
+}
+
+var PARADAS_MAX=5;
+function agregarParada(data){
+data=data||{};
+var list=document.getElementById('paradas-list');
+if(!list)return;
+if(list.querySelectorAll('.parada-row').length>=PARADAS_MAX)return;
+var row=document.createElement('div');
+row.className='parada-row';
+row.style.cssText='background:#f8f9fb;border:1px solid #e8eaf0;border-radius:10px;padding:12px;margin-top:8px';
+row.innerHTML=
+'<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><button type="button" onclick="quitarParada(this)" style="background:none;border:none;color:#9CA3AF;cursor:pointer;font-size:12px">Quitar &#10005;</button></div>'+
+'<div class="form-group" style="margin-bottom:8px"><label style="font-size:12px">Dirección de la parada</label><input type="text" class="parada-direccion" placeholder="Ej: Peaje Las Lomas, Ruta 5" autocomplete="off"/></div>'+
+'<div class="grid-2">'+
+'<div class="form-group" style="margin-bottom:0"><label style="font-size:12px">Horario aproximado</label><input type="text" class="parada-horario" placeholder="Ej: Entre 10:00 y 12:00" autocomplete="off"/></div>'+
+'<div class="form-group" style="margin-bottom:0"><label style="font-size:12px">Contacto en el lugar</label><input type="text" class="parada-contacto" placeholder="Nombre y teléfono" autocomplete="off"/></div>'+
+'</div>';
+list.appendChild(row);
+if(data.direccion)row.querySelector('.parada-direccion').value=data.direccion;
+if(data.horario)row.querySelector('.parada-horario').value=data.horario;
+if(data.contacto)row.querySelector('.parada-contacto').value=data.contacto;
+actualizarBtnAgregarParada();
+}
+
+function quitarParada(btn){
+var row=btn.closest('.parada-row');if(row)row.remove();
+actualizarBtnAgregarParada();
+}
+
+function actualizarBtnAgregarParada(){
+var list=document.getElementById('paradas-list');var btn=document.getElementById('btn-agregar-parada');
+if(!list||!btn)return;
+btn.style.display=list.querySelectorAll('.parada-row').length>=PARADAS_MAX?'none':'inline-flex';
+}
+
+function getParadas(){
+var arr=[];
+document.querySelectorAll('#paradas-list .parada-row').forEach(function(row){
+var dir=row.querySelector('.parada-direccion').value.trim();
+var hor=row.querySelector('.parada-horario').value.trim();
+var con=row.querySelector('.parada-contacto').value.trim();
+if(dir||hor||con)arr.push({direccion:dir,horario:hor,contacto:con});
+});
+return arr;
+}
+
+function selectTipoEntrega(el,val){
+document.querySelectorAll('#tipo-entrega-section .plazo-btn').forEach(function(b){b.classList.remove('selected')});
+el.classList.add('selected');
+document.getElementById('tipoEntregaDestino').value=val;
 }
 
 function volverPaso0(){
@@ -658,6 +734,14 @@ rows.push(['Origen',document.getElementById('origen').value.trim()]);
 var dOrig=document.getElementById('direccionOrigen').value.trim();if(dOrig)rows.push(['Dirección origen',dOrig]);
 rows.push(['Destino',document.getElementById('destino').value.trim()]);
 var dDest=document.getElementById('direccionDestino').value.trim();if(dDest)rows.push(['Dirección destino',dDest]);
+if(tipoLicitacion==='maquinaria'){
+var tEnt=document.getElementById('tipoEntregaDestino').value;
+var tEntLabel={mina:'Dentro de la mina',garita:'En garita',no_aplica:'No aplica'}[tEnt]||'No aplica';
+rows.push(['Tipo de entrega',tEntLabel]);
+}else{
+var paradasR=getParadas();
+if(paradasR.length)rows.push(['Paradas',paradasR.length+' parada'+(paradasR.length===1?'':'s')]);
+}
 rows.push(['Fecha de carga',document.getElementById('fechaCarga').value]);
 var hc=document.getElementById('horaCarga').value;if(hc)rows.push(['Hora de carga',hc]);
 var fe=document.getElementById('fechaEntrega').value;if(fe)rows.push(['Fecha de descarga',fe]);
@@ -667,6 +751,7 @@ if(cN)rows.push(['Contacto origen',cN+(cT?' · '+cT:'')]);
 var dN=document.getElementById('contactoDestinoNombre').value.trim(),dT=document.getElementById('contactoDestinoTelefono').value.trim();
 if(dN)rows.push(['Contacto destino',dN+(dT?' · '+dT:'')]);
 rows.push(['Plazo cotizaciones',document.getElementById('plazo').value+'h']);
+var vSeg=document.getElementById('valorSeguro').value;if(vSeg)rows.push(['Valor seguro aprox.','$'+Number(vSeg).toLocaleString('es-CL')]);
 document.getElementById('resumen-content').innerHTML=rows.map(function(r){
 return '<div class="resumen-row"><span class="resumen-key">'+r[0]+'</span><span class="resumen-val">'+r[1]+'</span></div>';
 }).join('');
@@ -687,7 +772,7 @@ if(!rA.ok){showToast(dA.error||'Error al subir el archivo','err');btn.disabled=f
 archivoId=dA.id;
 }catch(e){showToast('Error al subir el archivo','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';return;}
 }
-var payload={tipoLicitacion:tipoLicitacion,origen:document.getElementById('origen').value.trim(),destino:document.getElementById('destino').value.trim(),direccionOrigen:document.getElementById('direccionOrigen').value.trim(),direccionDestino:document.getElementById('direccionDestino').value.trim(),fechaCarga:document.getElementById('fechaCarga').value,horaCarga:document.getElementById('horaCarga').value||'',fechaEntrega:document.getElementById('fechaEntrega').value,horaDescarga:document.getElementById('horaDescarga').value||'',plazo:document.getElementById('plazo').value,contactoOrigenNombre:document.getElementById('contactoOrigenNombre').value.trim(),contactoOrigenTelefono:document.getElementById('contactoOrigenTelefono').value.trim(),contactoOrigenEmail:document.getElementById('contactoOrigenEmail').value.trim(),contactoDestinoNombre:document.getElementById('contactoDestinoNombre').value.trim(),contactoDestinoTelefono:document.getElementById('contactoDestinoTelefono').value.trim(),contactoDestinoEmail:document.getElementById('contactoDestinoEmail').value.trim()};
+var payload={tipoLicitacion:tipoLicitacion,origen:document.getElementById('origen').value.trim(),destino:document.getElementById('destino').value.trim(),direccionOrigen:document.getElementById('direccionOrigen').value.trim(),direccionDestino:document.getElementById('direccionDestino').value.trim(),fechaCarga:document.getElementById('fechaCarga').value,horaCarga:document.getElementById('horaCarga').value||'',fechaEntrega:document.getElementById('fechaEntrega').value,horaDescarga:document.getElementById('horaDescarga').value||'',plazo:document.getElementById('plazo').value,valorSeguro:document.getElementById('valorSeguro').value||'',contactoOrigenNombre:document.getElementById('contactoOrigenNombre').value.trim(),contactoOrigenTelefono:document.getElementById('contactoOrigenTelefono').value.trim(),contactoOrigenEmail:document.getElementById('contactoOrigenEmail').value.trim(),contactoDestinoNombre:document.getElementById('contactoDestinoNombre').value.trim(),contactoDestinoTelefono:document.getElementById('contactoDestinoTelefono').value.trim(),contactoDestinoEmail:document.getElementById('contactoDestinoEmail').value.trim()};
 if(archivoId){payload.archivoId=archivoId;payload.archivoNombre=archivo.nombre;}
 if(tipoLicitacion==='maquinaria'){
 payload.tipoEquipo=getTipoEquipo();
@@ -698,6 +783,7 @@ payload.modelo=document.getElementById('modeloMaq').value.trim();
 payload.peso=document.getElementById('pesoMaq').value||'';
 payload.dimensiones=document.getElementById('dimensionesMaq').value.trim();
 payload.descripcion=document.getElementById('descripcionMaq').value.trim();
+payload.tipoEntregaDestino=document.getElementById('tipoEntregaDestino').value||'no_aplica';
 }else{
 payload.tipoEquipoRequerido=getEqRequeridoCarga();
 payload.tipoCarga=document.getElementById('tipoCarga').value.trim();
@@ -708,6 +794,7 @@ payload.cantidadBultos=document.getElementById('cantidadBultos').value||'';
 payload.pesoPorBulto=document.getElementById('pesoPorBulto').value||'';
 payload.dimensiones=document.getElementById('dimensionesCarga').value.trim();
 payload.descripcion=document.getElementById('descripcionCarga').value.trim();
+payload.paradas=getParadas();
 }
 try{
 var url=modoEdicion?API+'/api/licitaciones/'+modoEdicion:API+'/api/licitaciones';
@@ -735,6 +822,7 @@ modoEdicion=id;
 var _chkM=document.getElementById('acepta-tyc-maq'); if(_chkM) _chkM.checked=true;
 var _chkC=document.getElementById('acepta-tyc-carga'); if(_chkC) _chkC.checked=true;
 tipoLicitacion=l.tipoLicitacion||(l.tipoCarga?'carga':'maquinaria');
+toggleCamposPorTipoRuta();
 document.getElementById('paso0').style.display='none';
 document.getElementById('stepper').style.display='flex';
 document.getElementById('sl1').textContent=tipoLicitacion==='maquinaria'?'Equipo':'Carga';
@@ -760,6 +848,7 @@ if(l.plazo){
 document.getElementById('plazo').value=l.plazo;
 document.querySelectorAll('.plazo-btn').forEach(function(b){b.classList.toggle('selected',b.getAttribute('data-val')===String(l.plazo));});
 }
+if(l.valorSeguro)document.getElementById('valorSeguro').value=l.valorSeguro;
 if(tipoLicitacion==='maquinaria'){
 document.getElementById('tipoEquipo').value=l.tipoEquipo||'';
 if(l.tipoEquipoRequerido){
@@ -777,6 +866,9 @@ if(l.cantidadEquipos)document.getElementById('cantidadEquiposMaq').value=l.canti
 if(l.peso)document.getElementById('pesoMaq').value=l.peso;
 if(l.dimensiones)document.getElementById('dimensionesMaq').value=l.dimensiones;
 if(l.descripcion)document.getElementById('descripcionMaq').value=l.descripcion;
+var tEntVal=l.tipoEntregaDestino||'no_aplica';
+document.querySelectorAll('#tipo-entrega-section .plazo-btn').forEach(function(b){b.classList.toggle('selected',b.getAttribute('data-val')===tEntVal)});
+document.getElementById('tipoEntregaDestino').value=tEntVal;
 // Mostrar archivo previo maquinaria
 if(l.archivoNombre){
 var fp=document.getElementById('file-preview-maq');fp.classList.add('show');
@@ -793,6 +885,9 @@ if(l.cantidadBultos)document.getElementById('cantidadBultos').value=l.cantidadBu
 if(l.pesoPorBulto)document.getElementById('pesoPorBulto').value=l.pesoPorBulto;
 if(l.dimensiones)document.getElementById('dimensionesCarga').value=l.dimensiones;
 if(l.descripcion)document.getElementById('descripcionCarga').value=l.descripcion;
+if(Array.isArray(l.paradas)){
+l.paradas.forEach(function(p){agregarParada(p);});
+}
 // Mostrar archivo previo carga
 if(l.archivoNombre){
 var fp2=document.getElementById('file-preview-carga');fp2.classList.add('show');
