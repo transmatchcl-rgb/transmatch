@@ -325,7 +325,17 @@ function renderDetalle(t){
   }
   h += '</div>';
 
-  // Factura
+  // Guía de despacho — el cliente también puede subirla
+  h += '<div class="doc-section"><div class="doc-title">Guía de despacho <span style="font-size:10px;font-weight:400;color:#9CA3AF;margin-left:4px">— opcional, súbela si tú la emites</span></div>';
+  if(t.guiaDespacho){
+    h += '<div class="doc-done">Guía disponible desde '+fechaHora(t.guiaDespacho.subidoAt)+' <button class="btn btn-outline btn-sm" onclick="descargar(\''+t.guiaDespacho.archivoId+'\',\''+t.guiaDespacho.nombre+'\')">Descargar guía</button></div>';
+  } else {
+    h += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Si tu empresa emite la guía de despacho, puedes subirla aquí. Si no, el transportista podrá subirla.</div>'
+      + '<label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Seleccionar guía (PDF)</label>'
+      + '<input type="file" id="guia-file-'+t.id+'" accept=".pdf" style="font-size:13px;margin-bottom:8px"/>'
+      + '<button class="btn btn-outline btn-sm" onclick="subirGuia(\''+t.id+'\')">Subir guía</button>';
+  }
+  h += '</div>';
   h += '<div class="doc-section"><div class="doc-title">Factura del transporte <span style="font-size:10px;font-weight:400;color:#EF4444;margin-left:4px">requerida para completar</span></div>';
   if(t.factura){
     h += '<div class="doc-done">Factura disponible desde '+fechaHora(t.factura.subidoAt)+' <button class="btn btn-outline btn-sm" onclick="descargar(\''+t.factura.archivoId+'\',\''+t.factura.nombre+'\')">Descargar factura</button></div>';
@@ -333,6 +343,15 @@ function renderDetalle(t){
     h += '<div class="doc-waiting">Pendiente — El transportista aún no ha subido la factura.</div>';
   }
   h += '</div>';
+
+  // Documentación extra del transportista (seguros, contratos, permisos, etc.) — solo lectura
+  if(t.documentosExtra && t.documentosExtra.length){
+    h += '<div class="doc-section"><div class="doc-title">Documentación del transportista <span style="font-size:10px;font-weight:400;color:#9CA3AF;margin-left:4px">seguros, contratos, permisos</span></div>';
+    t.documentosExtra.forEach(function(d){
+      h += '<div class="doc-done" style="margin-bottom:6px">'+d.label+' <button class="btn btn-outline btn-sm" onclick="descargar(\''+d.archivoId+'\',\''+d.archivoNombre+'\')">Descargar</button></div>';
+    });
+    h += '</div>';
+  }
 
   // Historial
   var hist = t.historial || [];
@@ -413,6 +432,27 @@ async function subirOC(transporteId){
       });
       var d = await res.json();
       if(res.ok){ toast('OC subida correctamente.'); await cargar(); setTimeout(function(){ toggleCard(transporteId); }, 100); }
+      else toast(d.error || 'Error al subir', 'err');
+    } catch(e){ toast('Error de conexion', 'err'); }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function subirGuia(transporteId){
+  var fileInput = document.getElementById('guia-file-'+transporteId);
+  if(!fileInput || !fileInput.files[0]){ toast('Selecciona un archivo', 'err'); return; }
+  var file = fileInput.files[0];
+  var reader = new FileReader();
+  reader.onload = async function(e){
+    var base64 = e.target.result.split(',')[1];
+    try {
+      var res = await fetch(API+'/api/transportes/'+transporteId+'/subir-guia', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+        body: JSON.stringify({ base64: base64, mimeType: file.type, nombre: file.name })
+      });
+      var d = await res.json();
+      if(res.ok){ toast('Guía de despacho subida correctamente.'); await cargar(); setTimeout(function(){ toggleCard(transporteId); }, 100); }
       else toast(d.error || 'Error al subir', 'err');
     } catch(e){ toast('Error de conexion', 'err'); }
   };

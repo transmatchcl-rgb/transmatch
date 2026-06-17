@@ -544,6 +544,23 @@ function renderDetalle(t){
   }
   h+='</div>';
 
+  // Documentación extra (seguros, contratos, permisos, etc.)
+  h+='<div class="doc-card" style="margin-top:10px">';
+  h+='<div class="doc-title">Documentación extra <span style="font-size:10px;font-weight:400;color:#9CA3AF;margin-left:4px">— seguros, contratos, permisos, etc.</span></div>';
+  var docsExtra = t.documentosExtra||[];
+  if(docsExtra.length===0){
+    h+='<div style="font-size:12px;color:#6B7280;margin-bottom:10px">Aún no has agregado documentación extra para este transporte.</div>';
+  } else {
+    docsExtra.forEach(function(d){
+      h+='<div class="doc-ok" style="margin-bottom:6px"><span>'+d.label+' — subido el '+fechaHora(d.subidoAt)+'</span><span style="display:flex;gap:6px;flex-shrink:0">'
+        +'<button class="btn btn-outline btn-sm" onclick="descargar(\''+d.archivoId+'\',\''+d.archivoNombre+'\')">Descargar</button>'
+        +'<button class="btn btn-outline btn-sm" style="color:#DC2626;border-color:#FECACA" onclick="eliminarDocumentoExtra(\''+t.id+'\',\''+d.id+'\')">Eliminar</button>'
+        +'</span></div>';
+    });
+  }
+  h+='<button class="btn btn-outline btn-sm" style="margin-top:4px" onclick="abrirModalDocumentoExtra(\''+t.id+'\')">+ Agregar documento</button>';
+  h+='</div>';
+
   // Historial
   var hist=(t.historial||[]);
   if(hist.length>0){
@@ -947,6 +964,67 @@ async function subirGuia(transporteId){
     } catch(e){toast('Error de conexion','err');}
   };
   reader.readAsDataURL(file);
+}
+
+function abrirModalDocumentoExtra(transporteId){
+  var modal=document.createElement('div');
+  modal.id='modal-doc-extra';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto';
+  var inner=document.createElement('div');
+  inner.style.cssText='background:#fff;border-radius:16px;padding:28px;width:100%;max-width:420px';
+  inner.innerHTML=
+    '<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Agregar documento</div>'+
+    '<div style="font-size:12px;color:#9CA3AF;margin-bottom:20px">Ej: Seguro de carga, Contrato de transporte, Permiso especial</div>'+
+    '<div id="docextra-err" style="display:none;background:#FEF2F2;color:#991B1B;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:14px"></div>'+
+    '<div style="margin-bottom:14px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Nombre del documento *</label><input type="text" id="docextra-label" placeholder="Ej: Seguro de carga" maxlength="80" style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box"/></div>'+
+    '<div style="margin-bottom:20px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Archivo *</label><input type="file" id="docextra-file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="font-size:13px"/></div>'+
+    '<div style="display:flex;gap:10px;justify-content:flex-end">'+
+      '<button id="docextra-btn-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'+
+      '<button id="docextra-btn-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar</button>'+
+    '</div>';
+  modal.appendChild(inner);
+  document.body.appendChild(modal);
+  document.getElementById('docextra-btn-cancel').onclick=function(){modal.remove();};
+  document.getElementById('docextra-btn-save').onclick=function(){guardarDocumentoExtra(transporteId,modal);};
+}
+
+async function guardarDocumentoExtra(transporteId,modal){
+  var label=(document.getElementById('docextra-label').value||'').trim();
+  var fi=document.getElementById('docextra-file');
+  var errEl=document.getElementById('docextra-err');
+  if(!label){errEl.textContent='Indica un nombre para el documento';errEl.style.display='block';return;}
+  if(!fi||!fi.files[0]){errEl.textContent='Selecciona un archivo';errEl.style.display='block';return;}
+  var file=fi.files[0];
+  var btn=document.getElementById('docextra-btn-save');
+  btn.disabled=true;btn.textContent='Guardando...';
+  var reader=new FileReader();
+  reader.onload=async function(e){
+    var base64=e.target.result.split(',')[1];
+    try{
+      var res=await fetch(API+'/api/transportes/'+transporteId+'/documento-extra',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+        body:JSON.stringify({label:label,base64:base64,mimeType:file.type,nombre:file.name})
+      });
+      var d=await res.json();
+      if(res.ok){ modal.remove(); toast('Documento agregado.'); await cargar(); setTimeout(function(){toggleCard(transporteId);},200); }
+      else{ errEl.textContent=d.error||'Error al subir'; errEl.style.display='block'; btn.disabled=false; btn.textContent='Guardar'; }
+    }catch(e){ errEl.textContent='Error de conexion'; errEl.style.display='block'; btn.disabled=false; btn.textContent='Guardar'; }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function eliminarDocumentoExtra(transporteId,docId){
+  if(!confirm('¿Eliminar este documento?'))return;
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/documento-extra/'+docId,{
+      method:'DELETE',
+      headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}
+    });
+    var d=await res.json();
+    if(res.ok){ toast('Documento eliminado.'); await cargar(); setTimeout(function(){toggleCard(transporteId);},200); }
+    else toast(d.error||'Error al eliminar','err');
+  }catch(e){ toast('Error de conexion','err'); }
 }
 
 async function descargar(archivoId,nombre){
