@@ -137,6 +137,10 @@ textarea{resize:vertical;min-height:72px}
         <button type="button" onclick="togglePassEl('inv-password2',this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:15px;padding:0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
       </div>
     </div>
+    <div class="tyc-row">
+      <input type="checkbox" id="inv-tyc"/>
+      <label for="inv-tyc">He leído y acepto los <a href="/Terminos_y_Condiciones_Cliente.pdf" target="_blank" id="inv-tyc-link" style="color:#1d4ed8;text-decoration:underline">Términos y Condiciones</a> y la <a href="/privacidad.html" target="_blank" style="color:#1d4ed8;text-decoration:underline">Política de Privacidad</a> de TransMatch.</label>
+    </div>
     <button class="btn btn-orange" id="btn-aceptar-inv" onclick="aceptarInvitacion()">Crear cuenta y acceder</button>
     <div class="footer-link"><a href="/index.html">Ya tengo cuenta, iniciar sesión</a></div>
   </div>
@@ -270,7 +274,7 @@ textarea{resize:vertical;min-height:72px}
       <!-- TyC -->
       <div class="tyc-row" style="margin-top:16px">
         <input type="checkbox" id="reg-tyc"/>
-        <label for="reg-tyc">He leído y acepto los <a href="/terminos.html" target="_blank" style="color:#1d4ed8;text-decoration:underline">Términos y Condiciones</a> y la <a href="/privacidad.html" target="_blank" style="color:#1d4ed8;text-decoration:underline">Política de Privacidad</a> de TransMatch.</label>
+        <label for="reg-tyc">He leído y acepto los <a href="/Terminos_y_Condiciones_Cliente.pdf" target="_blank" id="tyc-link" style="color:#1d4ed8;text-decoration:underline">Términos y Condiciones</a> y la <a href="/privacidad.html" target="_blank" style="color:#1d4ed8;text-decoration:underline">Política de Privacidad</a> de TransMatch.</label>
       </div>
 
       <div class="btns-row">
@@ -332,6 +336,10 @@ function elegirRol(rol, btn){
   selectedRole = rol;
   document.getElementById('role-btn-mandante').classList.toggle('selected', rol==='mandante');
   document.getElementById('role-btn-transportista').classList.toggle('selected', rol==='transportista');
+  var tycLink = document.getElementById('tyc-link');
+  if(tycLink){
+    tycLink.href = rol==='transportista' ? '/Terminos_y_Condiciones_Transportista.pdf' : '/Terminos_y_Condiciones_Cliente.pdf';
+  }
 }
 
 function irARol(){
@@ -498,6 +506,10 @@ async function register(){
     document.getElementById('inv-empresa-label').textContent = 'Fuiste invitado por '+inv.empresa;
     document.getElementById('inv-email-label').textContent = inv.emailInvitado;
     document.getElementById('inv-sub').textContent = 'Unirte a '+inv.empresa+' en TransMatch';
+    var invTycLink = document.getElementById('inv-tyc-link');
+    if(invTycLink){
+      invTycLink.href = inv.role==='transportista' ? '/Terminos_y_Condiciones_Transportista.pdf' : '/Terminos_y_Condiciones_Cliente.pdf';
+    }
   }catch(e){
     document.getElementById('inv-empresa-label').textContent='Crea tu contraseña para comenzar';
     document.getElementById('inv-sub').textContent='Completa tus datos para unirte a la empresa';
@@ -513,6 +525,7 @@ async function aceptarInvitacion(){
   if(!nombre){ alertEl.textContent='Ingresa tu nombre'; alertEl.style.display='block'; return; }
   if(!validarPass(password)){ alertEl.textContent='La contraseña no cumple los requisitos de seguridad'; alertEl.style.display='block'; return; }
   if(password!==password2){ alertEl.textContent='Las contraseñas no coinciden'; alertEl.style.display='block'; return; }
+  if(!document.getElementById('inv-tyc').checked){ alertEl.textContent='Debes aceptar los Términos y Condiciones'; alertEl.style.display='block'; return; }
   var btn=document.getElementById('btn-aceptar-inv');
   btn.disabled=true; btn.innerHTML='<span class="spinner-btn"></span> Creando cuenta...';
   try{
