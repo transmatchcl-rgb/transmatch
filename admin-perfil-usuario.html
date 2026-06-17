@@ -260,10 +260,14 @@
         '<div class="sep"></div>' +
 
         // ── Empresa ──
-        '<div style="font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Empresa</div>' +
+        '<div style="font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Empresa' +
+          (u.esSubusuario ? ' <span style="font-size:11px;font-weight:500;color:#9CA3AF;text-transform:none;letter-spacing:0">(heredado de la cuenta madre)</span>' : '') +
+        '</div>' +
         '<div class="info-grid" style="margin-top:0">' +
           '<div class="info-item"><div class="info-label">Razón social</div><div class="info-val">' + (u.empresa || '--') + '</div></div>' +
           '<div class="info-item"><div class="info-label">RUT empresa</div><div class="info-val">' + (u.rutEmpresa || '--') + '</div></div>' +
+          '<div class="info-item"><div class="info-label">Giro</div><div class="info-val">' + (u.giro || '--') + '</div></div>' +
+          '<div class="info-item"><div class="info-label">Dirección</div><div class="info-val">' + (u.direccion || '--') + '</div></div>' +
           '<div class="info-item"><div class="info-label">Teléfono</div><div class="info-val">' + (u.telefono || '--') + '</div></div>' +
           '<div class="info-item"><div class="info-label">Registro</div><div class="info-val">' + (u.createdAt ? new Date(u.createdAt).toLocaleDateString('es-CL') : '--') + '</div></div>' +
         '</div>' +
@@ -275,6 +279,7 @@
         '<div class="info-grid" style="margin-top:0">' +
           '<div class="info-item"><div class="info-label">Nombre</div><div class="info-val">' + (u.nombre || '--') + '</div></div>' +
           '<div class="info-item"><div class="info-label">Cargo</div><div class="info-val">' + (u.cargo || '--') + '</div></div>' +
+          '<div class="info-item"><div class="info-label">RUT</div><div class="info-val">' + (u.rut || '--') + '</div></div>' +
         '</div>' +
       '</div></div>' +
 

@@ -127,6 +127,11 @@ textarea{resize:vertical;min-height:72px}
     <div class="card-sub" id="inv-sub">Completa tus datos para unirte a la empresa</div>
     <div id="alert-inv" class="alert alert-err"></div>
     <div class="form-group"><label>Tu nombre completo *</label><input type="text" id="inv-nombre" placeholder="Nombre y apellido"/></div>
+    <div class="grid2">
+      <div class="form-group"><label>Cargo *</label><input type="text" id="inv-cargo" placeholder="Ej: Jefe de operaciones"/></div>
+      <div class="form-group"><label>Teléfono *</label><input type="tel" id="inv-telefono" placeholder="+56 9 XXXX XXXX"/></div>
+    </div>
+    <div class="form-group"><label>RUT *</label><input type="text" id="inv-rut" placeholder="12.345.678-9" oninput="formatRutInput(this)"/></div>
     <div class="form-group"><label>Contraseña *</label>
       <div style="position:relative"><input type="password" id="inv-password" placeholder="Mínimo 8 caracteres" style="padding-right:40px" oninput="checkPassInv()"/>
         <button type="button" onclick="togglePassEl('inv-password',this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:15px;padding:0"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
@@ -518,11 +523,15 @@ async function register(){
 
 async function aceptarInvitacion(){
   var nombre   = (document.getElementById('inv-nombre').value||'').trim();
+  var cargo    = (document.getElementById('inv-cargo').value||'').trim();
+  var telefono = (document.getElementById('inv-telefono').value||'').trim();
+  var rut      = (document.getElementById('inv-rut').value||'').trim();
   var password = document.getElementById('inv-password').value;
   var password2= document.getElementById('inv-password2').value;
   var alertEl  = document.getElementById('alert-inv');
   alertEl.style.display='none';
   if(!nombre){ alertEl.textContent='Ingresa tu nombre'; alertEl.style.display='block'; return; }
+  if(!cargo||!telefono||!rut){ alertEl.textContent='Completa tu cargo, teléfono y RUT'; alertEl.style.display='block'; return; }
   if(!validarPass(password)){ alertEl.textContent='La contraseña no cumple los requisitos de seguridad'; alertEl.style.display='block'; return; }
   if(password!==password2){ alertEl.textContent='Las contraseñas no coinciden'; alertEl.style.display='block'; return; }
   if(!document.getElementById('inv-tyc').checked){ alertEl.textContent='Debes aceptar los Términos y Condiciones'; alertEl.style.display='block'; return; }
@@ -531,7 +540,7 @@ async function aceptarInvitacion(){
   try{
     var res = await fetch(API+'/api/invitacion/'+_invToken+'/aceptar',{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({nombre, password})
+      body:JSON.stringify({nombre, cargo, telefono, rut, password})
     });
     var data = await res.json();
     if(res.ok){
