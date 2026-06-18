@@ -246,9 +246,8 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 </div>
 
 <div class="form-card" id="paso1-maquinaria">
-<div class="card-title">Tipo de equipo a transportar</div>
 <div class="form-group">
-<label>Tipo de equipo requerido <span class="required">*</span></label>
+<label style="font-size:15px;font-weight:700;color:#1e2d4e;margin-bottom:8px">Equipo requerido <span class="required">*</span></label>
 <div id="equipo-requerido-list" style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
 <label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Cama baja" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Cama baja</label>
 <label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Camilla" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Camilla</label>
@@ -264,14 +263,12 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 </div>
 <div class="hint">Puedes seleccionar hasta 2 opciones</div>
 </div>
+<div class="form-group"><label>Cantidad de equipos <span class="required">*</span></label><input type="number" id="cantidadEquiposMaq" placeholder="Ej: 1" min="1" autocomplete="off"/></div>
 <div class="form-group">
-<label>Tipo de maquinaria <span class="required">*</span></label>
+<label style="font-size:15px;font-weight:700;color:#1e2d4e;margin-bottom:8px">Tipo de maquinaria <span class="required">*</span></label>
 <input type="text" id="tipoEquipo" placeholder="Ej: Excavadora, Cargador frontal, Motoniveladora..." autocomplete="off"/>
 </div>
-<div class="grid-2">
-<div class="form-group"><label>Cantidad de equipos <span class="required">*</span></label><input type="number" id="cantidadEquiposMaq" placeholder="Ej: 1" min="1" autocomplete="off"/></div>
 <div class="form-group"><label>Peso aprox. (toneladas) <span class="required">*</span></label><input type="number" id="pesoMaq" placeholder="Ej: 92" min="0" autocomplete="off"/></div>
-</div>
 <div class="grid-2">
 <div class="form-group"><label>Marca <span class="required">*</span></label><input type="text" id="marca" placeholder="Ej: Caterpillar" autocomplete="off"/></div>
 <div class="form-group"><label>Modelo <span class="required">*</span></label><input type="text" id="modeloMaq" placeholder="Ej: 390F" autocomplete="off"/></div>
@@ -418,17 +415,25 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <input type="hidden" id="tipoEntregaDestino" value="no_aplica"/>
 </div>
 <div class="grid-2">
-<div class="form-group"><label>Fecha de carga <span class="required">*</span></label><input type="date" id="fechaCarga" autocomplete="off"/></div>
 <div class="form-group">
-<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500"><input type="checkbox" id="chkHoraCarga" onchange="toggleHora('carga')" style="width:16px;height:16px;cursor:pointer;accent-color:#1e2d4e"/><span>Especificar hora de carga</span></label>
-<input type="time" id="horaCarga" autocomplete="off" style="display:none;margin-top:8px"/>
+<label>Fecha de carga <span class="required">*</span></label>
+<input type="date" id="fechaCarga" autocomplete="off"/>
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;margin-top:10px"><input type="checkbox" id="chkHoraCarga" onchange="toggleHora('carga')" style="width:16px;height:16px;cursor:pointer;accent-color:#1e2d4e"/><span>Especificar hora de carga</span></label>
+</div>
+<div class="form-group" id="hora-carga-wrap" style="display:none">
+<label>Hora de carga</label>
+<input type="time" id="horaCarga" autocomplete="off"/>
 </div>
 </div>
 <div class="grid-2">
-<div class="form-group"><label>Fecha de descarga <span class="required">*</span></label><input type="date" id="fechaEntrega" autocomplete="off"/></div>
 <div class="form-group">
-<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500"><input type="checkbox" id="chkHoraDescarga" onchange="toggleHora('descarga')" style="width:16px;height:16px;cursor:pointer;accent-color:#1e2d4e"/><span>Especificar hora de descarga</span></label>
-<input type="time" id="horaDescarga" autocomplete="off" style="display:none;margin-top:8px"/>
+<label>Fecha de descarga <span class="required">*</span></label>
+<input type="date" id="fechaEntrega" autocomplete="off"/>
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;margin-top:10px"><input type="checkbox" id="chkHoraDescarga" onchange="toggleHora('descarga')" style="width:16px;height:16px;cursor:pointer;accent-color:#1e2d4e"/><span>Especificar hora de descarga</span></label>
+</div>
+<div class="form-group" id="hora-descarga-wrap" style="display:none">
+<label>Hora de descarga</label>
+<input type="time" id="horaDescarga" autocomplete="off"/>
 </div>
 </div>
 <div class="grid-2">
@@ -694,10 +699,11 @@ document.getElementById('archivo-input-'+key).value='';
 
 function toggleHora(tipo){
 var chk=document.getElementById(tipo==='carga'?'chkHoraCarga':'chkHoraDescarga');
+var wrap=document.getElementById(tipo==='carga'?'hora-carga-wrap':'hora-descarga-wrap');
 var campo=document.getElementById(tipo==='carga'?'horaCarga':'horaDescarga');
-if(!chk||!campo)return;
-if(chk.checked){ campo.style.display='block'; }
-else { campo.style.display='none'; campo.value=''; }
+if(!chk||!wrap||!campo)return;
+if(chk.checked){ wrap.style.display='block'; }
+else { wrap.style.display='none'; campo.value=''; }
 }
 
 function toggleEstandarMinero(){
