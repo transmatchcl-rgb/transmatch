@@ -432,11 +432,11 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <div class="plazo-btn" id="plazo-express" onclick="selectPlazo(this,'6')" data-val="6" style="display:none;border-color:#f97316;flex:1;min-width:90px"><div class="plazo-val" style="color:#f97316">6h</div><div class="plazo-label">Express</div></div>
 <div class="plazo-btn" onclick="selectPlazo(this,'12')" data-val="12" style="flex:1;min-width:90px"><div class="plazo-val">12h</div><div class="plazo-label">Urgente</div></div>
 <div class="plazo-btn selected" onclick="selectPlazo(this,'24')" data-val="24" style="flex:1;min-width:90px"><div class="plazo-val">24h</div><div class="plazo-label">Normal</div></div>
-<div class="plazo-btn" onclick="selectPlazo(this,'48')" data-val="48" style="flex:1;min-width:90px"><div class="plazo-val">48h</div><div class="plazo-label">Estandar</div></div>
+<div class="plazo-btn" id="plazo-48" onclick="selectPlazo(this,'48')" data-val="48" style="flex:1;min-width:90px"><div class="plazo-val">48h</div><div class="plazo-label">Estandar</div></div>
 </div>
 <input type="hidden" id="plazo" value="24"/>
 </div>
-<div class="info-box">Un plazo mas corto significa mayor urgencia. La opcion <strong>6h Express</strong> solo esta disponible cuando la carga es para el dia siguiente. Recomendamos usar <strong>24h o 48h</strong> para obtener mejores cotizaciones.</div>
+<div class="info-box">Un plazo mas corto significa mayor urgencia. La opcion <strong>6h Express</strong> solo esta disponible cuando la carga es para el dia siguiente. Para cargas con mas anticipacion, recomendamos <strong>24h o 48h</strong> para obtener mejores cotizaciones.</div>
 <div class="btn-row">
 <button class="btn btn-outline" onclick="irPaso(2)">Volver</button>
 <button class="btn btn-primary" onclick="irPaso(4)">Siguiente</button>
@@ -1043,9 +1043,11 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 
 // Muestra la opción express de 6h SOLO si la fecha de carga es mañana (día siguiente a hoy)
+// Cuando el express está visible, se oculta el plazo estándar de 48h.
 function actualizarPlazoExpress(){
   var fcEl=document.getElementById('fechaCarga');
   var expressBtn=document.getElementById('plazo-express');
+  var btn48=document.getElementById('plazo-48');
   if(!fcEl||!expressBtn) return;
   var hoy=new Date(); hoy.setHours(0,0,0,0);
   var manana=new Date(hoy); manana.setDate(manana.getDate()+1);
@@ -1058,12 +1060,19 @@ function actualizarPlazoExpress(){
   }
   if(esManana){
     expressBtn.style.display='';
+    if(btn48) btn48.style.display='none';
+    // Si estaba seleccionado el 48h y deja de estar disponible, volver a 24h
+    if(document.getElementById('plazo').value==='48'){
+      var btn24a=document.querySelector('#plazo-grid .plazo-btn[data-val="24"]');
+      if(btn24a) selectPlazo(btn24a,'24');
+    }
   } else {
     expressBtn.style.display='none';
+    if(btn48) btn48.style.display='';
     // Si estaba seleccionado el express y deja de aplicar, volver a 24h
     if(document.getElementById('plazo').value==='6'){
-      var btn24=document.querySelector('.plazo-btn[data-val="24"]');
-      if(btn24) selectPlazo(btn24,'24');
+      var btn24b=document.querySelector('#plazo-grid .plazo-btn[data-val="24"]');
+      if(btn24b) selectPlazo(btn24b,'24');
     }
   }
 }

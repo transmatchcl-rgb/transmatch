@@ -187,6 +187,7 @@ document.dispatchEvent(new Event('_authReady'));
 <span class="pill pill-comp" onclick="togglePill(this,'completada')">Completadas</span>
 <span class="pill pill-rech" onclick="togglePill(this,'rechazada')">Rechazadas</span>
 <span class="pill pill-rech" onclick="togglePill(this,'anulada')">Anuladas</span>
+<span class="pill pill-rech" onclick="togglePill(this,'expirada')">Vencidas</span>
 <select class="sel-mes" id="fil-mes" onchange="aplicarFiltros()"><option value="">Todos los meses</option></select>
 </div>
 <div id="lista-licitaciones" style="max-width:820px;margin:0 auto"><div style="padding:40px;text-align:center"><div class="spinner" style="margin:0 auto"></div></div></div>
@@ -216,6 +217,25 @@ document.dispatchEvent(new Event('_authReady'));
 <div class="modal-btns">
 <button class="btn btn-outline" onclick="document.getElementById('modal-anular').classList.remove('open')">Cancelar</button>
 <button class="btn" style="background:#DC2626;color:#fff" onclick="ejecutarAnular()">Anular</button>
+</div>
+</div>
+</div>
+
+<!-- Modal ampliar plazo -->
+<div class="modal-bg" id="modal-ampliar">
+<div class="modal" style="max-width:420px">
+<div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:6px">Ampliar plazo</div>
+<div style="font-size:13px;color:#6B7280;margin-bottom:16px">Tu licitacion se volvera a publicar y quedara abierta durante el nuevo plazo que elijas.</div>
+<label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:8px">Nuevo plazo para recibir cotizaciones <span style="color:#EF4444">*</span></label>
+<div id="ampliar-grid" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+<div class="plazo-btn-amp selected" onclick="selectAmpliar(this,'12')" data-val="12" style="flex:1;min-width:80px;padding:10px;border-radius:8px;border:1.5px solid #1e2d4e;background:#eef1f8;cursor:pointer;text-align:center"><div style="font-size:16px;font-weight:700;color:#111827">12h</div><div style="font-size:10px;color:#9CA3AF;margin-top:2px">Urgente</div></div>
+<div class="plazo-btn-amp" onclick="selectAmpliar(this,'24')" data-val="24" style="flex:1;min-width:80px;padding:10px;border-radius:8px;border:1.5px solid #E5E7EB;background:#fff;cursor:pointer;text-align:center"><div style="font-size:16px;font-weight:700;color:#111827">24h</div><div style="font-size:10px;color:#9CA3AF;margin-top:2px">Normal</div></div>
+<div class="plazo-btn-amp" onclick="selectAmpliar(this,'48')" data-val="48" style="flex:1;min-width:80px;padding:10px;border-radius:8px;border:1.5px solid #E5E7EB;background:#fff;cursor:pointer;text-align:center"><div style="font-size:16px;font-weight:700;color:#111827">48h</div><div style="font-size:10px;color:#9CA3AF;margin-top:2px">Estandar</div></div>
+</div>
+<input type="hidden" id="ampliar-plazo" value="12"/>
+<div class="modal-btns">
+<button class="btn btn-outline" onclick="document.getElementById('modal-ampliar').classList.remove('open')">Cancelar</button>
+<button class="btn" style="background:#FF8904;color:#fff" onclick="ejecutarAmpliar()">Volver a publicar</button>
 </div>
 </div>
 </div>
@@ -310,7 +330,7 @@ return 'hace '+Math.floor(d/1440)+'d';
 }
 
 function bdg(e){
-var m={pendiente_admin:['badge-gray','En revision'],abierta:['badge-orange','Abierta'],cerrada:['badge-blue','Con cotizaciones'],adjudicada:['badge-green','Adjudicada'],completada:['badge-green','Completada'],rechazada:['badge-red','Rechazada'],anulada:['badge-red','Anulada']};
+var m={pendiente_admin:['badge-gray','En revision'],abierta:['badge-orange','Abierta'],cerrada:['badge-blue','Con cotizaciones'],adjudicada:['badge-green','Adjudicada'],completada:['badge-green','Completada'],rechazada:['badge-red','Rechazada'],anulada:['badge-red','Anulada'],expirada:['badge-gray','Vencida sin cotizaciones']};
 var cl=m[e]||['badge-gray',e];
 return '<span class="badge '+cl[0]+'">'+cl[1]+'</span>';
 }
@@ -470,6 +490,12 @@ if(l.estado==='pendiente_admin'){
 h+='<div style="background:#eef1f8;border-radius:8px;padding:11px 14px;font-size:12px;color:#1e40af;margin-bottom:14px">Tu licitacion esta siendo revisada. Sera publicada pronto.</div>';
 }else if(l.estado==='anulada'){
 h+='<div style="background:#FEF2F2;border-radius:8px;padding:11px 14px;font-size:13px;color:#991B1B;margin-bottom:14px">'+(l.motivoAnulacion?'Motivo: '+l.motivoAnulacion:'Licitacion anulada')+'</div>';
+}else if(l.estado==='expirada'){
+h+='<div style="background:#FFFBEB;border:0.5px solid #FDE68A;border-radius:8px;padding:14px;margin-bottom:14px">';
+h+='<div style="font-size:13px;font-weight:600;color:#92400E;margin-bottom:4px">Venció sin cotizaciones</div>';
+h+='<div style="font-size:12px;color:#92400E;margin-bottom:12px">Ningún transportista alcanzó a cotizar dentro del plazo. Puedes ampliar el plazo para volver a publicarla y recibir cotizaciones.</div>';
+h+='<button onclick="abrirModalAmpliar(\''+l.id+'\')" style="width:100%;padding:10px;background:#FF8904;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Ampliar plazo y volver a publicar</button>';
+h+='</div>';
 }
 
 // Cotizaciones
@@ -731,6 +757,40 @@ document.getElementById('modal-anular').classList.remove('open');
 var r=await api('/api/licitaciones/'+_anularId+'/anular','POST',{motivo:motivo});
 if(r&&r.ok){toast('Licitacion anulada');_anularId=null;await cargarLicitaciones();}
 else toast((r&&r.data&&r.data.error)||'Error al anular','err');
+}
+
+var _ampliarId=null;
+function abrirModalAmpliar(id){
+_ampliarId=id;
+document.getElementById('modal-det').classList.remove('open');
+// Reset a 12h por defecto
+document.getElementById('ampliar-plazo').value='12';
+document.querySelectorAll('#ampliar-grid .plazo-btn-amp').forEach(function(b){
+  var sel=b.getAttribute('data-val')==='12';
+  b.classList.toggle('selected',sel);
+  b.style.borderColor=sel?'#1e2d4e':'#E5E7EB';
+  b.style.background=sel?'#eef1f8':'#fff';
+});
+document.getElementById('modal-ampliar').classList.add('open');
+}
+function selectAmpliar(el,val){
+document.querySelectorAll('#ampliar-grid .plazo-btn-amp').forEach(function(b){
+  b.classList.remove('selected');
+  b.style.borderColor='#E5E7EB';
+  b.style.background='#fff';
+});
+el.classList.add('selected');
+el.style.borderColor='#1e2d4e';
+el.style.background='#eef1f8';
+document.getElementById('ampliar-plazo').value=val;
+}
+async function ejecutarAmpliar(){
+if(!_ampliarId)return;
+var plazo=document.getElementById('ampliar-plazo').value||'12';
+document.getElementById('modal-ampliar').classList.remove('open');
+var r=await api('/api/licitaciones/'+_ampliarId+'/ampliar-plazo','POST',{plazo:plazo});
+if(r&&r.ok){toast('Licitacion publicada nuevamente');_ampliarId=null;await cargarLicitaciones();}
+else toast((r&&r.data&&r.data.error)||'Error al ampliar el plazo','err');
 }
 
 async function cargarLicitaciones(){
