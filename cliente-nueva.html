@@ -387,6 +387,27 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <button type="button" class="btn btn-outline" id="btn-agregar-parada" style="margin-top:8px" onclick="agregarParada()">+ Agregar parada</button>
 </div>
 <div class="form-group"><label>Dirección de destino</label><input type="text" id="direccionDestino" placeholder="Ej: Bodega central, acceso camiones" autocomplete="off"/></div>
+<div class="form-group">
+<label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:500">
+<input type="checkbox" id="requiereEstandar" onchange="toggleEstandarMinero()" style="width:17px;height:17px;cursor:pointer;accent-color:#1e2d4e"/>
+<span>Se requiere estándar minero</span>
+</label>
+<div id="estandar-minero-detalle" style="display:none;margin-top:12px;padding:14px;background:#f8f9fc;border:0.5px solid #e8eaf0;border-radius:10px">
+<label>¿Qué estándar se requiere?</label>
+<input type="text" id="estandarDetalle" maxlength="80" placeholder="Ej: ESTÁNDAR CODELCO" autocomplete="off" style="margin-bottom:12px"/>
+<label>Documento del estándar (opcional)</label>
+<div class="upload-zone" id="upload-zone-estandar" onclick="document.getElementById('archivo-input-estandar').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event,'estandar')">
+<div class="upload-title">Arrastra el documento o haz clic para seleccionar</div>
+<div class="upload-sub">PDF, Word, Excel o imagen &middot; Maximo 8 MB</div>
+</div>
+<input type="file" id="archivo-input-estandar" accept=".xlsx,.xls,.pdf,.docx,.doc,.jpg,.jpeg,.png" style="display:none" onchange="handleFile(event,'estandar')"/>
+<div class="file-preview" id="file-preview-estandar">
+<div style="font-size:20px">&#128196;</div>
+<div><div class="file-name" id="file-name-estandar"></div><div class="file-size" id="file-size-estandar"></div></div>
+<button class="file-remove" onclick="removeFile(event,'estandar')">&#10005;</button>
+</div>
+</div>
+</div>
 <div class="form-group" id="tipo-entrega-section" style="display:none">
 <label>Tipo de entrega en destino</label>
 <div class="plazo-grid">
@@ -398,11 +419,17 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 </div>
 <div class="grid-2">
 <div class="form-group"><label>Fecha de carga <span class="required">*</span></label><input type="date" id="fechaCarga" autocomplete="off"/></div>
-<div class="form-group"><label>Hora de carga (opcional)</label><input type="time" id="horaCarga" autocomplete="off"/></div>
+<div class="form-group">
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500"><input type="checkbox" id="chkHoraCarga" onchange="toggleHora('carga')" style="width:16px;height:16px;cursor:pointer;accent-color:#1e2d4e"/><span>Especificar hora de carga</span></label>
+<input type="time" id="horaCarga" autocomplete="off" style="display:none;margin-top:8px"/>
+</div>
 </div>
 <div class="grid-2">
 <div class="form-group"><label>Fecha de descarga <span class="required">*</span></label><input type="date" id="fechaEntrega" autocomplete="off"/></div>
-<div class="form-group"><label>Hora de descarga (opcional)</label><input type="time" id="horaDescarga" autocomplete="off"/></div>
+<div class="form-group">
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500"><input type="checkbox" id="chkHoraDescarga" onchange="toggleHora('descarga')" style="width:16px;height:16px;cursor:pointer;accent-color:#1e2d4e"/><span>Especificar hora de descarga</span></label>
+<input type="time" id="horaDescarga" autocomplete="off" style="display:none;margin-top:8px"/>
+</div>
 </div>
 <div class="grid-2">
 <div class="form-group"><label>Contacto en origen</label><input type="text" id="contactoOrigenNombre" placeholder="Nombre de contacto" autocomplete="off"/></div>
@@ -472,6 +499,9 @@ var tipoLicitacion=null;
 var modoEdicion=null;
 var archivoMaq=null;
 var archivoCarga=null;
+var archivoEstandar=null;
+var _estandarArchivoIdPrevio=null;
+var _estandarArchivoNombrePrevio=null;
 var currentStep=0;
 
 function showToast(msg,type){
@@ -646,7 +676,7 @@ var reader=new FileReader();
 reader.onload=function(ev){
 var base64=ev.target.result.split(',')[1];
 var d={nombre:file.name,tipo:file.type,base64:base64};
-if(key==='maq')archivoMaq=d;else archivoCarga=d;
+if(key==='maq')archivoMaq=d;else if(key==='estandar')archivoEstandar=d;else archivoCarga=d;
 var fp=document.getElementById('file-preview-'+key);
 fp.classList.add('show');
 document.getElementById('file-name-'+key).textContent=file.name;
@@ -657,9 +687,28 @@ reader.readAsDataURL(file);
 
 function removeFile(e,key){
 e.stopPropagation();
-if(key==='maq')archivoMaq=null;else archivoCarga=null;
+if(key==='maq')archivoMaq=null;else if(key==='estandar')archivoEstandar=null;else archivoCarga=null;
 var fp=document.getElementById('file-preview-'+key);fp.classList.remove('show');
 document.getElementById('archivo-input-'+key).value='';
+}
+
+function toggleHora(tipo){
+var chk=document.getElementById(tipo==='carga'?'chkHoraCarga':'chkHoraDescarga');
+var campo=document.getElementById(tipo==='carga'?'horaCarga':'horaDescarga');
+if(!chk||!campo)return;
+if(chk.checked){ campo.style.display='block'; }
+else { campo.style.display='none'; campo.value=''; }
+}
+
+function toggleEstandarMinero(){
+var on=document.getElementById('requiereEstandar').checked;
+document.getElementById('estandar-minero-detalle').style.display=on?'block':'none';
+if(!on){
+  document.getElementById('estandarDetalle').value='';
+  archivoEstandar=null;
+  var fp=document.getElementById('file-preview-estandar');if(fp)fp.classList.remove('show');
+  var inp=document.getElementById('archivo-input-estandar');if(inp)inp.value='';
+}
 }
 
 function irPaso(paso){
@@ -754,6 +803,11 @@ var dN=document.getElementById('contactoDestinoNombre').value.trim(),dT=document
 if(dN)rows.push(['Contacto destino',dN+(dT?' · '+dT:'')]);
 rows.push(['Plazo cotizaciones',document.getElementById('plazo').value+'h']);
 var vSeg=document.getElementById('valorSeguro').value;if(vSeg)rows.push(['Valor seguro aprox.','$'+Number(vSeg).toLocaleString('es-CL')]);
+if(document.getElementById('requiereEstandar').checked){
+var estD=document.getElementById('estandarDetalle').value.trim();
+rows.push(['Estándar minero',estD||'Requerido']);
+if(archivoEstandar)rows.push(['Documento estándar',archivoEstandar.nombre]);
+}
 document.getElementById('resumen-content').innerHTML=rows.map(function(r){
 return '<div class="resumen-row"><span class="resumen-key">'+r[0]+'</span><span class="resumen-val">'+r[1]+'</span></div>';
 }).join('');
@@ -776,6 +830,23 @@ archivoId=dA.id;
 }
 var payload={tipoLicitacion:tipoLicitacion,origen:document.getElementById('origen').value.trim(),destino:document.getElementById('destino').value.trim(),direccionOrigen:document.getElementById('direccionOrigen').value.trim(),direccionDestino:document.getElementById('direccionDestino').value.trim(),fechaCarga:document.getElementById('fechaCarga').value,horaCarga:document.getElementById('horaCarga').value||'',fechaEntrega:document.getElementById('fechaEntrega').value,horaDescarga:document.getElementById('horaDescarga').value||'',plazo:document.getElementById('plazo').value,valorSeguro:document.getElementById('valorSeguro').value||'',contactoOrigenNombre:document.getElementById('contactoOrigenNombre').value.trim(),contactoOrigenTelefono:document.getElementById('contactoOrigenTelefono').value.trim(),contactoOrigenEmail:document.getElementById('contactoOrigenEmail').value.trim(),contactoDestinoNombre:document.getElementById('contactoDestinoNombre').value.trim(),contactoDestinoTelefono:document.getElementById('contactoDestinoTelefono').value.trim(),contactoDestinoEmail:document.getElementById('contactoDestinoEmail').value.trim()};
 if(archivoId){payload.archivoId=archivoId;payload.archivoNombre=archivo.nombre;}
+// Estándar minero
+var reqEstandar=document.getElementById('requiereEstandar').checked;
+payload.requiereEstandar=reqEstandar;
+if(reqEstandar){
+payload.estandarDetalle=document.getElementById('estandarDetalle').value.trim();
+if(archivoEstandar){
+try{
+var rE=await fetch(API+'/api/archivos/upload',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(archivoEstandar)});
+var dE=await rE.json();
+if(rE.ok){payload.estandarArchivoId=dE.id;payload.estandarArchivoNombre=archivoEstandar.nombre;}
+}catch(e){}
+}else if(modoEdicion&&_estandarArchivoIdPrevio){
+// Conservar el documento que ya estaba adjunto
+payload.estandarArchivoId=_estandarArchivoIdPrevio;
+payload.estandarArchivoNombre=_estandarArchivoNombrePrevio;
+}
+}
 if(tipoLicitacion==='maquinaria'){
 payload.tipoEquipo=getTipoEquipo();
 payload.tipoEquipoRequerido=getEqRequerido();
@@ -837,9 +908,9 @@ if(l.destino)document.getElementById('destino').value=l.destino;
 if(l.direccionOrigen)document.getElementById('direccionOrigen').value=l.direccionOrigen;
 if(l.direccionDestino)document.getElementById('direccionDestino').value=l.direccionDestino;
 if(l.fechaCarga)document.getElementById('fechaCarga').value=l.fechaCarga;
-if(l.horaCarga)document.getElementById('horaCarga').value=l.horaCarga;
+if(l.horaCarga){document.getElementById('horaCarga').value=l.horaCarga;document.getElementById('chkHoraCarga').checked=true;toggleHora('carga');}
 if(l.fechaEntrega)document.getElementById('fechaEntrega').value=l.fechaEntrega;
-if(l.horaDescarga)document.getElementById('horaDescarga').value=l.horaDescarga;
+if(l.horaDescarga){document.getElementById('horaDescarga').value=l.horaDescarga;document.getElementById('chkHoraDescarga').checked=true;toggleHora('descarga');}
 if(l.contactoOrigenNombre)document.getElementById('contactoOrigenNombre').value=l.contactoOrigenNombre;
 if(l.contactoOrigenTelefono)document.getElementById('contactoOrigenTelefono').value=l.contactoOrigenTelefono;
 if(l.contactoOrigenEmail)document.getElementById('contactoOrigenEmail').value=l.contactoOrigenEmail;
@@ -852,6 +923,17 @@ document.querySelectorAll('#plazo-grid .plazo-btn').forEach(function(b){b.classL
 }
 if(typeof actualizarPlazoExpress==='function')actualizarPlazoExpress();
 if(l.valorSeguro)document.getElementById('valorSeguro').value=l.valorSeguro;
+if(l.requiereEstandar){
+document.getElementById('requiereEstandar').checked=true;
+toggleEstandarMinero();
+if(l.estandarDetalle)document.getElementById('estandarDetalle').value=l.estandarDetalle;
+if(l.estandarArchivoId&&l.estandarArchivoNombre){
+_estandarArchivoIdPrevio=l.estandarArchivoId;
+_estandarArchivoNombrePrevio=l.estandarArchivoNombre;
+var fpE=document.getElementById('file-preview-estandar');
+if(fpE){fpE.classList.add('show');document.getElementById('file-name-estandar').textContent=l.estandarArchivoNombre;document.getElementById('file-size-estandar').textContent='Documento ya adjunto';}
+}
+}
 if(tipoLicitacion==='maquinaria'){
 document.getElementById('tipoEquipo').value=l.tipoEquipo||'';
 if(l.tipoEquipoRequerido){
