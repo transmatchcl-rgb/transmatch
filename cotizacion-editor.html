@@ -252,41 +252,8 @@ input.invalid,textarea.invalid{border-color:#dc2626!important;background:#fff8f8
       <!-- EQUIPO QUE UTILIZARÉ -->
       <span class="sec-label">Equipo que utilizaré <span class="req-star" style="font-size:11px">*</span></span>
       <div class="field" style="margin-top:8px;max-width:520px">
-        <select id="f-equipo-util" onchange="clearErr('f-equipo-util');autoSave();onEquipoUtilOtro()">
-            <option value="">Seleccionar equipo...</option>
-            <option value="Cama baja 2 ejes">Cama baja 2 ejes (hasta 30 ton)</option>
-            <option value="Cama baja 3 ejes">Cama baja 3 ejes (hasta 50 ton)</option>
-            <option value="Cama baja 4 ejes">Cama baja 4 ejes (60-70 ton)</option>
-            <option value="Cama baja con dolly">Cama baja con dolly (80-90 ton)</option>
-            <option value="Cama baja punta de lanza">Cama baja punta de lanza (sobredimensionada)</option>
-            <option value="Cama baja hidráulica multieje">Cama baja hidráulica multieje (+100 ton)</option>
-            <option value="Camilla">Camilla</option>
-            <option value="Cama cuna">Cama cuna / cureña</option>
-            <option value="Tren modular">Tren modular (+150 ton)</option>
-            <option value="Palote 30 ton">Palote 30 ton</option>
-            <option value="Palote 50 ton">Palote 50 ton</option>
-            <option value="Rampla abierta">Rampla abierta (plataforma seca)</option>
-            <option value="Rampla con baranda">Rampla con baranda</option>
-            <option value="Rampla extensible">Rampla extensible (18-24 m)</option>
-            <option value="Camión pluma 5 ton">Camión pluma 5 ton</option>
-            <option value="Camión pluma 8 ton">Camión pluma 8 ton</option>
-            <option value="Camión pluma 12 ton">Camión pluma 12 ton</option>
-            <option value="Camión pluma 20 ton">Camión pluma 20 ton</option>
-            <option value="Tracto pluma con rampla">Tracto pluma con rampla</option>
-            <option value="Furgón">Camión furgón (cerrado)</option>
-            <option value="Sider">Camión sider (lonas corredizas)</option>
-            <option value="Tolva 10 m3">Camión tolva 10 m3</option>
-            <option value="Tolva 15 m3">Camión tolva 15 m3</option>
-            <option value="Tolva 20 m3">Camión tolva 20 m3</option>
-            <option value="Portacontenedor">Camión portacontenedor</option>
-            <option value="Camión Plano 5 ton">Camión Plano 5 ton</option>
-            <option value="Camión Plano 10 ton">Camión Plano 10 ton</option>
-            <option value="Camión Plano 15 ton">Camión Plano 15 ton</option>
-            <option value="Tractocamión">Tractocamión</option>
-            <option value="Otro">Otro (especificar)</option>
-        </select>
+        <input type="text" id="f-equipo-util" maxlength="120" placeholder="Ej: Cama baja 3 ejes (hasta 50 ton)" oninput="clearErr('f-equipo-util');autoSave()" style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;box-sizing:border-box"/>
         <span class="field-err" id="err-f-equipo-util">Indica el equipo específico que usarás</span>
-        <div id="f-equipo-util-otro-wrap" style="display:none;margin-top:8px"><input type="text" id="f-equipo-util-otro" placeholder="Especifica el equipo" maxlength="80" oninput="clearErr('f-equipo-util');autoSave()" style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;box-sizing:border-box"/></div>
       </div>
 
       <hr class="divider"/>
@@ -550,7 +517,10 @@ async function cargarCotizacionExistente(){
         if(f.fechaCarga)   document.getElementById('f-fecha-carga').value = f.fechaCarga;
         if(f.fechaEntrega) document.getElementById('f-fecha-entrega').value = f.fechaEntrega;
         if(f.observaciones) document.getElementById('f-obs-gen').value = f.observaciones;
-        if(f.equipoUtilizado){ var _se=document.getElementById('f-equipo-util'); var _has=Array.prototype.slice.call(_se.options).some(function(o){return o.value===f.equipoUtilizado;}); if(_has){_se.value=f.equipoUtilizado;} else {_se.value='Otro'; var _to=document.getElementById('f-equipo-util-otro'); if(_to)_to.value=f.equipoUtilizado;} onEquipoUtilOtro(); }
+        if(f.esperaIncluida!==undefined) document.getElementById('f-espera-incluida').value = f.esperaIncluida||'';
+        if(f.cobroEspera!==undefined)    document.getElementById('f-cobro-espera').value = f.cobroEspera||'';
+        if(f.cobroEstadia!==undefined)   document.getElementById('f-cobro-estadia').value = f.cobroEstadia||'';
+        if(f.equipoUtilizado){ document.getElementById('f-equipo-util').value = f.equipoUtilizado; }
         (f.items||[]).forEach(it => agregarItem(it));
         (f.seguros||[]).forEach(s => agregarSeguro(s));
         if(!(f.items||[]).length){ agregarItem(); }
@@ -728,6 +698,7 @@ function collectData(){
     fechaCarga:  document.getElementById('f-fecha-carga').value,
     fechaEntreg: document.getElementById('f-fecha-entrega').value,
     obsGen:      document.getElementById('f-obs-gen').value,
+    equipoUtil:  (document.getElementById('f-equipo-util').value||'').trim(),
     esperaIncluida: document.getElementById('f-espera-incluida').value,
     cobroEspera:    document.getElementById('f-cobro-espera').value,
     cobroEstadia:   document.getElementById('f-cobro-estadia').value,
@@ -747,6 +718,7 @@ function applyData(d){
   set('f-fecha-carga',  d.fechaCarga);
   set('f-fecha-entrega',d.fechaEntreg);
   set('f-obs-gen',      d.obsGen);
+  set('f-equipo-util',  d.equipoUtil);
   set('f-espera-incluida', d.esperaIncluida);
   set('f-cobro-espera',    d.cobroEspera);
   set('f-cobro-estadia',   d.cobroEstadia);
@@ -788,7 +760,6 @@ function guardarBorrador(){
 }
 
 /* ── VALIDATION ── */
-function onEquipoUtilOtro(){var sel=document.getElementById('f-equipo-util');var w=document.getElementById('f-equipo-util-otro-wrap');var on=sel&&sel.value==='Otro';if(w)w.style.display=on?'block':'none';if(!on){var t=document.getElementById('f-equipo-util-otro');if(t)t.value='';}}
 function clearErr(id){
   document.getElementById(id)?.classList.remove('invalid');
   document.getElementById('err-'+id)?.classList.remove('show');
@@ -816,6 +787,13 @@ function validar(){
   }
 
   let tieneItem = false;
+  // Equipo que utilizaré: obligatorio
+  var _eq = document.getElementById('f-equipo-util');
+  if(!_eq || !_eq.value.trim()){
+    _eq?.classList.add('invalid');
+    document.getElementById('err-f-equipo-util')?.classList.add('show');
+    ok = false;
+  }
   document.getElementById('items-body').querySelectorAll('tr').forEach(tr=>{
     const id = tr.id.replace('item-row-','');
     if(document.getElementById('r'+id+'-eq')?.value.trim() &&
@@ -895,12 +873,11 @@ async function enviarCotizacion(){
     return;
   }
 
-  const _selEq = document.getElementById('f-equipo-util').value;
-  let equipoUtil = _selEq;
-  if(_selEq==='Otro'){ equipoUtil = (document.getElementById('f-equipo-util-otro').value||'').trim(); }
+  const equipoUtil = (document.getElementById('f-equipo-util').value||'').trim();
   if(!equipoUtil){
-    showToast(_selEq==='Otro'?'Especifica el equipo en "Otro"':'Indica el equipo que utilizarás','err');
+    showToast('Indica el equipo que utilizarás','err');
     document.getElementById('err-f-equipo-util').classList.add('show');
+    document.getElementById('f-equipo-util').classList.add('invalid');
     document.getElementById('f-equipo-util').scrollIntoView({behavior:'smooth',block:'center'});
     return;
   }
