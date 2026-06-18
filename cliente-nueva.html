@@ -390,9 +390,9 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <div class="form-group" id="tipo-entrega-section" style="display:none">
 <label>Tipo de entrega en destino</label>
 <div class="plazo-grid">
-<div class="plazo-btn selected" onclick="selectTipoEntrega(this,'no_aplica')" data-val="no_aplica"><div class="plazo-val" style="font-size:13px">No aplica</div></div>
-<div class="plazo-btn" onclick="selectTipoEntrega(this,'mina')" data-val="mina"><div class="plazo-val" style="font-size:13px">Dentro de la mina</div></div>
-<div class="plazo-btn" onclick="selectTipoEntrega(this,'garita')" data-val="garita"><div class="plazo-val" style="font-size:13px">En garita</div></div>
+<div class="plazo-btn selected" onclick="selectTipoEntrega(this,'no_aplica')" data-val="no_aplica"><div class="plazo-val" style="font-size:13px;font-weight:500">No aplica</div></div>
+<div class="plazo-btn" onclick="selectTipoEntrega(this,'mina')" data-val="mina"><div class="plazo-val" style="font-size:13px;font-weight:500">Dentro de la mina</div></div>
+<div class="plazo-btn" onclick="selectTipoEntrega(this,'garita')" data-val="garita"><div class="plazo-val" style="font-size:13px;font-weight:500">En garita</div></div>
 </div>
 <input type="hidden" id="tipoEntregaDestino" value="no_aplica"/>
 </div>
@@ -428,14 +428,15 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 </div>
 <div class="form-group">
 <label>Plazo para recibir cotizaciones <span class="required">*</span></label>
-<div class="plazo-grid">
-<div class="plazo-btn" onclick="selectPlazo(this,'12')" data-val="12"><div class="plazo-val">12h</div><div class="plazo-label">Urgente</div></div>
-<div class="plazo-btn selected" onclick="selectPlazo(this,'24')" data-val="24"><div class="plazo-val">24h</div><div class="plazo-label">Normal</div></div>
-<div class="plazo-btn" onclick="selectPlazo(this,'48')" data-val="48"><div class="plazo-val">48h</div><div class="plazo-label">Estandar</div></div>
+<div class="plazo-grid" id="plazo-grid" style="display:flex;flex-wrap:wrap">
+<div class="plazo-btn" id="plazo-express" onclick="selectPlazo(this,'6')" data-val="6" style="display:none;border-color:#f97316;flex:1;min-width:90px"><div class="plazo-val" style="color:#f97316">6h</div><div class="plazo-label">Express</div></div>
+<div class="plazo-btn" onclick="selectPlazo(this,'12')" data-val="12" style="flex:1;min-width:90px"><div class="plazo-val">12h</div><div class="plazo-label">Urgente</div></div>
+<div class="plazo-btn selected" onclick="selectPlazo(this,'24')" data-val="24" style="flex:1;min-width:90px"><div class="plazo-val">24h</div><div class="plazo-label">Normal</div></div>
+<div class="plazo-btn" onclick="selectPlazo(this,'48')" data-val="48" style="flex:1;min-width:90px"><div class="plazo-val">48h</div><div class="plazo-label">Estandar</div></div>
 </div>
 <input type="hidden" id="plazo" value="24"/>
 </div>
-<div class="info-box">Un plazo mas corto significa mayor urgencia. Recomendamos usar <strong>24h o 48h</strong> para obtener mejores cotizaciones.</div>
+<div class="info-box">Un plazo mas corto significa mayor urgencia. La opcion <strong>6h Express</strong> solo esta disponible cuando la carga es para el dia siguiente. Recomendamos usar <strong>24h o 48h</strong> para obtener mejores cotizaciones.</div>
 <div class="btn-row">
 <button class="btn btn-outline" onclick="irPaso(2)">Volver</button>
 <button class="btn btn-primary" onclick="irPaso(4)">Siguiente</button>
@@ -622,7 +623,7 @@ lines.forEach(function(line,idx){line.style.background=(idx+1)<s?'#1e2d4e':'#E5E
 }
 
 function selectPlazo(el,val){
-document.querySelectorAll('.plazo-btn').forEach(function(b){b.classList.remove('selected')});
+document.querySelectorAll('#plazo-grid .plazo-btn').forEach(function(b){b.classList.remove('selected')});
 el.classList.add('selected');
 document.getElementById('plazo').value=val;
 }
@@ -690,11 +691,12 @@ if(!document.getElementById('origen').value.trim()){showToast('Ingresa la ciudad
 if(!document.getElementById('destino').value.trim()){showToast('Ingresa la ciudad de destino','err');return;}
 var _fc=document.getElementById('fechaCarga').value;
 if(!_fc){showToast('Selecciona la fecha de carga','err');return;}
-var _min=new Date(); _min.setDate(_min.getDate()+2); _min.setHours(0,0,0,0);
-if(new Date(_fc+'T00:00:00') < _min){showToast('La fecha de carga debe ser desde pasado mañana en adelante','err');return;}
+var _min=new Date(); _min.setDate(_min.getDate()+1); _min.setHours(0,0,0,0);
+if(new Date(_fc+'T00:00:00') < _min){showToast('La fecha de carga debe ser desde mañana en adelante','err');return;}
 var _fe=document.getElementById('fechaEntrega').value;
 if(!_fe){showToast('Selecciona la fecha de descarga','err');return;}
 if(new Date(_fe+'T00:00:00') < new Date(_fc+'T00:00:00')){showToast('La fecha de entrega no puede ser anterior a la de carga','err');return;}
+actualizarPlazoExpress();
 }
 if(paso===4)buildResumen();
 document.getElementById('paso1-maquinaria').classList.remove('active');
@@ -846,8 +848,9 @@ if(l.contactoDestinoTelefono)document.getElementById('contactoDestinoTelefono').
 if(l.contactoDestinoEmail)document.getElementById('contactoDestinoEmail').value=l.contactoDestinoEmail;
 if(l.plazo){
 document.getElementById('plazo').value=l.plazo;
-document.querySelectorAll('.plazo-btn').forEach(function(b){b.classList.toggle('selected',b.getAttribute('data-val')===String(l.plazo));});
+document.querySelectorAll('#plazo-grid .plazo-btn').forEach(function(b){b.classList.toggle('selected',b.getAttribute('data-val')===String(l.plazo));});
 }
+if(typeof actualizarPlazoExpress==='function')actualizarPlazoExpress();
 if(l.valorSeguro)document.getElementById('valorSeguro').value=l.valorSeguro;
 if(tipoLicitacion==='maquinaria'){
 document.getElementById('tipoEquipo').value=l.tipoEquipo||'';
@@ -1021,7 +1024,7 @@ if(editId) document.addEventListener('DOMContentLoaded', function(){ cargarEdici
 
 // Fecha mínima de carga: hoy + 2 días (se bloquea hoy y el día siguiente; mínimo = pasado mañana)
 function aplicarFechaMinima(){
-  var d=new Date(); d.setDate(d.getDate()+2);
+  var d=new Date(); d.setDate(d.getDate()+1);
   // Construir YYYY-MM-DD en hora LOCAL (no UTC) para evitar corrimiento de día en Chile.
   var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
   var min=y+'-'+m+'-'+dd;
@@ -1029,14 +1032,41 @@ function aplicarFechaMinima(){
   var fe=document.getElementById('fechaEntrega'); if(fe) fe.min=min;
 }
 document.addEventListener('DOMContentLoaded', aplicarFechaMinima);
-// La fecha de entrega no puede ser anterior a la fecha de carga elegida
+// La fecha de entrega no puede ser anterior a la fecha de carga elegida; y mostrar/ocultar plazo express según urgencia
 document.addEventListener('DOMContentLoaded', function(){
   var fc=document.getElementById('fechaCarga');
   if(fc) fc.addEventListener('change', function(){
     var fe=document.getElementById('fechaEntrega');
     if(fe && fc.value) fe.min=fc.value;
+    actualizarPlazoExpress();
   });
 });
+
+// Muestra la opción express de 6h SOLO si la fecha de carga es mañana (día siguiente a hoy)
+function actualizarPlazoExpress(){
+  var fcEl=document.getElementById('fechaCarga');
+  var expressBtn=document.getElementById('plazo-express');
+  if(!fcEl||!expressBtn) return;
+  var hoy=new Date(); hoy.setHours(0,0,0,0);
+  var manana=new Date(hoy); manana.setDate(manana.getDate()+1);
+  var esManana=false;
+  if(fcEl.value){
+    var partes=fcEl.value.split('-');
+    var fcDate=new Date(parseInt(partes[0]),parseInt(partes[1])-1,parseInt(partes[2]));
+    fcDate.setHours(0,0,0,0);
+    esManana=(fcDate.getTime()===manana.getTime());
+  }
+  if(esManana){
+    expressBtn.style.display='';
+  } else {
+    expressBtn.style.display='none';
+    // Si estaba seleccionado el express y deja de aplicar, volver a 24h
+    if(document.getElementById('plazo').value==='6'){
+      var btn24=document.querySelector('.plazo-btn[data-val="24"]');
+      if(btn24) selectPlazo(btn24,'24');
+    }
+  }
+}
 
 var _API='https://transmatch.transmatchcl.workers.dev';
 function closeAllPanels(){var p=document.getElementById('notif-panel');if(p)p.style.display='none';}
