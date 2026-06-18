@@ -368,9 +368,9 @@ var _urlId=new URLSearchParams(window.location.search).get('id');
 if(_urlId){selectLicitacion(_urlId);}
 }
 function actualizarStats(){
-  // Disponibles: abiertas sin cotizar aún
+  // Disponibles: abiertas, vigentes y sin cotizar aún
   var disponibles = allLicitaciones.filter(function(l){
-    return l.estado==='abierta' && !misCotizaciones.has(l.id);
+    return l.estado==='abierta' && !misCotizaciones.has(l.id) && licitacionVigente(l);
   }).length;
   // Cotizaciones enviadas: todas donde cotizé y aún no gané (en espera / en revisión)
   var enviadas = 0;
@@ -412,15 +412,31 @@ function tieneBorradorGuardado(licitId){
     return tieneItems || tieneDatos;
   }catch(e){ return false; }
 }
+// Una licitación abierta solo está realmente vigente si su cierre no ha pasado.
+// Defensa en el cliente por si el backend devuelve alguna vencida antes de procesarla.
+function licitacionVigente(l){
+  if(l.estado!=='abierta') return true; // otros estados no dependen del cierre aquí
+  var cierre=l.cierreAt;
+  // Licitaciones antiguas sin cierreAt: calcular desde createdAt + plazo
+  if(!cierre && l.createdAt){
+    var horas=parseInt(l.plazo||'24');
+    cierre=new Date(new Date(l.createdAt).getTime()+horas*3600000).toISOString();
+  }
+  if(!cierre) return true; // sin datos para descartarla
+  return new Date(cierre).getTime() > Date.now();
+}
+
 function filtrar(){
 const q=(document.getElementById('buscador').value||'').toLowerCase();
 var base=q?allLicitaciones.filter(l=>(l.tipoEquipo+l.origen+l.destino+l.marca).toLowerCase().includes(q)):allLicitaciones;
 const lista=base.filter(function(l){
-if(tabActual==='pendientes')    return !misCotizaciones.has(l.id) && l.estado==='abierta';
-if(tabActual==='enviadas')      return misCotizaciones.has(l.id) && l.estado==='abierta';
+if(tabActual==='pendientes')    return !misCotizaciones.has(l.id) && l.estado==='abierta' && licitacionVigente(l);
+if(tabActual==='enviadas')      return misCotizaciones.has(l.id) && (l.estado==='abierta' || l.estado==='cerrada');
 if(tabActual==='adjudicadas')   return licitacionesGanadas.has(l.id);
 if(tabActual==='no-adjudicadas') return misCotizaciones.has(l.id) && !licitacionesGanadas.has(l.id) && (l.estado==='adjudicada'||l.estado==='completada');
 if(tabActual==='completadas')   return licitacionesGanadas.has(l.id) && l.estado==='completada';
+// "Todas": ocultar las abiertas que ya vencieron y no cotizé (ya no son una oportunidad)
+if(l.estado==='abierta' && !misCotizaciones.has(l.id) && !licitacionVigente(l)) return false;
 return true;
 });
 if(lista.length===0){
@@ -431,12 +447,17 @@ document.getElementById('lista-licitaciones').innerHTML=lista.map(function(l){
 var yaCotize = misCotizaciones.has(l.id);
 var gane = licitacionesGanadas.has(l.id);
 var estaResuelta = l.estado==='adjudicada' || l.estado==='completada';
+var plazoCerrado = l.estado==='cerrada'; // el plazo de cotización ya cerró; cliente evaluando
 var tieneBorrador = tieneBorradorGuardado(l.id) && l.estado==='abierta' && !yaCotize;
 var badgeHtml;
 if(gane){
   badgeHtml = '<span class="badge badge-green">Adjudicada</span>';
 } else if(yaCotize && estaResuelta){
   badgeHtml = '<span class="badge" style="background:#FEF2F2;color:#991B1B">No adjudicada</span>';
+} else if(yaCotize && plazoCerrado){
+  badgeHtml = '<span class="badge badge-blue">En revision</span>';
+} else if(plazoCerrado){
+  badgeHtml = '<span class="badge" style="background:#F3F4F6;color:#6B7280">Cerrada</span>';
 } else if(yaCotize){
   badgeHtml = '<span class="badge badge-green">Cotizacion enviada</span>';
 } else if(tieneBorrador){
@@ -512,9 +533,13 @@ ${ licitacionesGanadas.has(l.id)
    ? '<span class="badge badge-green">Adjudicada</span>'
    : (yaCotize && (l.estado==='adjudicada'||l.estado==='completada')
        ? '<span class="badge" style="background:#FEF2F2;color:#991B1B">No adjudicada</span>'
-       : (yaCotize
-           ? '<span class="badge badge-green">Cotizacion enviada</span>'
-           : '<span class="badge badge-orange">Abierta</span>')) }
+       : (yaCotize && l.estado==='cerrada'
+           ? '<span class="badge badge-blue">En revision</span>'
+           : (l.estado==='cerrada'
+               ? '<span class="badge" style="background:#F3F4F6;color:#6B7280">Cerrada</span>'
+               : (yaCotize
+                   ? '<span class="badge badge-green">Cotizacion enviada</span>'
+                   : '<span class="badge badge-orange">Abierta</span>')))) }
 ${l.fechaCarga?`<span class="tag">Carga: ${new Date(l.fechaCarga+'T12:00:00').toLocaleDateString('es-CL')}${l.horaCarga?' '+l.horaCarga:''}</span>`:''}
 ${l.fechaEntrega?`<span class="tag">Entrega: ${new Date(l.fechaEntrega+'T12:00:00').toLocaleDateString('es-CL')}${l.horaDescarga?' '+l.horaDescarga:''}</span>`:''}
 ${l.peso?`<span class="tag">${l.peso} ton</span>`:''}
@@ -674,6 +699,9 @@ ${l.estado === 'abierta' ? `
 }
 }
 } else {
+if(l.estado==='cerrada'){
+h+=`<div style="padding:16px 18px"><div style="background:#F3F4F6;border-radius:10px;padding:16px;text-align:center"><div style="font-size:14px;font-weight:600;color:#374151;margin-bottom:2px">Plazo de cotización cerrado</div><div style="font-size:12px;color:#6B7280">Esta licitación ya no recibe cotizaciones. El cliente está evaluando las recibidas.</div></div></div>`;
+} else {
 const cierre=new Date(l.cierreAt);
 const horasRestantes=Math.max(0,Math.round((cierre-Date.now())/3600000));
 h+=`<div style="padding:16px 18px">
@@ -681,6 +709,7 @@ ${horasRestantes<6?`<div class="warn-box" style="margin:0 0 12px"><span>!</span>
 <button class="btn btn-orange btn-full" onclick="abrirModal('${l.id}','${(l.tipoEquipo+' '+(l.marca||'')).replace(/'/g,"\\'")}')">
 Cotizar
 </button></div>`;
+}
 }
 document.getElementById('modal-detalle-titulo').innerHTML = (l.codigo?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:monospace;background:#f5f7fb;padding:1px 6px;border-radius:4px;margin-right:6px">'+l.codigo+'</span>':'')+l.tipoEquipo+(l.marca?' — '+l.marca:'');
 // El título y ruta ya se muestran en el header de la card, solo retornamos el body
