@@ -231,8 +231,8 @@ input.invalid,textarea.invalid{border-color:#dc2626!important;background:#fff8f8
           <span class="field-err" id="err-f-ruta">Ingresa la ruta</span>
         </div>
         <div class="field" style="grid-column:1/-1">
-          <label>Descripción del servicio <span class="req-star">*</span></label>
-          <textarea id="f-desc" placeholder="Descripción general del servicio de transporte…" oninput="clearErr('f-desc')"></textarea>
+          <label>Descripción del servicio</label>
+          <textarea id="f-desc" placeholder="Descripción general del servicio de transporte… (opcional)" oninput="clearErr('f-desc')"></textarea>
           <span class="field-err" id="err-f-desc">Ingresa una descripción</span>
         </div>
         <div class="field">
@@ -375,6 +375,28 @@ input.invalid,textarea.invalid{border-color:#dc2626!important;background:#fff8f8
 
       <hr class="divider"/>
 
+      <!-- TIEMPOS DE ESPERA Y ESTADÍA -->
+      <span class="sec-label">Tiempos de Espera y Estadía</span>
+      <div class="form-grid">
+        <div class="field">
+          <label>Tiempo de espera incluido (horas)</label>
+          <input type="number" id="f-espera-incluida" min="0" step="0.5" placeholder="Ej: 2" oninput="autoSave()"/>
+          <span class="field-hint">Horas de espera en carga/descarga sin costo adicional.</span>
+        </div>
+        <div class="field">
+          <label>Cobro por hora de espera adicional (CLP)</label>
+          <input type="number" id="f-cobro-espera" min="0" step="1000" placeholder="Ej: 25000" oninput="autoSave()"/>
+          <span class="field-hint">Valor por cada hora que exceda lo incluido.</span>
+        </div>
+        <div class="field">
+          <label>Cobro por estadía (CLP por noche)</label>
+          <input type="number" id="f-cobro-estadia" min="0" step="1000" placeholder="Ej: 80000" oninput="autoSave()"/>
+          <span class="field-hint">Valor por cada noche de pernoctación del equipo.</span>
+        </div>
+      </div>
+
+      <hr class="divider"/>
+
       <!-- OBSERVACIONES -->
       <span class="sec-label">Observaciones Generales</span>
       <div class="field">
@@ -410,7 +432,7 @@ input.invalid,textarea.invalid{border-color:#dc2626!important;background:#fff8f8
         <div class="cond-item"><span class="cond-num">1.</span><span>La presente cotización tiene una validez de 5 días hábiles desde su emisión.</span></div>
         <div class="cond-item"><span class="cond-num">2.</span><span>Para formalizar el servicio, el cliente debe emitir una Orden de Compra aceptando la cotización y sus condiciones. La orden de compra debe ser enviada de inmediato.</span></div>
         <div class="cond-item"><span class="cond-num">3.</span><span>Condiciones de pago: 30 días contra recepción de factura.</span></div>
-        <div class="cond-item"><span class="cond-num">4.</span><span>Stand by / Espera: Si en origen o destino no existieran medios para la descarga o inconvenientes no imputables al transportista, se aplicará tarifa diaria.</span></div>
+        <div class="cond-item"><span class="cond-num">4.</span><span>Stand by / Espera: Si en origen o destino no existieran medios para la descarga o inconvenientes no imputables al transportista, se aplicará la tarifa correspondiente por tiempo de espera.</span></div>
         <div class="cond-item"><span class="cond-num">5.</span><span>Cualquier modificación de ruta, fechas o condiciones deberá comunicarse con al menos 24 horas de anticipación y podrá implicar ajuste de tarifa.</span></div>
         <div class="cond-item"><span class="cond-num">6.</span><span>La coordinación de permisos de circulación especial (cargas sobredimensionadas) es responsabilidad del transportista, salvo acuerdo expreso en contrario.</span></div>
         <div class="cond-item"><span class="cond-num">7.</span><span>Los pases de ingreso a faena son responsabilidad del cliente. El transportista proporcionará los antecedentes requeridos.</span></div>
@@ -706,6 +728,9 @@ function collectData(){
     fechaCarga:  document.getElementById('f-fecha-carga').value,
     fechaEntreg: document.getElementById('f-fecha-entrega').value,
     obsGen:      document.getElementById('f-obs-gen').value,
+    esperaIncluida: document.getElementById('f-espera-incluida').value,
+    cobroEspera:    document.getElementById('f-cobro-espera').value,
+    cobroEstadia:   document.getElementById('f-cobro-estadia').value,
     items:       collectItems(),
     seguros:     collectSeguros(),
     savedAt:     new Date().toISOString(),
@@ -722,6 +747,9 @@ function applyData(d){
   set('f-fecha-carga',  d.fechaCarga);
   set('f-fecha-entrega',d.fechaEntreg);
   set('f-obs-gen',      d.obsGen);
+  set('f-espera-incluida', d.esperaIncluida);
+  set('f-cobro-espera',    d.cobroEspera);
+  set('f-cobro-estadia',   d.cobroEstadia);
   (d.items||d.rows||[]).forEach(r => agregarItem(r));
   (d.seguros||[]).forEach(s => agregarSeguro(s));
 }
@@ -770,7 +798,6 @@ function validar(){
   let ok = true;
   const reqs = [
     {id:'f-ruta',         err:'err-f-ruta'},
-    {id:'f-desc',         err:'err-f-desc'},
     {id:'f-fecha-carga',  err:'err-f-fecha-carga'},
     {id:'f-fecha-entrega',err:'err-f-fecha-entrega'},
   ];
@@ -929,6 +956,9 @@ async function enviarCotizacion(){
         seguros:      collectSeguros(),
         observaciones:document.getElementById('f-obs-gen').value,
         equipoUtilizado: equipoUtil,
+        esperaIncluida: document.getElementById('f-espera-incluida').value,
+        cobroEspera:    document.getElementById('f-cobro-espera').value,
+        cobroEstadia:   document.getElementById('f-cobro-estadia').value,
       },
     };
     if(modoEditar){ payload.cotizacionId = cotizIdEditar; }

@@ -624,8 +624,36 @@ function verPreviewCotiz(idx){
       });
       html+='<div style="margin-bottom:12px"></div>';
     }
+    if((f.esperaIncluida&&parseFloat(f.esperaIncluida)>0)||(f.cobroEspera&&parseFloat(f.cobroEspera)>0)||(f.cobroEstadia&&parseFloat(f.cobroEstadia)>0)){
+      html+='<div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Espera y estadía</div>';
+      html+='<div style="border:0.5px solid #E5E7EB;border-radius:8px;overflow:hidden;margin-bottom:16px;font-size:13px">';
+      if(f.esperaIncluida&&parseFloat(f.esperaIncluida)>0)html+='<div style="display:flex;justify-content:space-between;padding:8px 12px"><span style="color:#6B7280">Espera incluida</span><span style="color:#1e2d4e;font-weight:500">'+f.esperaIncluida+' h</span></div>';
+      if(f.cobroEspera&&parseFloat(f.cobroEspera)>0)html+='<div style="display:flex;justify-content:space-between;padding:8px 12px;border-top:0.5px solid #E5E7EB"><span style="color:#6B7280">Hora de espera adicional</span><span style="color:#1e2d4e;font-weight:500">'+fmt(f.cobroEspera)+'</span></div>';
+      if(f.cobroEstadia&&parseFloat(f.cobroEstadia)>0)html+='<div style="display:flex;justify-content:space-between;padding:8px 12px;border-top:0.5px solid #E5E7EB"><span style="color:#6B7280">Estadía por noche</span><span style="color:#1e2d4e;font-weight:500">'+fmt(f.cobroEstadia)+'</span></div>';
+      html+='</div>';
+    }
     if(f.observaciones)html+='<div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Observaciones</div><div style="font-size:13px;color:#374151;line-height:1.6">'+f.observaciones+'</div>';
-  } else {
+    // Alcance de la tarifa (texto estándar de toda cotización)
+    html+='<div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px">Alcance de la tarifa</div>';
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">';
+    html+='<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;font-size:12px;line-height:1.7;color:#374151"><div style="font-weight:600;color:#16a34a;margin-bottom:4px">Incluye</div>Seguro de transporte durante el traslado<br>Conductor certificado<br>Escolta si es requerida por normativa vial<br>Coordinación de permisos de circulación (si aplica)</div>';
+    html+='<div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:8px;padding:12px;font-size:12px;line-height:1.7;color:#374151"><div style="font-weight:600;color:#e11d48;margin-bottom:4px">No incluye</div>Carga y descarga del equipo<br>Estadía en destino superior a lo cotizado<br>Trámites aduaneros (transporte internacional)</div>';
+    html+='</div>';
+    // Condiciones generales (texto estándar)
+    var condiciones=[
+      'La presente cotización tiene una validez de 5 días hábiles desde su emisión.',
+      'Para formalizar el servicio, el cliente debe emitir una Orden de Compra aceptando la cotización y sus condiciones. La orden de compra debe ser enviada de inmediato.',
+      'Condiciones de pago: 30 días contra recepción de factura.',
+      'Stand by / Espera: Si en origen o destino no existieran medios para la descarga o inconvenientes no imputables al transportista, se aplicará la tarifa correspondiente por tiempo de espera.',
+      'Cualquier modificación de ruta, fechas o condiciones deberá comunicarse con al menos 24 horas de anticipación y podrá implicar ajuste de tarifa.',
+      'La coordinación de permisos de circulación especial (cargas sobredimensionadas) es responsabilidad del transportista, salvo acuerdo expreso en contrario.',
+      'Los pases de ingreso a faena son responsabilidad del cliente. El transportista proporcionará los antecedentes requeridos.',
+      'Será responsabilidad del cliente aportar la Guía de Despacho. El no portarla impide la tramitación de pólizas de seguro y la circulación del equipo.'
+    ];
+    html+='<div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Condiciones generales</div>';
+    html+='<div style="font-size:12px;color:#374151;line-height:1.6">';
+    condiciones.forEach(function(c,i){ html+='<div style="display:flex;gap:8px;margin-bottom:6px"><span style="font-weight:700;color:#1e2d4e;flex-shrink:0">'+(i+1)+'.</span><span>'+c+'</span></div>'; });
+    html+='</div>';
     // Cotización sin formulario detallado
     html+='<div style="font-size:13px;color:#374151;line-height:1.8">'+
       '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid #E5E7EB"><span style="color:#6B7280">Monto neto</span><span style="font-weight:700;color:#1e2d4e">'+fmt(c.precio)+'</span></div>'+
