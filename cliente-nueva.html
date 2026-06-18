@@ -292,14 +292,6 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <button class="file-remove" onclick="removeFile(event,'maq')">&#10005;</button>
 </div>
 </div>
-<div class="form-group" style="background:#f8f9fb;border:1px solid #e8eaf0;border-radius:10px;padding:14px 16px">
-<a href="/Terminos_y_Condiciones_Cliente.pdf" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#1e2d4e;text-decoration:underline">Descargar Términos y Condiciones (PDF)</a>
-<label style="display:flex;align-items:flex-start;gap:10px;margin-top:12px;cursor:pointer">
-<input type="checkbox" id="acepta-tyc-maq" style="width:18px;height:18px;accent-color:#1e2d4e;cursor:pointer;flex-shrink:0;margin-top:1px"/>
-<span style="font-size:13px;color:#374151;line-height:1.5">Acepto los <a href="/Terminos_y_Condiciones_Cliente.pdf" target="_blank" rel="noopener" style="color:#1e2d4e;font-weight:600;text-decoration:underline">Términos y Condiciones</a> de TransMatch SpA. <span class="required">*</span></span>
-</label>
-<div id="err-tyc-maq" style="display:none;font-size:12px;color:#DC2626;margin-top:8px">Debes aceptar los Términos y Condiciones para continuar.</div>
-</div>
 <div class="btn-row">
 <button class="btn btn-outline" onclick="volverPaso0()">Cambiar tipo</button>
 <button class="btn btn-primary" onclick="irPaso(2)">Siguiente</button>
@@ -307,9 +299,8 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 </div>
 
 <div class="form-card" id="paso1-carga">
-<div class="card-title">Detalle de la carga</div>
 <div class="form-group">
-<label>Tipo de equipo requerido <span class="required">*</span></label>
+<label style="font-size:15px;font-weight:700;color:#1e2d4e;margin-bottom:8px">Equipo requerido <span class="required">*</span></label>
 <div id="equipo-requerido-carga-list" style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
 <label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Rampla / plataforma" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Rampla / plataforma</label>
 <label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Camión pluma" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Camión pluma (autocarga)</label>
@@ -327,10 +318,9 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <div class="hint">Puedes seleccionar hasta 2 opciones</div>
 <input type="hidden" id="tipoEquipoCarga" value=""/>
 </div>
-<div class="grid-2">
-<div class="form-group"><label>Tipo de carga</label><input type="text" id="tipoCarga" placeholder="Ej: Maxi sacos de cemento, tambores de lubricante..." autocomplete="off"/></div>
 <div class="form-group"><label>Cantidad de equipos <span class="required">*</span></label><input type="number" id="cantidadEquiposCarga" placeholder="Ej: 2" min="1" autocomplete="off"/></div>
-</div>
+<label style="font-size:15px;font-weight:700;color:#1e2d4e;margin:24px 0 12px;display:block">Detalle de la carga</label>
+<div class="form-group"><label>Tipo de carga</label><input type="text" id="tipoCarga" placeholder="Ej: Maxi sacos de cemento, tambores de lubricante..." autocomplete="off"/></div>
 <div class="grid-2">
 <div class="form-group"><label>Peso total aprox. (ton)</label><input type="number" id="pesoCarga" placeholder="Ej: 18" min="0" step="0.1" autocomplete="off"/></div>
 <div class="form-group"><label>Volumen aprox. (m&sup3;)</label><input type="number" id="volumenCarga" placeholder="Ej: 12" min="0" step="0.1" autocomplete="off"/></div>
@@ -356,14 +346,6 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <div><div class="file-name" id="file-name-carga"></div><div class="file-size" id="file-size-carga"></div></div>
 <button class="file-remove" onclick="removeFile(event,'carga')">&#10005;</button>
 </div>
-</div>
-<div class="form-group" style="background:#f8f9fb;border:1px solid #e8eaf0;border-radius:10px;padding:14px 16px">
-<a href="/Terminos_y_Condiciones_Cliente.pdf" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#1e2d4e;text-decoration:underline">Descargar Términos y Condiciones (PDF)</a>
-<label style="display:flex;align-items:flex-start;gap:10px;margin-top:12px;cursor:pointer">
-<input type="checkbox" id="acepta-tyc-carga" style="width:18px;height:18px;accent-color:#1e2d4e;cursor:pointer;flex-shrink:0;margin-top:1px"/>
-<span style="font-size:13px;color:#374151;line-height:1.5">Acepto los <a href="/Terminos_y_Condiciones_Cliente.pdf" target="_blank" rel="noopener" style="color:#1e2d4e;font-weight:600;text-decoration:underline">Términos y Condiciones</a> de TransMatch SpA. <span class="required">*</span></span>
-</label>
-<div id="err-tyc-carga" style="display:none;font-size:12px;color:#DC2626;margin-top:8px">Debes aceptar los Términos y Condiciones para continuar.</div>
 </div>
 <div class="btn-row">
 <button class="btn btn-outline" onclick="volverPaso0()">Cambiar tipo</button>
@@ -406,11 +388,11 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 </div>
 </div>
 <div class="form-group" id="tipo-entrega-section" style="display:none">
-<label>Tipo de entrega en destino</label>
-<div class="plazo-grid">
-<div class="plazo-btn selected" onclick="selectTipoEntrega(this,'no_aplica')" data-val="no_aplica"><div class="plazo-val" style="font-size:13px;font-weight:500">No aplica</div></div>
-<div class="plazo-btn" onclick="selectTipoEntrega(this,'mina')" data-val="mina"><div class="plazo-val" style="font-size:13px;font-weight:500">Dentro de la mina</div></div>
-<div class="plazo-btn" onclick="selectTipoEntrega(this,'garita')" data-val="garita"><div class="plazo-val" style="font-size:13px;font-weight:500">En garita</div></div>
+<div style="display:flex;align-items:center;flex-wrap:wrap;gap:18px">
+<label style="margin-bottom:0">Tipo de entrega en destino:</label>
+<label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:0;font-weight:400"><input type="checkbox" class="entrega-cb" value="garita" onchange="selectTipoEntregaCb(this)" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"> En garita</label>
+<label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:0;font-weight:400"><input type="checkbox" class="entrega-cb" value="mina" onchange="selectTipoEntregaCb(this)" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"> Dentro de la mina</label>
+<label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:0;font-weight:400"><input type="checkbox" class="entrega-cb" value="no_aplica" checked onchange="selectTipoEntregaCb(this)" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"> No aplica</label>
 </div>
 <input type="hidden" id="tipoEntregaDestino" value="no_aplica"/>
 </div>
@@ -477,8 +459,17 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 
 <div class="form-card" id="paso4">
 <div class="card-title">Revisar y publicar</div>
+<label style="font-size:13px;font-weight:700;color:#1e2d4e;margin-bottom:8px;display:block">Resumen de la licitación</label>
 <div id="resumen-content"></div>
 <div class="info-box" style="margin-top:16px">Al publicar, los transportistas seran notificados y podran enviar cotizaciones dentro del plazo seleccionado.</div>
+<div class="form-group" style="background:#f8f9fb;border:1px solid #e8eaf0;border-radius:10px;padding:14px 16px;margin-top:16px">
+<a href="/Terminos_y_Condiciones_Cliente.pdf" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#1e2d4e;text-decoration:underline">Descargar Términos y Condiciones (PDF)</a>
+<label style="display:flex;align-items:flex-start;gap:10px;margin-top:12px;cursor:pointer">
+<input type="checkbox" id="acepta-tyc" style="width:18px;height:18px;accent-color:#1e2d4e;cursor:pointer;flex-shrink:0;margin-top:1px"/>
+<span style="font-size:13px;color:#374151;line-height:1.5">Acepto los <a href="/Terminos_y_Condiciones_Cliente.pdf" target="_blank" rel="noopener" style="color:#1e2d4e;font-weight:600;text-decoration:underline">Términos y Condiciones</a> de TransMatch SpA. <span class="required">*</span></span>
+</label>
+<div id="err-tyc" style="display:none;font-size:12px;color:#DC2626;margin-top:8px">Debes aceptar los Términos y Condiciones para continuar.</div>
+</div>
 <div class="btn-row">
 <button class="btn btn-outline" onclick="irPaso(3)">Editar</button>
 <button class="btn btn-orange" id="btn-publicar" onclick="publicar()">Publicar licitacion</button>
@@ -583,7 +574,7 @@ window.scrollTo({top:0,behavior:'smooth'});
 function toggleCamposPorTipoRuta(){
 var esCarga=tipoLicitacion==='carga';
 var pSec=document.getElementById('paradas-section');if(pSec)pSec.style.display=esCarga?'block':'none';
-var tSec=document.getElementById('tipo-entrega-section');if(tSec)tSec.style.display=esCarga?'none':'block';
+var tSec=document.getElementById('tipo-entrega-section');if(tSec)tSec.style.display='block';
 }
 
 var PARADAS_MAX=5;
@@ -599,13 +590,15 @@ row.innerHTML=
 '<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><button type="button" onclick="quitarParada(this)" style="background:none;border:none;color:#9CA3AF;cursor:pointer;font-size:12px">Quitar &#10005;</button></div>'+
 '<div class="form-group" style="margin-bottom:8px"><label style="font-size:12px">Dirección de la parada</label><input type="text" class="parada-direccion" placeholder="Ej: Peaje Las Lomas, Ruta 5" autocomplete="off"/></div>'+
 '<div class="grid-2">'+
-'<div class="form-group" style="margin-bottom:0"><label style="font-size:12px">Horario aproximado</label><input type="text" class="parada-horario" placeholder="Ej: Entre 10:00 y 12:00" autocomplete="off"/></div>'+
-'<div class="form-group" style="margin-bottom:0"><label style="font-size:12px">Contacto en el lugar</label><input type="text" class="parada-contacto" placeholder="Nombre y teléfono" autocomplete="off"/></div>'+
-'</div>';
+'<div class="form-group" style="margin-bottom:8px"><label style="font-size:12px">Horario aproximado</label><input type="text" class="parada-horario" placeholder="Ej: Entre 10:00 y 12:00" autocomplete="off"/></div>'+
+'<div class="form-group" style="margin-bottom:8px"><label style="font-size:12px">Contacto en el lugar</label><input type="text" class="parada-contacto" placeholder="Nombre y teléfono" autocomplete="off"/></div>'+
+'</div>'+
+'<div class="form-group" style="margin-bottom:0"><label style="font-size:12px">Descripción</label><input type="text" class="parada-descripcion" placeholder="Ej: Cargar material adicional, inspección" autocomplete="off"/></div>';
 list.appendChild(row);
 if(data.direccion)row.querySelector('.parada-direccion').value=data.direccion;
 if(data.horario)row.querySelector('.parada-horario').value=data.horario;
 if(data.contacto)row.querySelector('.parada-contacto').value=data.contacto;
+if(data.descripcion)row.querySelector('.parada-descripcion').value=data.descripcion;
 actualizarBtnAgregarParada();
 }
 
@@ -626,15 +619,23 @@ document.querySelectorAll('#paradas-list .parada-row').forEach(function(row){
 var dir=row.querySelector('.parada-direccion').value.trim();
 var hor=row.querySelector('.parada-horario').value.trim();
 var con=row.querySelector('.parada-contacto').value.trim();
-if(dir||hor||con)arr.push({direccion:dir,horario:hor,contacto:con});
+var desc=row.querySelector('.parada-descripcion')?row.querySelector('.parada-descripcion').value.trim():'';
+if(dir||hor||con||desc)arr.push({direccion:dir,horario:hor,contacto:con,descripcion:desc});
 });
 return arr;
 }
 
-function selectTipoEntrega(el,val){
-document.querySelectorAll('#tipo-entrega-section .plazo-btn').forEach(function(b){b.classList.remove('selected')});
-el.classList.add('selected');
-document.getElementById('tipoEntregaDestino').value=val;
+function selectTipoEntregaCb(el){
+// Comportamiento de selección única: al marcar uno, se desmarcan los demás
+document.querySelectorAll('.entrega-cb').forEach(function(cb){ if(cb!==el) cb.checked=false; });
+// Si se desmarca el único activo, volver a "No aplica"
+if(!el.checked){
+  var na=document.querySelector('.entrega-cb[value="no_aplica"]');
+  if(na) na.checked=true;
+  document.getElementById('tipoEntregaDestino').value='no_aplica';
+  return;
+}
+document.getElementById('tipoEntregaDestino').value=el.value;
 }
 
 function volverPaso0(){
@@ -735,11 +736,6 @@ if(!getEqRequeridoCarga()){showToast('Selecciona al menos un tipo de equipo requ
 if(!document.getElementById('cantidadEquiposCarga').value){showToast('Indica la cantidad de equipos','err');return;}
 if(!modoEdicion&&!archivoCarga){showToast('Debes adjuntar el archivo de especificaciones','err');return;}
 }
-// Aceptación de Términos y Condiciones (obligatoria para avanzar)
-var chkT=document.getElementById(tipoLicitacion==='maquinaria'?'acepta-tyc-maq':'acepta-tyc-carga');
-var errT=document.getElementById(tipoLicitacion==='maquinaria'?'err-tyc-maq':'err-tyc-carga');
-if(chkT && !chkT.checked){ if(errT) errT.style.display='block'; chkT.focus(); return; }
-if(errT) errT.style.display='none';
 }
 if(paso===3){
 if(!document.getElementById('origen').value.trim()){showToast('Ingresa la ciudad de origen','err');return;}
@@ -770,17 +766,19 @@ window.scrollTo({top:0,behavior:'smooth'});
 
 function buildResumen(){
 var rows=[];
+function gv(id){var el=document.getElementById(id);return el?el.value:'';}
+try{
 rows.push(['Tipo',tipoLicitacion==='maquinaria'?'Maquinaria pesada':'Carga general']);
 if(tipoLicitacion==='maquinaria'){
 rows.push(['Maquinaria',getTipoEquipo()]);
 rows.push(['Equipo requerido',getEqRequerido()||'--']);
-var cant=document.getElementById('cantidadEquiposMaq').value;if(cant)rows.push(['Cantidad de equipos',cant]);
-var marca=document.getElementById('marca').value.trim();var modelo=document.getElementById('modeloMaq').value.trim();
+var cant=gv('cantidadEquiposMaq');if(cant)rows.push(['Cantidad de equipos',cant]);
+var marca=gv('marca').trim();var modelo=gv('modeloMaq').trim();
 if(marca||modelo)rows.push(['Marca / modelo',(marca+' '+modelo).trim()]);
-var peso=document.getElementById('pesoMaq').value;if(peso)rows.push(['Peso',peso+' ton']);
-var dimM=document.getElementById('dimensionesMaq').value.trim();if(dimM)rows.push(['Dimensiones',dimM]);
+var peso=gv('pesoMaq');if(peso)rows.push(['Peso',peso+' ton']);
+var dimM=gv('dimensionesMaq').trim();if(dimM)rows.push(['Dimensiones',dimM]);
 }else{
-var eq=document.getElementById('tipoEquipoCarga').value;if(eq)rows.push(['Camion requerido',eq]);
+var eq=gv('tipoEquipoCarga');if(eq)rows.push(['Camion requerido',eq]);
 var tc=document.getElementById('tipoCarga').value.trim();if(tc)rows.push(['Tipo de carga',tc]);
 var cantC=document.getElementById('cantidadEquiposCarga').value;if(cantC)rows.push(['Cantidad de equipos',cantC]);
 var pc=document.getElementById('pesoCarga').value;if(pc)rows.push(['Peso total',pc+' ton']);
@@ -791,11 +789,10 @@ rows.push(['Origen',document.getElementById('origen').value.trim()]);
 var dOrig=document.getElementById('direccionOrigen').value.trim();if(dOrig)rows.push(['Dirección origen',dOrig]);
 rows.push(['Destino',document.getElementById('destino').value.trim()]);
 var dDest=document.getElementById('direccionDestino').value.trim();if(dDest)rows.push(['Dirección destino',dDest]);
-if(tipoLicitacion==='maquinaria'){
 var tEnt=document.getElementById('tipoEntregaDestino').value;
 var tEntLabel={mina:'Dentro de la mina',garita:'En garita',no_aplica:'No aplica'}[tEnt]||'No aplica';
 rows.push(['Tipo de entrega',tEntLabel]);
-}else{
+if(tipoLicitacion==='carga'){
 var paradasR=getParadas();
 if(paradasR.length)rows.push(['Paradas',paradasR.length+' parada'+(paradasR.length===1?'':'s')]);
 }
@@ -807,13 +804,15 @@ var cN=document.getElementById('contactoOrigenNombre').value.trim(),cT=document.
 if(cN)rows.push(['Contacto origen',cN+(cT?' · '+cT:'')]);
 var dN=document.getElementById('contactoDestinoNombre').value.trim(),dT=document.getElementById('contactoDestinoTelefono').value.trim();
 if(dN)rows.push(['Contacto destino',dN+(dT?' · '+dT:'')]);
-rows.push(['Plazo cotizaciones',document.getElementById('plazo').value+'h']);
-var vSeg=document.getElementById('valorSeguro').value;if(vSeg)rows.push(['Valor seguro aprox.','$'+Number(vSeg).toLocaleString('es-CL')]);
-if(document.getElementById('requiereEstandar').checked){
-var estD=document.getElementById('estandarDetalle').value.trim();
+rows.push(['Plazo cotizaciones',gv('plazo')+'h']);
+var vSeg=gv('valorSeguro');if(vSeg)rows.push(['Valor seguro aprox.','$'+Number(vSeg).toLocaleString('es-CL')]);
+var _re=document.getElementById('requiereEstandar');
+if(_re&&_re.checked){
+var estD=gv('estandarDetalle').trim();
 rows.push(['Estándar minero',estD||'Requerido']);
 if(archivoEstandar)rows.push(['Documento estándar',archivoEstandar.nombre]);
 }
+}catch(e){console.error('Error armando resumen:',e);}
 document.getElementById('resumen-content').innerHTML=rows.map(function(r){
 return '<div class="resumen-row"><span class="resumen-key">'+r[0]+'</span><span class="resumen-val">'+r[1]+'</span></div>';
 }).join('');
@@ -822,6 +821,11 @@ if(btn)btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';
 }
 
 async function publicar(){
+// Aceptación de Términos y Condiciones (obligatoria para publicar)
+var chkT=document.getElementById('acepta-tyc');
+var errT=document.getElementById('err-tyc');
+if(chkT && !chkT.checked){ if(errT) errT.style.display='block'; chkT.scrollIntoView({behavior:'smooth',block:'center'}); return; }
+if(errT) errT.style.display='none';
 var btn=document.getElementById('btn-publicar');
 btn.disabled=true;btn.textContent='Publicando...';
 var archivo=tipoLicitacion==='maquinaria'?archivoMaq:archivoCarga;
@@ -873,6 +877,7 @@ payload.cantidadBultos=document.getElementById('cantidadBultos').value||'';
 payload.pesoPorBulto=document.getElementById('pesoPorBulto').value||'';
 payload.dimensiones=document.getElementById('dimensionesCarga').value.trim();
 payload.descripcion=document.getElementById('descripcionCarga').value.trim();
+payload.tipoEntregaDestino=document.getElementById('tipoEntregaDestino').value||'no_aplica';
 payload.paradas=getParadas();
 }
 try{
@@ -898,8 +903,7 @@ if(!res.ok)return;
 var data=await res.json();
 var l=data.licitacion;if(!l)return;
 modoEdicion=id;
-var _chkM=document.getElementById('acepta-tyc-maq'); if(_chkM) _chkM.checked=true;
-var _chkC=document.getElementById('acepta-tyc-carga'); if(_chkC) _chkC.checked=true;
+var _chkT=document.getElementById('acepta-tyc'); if(_chkT) _chkT.checked=true;
 tipoLicitacion=l.tipoLicitacion||(l.tipoCarga?'carga':'maquinaria');
 toggleCamposPorTipoRuta();
 document.getElementById('paso0').style.display='none';
@@ -957,9 +961,6 @@ if(l.cantidadEquipos)document.getElementById('cantidadEquiposMaq').value=l.canti
 if(l.peso)document.getElementById('pesoMaq').value=l.peso;
 if(l.dimensiones)document.getElementById('dimensionesMaq').value=l.dimensiones;
 if(l.descripcion)document.getElementById('descripcionMaq').value=l.descripcion;
-var tEntVal=l.tipoEntregaDestino||'no_aplica';
-document.querySelectorAll('#tipo-entrega-section .plazo-btn').forEach(function(b){b.classList.toggle('selected',b.getAttribute('data-val')===tEntVal)});
-document.getElementById('tipoEntregaDestino').value=tEntVal;
 // Mostrar archivo previo maquinaria
 if(l.archivoNombre){
 var fp=document.getElementById('file-preview-maq');fp.classList.add('show');
@@ -986,6 +987,10 @@ document.getElementById('file-name-carga').textContent=l.archivoNombre;
 document.getElementById('file-size-carga').textContent='Archivo existente';
 }
 }
+// Tipo de entrega en destino (aplica a ambos tipos)
+var tEntVal=l.tipoEntregaDestino||'no_aplica';
+document.querySelectorAll('.entrega-cb').forEach(function(cb){cb.checked=(cb.value===tEntVal)});
+document.getElementById('tipoEntregaDestino').value=tEntVal;
 }catch(e){console.error('Error cargando edicion:',e);}
 }
 

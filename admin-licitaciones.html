@@ -432,6 +432,7 @@ function renderDetalle(l){
       return '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #f3f4f6"><strong>Parada '+(i+1)+':</strong> '+(p.direccion||'—')+
         (p.horario?' · '+p.horario:'')+
         (p.contacto?' · '+p.contacto:'')+
+        (p.descripcion?'<br><span style="color:#6B7280">'+p.descripcion+'</span>':'')+
       '</div>';
     }).join('')+
     '</div>';
@@ -447,6 +448,14 @@ function renderDetalle(l){
   if(l.archivoId){
     html+='<div class="det-desc"><strong style="font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em">Archivo de especificaciones</strong><br style="margin-bottom:6px">'+
     '<button onclick="descargarArchivo(\''+l.archivoId+'\',\''+(l.archivoNombre||'archivo').replace(/'/g,"\\'")+'\')" style="margin-top:6px;padding:8px 14px;border-radius:7px;border:1px solid #E5E7EB;background:#fff;cursor:pointer;font-size:13px;color:#1e2d4e;font-weight:500">&#11015; '+(l.archivoNombre||'Descargar archivo')+'</button>'+
+    '</div>';
+  }
+
+  // Estándar minero
+  if(l.requiereEstandar){
+    html+='<div class="det-desc" style="background:#FFFBEB;border-radius:8px;padding:10px 12px"><strong style="font-size:11px;color:#92400E;text-transform:uppercase;letter-spacing:.05em">Requiere estándar minero</strong><br style="margin-bottom:6px">'+
+    (l.estandarDetalle?'<span style="font-size:13px;color:#374151">'+l.estandarDetalle+'</span>':'<span style="font-size:13px;color:#6B7280">Sin detalle especificado</span>')+
+    (l.estandarArchivoId?'<br><button onclick="descargarArchivo(\''+l.estandarArchivoId+'\',\''+(l.estandarArchivoNombre||'estandar').replace(/'/g,"\\'")+'\')" style="margin-top:8px;padding:8px 14px;border-radius:7px;border:1px solid #E5E7EB;background:#fff;cursor:pointer;font-size:13px;color:#1e2d4e;font-weight:500">&#11015; '+(l.estandarArchivoNombre||'Descargar documento')+'</button>':'')+
     '</div>';
   }
 
