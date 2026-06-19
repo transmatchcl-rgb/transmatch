@@ -460,17 +460,67 @@ var cotiz=l.cotizaciones||[];
 var plan=localStorage.getItem('tm_plan')||'basico';
 var h='';
 
-// Info basica
+// Detalle completo de la licitación
+var tEntMap={mina:'Dentro de la mina',garita:'En garita',no_aplica:'No aplica'};
+var infoRows=[];
+infoRows.push(['Tipo',l.tipoLicitacion==='maquinaria'?'Maquinaria pesada':'Carga general']);
+// Equipo / carga
+if(l.tipoLicitacion==='maquinaria'){
+  if(l.tipoEquipo)infoRows.push(['Tipo de maquinaria',l.tipoEquipo]);
+  if(l.tipoEquipoRequerido&&l.tipoEquipoRequerido!=='cualquiera')infoRows.push(['Equipo requerido',l.tipoEquipoRequerido]);
+  if(l.cantidadEquipos)infoRows.push(['Cantidad de equipos',l.cantidadEquipos]);
+  if(l.marca)infoRows.push(['Marca',l.marca]);
+  if(l.modelo)infoRows.push(['Modelo',l.modelo]);
+  if(l.peso)infoRows.push(['Peso aprox.',l.peso+' ton']);
+  if(l.dimensiones)infoRows.push(['Dimensiones',l.dimensiones]);
+}else{
+  if(l.tipoEquipoRequerido&&l.tipoEquipoRequerido!=='cualquiera')infoRows.push(['Equipo requerido',l.tipoEquipoRequerido]);
+  if(l.tipoCarga)infoRows.push(['Tipo de carga',l.tipoCarga]);
+  if(l.cantidadEquipos)infoRows.push(['Cantidad de equipos',l.cantidadEquipos]);
+  if(l.peso)infoRows.push(['Peso total',l.peso+' ton']);
+  if(l.volumen)infoRows.push(['Volumen',l.volumen+' m³']);
+  if(l.cantidadBultos)infoRows.push(['N° de bultos',l.cantidadBultos]);
+  if(l.pesoPorBulto)infoRows.push(['Peso por bulto',l.pesoPorBulto+' kg']);
+  if(l.dimensiones)infoRows.push(['Dimensiones',l.dimensiones]);
+}
+// Ruta y fechas
+infoRows.push(['Origen',l.origen||'--']);
+if(l.direccionOrigen)infoRows.push(['Dirección de origen',l.direccionOrigen]);
+infoRows.push(['Destino',l.destino||'--']);
+if(l.direccionDestino)infoRows.push(['Dirección de destino',l.direccionDestino]);
+if(l.tipoEntregaDestino&&l.tipoEntregaDestino!=='no_aplica')infoRows.push(['Tipo de entrega',tEntMap[l.tipoEntregaDestino]||'--']);
+if(l.fechaCarga)infoRows.push(['Fecha de carga',l.fechaCarga+(l.horaCarga?' · '+l.horaCarga:'')]);
+if(l.fechaEntrega)infoRows.push(['Fecha de descarga',l.fechaEntrega+(l.horaDescarga?' · '+l.horaDescarga:'')]);
+infoRows.push(['Plazo cotizaciones',(l.plazo||'24')+'h']);
+if(l.valorSeguro)infoRows.push(['Valor seguro aprox.','$'+Number(l.valorSeguro).toLocaleString('es-CL')]);
+if(window._miUsuario&&!window._miUsuario.esSubusuario&&l.esCreadoPorSubusuario)infoRows.push(['Creado por',l.creadoPorNombre+' ('+l.creadoPorEmail+')']);
+
 h+='<div style="background:#eef1f8;border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px">';
-h+='<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:0.5px solid rgba(30,45,78,.1);flex-wrap:wrap"><span style="color:#6B7280">Plazo cotizaciones</span><span style="font-weight:500;text-align:right">'+(l.plazo||'24')+'h</span></div>';
-h+='<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:0.5px solid rgba(30,45,78,.1);flex-wrap:wrap"><span style="color:#6B7280">Fecha de carga</span><span style="font-weight:500;text-align:right">'+(l.fechaCarga||'--')+'</span></div>';
-h+='<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:0.5px solid rgba(30,45,78,.1);flex-wrap:wrap"><span style="color:#6B7280">Ruta</span><span style="font-weight:500;text-align:right">'+l.origen+' - '+l.destino+'</span></div>';
-if(window._miUsuario&&!window._miUsuario.esSubusuario&&l.esCreadoPorSubusuario){h+='<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:0.5px solid rgba(30,45,78,.1);flex-wrap:wrap"><span style="color:#6B7280">Creado por</span><span style="font-weight:500;text-align:right;color:#ff8904">'+l.creadoPorNombre+' ('+l.creadoPorEmail+')</span></div>';};
-h+='<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;flex-wrap:wrap"><span style="color:#6B7280">Equipo solicitado</span><span style="font-weight:500;text-align:right">'+(l.tipoEquipoRequerido||'--')+'</span></div>';
+h+=infoRows.map(function(r,idx){var last=(idx===infoRows.length-1);return '<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;'+(last?'':'border-bottom:0.5px solid rgba(30,45,78,.1);')+'flex-wrap:wrap"><span style="color:#6B7280">'+r[0]+'</span><span style="font-weight:500;text-align:right">'+r[1]+'</span></div>';}).join('');
 h+='</div>';
+
+// Paradas intermedias
+if(Array.isArray(l.paradas)&&l.paradas.length>0){
+h+='<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Paradas intermedias</div>';
+h+=l.paradas.map(function(p,i){return '<div style="font-size:13px;color:#374151;padding:6px 0;border-bottom:0.5px solid #f0f0f0">'+(i+1)+'. '+(p.direccion||'--')+(p.horario?' · '+p.horario:'')+(p.contacto?' · '+p.contacto:'')+(p.descripcion?'<br><span style="color:#6B7280;margin-left:14px">'+p.descripcion+'</span>':'')+'</div>';}).join('');
+h+='</div>';
+}
+
+// Observaciones
+if(l.descripcion){
+h+='<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Observaciones y condiciones especiales</div><div style="font-size:13px;color:#374151;line-height:1.6">'+l.descripcion+'</div></div>';
+}
 
 if(l.archivoId){
 h+='<div style="margin-bottom:14px"><button onclick="descargarArchivo(\''+l.archivoId+'\',\''+(l.archivoNombre||'especificaciones')+'\')" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#EFF6FF;color:#1e2d4e;border:0.5px solid #BFDBFE;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">Descargar especificaciones</button></div>';
+}
+
+if(l.requiereEstandar){
+h+='<div style="background:#FFFBEB;border:0.5px solid #FDE68A;border-radius:8px;padding:12px 14px;margin-bottom:14px">';
+h+='<div style="font-size:12px;font-weight:600;color:#92400E;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Requiere estándar minero</div>';
+h+='<div style="font-size:13px;color:#374151;line-height:1.6">'+(l.estandarDetalle||'Requerido')+'</div>';
+if(l.estandarArchivoId)h+='<button onclick="descargarArchivo(\''+l.estandarArchivoId+'\',\''+(l.estandarArchivoNombre||'estandar')+'\')" style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">Descargar documento del estándar</button>';
+h+='</div>';
 }
 
 // Transportista adjudicado
