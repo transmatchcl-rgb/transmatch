@@ -527,9 +527,11 @@ function renderDetalleInline(l,yaCotize,miCotiz){
 if(yaCotize===undefined) yaCotize=misCotizaciones.has(l.id);
 if(miCotiz===undefined) miCotiz=(l.cotizaciones||[]).find(function(c){return c.transportistaId===userId;});
 let h='';
-h+=`<div style="padding:12px 18px;margin-bottom:0;border-bottom:0.5px solid #E5E7EB">
+var _ganada=licitacionesGanadas.has(l.id);
+// Cabecera con badge de estado
+h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB">
 <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-${ licitacionesGanadas.has(l.id)
+${ _ganada
    ? '<span class="badge badge-green">Adjudicada</span>'
    : (yaCotize && (l.estado==='adjudicada'||l.estado==='completada')
        ? '<span class="badge" style="background:#FEF2F2;color:#991B1B">No adjudicada</span>'
@@ -540,62 +542,95 @@ ${ licitacionesGanadas.has(l.id)
                : (yaCotize
                    ? '<span class="badge badge-green">Cotizacion enviada</span>'
                    : '<span class="badge badge-orange">Abierta</span>')))) }
-${l.fechaCarga?`<span class="tag">Carga: ${new Date(l.fechaCarga+'T12:00:00').toLocaleDateString('es-CL')}${l.horaCarga?' '+l.horaCarga:''}</span>`:''}
-${l.fechaEntrega?`<span class="tag">Entrega: ${new Date(l.fechaEntrega+'T12:00:00').toLocaleDateString('es-CL')}${l.horaDescarga?' '+l.horaDescarga:''}</span>`:''}
-${l.peso?`<span class="tag">${l.peso} ton</span>`:''}
-${l.volumen?`<span class="tag">Vol: ${l.volumen} m³</span>`:''}
-${l.cantidadEquipos?`<span class="tag">Cant. equipos: ${l.cantidadEquipos}</span>`:''}
-${l.cantidadBultos?`<span class="tag">N° bultos: ${l.cantidadBultos}</span>`:''}
-${l.pesoPorBulto?`<span class="tag">Peso/bulto: ${l.pesoPorBulto} kg</span>`:''}
-${l.dimensiones?`<span class="tag">Dim: ${l.dimensiones}</span>`:''}
-${l.plazo?`<span class="tag">Plazo: ${l.plazo}h</span>`:''}
-${l.valorSeguro?`<span class="tag">Seguro aprox: $${Number(l.valorSeguro).toLocaleString('es-CL')}</span>`:''}
-${(l.tipoEntregaDestino && l.tipoEntregaDestino!=='no_aplica')?`<span class="tag">Entrega: ${l.tipoEntregaDestino==='mina'?'Dentro de la mina':'En garita'}</span>`:''}
-${l.presupuesto?`<span class="tag">Máx. ${peso(l.presupuesto)}</span>`:''}
+<span class="tag">${l.tipoLicitacion==='maquinaria'?'Maquinaria pesada':'Carga general'}</span>
+${l.plazo?`<span class="tag">Plazo cotizacion: ${l.plazo}h</span>`:''}
 </div></div>`;
+
+// SECCIÓN: Equipo / carga solicitada
+var eqRows=[];
+if(l.tipoLicitacion==='maquinaria'){
+  if(l.tipoEquipo)eqRows.push(['Tipo de maquinaria',l.tipoEquipo]);
+  if(l.tipoEquipoRequerido&&l.tipoEquipoRequerido!=='cualquiera')eqRows.push(['Equipo requerido',l.tipoEquipoRequerido]);
+  if(l.cantidadEquipos)eqRows.push(['Cantidad de equipos',l.cantidadEquipos]);
+  if(l.marca)eqRows.push(['Marca',l.marca]);
+  if(l.modelo)eqRows.push(['Modelo',l.modelo]);
+  if(l.peso)eqRows.push(['Peso aprox.',l.peso+' ton']);
+  if(l.dimensiones)eqRows.push(['Dimensiones',l.dimensiones]);
+}else{
+  if(l.tipoEquipoRequerido&&l.tipoEquipoRequerido!=='cualquiera')eqRows.push(['Equipo requerido',l.tipoEquipoRequerido]);
+  if(l.tipoCarga)eqRows.push(['Tipo de carga',l.tipoCarga]);
+  if(l.cantidadEquipos)eqRows.push(['Cantidad de equipos',l.cantidadEquipos]);
+  if(l.peso)eqRows.push(['Peso total',l.peso+' ton']);
+  if(l.volumen)eqRows.push(['Volumen',l.volumen+' m³']);
+  if(l.cantidadBultos)eqRows.push(['N° de bultos',l.cantidadBultos]);
+  if(l.pesoPorBulto)eqRows.push(['Peso por bulto',l.pesoPorBulto+' kg']);
+  if(l.dimensiones)eqRows.push(['Dimensiones',l.dimensiones]);
+}
+if(eqRows.length){
+h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB">
+<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">${l.tipoLicitacion==='maquinaria'?'Equipo solicitado':'Detalle de la carga'}</div>
+${eqRows.map(function(r){return `<div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:13px"><span style="color:#6B7280">${r[0]}</span><span style="color:#374151;font-weight:500;text-align:right">${r[1]}</span></div>`;}).join('')}
+</div>`;
+}
+
+// SECCIÓN: Ruta y fechas (direcciones SÍ, contactos NO hasta adjudicar)
+var tEntMap={mina:'Dentro de la mina',garita:'En garita',no_aplica:'No aplica'};
+var rutaRows=[];
+rutaRows.push(['Origen',l.origen||'—']);
+if(l.direccionOrigen)rutaRows.push(['Dirección de origen',l.direccionOrigen]);
+rutaRows.push(['Destino',l.destino||'—']);
+if(l.direccionDestino)rutaRows.push(['Dirección de destino',l.direccionDestino]);
+if(l.tipoEntregaDestino&&l.tipoEntregaDestino!=='no_aplica')rutaRows.push(['Tipo de entrega',tEntMap[l.tipoEntregaDestino]||'—']);
+if(l.fechaCarga)rutaRows.push(['Fecha de carga',new Date(l.fechaCarga+'T12:00:00').toLocaleDateString('es-CL')+(l.horaCarga?' · '+l.horaCarga:'')]);
+if(l.fechaEntrega)rutaRows.push(['Fecha de descarga',new Date(l.fechaEntrega+'T12:00:00').toLocaleDateString('es-CL')+(l.horaDescarga?' · '+l.horaDescarga:'')]);
+h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB">
+<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Ruta y fechas</div>
+${rutaRows.map(function(r){return `<div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:13px"><span style="color:#6B7280">${r[0]}</span><span style="color:#374151;font-weight:500;text-align:right">${r[1]}</span></div>`;}).join('')}
+</div>`;
+
+// Paradas intermedias (sin contacto hasta adjudicar)
+if(Array.isArray(l.paradas) && l.paradas.length>0){
+h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB">
+<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Paradas intermedias</div>
+${l.paradas.map(function(p,i){return `<div style="font-size:13px;color:#374151;margin-bottom:6px">${i+1}. ${p.direccion||'—'}${p.horario?' · '+p.horario:''}${(p.contacto&&_ganada)?' · '+p.contacto:''}${p.descripcion?'<br><span style="color:#6B7280;margin-left:14px">'+p.descripcion+'</span>':''}</div>`;}).join('')}
+</div>`;
+}
+
+// Valor del seguro
+if(l.valorSeguro){
+h+=`<div style="padding:10px 18px;border-bottom:0.5px solid #E5E7EB"><div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span style="color:#6B7280">Valor aprox. del seguro</span><span style="color:#374151;font-weight:500">$${Number(l.valorSeguro).toLocaleString('es-CL')}</span></div></div>`;
+}
+
+// Observaciones / condiciones especiales
 if(l.descripcion){
-h+=`<div style="padding:14px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Observaciones</div><div style="font-size:13px;color:#6B7280;line-height:1.6">${l.descripcion}</div></div>`;
+h+=`<div style="padding:14px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Observaciones y condiciones especiales</div><div style="font-size:13px;color:#6B7280;line-height:1.6">${l.descripcion}</div></div>`;
 }
-if(l.archivoId && licitacionesGanadas.has(l.id)){
-h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Descargar especificaciones técnicas</div><button onclick="descargarArchivo('${l.archivoId}','${l.archivoNombre||'especificaciónes'}')"
-style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-${l.archivoNombre||'especificaciónes técnicas'}
-</button></div>`;
-}
-if(l.tipoEquipoRequerido && l.tipoEquipoRequerido !== 'cualquiera'){
-h+=`<div style="padding:10px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:2px">Equipo requerido</div><div style="font-size:13px;color:#374151">${l.tipoEquipoRequerido}</div></div>`;
-}
+
+// Estándar minero
 if(l.requiereEstandar){
 h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB;background:#FFFBEB">
 <div style="font-size:12px;font-weight:600;color:#92400E;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Requiere estándar minero</div>
-${l.estandarDetalle?`<div style="font-size:13px;color:#374151;line-height:1.6;margin-bottom:${(l.estandarArchivoId&&licitacionesGanadas.has(l.id))?'8px':'0'}">${l.estandarDetalle}</div>`:'<div style="font-size:13px;color:#6B7280">El cliente requiere cumplir un estándar minero para esta licitación.</div>'}
-${(l.estandarArchivoId&&licitacionesGanadas.has(l.id))?`<button onclick="descargarArchivo('${l.estandarArchivoId}','${l.estandarArchivoNombre||'estandar_minero'}')" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${l.estandarArchivoNombre||'Documento del estándar'}</button>`:(l.estandarArchivoId?`<div style="font-size:12px;color:#9CA3AF;margin-top:6px">El documento del estándar estará disponible al adjudicarte la licitación.</div>`:'')}
+${l.estandarDetalle?`<div style="font-size:13px;color:#374151;line-height:1.6;margin-bottom:${(l.estandarArchivoId&&_ganada)?'8px':'0'}">${l.estandarDetalle}</div>`:'<div style="font-size:13px;color:#6B7280">El cliente requiere cumplir un estándar minero para esta licitación.</div>'}
+${(l.estandarArchivoId&&_ganada)?`<button onclick="descargarArchivo('${l.estandarArchivoId}','${l.estandarArchivoNombre||'estandar_minero'}')" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${l.estandarArchivoNombre||'Documento del estándar'}</button>`:(l.estandarArchivoId?`<div style="font-size:12px;color:#9CA3AF;margin-top:6px">El documento del estándar estará disponible al adjudicarte la licitación.</div>`:'')}
 </div>`;
 }
-if(l.marca || l.modelo || l.tipoCarga){
-h+=`<div style="padding:10px 18px;border-bottom:0.5px solid #E5E7EB">
-${l.marca?`<div style="margin-bottom:6px"><div style="font-size:12px;font-weight:600;color:#374151">Marca</div><div style="font-size:13px;color:#374151">${l.marca}</div></div>`:''}
-${l.modelo?`<div style="margin-bottom:6px"><div style="font-size:12px;font-weight:600;color:#374151">Modelo</div><div style="font-size:13px;color:#374151">${l.modelo}</div></div>`:''}
-${l.tipoCarga?`<div><div style="font-size:12px;font-weight:600;color:#374151">Tipo de carga</div><div style="font-size:13px;color:#374151">${l.tipoCarga}</div></div>`:''}
-</div>`;
+
+// Archivo de especificaciones (solo si ganó)
+if(l.archivoId && _ganada){
+h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Especificaciones técnicas</div><button onclick="descargarArchivo('${l.archivoId}','${l.archivoNombre||'especificaciones'}')"
+style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+${l.archivoNombre||'Descargar especificaciones'}
+</button></div>`;
+} else if(l.archivoId){
+h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;color:#9CA3AF">El cliente adjuntó un archivo de especificaciones. Estará disponible al adjudicarte la licitación.</div></div>`;
 }
-if(l.direccionOrigen || l.direccionDestino){
-h+=`<div style="padding:10px 18px;border-bottom:0.5px solid #E5E7EB">
-${l.direccionOrigen?`<div style="margin-bottom:6px"><div style="font-size:12px;font-weight:600;color:#374151">Dirección de origen</div><div style="font-size:13px;color:#374151">${l.direccionOrigen}</div></div>`:''}
-${l.direccionDestino?`<div><div style="font-size:12px;font-weight:600;color:#374151">Dirección de destino</div><div style="font-size:13px;color:#374151">${l.direccionDestino}</div></div>`:''}
-</div>`;
-}
-if(Array.isArray(l.paradas) && l.paradas.length>0){
-h+=`<div style="padding:10px 18px;border-bottom:0.5px solid #E5E7EB">
-<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">Paradas intermedias</div>
-${l.paradas.map(function(p,i){return `<div style="font-size:13px;color:#374151;margin-bottom:4px">${i+1}. ${p.direccion||'—'}${p.horario?' · '+p.horario:''}${p.contacto?' · '+p.contacto:''}${p.descripcion?'<br><span style="color:#6B7280;margin-left:14px">'+p.descripcion+'</span>':''}</div>`;}).join('')}
-</div>`;
-}
-if(l.contactoOrigenNombre||l.contactoOrigenTelefono||l.contactoOrigenEmail||l.contactoDestinoNombre||l.contactoDestinoTelefono||l.contactoDestinoEmail){
-h+=`<div style="padding:10px 18px;border-bottom:0.5px solid #E5E7EB">
-${(l.contactoOrigenNombre||l.contactoOrigenTelefono||l.contactoOrigenEmail)?`<div style="margin-bottom:6px"><div style="font-size:12px;font-weight:600;color:#374151">Contacto en origen</div><div style="font-size:13px;color:#374151">${[l.contactoOrigenNombre,l.contactoOrigenTelefono,l.contactoOrigenEmail].filter(Boolean).join(' · ')}</div></div>`:''}
-${(l.contactoDestinoNombre||l.contactoDestinoTelefono||l.contactoDestinoEmail)?`<div><div style="font-size:12px;font-weight:600;color:#374151">Contacto en destino</div><div style="font-size:13px;color:#374151">${[l.contactoDestinoNombre,l.contactoDestinoTelefono,l.contactoDestinoEmail].filter(Boolean).join(' · ')}</div></div>`:''}
+
+// Contacto: solo visible si ganó
+if(_ganada && (l.contactoOrigenNombre||l.contactoOrigenTelefono||l.contactoOrigenEmail||l.contactoDestinoNombre||l.contactoDestinoTelefono||l.contactoDestinoEmail)){
+h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Contacto operacional</div>
+${(l.contactoOrigenNombre||l.contactoOrigenTelefono||l.contactoOrigenEmail)?`<div style="margin-bottom:6px"><div style="font-size:12px;font-weight:600;color:#374151">En origen</div><div style="font-size:13px;color:#374151">${[l.contactoOrigenNombre,l.contactoOrigenTelefono,l.contactoOrigenEmail].filter(Boolean).join(' · ')}</div></div>`:''}
+${(l.contactoDestinoNombre||l.contactoDestinoTelefono||l.contactoDestinoEmail)?`<div><div style="font-size:12px;font-weight:600;color:#374151">En destino</div><div style="font-size:13px;color:#374151">${[l.contactoDestinoNombre,l.contactoDestinoTelefono,l.contactoDestinoEmail].filter(Boolean).join(' · ')}</div></div>`:''}
 </div>`;
 }
 if(yaCotize){
