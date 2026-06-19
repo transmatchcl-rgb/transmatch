@@ -544,7 +544,9 @@ ${ _ganada
                    : '<span class="badge badge-orange">Abierta</span>')))) }
 <span class="tag">${l.tipoLicitacion==='maquinaria'?'Maquinaria pesada':'Carga general'}</span>
 ${l.plazo?`<span class="tag">Plazo cotizacion: ${l.plazo}h</span>`:''}
-</div></div>`;
+</div>
+<button onclick="descargarLicitacionPDF('${l.id}',${_ganada?'false':'true'})" style="margin-top:10px;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Descargar detalle (PDF)</button>
+</div>`;
 
 // SECCIÓN: Equipo / carga solicitada
 var eqRows=[];
@@ -949,6 +951,110 @@ async function descargarCotizacionPDF(){
   }finally{
     if(btn){ btn.textContent=txtPrev; btn.disabled=false; }
   }
+}
+
+// Genera un PDF con el detalle del formulario de la licitación.
+// ocultarSensible=true => no incluye contacto ni referencia al archivo (transportista no adjudicado).
+function descargarLicitacionPDF(licId, ocultarSensible){
+  var l=allLicitaciones.find(function(x){return x.id===licId;});
+  if(!l){ showToast('No se encontró la licitación','err'); return; }
+  if(!window.jspdf){ showToast('No se pudo generar el PDF','err'); return; }
+  var tEntMap={mina:'Dentro de la mina',garita:'En garita',no_aplica:'No aplica'};
+  function fd(f){ if(!f)return ''; try{return new Date(f+'T12:00:00').toLocaleDateString('es-CL');}catch(e){return f;} }
+  var rows=[];
+  rows.push(['Tipo', l.tipoLicitacion==='maquinaria'?'Maquinaria pesada':'Carga general']);
+  if(l.tipoLicitacion==='maquinaria'){
+    if(l.tipoEquipo)rows.push(['Tipo de maquinaria',l.tipoEquipo]);
+    if(l.tipoEquipoRequerido&&l.tipoEquipoRequerido!=='cualquiera')rows.push(['Equipo requerido',l.tipoEquipoRequerido]);
+    if(l.cantidadEquipos)rows.push(['Cantidad de equipos',String(l.cantidadEquipos)]);
+    if(l.marca)rows.push(['Marca',l.marca]);
+    if(l.modelo)rows.push(['Modelo',l.modelo]);
+    if(l.peso)rows.push(['Peso aprox.',l.peso+' ton']);
+    if(l.dimensiones)rows.push(['Dimensiones',l.dimensiones]);
+  }else{
+    if(l.tipoEquipoRequerido&&l.tipoEquipoRequerido!=='cualquiera')rows.push(['Equipo requerido',l.tipoEquipoRequerido]);
+    if(l.tipoCarga)rows.push(['Tipo de carga',l.tipoCarga]);
+    if(l.cantidadEquipos)rows.push(['Cantidad de equipos',String(l.cantidadEquipos)]);
+    if(l.peso)rows.push(['Peso total',l.peso+' ton']);
+    if(l.volumen)rows.push(['Volumen',l.volumen+' m3']);
+    if(l.cantidadBultos)rows.push(['N de bultos',String(l.cantidadBultos)]);
+    if(l.pesoPorBulto)rows.push(['Peso por bulto',l.pesoPorBulto+' kg']);
+    if(l.dimensiones)rows.push(['Dimensiones',l.dimensiones]);
+  }
+  rows.push(['Origen',l.origen||'-']);
+  if(l.direccionOrigen)rows.push(['Direccion de origen',l.direccionOrigen]);
+  rows.push(['Destino',l.destino||'-']);
+  if(l.direccionDestino)rows.push(['Direccion de destino',l.direccionDestino]);
+  if(l.tipoEntregaDestino&&l.tipoEntregaDestino!=='no_aplica')rows.push(['Tipo de entrega',tEntMap[l.tipoEntregaDestino]||'-']);
+  if(l.fechaCarga)rows.push(['Fecha de carga',fd(l.fechaCarga)+(l.horaCarga?' - '+l.horaCarga:'')]);
+  if(l.fechaEntrega)rows.push(['Fecha de descarga',fd(l.fechaEntrega)+(l.horaDescarga?' - '+l.horaDescarga:'')]);
+  rows.push(['Plazo cotizaciones',(l.plazo||'24')+'h']);
+  if(l.valorSeguro)rows.push(['Valor seguro aprox.','$'+Number(l.valorSeguro).toLocaleString('es-CL')]);
+
+  var jsPDF=window.jspdf.jsPDF;
+  var pdf=new jsPDF('p','mm','a4');
+  var pw=pdf.internal.pageSize.getWidth();
+  var ph=pdf.internal.pageSize.getHeight();
+  var mL=18, mR=18, y=20;
+  var contentW=pw-mL-mR;
+  function nl(salto){ y+=salto; if(y>ph-20){ pdf.addPage(); y=20; } }
+  function seccion(titulo){
+    nl(4);
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor(30,45,78);
+    pdf.text(titulo.toUpperCase(), mL, y);
+    pdf.setDrawColor(225,228,235); pdf.setLineWidth(0.3); pdf.line(mL,y+1.5,pw-mR,y+1.5);
+    nl(6);
+  }
+  pdf.setFont('helvetica','bold'); pdf.setTextColor(30,45,78); pdf.setFontSize(15);
+  pdf.text('TransMatch', mL, y);
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(9); pdf.setTextColor(107,114,128);
+  pdf.text('Detalle de licitacion', mL, y+5);
+  pdf.setFont('helvetica','bold'); pdf.setTextColor(30,45,78); pdf.setFontSize(17);
+  pdf.text(String(l.codigo||''), pw-mR, y, {align:'right'});
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(10); pdf.setTextColor(107,114,128);
+  var rutaTxt=(l.origen||'')+(l.destino?'  ->  '+l.destino:'');
+  if(rutaTxt.trim()) pdf.text(rutaTxt, pw-mR, y+6, {align:'right'});
+  pdf.setDrawColor(30,45,78); pdf.setLineWidth(0.5); pdf.line(mL,y+10,pw-mR,y+10);
+  y+=18;
+  pdf.setFontSize(10);
+  rows.forEach(function(r){
+    pdf.setFont('helvetica','normal'); pdf.setTextColor(107,114,128);
+    pdf.text(String(r[0]), mL, y);
+    pdf.setFont('helvetica','bold'); pdf.setTextColor(31,41,55);
+    var val=pdf.splitTextToSize(String(r[1]), contentW*0.5);
+    pdf.text(val, pw-mR, y, {align:'right'});
+    pdf.setDrawColor(238,238,238); pdf.setLineWidth(0.2); pdf.line(mL,y+2.5,pw-mR,y+2.5);
+    nl(7 + (val.length>1?(val.length-1)*5:0));
+  });
+  if(Array.isArray(l.paradas)&&l.paradas.length>0){
+    seccion('Paradas intermedias');
+    pdf.setFontSize(9.5);
+    l.paradas.forEach(function(p,i){
+      pdf.setFont('helvetica','normal'); pdf.setTextColor(55,65,81);
+      var linea=(i+1)+'. '+(p.direccion||'-')+(p.horario?' - '+p.horario:'');
+      var ls=pdf.splitTextToSize(linea, contentW);
+      pdf.text(ls, mL, y); nl(ls.length*5);
+      if(p.descripcion){ pdf.setTextColor(107,114,128); var ds=pdf.splitTextToSize(p.descripcion, contentW-6); pdf.text(ds, mL+6, y); nl(ds.length*5); }
+    });
+  }
+  if(l.descripcion){
+    seccion('Observaciones y condiciones especiales');
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(9.5); pdf.setTextColor(55,65,81);
+    var os=pdf.splitTextToSize(l.descripcion, contentW); pdf.text(os, mL, y); nl(os.length*5);
+  }
+  if(l.requiereEstandar){
+    seccion('Requiere estandar minero');
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(9.5); pdf.setTextColor(55,65,81);
+    var es=pdf.splitTextToSize(l.estandarDetalle||'Requerido', contentW); pdf.text(es, mL, y); nl(es.length*5);
+  }
+  // NOTA: el PDF del transportista NUNCA incluye datos de contacto del cliente.
+  // El contacto operacional se entrega por otros medios al adjudicarse la licitación.
+  nl(4); pdf.setFont('helvetica','italic'); pdf.setFontSize(8); pdf.setTextColor(156,163,175);
+  var nota=pdf.splitTextToSize('El archivo de especificaciones y los datos de contacto del cliente se entregan al adjudicarse la licitacion.', contentW);
+  pdf.text(nota, mL, y); nl(nota.length*4);
+  nl(4); pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor(156,163,175);
+  pdf.text('Generado por TransMatch - '+new Date().toLocaleDateString('es-CL'), mL, y);
+  pdf.save('Licitacion-'+(l.codigo||'TransMatch')+'.pdf');
 }
 function abrirEditarCotiz(licitacionId, nombre){
   selectedId = licitacionId;
