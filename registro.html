@@ -128,7 +128,7 @@ textarea{resize:vertical;min-height:72px}
     <div id="alert-inv" class="alert alert-err"></div>
     <div class="form-group"><label>Tu nombre completo *</label><input type="text" id="inv-nombre" placeholder="Nombre y apellido"/></div>
     <div class="grid2">
-      <div class="form-group"><label>Cargo *</label><input type="text" id="inv-cargo" placeholder="Ej: Jefe de operaciones"/></div>
+      <div class="form-group"><label>Cargo</label><input type="text" id="inv-cargo" placeholder="Ej: Jefe de operaciones"/></div>
       <div class="form-group"><label>Teléfono *</label><input type="tel" id="inv-telefono" placeholder="+56 9 XXXX XXXX"/></div>
     </div>
     <div class="form-group"><label>RUT *</label><input type="text" id="inv-rut" placeholder="12.345.678-9" oninput="formatRutInput(this)"/></div>
@@ -204,7 +204,7 @@ textarea{resize:vertical;min-height:72px}
       <div class="section-label">Tu información</div>
       <div class="grid2">
         <div class="form-group fg-full"><label>Nombre completo *</label><input type="text" id="reg-nombre" placeholder="Nombre y apellido"/></div>
-        <div class="form-group"><label>Cargo *</label><input type="text" id="reg-cargo" placeholder="Ej: Gerente de operaciones"/></div>
+        <div class="form-group"><label>Cargo</label><input type="text" id="reg-cargo" placeholder="Ej: Gerente de operaciones"/></div>
         <div class="form-group"><label>Email corporativo *</label><input type="email" id="reg-email" placeholder="correo@empresa.cl"/></div>
         <div class="form-group"><label>Teléfono *</label><input type="tel" id="reg-telefono" placeholder="+56 9 XXXX XXXX"/></div>
       </div>
@@ -425,7 +425,7 @@ async function register(){
   document.getElementById('alert-reg').style.display='none';
 
   if(!empresa||!rutEmp) return showAlert('Ingresa la razón social y RUT de la empresa','error');
-  if(!nombre||!cargo||!email||!telefono) return showAlert('Completa todos tus datos personales','error');
+  if(!nombre||!email||!telefono) return showAlert('Completa todos tus datos personales','error');
   if(!validarPass(password)) return showAlert('La contraseña no cumple los requisitos de seguridad','error');
   if(password!==password2) return showAlert('Las contraseñas no coinciden','error');
   if(!document.getElementById('reg-tyc').checked) return showAlert('Debes aceptar los términos y condiciones','error');
@@ -531,7 +531,7 @@ async function aceptarInvitacion(){
   var alertEl  = document.getElementById('alert-inv');
   alertEl.style.display='none';
   if(!nombre){ alertEl.textContent='Ingresa tu nombre'; alertEl.style.display='block'; return; }
-  if(!cargo||!telefono||!rut){ alertEl.textContent='Completa tu cargo, teléfono y RUT'; alertEl.style.display='block'; return; }
+  if(!telefono||!rut){ alertEl.textContent='Completa tu teléfono y RUT'; alertEl.style.display='block'; return; }
   if(!validarPass(password)){ alertEl.textContent='La contraseña no cumple los requisitos de seguridad'; alertEl.style.display='block'; return; }
   if(password!==password2){ alertEl.textContent='Las contraseñas no coinciden'; alertEl.style.display='block'; return; }
   if(!document.getElementById('inv-tyc').checked){ alertEl.textContent='Debes aceptar los Términos y Condiciones'; alertEl.style.display='block'; return; }
