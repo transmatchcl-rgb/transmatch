@@ -85,6 +85,15 @@
     .nav-mobile-menu{display:flex!important}
     .nav-user-name{display:none!important}
   }
+  /* TM-MOBILE-FIX */
+  @media(max-width:600px){
+    [style*="grid-template-columns:1fr 1fr"],
+    [style*="grid-template-columns:repeat(2,1fr)"],
+    [style*="grid-template-columns:repeat(2, 1fr)"],
+    [style*="grid-template-columns:repeat(3,1fr)"],
+    [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
+    body{overflow-x:hidden}
+  }
 </style>
 </head>
 <body>
@@ -393,7 +402,7 @@ function filtrar(){
     return;
   }
 
-  var html = '<table class="tabla"><thead><tr><th>Codigo</th><th>Equipo</th><th>Ruta</th><th>Precio</th><th>Fecha</th><th>Estado</th><th>Documentos</th></tr></thead><tbody>';
+  var html = '<div style="overflow-x:auto"><table class="tabla"><thead><tr><th>Codigo</th><th>Equipo</th><th>Ruta</th><th>Precio</th><th>Fecha</th><th>Estado</th><th>Documentos</th></tr></thead><tbody>';
   html += lista.map(function(t){
     var ocReal = t.oc && t.oc.tipo !== 'oc_automatica';
     var estadoTxt, estadoCls;
@@ -414,7 +423,7 @@ function filtrar(){
       +'<td>'+(docs||'<span style="font-size:12px;color:#9CA3AF">Pendiente</span>')+'</td>'
       +'</tr>';
   }).join('');
-  html += '</tbody></table>';
+  html += '</tbody></table></div>';
   document.getElementById('tabla-transportes').innerHTML = html;
 }
 

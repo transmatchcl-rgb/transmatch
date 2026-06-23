@@ -87,6 +87,15 @@
     .nav-mobile-menu{display:flex!important}
     .nav-user-name{display:none!important}
   }
+  /* TM-MOBILE-FIX */
+  @media(max-width:600px){
+    [style*="grid-template-columns:1fr 1fr"],
+    [style*="grid-template-columns:repeat(2,1fr)"],
+    [style*="grid-template-columns:repeat(2, 1fr)"],
+    [style*="grid-template-columns:repeat(3,1fr)"],
+    [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
+    body{overflow-x:hidden}
+  }
 </style></head><body>
 
 <div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px"><div style="background:#FF8904;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:16px">T</div><div style="font-size:20px;font-weight:700;color:#1e2d4e">Trans<span style="color:#FF8904">Match</span></div></div><div class="spinner"></div></div></div>

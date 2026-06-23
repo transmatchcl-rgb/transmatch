@@ -118,6 +118,15 @@
     .nav-mobile-menu{display:flex!important}
     .nav-user-name{display:none!important}
   }
+  /* TM-MOBILE-FIX */
+  @media(max-width:600px){
+    [style*="grid-template-columns:1fr 1fr"],
+    [style*="grid-template-columns:repeat(2,1fr)"],
+    [style*="grid-template-columns:repeat(2, 1fr)"],
+    [style*="grid-template-columns:repeat(3,1fr)"],
+    [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
+    body{overflow-x:hidden}
+  }
 </style></head><body><div id="auth-guard"><div style="text-align:center;"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px;"><div style="background:#FF8904;border-radius:7px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:15px;">T</div><span style="font-weight:700;color:#fff;font-size:18px;">Trans<span style="color:#FF8904;">Match</span></span></div><div class="guard-spinner" style="margin:0 auto;"></div></div></div><div id="app" style="display:none"><!-- NAV -->  <nav class="nav">
     <div class="nav-left">
       <a href="/admin.html" class="nav-logo">
@@ -591,9 +600,9 @@
     const el = document.getElementById('lista-retornos');
     if (!el) return;
     if (!lista.length) { el.innerHTML = '<div style="padding:32px;text-align:center;color:#9CA3AF;font-size:13px">Sin retornos disponibles</div>'; return; }
-    el.innerHTML = '<table class="table"><thead><tr><th>Transportista</th><th>Empresa</th><th>Origen</th><th>Destino</th><th>Fecha</th><th>Precio</th><th>Estado</th></tr></thead><tbody>'
+    el.innerHTML = '<div style="overflow-x:auto"><table class="table"><thead><tr><th>Transportista</th><th>Empresa</th><th>Origen</th><th>Destino</th><th>Fecha</th><th>Precio</th><th>Estado</th></tr></thead><tbody>'
       + lista.map(x => '<tr><td style="font-weight:500">'+(x.transportistaNombre||'--')+'</td><td style="font-size:12px;color:#6B7280">'+(x.empresa||x.transportistaEmpresa||'--')+'</td><td>'+(x.origen||x.ciudadOrigen||'--')+'</td><td>'+(x.destino||x.ciudadDestino||'--')+'</td><td style="font-size:12px">'+(x.fechaDisponible?new Date(x.fechaDisponible).toLocaleDateString('es-CL'):'--')+'</td><td style="font-weight:600;color:#1d4ed8">'+(x.precio?new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(x.precio):'A convenir')+'</td><td><span class="badge '+(x.estado==='disponible'?'badge-green':'badge-gray')+'">'+(x.estado||'disponible')+'</span></td></tr>').join('')
-      + '</tbody></table>';
+      + '</tbody></table></div>';
   }
 
   // ── Init — auth guard ───────────────────────────────────────
@@ -874,7 +883,7 @@ document.addEventListener('click',function(e){
       <div>
         <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
         <div style="display:flex;flex-direction:column;gap:6px">
-          <span style="font-size:13px;color:#CBD5E1"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="1d7e7273697c7e69725d696f7c736e707c697e75337e71">[email&#160;protected]</a></span>
+          <span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span>
           <span style="font-size:13px;color:#CBD5E1">+56 9 6908 1098</span><span style="font-size:13px;color:#CBD5E1">Av. La Dehesa 1201</span>
         </div>
       </div>
