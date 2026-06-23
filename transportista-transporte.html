@@ -533,14 +533,12 @@ function renderDetalle(t){
       '<button class="btn btn-orange btn-sm" onclick="subirFactura(\''+t.id+'\')">Subir factura</button>';
   }
   h+='</div>';
-  // Guía de despacho
-  h+='<div class="doc-card" style="margin-top:10px"><div class="doc-title">Guía de despacho</div>';
+  // Guía de despacho — la sube el cliente
+  h+='<div class="doc-card" style="margin-top:10px"><div class="doc-title">Guía de despacho <span style="font-size:10px;font-weight:400;color:#9CA3AF;margin-left:4px">— la emite el cliente</span></div>';
   if(t.guiaDespacho){
     h+='<div class="doc-ok"><span>Subida el '+fechaHora(t.guiaDespacho.subidoAt)+'</span><button class="btn btn-outline btn-sm" onclick="descargar(\''+t.guiaDespacho.archivoId+'\',\''+t.guiaDespacho.nombre+'\')">Descargar</button></div>';
   } else {
-    h+='<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Opcional — sube la guía de despacho si el cliente lo requiere.</div>'+
-      '<input type="file" id="guia-file-'+t.id+'" accept=".pdf,.doc,.docx" style="font-size:13px;margin-bottom:8px;display:block"/>'+
-      '<button class="btn btn-outline btn-sm" onclick="subirGuia(\''+t.id+'\')">Subir guía</button>';
+    h+='<div class="doc-wait">Pendiente — el cliente aún no ha subido la guía de despacho</div>';
   }
   h+='</div>';
 
@@ -945,27 +943,6 @@ async function subirFactura(transporteId){
   reader.readAsDataURL(file);
 }
 
-async function subirGuia(transporteId){
-  var fi=document.getElementById('guia-file-'+transporteId);
-  if(!fi||!fi.files[0]){toast('Selecciona un archivo PDF','err');return;}
-  var file=fi.files[0];
-  var reader=new FileReader();
-  reader.onload=async function(e){
-    var base64=e.target.result.split(',')[1];
-    try {
-      var res=await fetch(API+'/api/transportes/'+transporteId+'/subir-guia',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
-        body:JSON.stringify({base64:base64,mimeType:file.type,nombre:file.name})
-      });
-      var d=await res.json();
-      if(res.ok){ toast('Guía de despacho subida.'); await cargar(); setTimeout(function(){toggleCard(transporteId);},200); }
-      else toast(d.error||'Error al subir','err');
-    } catch(e){toast('Error de conexion','err');}
-  };
-  reader.readAsDataURL(file);
-}
-
 function abrirModalDocumentoExtra(transporteId){
   var modal=document.createElement('div');
   modal.id='modal-doc-extra';
@@ -1270,7 +1247,7 @@ document.addEventListener('click',function(e){
         <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
         <div style="display:flex;flex-direction:column;gap:6px">
           <span style="font-size:13px;color:#CBD5E1"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="12717d7c667371667d526660737c617f7366717a3c717e">[email&#160;protected]</a></span>
-          <span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span>
+          <span style="font-size:13px;color:#CBD5E1">+56 9 6908 1098</span><span style="font-size:13px;color:#CBD5E1">Av. La Dehesa 1201</span>
         </div>
       </div>
     </div>
