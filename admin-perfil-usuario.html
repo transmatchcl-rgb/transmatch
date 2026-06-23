@@ -173,8 +173,56 @@
     if (isTransportista) {
       var equiposInner = equipos.length === 0
         ? '<div class="empty">Sin equipos registrados</div>'
-        : equipos.map(function(e) {
-            return '<div class="equipo-item"><div class="equipo-tipo">' + e.tipo + '</div><div class="equipo-meta">Capacidad: ' + (e.capacidad || '--') + ' ton · Dim. max: ' + (e.dimensiones || '--') + '</div></div>';
+        : equipos.map(function(e, idx) {
+            var docs = e.documentos || {};
+            var reqDocs = [
+              ['permiso_circulacion','Permiso de circulación'],
+              ['revision_tecnica','Revisión técnica'],
+              ['gases','Certificado de gases'],
+              ['seguro_obligatorio','Seguro obligatorio (SOAP)'],
+              ['poliza_empresa','Póliza de la empresa']
+            ];
+            var subidos = reqDocs.filter(function(d){ return docs[d[0]] && docs[d[0]].archivoId; }).length;
+            var completo = subidos >= reqDocs.length;
+            var pillBg = completo ? '#DCFCE7' : '#FEF3C7';
+            var pillColor = completo ? '#14532D' : '#92400E';
+            var specs = [];
+            if(e.capacidadMax||e.capacidad) specs.push('Cap: '+(e.capacidadMax||e.capacidad)+' ton');
+            if(e.largoMax) specs.push('Largo: '+e.largoMax+'m');
+            if(e.anchoMax) specs.push('Ancho: '+e.anchoMax+'m');
+            if(e.altoMax) specs.push('Alto: '+e.altoMax+'m');
+            // Documentos del equipo
+            var docsHtml = reqDocs.map(function(d){
+              var doc = docs[d[0]];
+              var tiene = doc && doc.archivoId;
+              var venc = doc && doc.vencimiento ? ' · Vence: '+doc.vencimiento : '';
+              if(tiene){
+                return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:0.5px solid #f0f1f4">'
+                  +'<div style="font-size:13px;color:#1e2d4e">'+d[1]+'<span style="font-size:11px;color:#9CA3AF">'+venc+'</span></div>'
+                  +'<button onclick="descargar(\''+doc.archivoId+'\',\''+(doc.archivoNombre||d[1])+'\')" style="background:#1e2d4e;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;flex-shrink:0">Descargar</button>'
+                  +'</div>';
+              } else {
+                return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:0.5px solid #f0f1f4">'
+                  +'<div style="font-size:13px;color:#9CA3AF">'+d[1]+'</div>'
+                  +'<span style="font-size:11px;color:#EF4444;flex-shrink:0">Sin subir</span>'
+                  +'</div>';
+              }
+            }).join('');
+            return '<div class="equipo-item" style="padding:0;overflow:hidden">'
+              +'<div onclick="toggleEquipoAdmin(this)" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;cursor:pointer">'
+              +'<div style="flex:1;min-width:0">'
+              +'<div class="equipo-tipo">'+(e.tipo||'Equipo')+(e.marca?' · '+e.marca:'')+(e.modelo?' '+e.modelo:'')+(e.ano?' ('+e.ano+')':'')+'</div>'
+              +'<div class="equipo-meta">'+(e.patente?'Patente: '+e.patente+(specs.length?' · ':''):'')+specs.join(' · ')+'</div>'
+              +'</div>'
+              +'<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'
+              +'<span style="font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;background:'+pillBg+';color:'+pillColor+'">'+subidos+'/'+reqDocs.length+' docs</span>'
+              +'<span class="eq-chevron" style="color:#9CA3AF;transition:transform .2s">▾</span>'
+              +'</div>'
+              +'</div>'
+              +'<div class="eq-docs" style="display:none;padding:0 14px 12px"><div style="font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:.04em;margin:6px 0 4px">Documentación</div>'+docsHtml
+              +(e.descripcion?'<div style="font-size:12px;color:#6B7280;margin-top:8px">'+e.descripcion+'</div>':'')
+              +'</div>'
+              +'</div>';
           }).join('');
       equiposHtml = '<div class="card"><div class="card-hdr">Equipos registrados</div><div class="card-body">' + equiposInner + '</div></div>';
     }
@@ -337,12 +385,41 @@
       botones.innerHTML =
         '<button onclick="cambiarEstado(\'activo\')" style="background:#1e2d4e;color:#fff;padding:9px 20px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Aprobar cuenta</button>' +
         '<button onclick="cambiarEstado(\'rechazado\')" style="background:#fff;color:#ff8904;border:1.5px solid #ff8904;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Rechazar</button>';
+    } else if (estado === 'suspendido' || estado === 'rechazado') {
+      // Cuenta suspendida/rechazada → Reactivar (azul) + Eliminar
+      botones.innerHTML =
+        '<button onclick="cambiarEstado(\'activo\')" style="background:#1e2d4e;color:#fff;padding:9px 20px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Reactivar cuenta</button>' +
+        '<button onclick="confirmarEliminar()" style="background:#fff;color:#EF4444;border:1.5px solid #FECACA;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Eliminar cuenta</button>';
     } else {
-      // Cuenta activa/rechazada/suspendida → Suspender (naranja outline) + Eliminar (azul marino)
+      // Cuenta activa → Suspender (naranja outline) + Eliminar
       botones.innerHTML =
         '<button onclick="cambiarEstado(\'suspendido\')" style="background:#fff;color:#ff8904;border:1.5px solid #ff8904;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Suspender cuenta</button>' +
-        '<button onclick="confirmarEliminar()" style="background:#1e2d4e;color:#fff;padding:9px 20px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Eliminar cuenta</button>';
+        '<button onclick="confirmarEliminar()" style="background:#fff;color:#EF4444;border:1.5px solid #FECACA;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Eliminar cuenta</button>';
     }
+  }
+
+  function toggleEquipoAdmin(head){
+    var item = head.parentNode;
+    var docs = item.querySelector('.eq-docs');
+    var chev = head.querySelector('.eq-chevron');
+    if(!docs) return;
+    var abierto = docs.style.display==='block';
+    docs.style.display = abierto ? 'none' : 'block';
+    if(chev) chev.style.transform = abierto ? 'rotate(0deg)' : 'rotate(180deg)';
+  }
+
+  async function descargar(id, nombre){
+    try{
+      const r = await api('/api/archivos/'+id);
+      if(!r||!r.ok){ toast('Error al descargar','err'); return; }
+      const b64 = r.data.base64, mime = r.data.mimeType, n = r.data.nombre;
+      const arr = new Uint8Array(atob(b64).split('').map(function(c){return c.charCodeAt(0);}));
+      const blob = new Blob([arr],{type:mime||'application/octet-stream'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = nombre||n||'archivo'; a.click();
+      URL.revokeObjectURL(url);
+    }catch(e){ toast('Error al descargar','err'); }
   }
 
   async function cambiarEstado(estado) {
