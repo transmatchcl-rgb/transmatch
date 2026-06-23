@@ -227,6 +227,65 @@
       equiposHtml = '<div class="card"><div class="card-hdr">Equipos registrados</div><div class="card-body">' + equiposInner + '</div></div>';
     }
 
+    // ── Operación (solo transportista): zonas, tipos de equipo, años exp ──
+    var operacionHtml = '';
+    if (isTransportista) {
+      var zonas = Array.isArray(u.zonas) ? u.zonas : [];
+      var tipos = Array.isArray(u.tiposEquipo) ? u.tiposEquipo : [];
+      operacionHtml = '<div class="card"><div class="card-hdr">Operación</div><div class="card-body">' +
+        '<div class="info-grid" style="margin-top:0">' +
+          '<div class="info-item"><div class="info-label">Zonas de cobertura</div><div class="info-val">' + (zonas.length ? zonas.join(', ') : '--') + '</div></div>' +
+          '<div class="info-item"><div class="info-label">Años de experiencia</div><div class="info-val">' + (u.anosExperiencia || '--') + '</div></div>' +
+        '</div>' +
+        '<div style="margin-top:14px"><div class="info-label">Tipos de equipo que opera</div>' +
+          '<div class="info-val" style="margin-top:4px;line-height:1.6">' + (tipos.length ? tipos.join(', ') : '--') + '</div></div>' +
+        (u.descripcion ? '<div style="margin-top:14px"><div class="info-label">Descripción</div><div class="info-val" style="margin-top:4px;line-height:1.6">' + u.descripcion + '</div></div>' : '') +
+        '</div></div>';
+    } else if (u.descripcion) {
+      operacionHtml = '<div class="card"><div class="card-hdr">Descripción</div><div class="card-body"><div class="info-val" style="line-height:1.6">' + u.descripcion + '</div></div></div>';
+    }
+
+    // ── Datos de facturación ──
+    var facturacionHtml = '';
+    var f = u.facturacion || {};
+    if (f.razonSocial || f.rut || f.giro || f.direccion || f.email || f.contactoNombre) {
+      facturacionHtml = '<div class="card"><div class="card-hdr">Datos de facturación</div><div class="card-body"><div class="info-grid" style="margin-top:0">' +
+        '<div class="info-item"><div class="info-label">Razón social</div><div class="info-val">' + (f.razonSocial || '--') + '</div></div>' +
+        '<div class="info-item"><div class="info-label">RUT</div><div class="info-val">' + (f.rut || '--') + '</div></div>' +
+        '<div class="info-item"><div class="info-label">Giro</div><div class="info-val">' + (f.giro || '--') + '</div></div>' +
+        '<div class="info-item"><div class="info-label">Dirección</div><div class="info-val">' + (f.direccion || '--') + '</div></div>' +
+        '<div class="info-item"><div class="info-label">Email facturación</div><div class="info-val">' + (f.email || '--') + '</div></div>' +
+        (f.contactoNombre ? '<div class="info-item"><div class="info-label">Contacto</div><div class="info-val">' + f.contactoNombre + '</div></div>' : '') +
+        '</div></div></div>';
+    }
+
+    // ── Contactos operacionales (operaciones, comercial, facturación) ──
+    var contactosHtml = '';
+    var cOp = u.contactoOperaciones, cCom = u.contactoComercial, cFac = u.contactoFacturacion;
+    var renderContacto = function(titulo, c){
+      if(!c || (!c.nombre && !c.email && !c.telefono)) return '';
+      return '<div style="margin-bottom:14px"><div class="info-label" style="margin-bottom:4px">' + titulo + '</div>' +
+        '<div class="info-val" style="line-height:1.6">' +
+        (c.nombre ? c.nombre : '') + (c.cargo ? ' · ' + c.cargo : '') +
+        (c.telefono ? '<br>' + c.telefono : '') +
+        (c.email ? '<br>' + c.email : '') +
+        '</div></div>';
+    };
+    var contactosInner = renderContacto('Operaciones', cOp) + renderContacto('Comercial', cCom) + renderContacto('Facturación', cFac);
+    if (contactosInner) {
+      contactosHtml = '<div class="card"><div class="card-hdr">Contactos de la empresa</div><div class="card-body">' + contactosInner + '</div></div>';
+    }
+
+    // ── Métricas de cuenta ──
+    var metricasHtml = '<div class="card"><div class="card-hdr">Métricas de cuenta</div><div class="card-body"><div class="info-grid" style="margin-top:0">' +
+      (isTransportista ? '<div class="info-item"><div class="info-label">Rating</div><div class="info-val">★ ' + (u.rating || 5) + '</div></div>' : '') +
+      '<div class="info-item"><div class="info-label">Total transportes</div><div class="info-val">' + (u.totalTransportes || 0) + '</div></div>' +
+      '<div class="info-item"><div class="info-label">Total cotizaciones</div><div class="info-val">' + (u.totalCotizaciones || 0) + '</div></div>' +
+      '<div class="info-item"><div class="info-label">Perfil completo</div><div class="info-val">' + (u.perfilCompletitud || 0) + '%</div></div>' +
+      '<div class="info-item"><div class="info-label">Notif. email</div><div class="info-val">' + (u.notifEmail ? 'Sí' : 'No') + '</div></div>' +
+      '</div></div></div>';
+
+
     // Sección usuarios adicionales (clientes y transportistas)
     var usuariosHtml = '';
     {
@@ -317,27 +376,45 @@
           '<div class="info-item"><div class="info-label">RUT empresa</div><div class="info-val">' + (u.rutEmpresa || '--') + '</div></div>' +
           '<div class="info-item"><div class="info-label">Giro</div><div class="info-val">' + (u.giro || '--') + '</div></div>' +
           '<div class="info-item"><div class="info-label">Dirección</div><div class="info-val">' + (u.direccion || '--') + '</div></div>' +
-          '<div class="info-item"><div class="info-label">Teléfono</div><div class="info-val">' + (u.telefono || '--') + '</div></div>' +
+          '<div class="info-item"><div class="info-label">Ciudad</div><div class="info-val">' + (u.ciudadEmpresa || u.ciudad || '--') + '</div></div>' +
+          '<div class="info-item"><div class="info-label">Teléfono empresa</div><div class="info-val">' + (u.telEmpresa || u.telefono || '--') + '</div></div>' +
+          '<div class="info-item"><div class="info-label">Sitio web</div><div class="info-val">' + (u.web || '--') + '</div></div>' +
+          (Array.isArray(u.industrias) && u.industrias.length ? '<div class="info-item"><div class="info-label">Industrias</div><div class="info-val">' + u.industrias.join(', ') + '</div></div>' : '') +
           '<div class="info-item"><div class="info-label">Registro</div><div class="info-val">' + (u.createdAt ? new Date(u.createdAt).toLocaleDateString('es-CL') : '--') + '</div></div>' +
         '</div>' +
 
         '<div class="sep"></div>' +
 
-        // ── Representante ──
-        '<div style="font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Representante legal</div>' +
+        // ── Representante / Contacto ──
+        '<div style="font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Contacto principal</div>' +
         '<div class="info-grid" style="margin-top:0">' +
           '<div class="info-item"><div class="info-label">Nombre</div><div class="info-val">' + (u.nombre || '--') + '</div></div>' +
           '<div class="info-item"><div class="info-label">Cargo</div><div class="info-val">' + (u.cargo || '--') + '</div></div>' +
           '<div class="info-item"><div class="info-label">RUT</div><div class="info-val">' + (u.rut || '--') + '</div></div>' +
+          '<div class="info-item"><div class="info-label">Email</div><div class="info-val">' + (u.email || '--') + '</div></div>' +
+          '<div class="info-item"><div class="info-label">Teléfono</div><div class="info-val">' + (u.telefono || '--') + '</div></div>' +
+          '<div class="info-item"><div class="info-label">WhatsApp</div><div class="info-val">' + (u.whatsapp || '--') + '</div></div>' +
         '</div>' +
       '</div></div>' +
 
       // ── Plan (solo clientes) ──
       planHtml +
 
+      // ── Operación / Descripción ──
+      operacionHtml +
+
+      // ── Datos de facturación ──
+      facturacionHtml +
+
+      // ── Contactos de la empresa ──
+      contactosHtml +
+
       // ── Usuarios adicionales / Equipos ──
       usuariosHtml +
       equiposHtml +
+
+      // ── Métricas de cuenta ──
+      metricasHtml +
 
       // ── Historial ──
       '<div class="card"><div class="card-hdr">Actividad en la plataforma</div><div class="card-body" id="historial-body"><div class="spinner"></div></div></div>' +
