@@ -1,0 +1,352 @@
+<!DOCTYPE html><html lang="es"><head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch Admin — Retornos</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f7fb;display:flex;flex-direction:column;min-height:100vh}
+  #app{display:none;flex-direction:column;min-height:100vh}
+  #auth-guard{position:fixed;inset:0;background:#1e2d4e;display:flex;align-items:center;justify-content:center;z-index:9999}
+  .gs{width:36px;height:36px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* NAV */
+  .nav{background:#1e2d4e;padding:0 24px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .nav-left{display:flex;align-items:center;gap:16px}
+  .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+  .nav-icon{background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+  .nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#ff8904}
+  .nav-badge{background:rgba(255,255,255,.15);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px}
+  .nav-tabs{display:flex;gap:2px}
+  .nav-tab{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+  .nav-tab:hover,.nav-tab.active{color:#fff;background:rgba(255,255,255,.12)}
+  .logout-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer}
+  .logout-btn:hover{background:rgba(255,255,255,.25)}
+
+  main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1;width:100%}
+
+  /* STATS */
+  .stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:18px}
+  @media(max-width:700px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
+  .stat-card{background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.05);padding:14px 16px}
+  .sc-label{font-size:11px;color:#6B7280;margin-bottom:6px}
+  .sc-val{font-size:24px;font-weight:700;line-height:1}
+  .sc-sub{font-size:11px;color:#9CA3AF;margin-top:4px}
+
+  /* FILTROS */
+  .filter-wrap{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);margin-bottom:0}
+  .chips-row{padding:10px 14px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .filter-chip{padding:5px 14px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e8eaf0;background:#fff;color:#6B7280;transition:all .15s;user-select:none}
+  .filter-chip.active{background:#1e2d4e;color:#fff;border-color:#1e2d4e}
+  .search-row{padding:8px 14px 10px;border-top:0.5px solid #f3f4f6}
+  .srch{width:100%;padding:7px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;color:#374151;background:#f8f9fc}
+  .srch:focus{outline:none;border-color:#1e2d4e;background:#fff}
+
+  /* CARDS */
+  .lista-wrap{margin-top:12px}
+  .trn-card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);margin-bottom:10px;overflow:hidden}
+  .trn-hdr{padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;transition:background .12s}
+  .trn-hdr:hover{background:#f5f7fb}
+  .trn-code{font-size:10px;font-weight:700;font-family:monospace;background:#eef1f8;color:#1e2d4e;padding:3px 8px;border-radius:5px;flex-shrink:0;white-space:nowrap;min-width:72px;text-align:center}
+  .trn-body-hdr{flex:1;min-width:0}
+  .trn-name{font-size:13px;font-weight:700;color:#1e2d4e;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .trn-meta{font-size:12px;color:#6B7280}
+  .trn-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+  .trn-precio{font-size:13px;font-weight:700;color:#1d4ed8}
+  .trn-arr{font-size:16px;color:#9CA3AF;transition:transform .2s;flex-shrink:0}
+  .trn-detail{display:none;border-top:0.5px solid #f3f4f6}
+  .trn-detail.open{display:block}
+
+  /* BADGES */
+  .badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 9px;border-radius:999px}
+  .badge-orange{background:#FFF7ED;color:#92400E}
+  .badge-green{background:#F0FDF4;color:#14532D}
+  .badge-blue{background:#eef1f8;color:#1e2d4e}
+  .badge-gray{background:#f8f9fc;color:#6B7280;border:0.5px solid #E5E7EB}
+  .badge-red{background:#FEF2F2;color:#991B1B}
+  .badge-purple{background:#F5F3FF;color:#5B21B6}
+
+  /* DETALLE */
+  .det-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:16px 18px 0}
+  @media(max-width:600px){.det-grid{grid-template-columns:1fr}}
+  .det-cell{background:#f8f9fc;border-radius:8px;padding:10px 12px}
+  .det-label{font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+  .det-val{font-size:13px;color:#111827;font-weight:500;word-break:break-word}
+  .det-section-title{font-size:11px;font-weight:700;color:#ff8904;text-transform:uppercase;letter-spacing:.07em;padding:14px 18px 6px}
+
+  /* TIMELINE */
+  .timeline{padding:0 18px 14px}
+  .tl-item{display:flex;gap:12px;padding:8px 0;position:relative}
+  .tl-item:not(:last-child)::after{content:'';position:absolute;left:11px;top:28px;width:1.5px;height:calc(100% - 8px);background:#e8eaf0}
+  .tl-dot{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;margin-top:2px}
+  .tl-dot-ok{background:#1ED24E}
+  .tl-dot-cur{background:#ff8904}
+  .tl-dot-pend{background:#e8eaf0;color:#9CA3AF}
+  .tl-content{flex:1;min-width:0}
+  .tl-estado{font-size:12px;font-weight:600;color:#1e2d4e}
+  .tl-fecha{font-size:11px;color:#9CA3AF;margin-top:1px}
+  .tl-nota{font-size:12px;color:#6B7280;margin-top:2px}
+
+  /* DOCUMENTOS */
+  .docs-row{display:flex;gap:10px;flex-wrap:wrap;padding:0 18px 14px}
+  .doc-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:#f8f9fc;border:0.5px solid #e8eaf0;border-radius:8px;font-size:12px;font-weight:500;color:#374151;cursor:pointer;text-decoration:none;transition:background .1s}
+  .doc-pill:hover{background:#eef1f8;color:#1e2d4e}
+  .doc-pill.no-doc{color:#9CA3AF;cursor:default}
+  .doc-pill.no-doc:hover{background:#f8f9fc;color:#9CA3AF}
+
+  /* ACCIONES */
+  .det-actions{display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px 16px;border-top:0.5px solid #f3f4f6}
+  .btn{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:opacity .15s;display:inline-flex;align-items:center;gap:5px}
+  .btn:hover{opacity:.85}
+  .btn-primary{background:#1e2d4e;color:#fff}
+  .btn-green{background:#1ED24E;color:#fff}
+  .btn-red{background:#EF4444;color:#fff}
+  .btn-orange{background:#ff8904;color:#fff}
+  .btn-outline{background:#fff;border:0.5px solid #e8eaf0;color:#374151}
+  .btn-sm{padding:5px 10px;font-size:11px}
+
+  .empty{text-align:center;padding:48px 20px;color:#9CA3AF;font-size:13px}
+  .spinner{width:26px;height:26px;border:3px solid #e8eaf0;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite;margin:40px auto}
+
+  /* MODAL */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px}
+  .modal-bg.open{display:flex}
+  .modal{background:#fff;border-radius:14px;padding:24px;max-width:440px;width:100%;max-height:90vh;overflow-y:auto}
+  .modal-title{font-size:16px;font-weight:600;color:#1e2d4e;margin-bottom:4px}
+  .modal-sub{font-size:13px;color:#6B7280;margin-bottom:16px}
+  .modal-btns{display:flex;gap:8px;margin-top:18px}
+  .modal-btns .btn{flex:1;justify-content:center}
+  select.sel{width:100%;padding:9px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;color:#374151;background:#fff;margin-bottom:8px}
+  select.sel:focus{outline:none;border-color:#1e2d4e}
+  textarea.ta{width:100%;padding:9px 12px;border:0.5px solid #e8eaf0;border-radius:7px;font-size:13px;color:#374151;resize:vertical;min-height:72px;font-family:inherit}
+  textarea.ta:focus{outline:none;border-color:#1e2d4e}
+
+  #toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none;max-width:320px}
+
+  .nav-mobile-menu{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:6px;border-radius:6px;background:none;border:none;flex-shrink:0}
+  .nav-mobile-menu span{display:block;width:20px;height:2px;background:#fff;border-radius:2px}
+  .nav-mobile-panel{display:none;position:fixed;top:52px;left:0;right:0;background:#1e2d4e;z-index:999;padding:8px 16px 16px;border-bottom:0.5px solid rgba(255,255,255,.1)}
+  .nav-mobile-panel.open{display:block}
+  .nav-mobile-link{display:block;padding:10px 12px;color:#93C5FD;text-decoration:none;font-size:14px;border-radius:8px;margin-bottom:2px}
+  .nav-mobile-link:hover{background:rgba(255,255,255,.1);color:#fff}
+  @media(max-width:860px){
+    .nav-links,.nav-tabs{display:none!important}
+    .nav-mobile-menu{display:flex!important}
+    .nav-user-name{display:none!important}
+  }
+</style>
+</head><body><nav class="nav">
+    <div class="nav-left">
+      <a href="/admin.html" class="nav-logo">
+        <div class="nav-icon">T</div>
+        <span class="nav-name">Trans<span>Match</span></span>
+        <span class="nav-badge">ADMIN</span>
+      </a>
+      <button class="nav-mobile-menu" onclick="toggleMobileNav()" aria-label="Menu"><span></span><span></span><span></span></button><div class="nav-tabs">
+        <a href="/admin.html" class="nav-tab">Dashboard</a>
+        <a href="/admin-licitaciones.html" class="nav-tab">Licitaciones</a>
+        <a href="/admin-cotizaciones.html" class="nav-tab">Cotizaciones</a>
+        <a href="/admin-transportes.html" class="nav-tab">Transportes</a>
+        <a href="/admin-retornos.html" class="nav-tab active">Retornos</a>
+        <a href="/admin-clientes.html" class="nav-tab">Clientes</a>
+        <a href="/admin-transportistas.html" class="nav-tab">Transportistas</a>
+        <a href="/admin-cobros.html" class="nav-tab">Facturación</a>
+        <a href="/admin-reportes.html" class="nav-tab">Reportes</a>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="localStorage.clear();window.location.replace('/admin-login.html')">Cerrar sesión</button>
+  </nav><div id="nav-mobile-panel" class="nav-mobile-panel">
+<a href="/admin.html" class="nav-mobile-link">Dashboard</a>
+<a href="/admin-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
+<a href="/admin-cotizaciones.html" class="nav-mobile-link">Cotizaciones</a>
+<a href="/admin-transportes.html" class="nav-mobile-link">Transportes</a>
+<a href="/admin-retornos.html" class="nav-mobile-link">Retornos</a>
+<a href="/admin-clientes.html" class="nav-mobile-link">Clientes</a>
+<a href="/admin-transportistas.html" class="nav-mobile-link">Transportistas</a>
+<a href="/admin-cobros.html" class="nav-mobile-link">Facturación</a>
+<a href="/admin-reportes.html" class="nav-mobile-link">Reportes</a>
+</div><main style="max-width:1100px;margin:0 auto;padding:24px 16px 40px;width:100%">
+  <div style="margin-bottom:18px">
+    <div style="font-size:20px;font-weight:700;color:#1e2d4e">Retornos publicados</div>
+    <div style="font-size:13px;color:#6B7280;margin-top:2px">Todos los retornos de transportistas y las propuestas recibidas en cada uno</div>
+  </div>
+
+  <div class="stat-grid" id="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px">
+    <div class="stat-card"><div class="sc-label">Total retornos</div><div class="sc-val" id="sc-total" style="color:#1e2d4e">—</div><div class="sc-sub">Publicados</div></div>
+    <div class="stat-card"><div class="sc-label">Disponibles</div><div class="sc-val" id="sc-disp" style="color:#ff8904">—</div><div class="sc-sub">Activos ahora</div></div>
+    <div class="stat-card"><div class="sc-label">Con propuestas</div><div class="sc-val" id="sc-conprop" style="color:#1d4ed8">—</div><div class="sc-sub">Recibieron interés</div></div>
+    <div class="stat-card"><div class="sc-label">Propuestas aceptadas</div><div class="sc-val" id="sc-acept" style="color:#16a34a">—</div><div class="sc-sub">Tramos cerrados</div></div>
+  </div>
+
+  <div style="background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.05);overflow:visible">
+    <div style="padding:10px 12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <div class="filter-chip active" onclick="setChip('todos',this)">Todos</div>
+      <div class="filter-chip" onclick="setChip('disponible',this)">Disponibles</div>
+      <div class="filter-chip" onclick="setChip('con-propuestas',this)">Con propuestas</div>
+    </div>
+    <div style="height:0.5px;background:#E5E7EB;margin:0 12px"></div>
+    <div style="padding:10px 16px;border-bottom:0.5px solid #E5E7EB">
+      <input style="width:100%;padding:7px 10px;border:0.5px solid #E5E7EB;border-radius:7px;font-size:12px" placeholder="Buscar por transportista, ciudad o equipo..." id="buscador" oninput="render()"/>
+    </div>
+    <div id="lista" style="padding:8px 12px"><div style="padding:32px;text-align:center"><div class="spinner"></div></div></div>
+  </div>
+</main><footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px">
+    <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="background:#ff8904;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px">T</div>
+          <span style="font-weight:700;color:#fff;font-size:15px">Trans<span style="color:#ff8904">Match</span></span>
+        </div>
+        <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+      </div>
+      <div style="display:flex;gap:32px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <a href="/terminos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Términos y condiciones</a>
+            <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Política de privacidad</a>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span>
+            <span style="font-size:13px;color:#CBD5E1">+56 9 XXXX XXXX</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B">
+      © 2026 TransMatch SpA. Todos los derechos reservados.
+    </div>
+  </footer><script>
+const API = 'https://transmatch.transmatchcl.workers.dev';
+var allRetornos = [];
+var chip = 'todos';
+
+function toggleMobileNav(){var p=document.getElementById('nav-mobile-panel');if(p)p.classList.toggle('open');}
+
+async function api(path, method, body){
+  const opts={method:method||'GET',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}};
+  if(body)opts.body=JSON.stringify(body);
+  let r;
+  try{ r=await fetch(API+path,opts); }catch(e){ return {ok:false,data:{error:'Error de conexion'}}; }
+  if(r.status===401){localStorage.clear();window.location.replace('/admin-login.html');return null;}
+  let data={}; try{data=await r.json();}catch(e){}
+  return {ok:r.ok,data:data};
+}
+
+function fmtCLP(n){ if(n==null||n==='')return '—'; return '$'+Number(n).toLocaleString('es-CL'); }
+function fmtFecha(s){ if(!s)return '—'; try{var d=new Date(s);return d.toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return s;} }
+function esc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+var estadoProp = {
+  pendiente:['#FEF3C7','#92400E','Pendiente'],
+  aceptada:['#DCFCE7','#14532D','Aceptada'],
+  rechazada:['#FEE2E2','#991B1B','Rechazada']
+};
+
+async function cargar(){
+  const r = await api('/api/admin/retornos','GET');
+  if(!r||!r.ok){ document.getElementById('lista').innerHTML='<div style="padding:24px;text-align:center;color:#EF4444;font-size:13px">Error al cargar retornos</div>'; return; }
+  allRetornos = r.data.retornos || [];
+  pintarStats();
+  render();
+}
+
+function pintarStats(){
+  var total = allRetornos.length;
+  var disp = allRetornos.filter(function(r){return r.estado==='disponible';}).length;
+  var conProp = allRetornos.filter(function(r){return (r.propuestas||[]).length>0;}).length;
+  var acept = allRetornos.reduce(function(acc,r){return acc+(r.propuestas||[]).filter(function(p){return p.estado==='aceptada';}).length;},0);
+  document.getElementById('sc-total').textContent=total;
+  document.getElementById('sc-disp').textContent=disp;
+  document.getElementById('sc-conprop').textContent=conProp;
+  document.getElementById('sc-acept').textContent=acept;
+}
+
+function setChip(val, el){
+  chip = val;
+  document.querySelectorAll('.filter-chip').forEach(function(c){c.classList.remove('active');});
+  if(el)el.classList.add('active');
+  render();
+}
+
+function render(){
+  var q = (document.getElementById('buscador').value||'').toLowerCase().trim();
+  var list = allRetornos.slice();
+  if(chip==='disponible') list = list.filter(function(r){return r.estado==='disponible';});
+  else if(chip==='con-propuestas') list = list.filter(function(r){return (r.propuestas||[]).length>0;});
+  if(q){
+    list = list.filter(function(r){
+      return ((r.transportistaEmpresa||'')+' '+(r.transportistaNombre||'')+' '+(r.ciudadOrigen||'')+' '+(r.ciudadDestino||'')+' '+(r.equipo||'')).toLowerCase().indexOf(q)>=0;
+    });
+  }
+  var el = document.getElementById('lista');
+  if(list.length===0){ el.innerHTML='<div style="padding:28px;text-align:center;color:#9CA3AF;font-size:13px">No hay retornos que coincidan</div>'; return; }
+  el.innerHTML = list.map(renderRetorno).join('');
+}
+
+function renderRetorno(r){
+  var props = r.propuestas || [];
+  var dispBg = r.estado==='disponible'?'#FFF7ED':'#F3F4F6';
+  var dispColor = r.estado==='disponible'?'#92400E':'#6B7280';
+  var fechaRango = r.fechaDesde ? (fmtFecha(r.fechaDesde)+(r.fechaHasta&&r.fechaHasta!==r.fechaDesde?' — '+fmtFecha(r.fechaHasta):'')) : fmtFecha(r.fecha);
+
+  var propsHtml = '';
+  if(props.length>0){
+    propsHtml = '<div style="margin-top:12px;border-top:0.5px solid #E5E7EB;padding-top:12px"><div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Propuestas recibidas ('+props.length+')</div>'
+      + props.map(function(p){
+          var est = estadoProp[p.estado]||['#F3F4F6','#374151',p.estado||'—'];
+          var ruta = p.esTramoParcial ? ('Tramo parcial: '+esc(p.origenPropuesto||'')+' → '+esc(p.destinoPropuesto||'')) : ('Tramo completo: '+esc(r.ciudadOrigen||'')+' → '+esc(r.ciudadDestino||''));
+          var precioNeg = (p.estado==='aceptada'&&p.precioNegociado)?'<div style="font-size:12px;color:#14532D;font-weight:600;margin-top:3px">Precio acordado: '+fmtCLP(p.precioNegociado)+'</div>':'';
+          return '<div style="background:#fafbfc;border:0.5px solid #eef0f5;border-radius:8px;padding:10px 12px;margin-bottom:7px">'
+            +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">'
+            +'<span style="font-size:13px;font-weight:600;color:#1e2d4e">'+esc(p.clienteEmpresa||p.clienteNombre||'Cliente')+'</span>'
+            +'<span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:'+est[0]+';color:'+est[1]+'">'+est[2]+'</span>'
+            +'</div>'
+            +'<div style="font-size:12px;color:#6B7280">'+ruta+'</div>'
+            +(p.fechaSolicitada?'<div style="font-size:12px;color:#6B7280;margin-top:2px">Fecha solicitada: '+fmtFecha(p.fechaSolicitada)+'</div>':'')
+            +precioNeg
+            +'<div style="font-size:11px;color:#9CA3AF;margin-top:4px">Enviada: '+fmtFecha(p.createdAt)+(p.respondidaAt?' · Respondida: '+fmtFecha(p.respondidaAt):'')+'</div>'
+            +'</div>';
+        }).join('')
+      + '</div>';
+  } else {
+    propsHtml = '<div style="margin-top:12px;border-top:0.5px solid #E5E7EB;padding-top:12px;font-size:12px;color:#9CA3AF">Sin propuestas aún</div>';
+  }
+
+  return '<div style="border:0.5px solid #E5E7EB;border-radius:12px;padding:16px;margin-bottom:10px">'
+    +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">'
+    +'<div style="flex:1;min-width:0">'
+    +'<div style="font-size:15px;font-weight:700;color:#1e2d4e">'+esc(r.ciudadOrigen||'')+' → '+esc(r.ciudadDestino||'')+'</div>'
+    +'<div style="font-size:13px;color:#6B7280;margin-top:3px">'+esc(r.transportistaEmpresa||r.transportistaNombre||'Transportista')+'</div>'
+    +'<div style="font-size:12px;color:#9CA3AF;margin-top:6px">'
+      +(r.equipo?'Equipo: '+esc(r.equipo)+' · ':'')
+      +(r.capacidad?'Cap: '+esc(r.capacidad)+' · ':'')
+      +'Fecha: '+fechaRango
+    +'</div>'
+    +(r.descripcion?'<div style="font-size:12px;color:#6B7280;margin-top:6px;line-height:1.5">'+esc(r.descripcion)+'</div>':'')
+    +'</div>'
+    +'<div style="text-align:right;flex-shrink:0">'
+    +'<div style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:999px;background:'+dispBg+';color:'+dispColor+';white-space:nowrap;display:inline-block">'+(r.estado==='disponible'?'Disponible':esc(r.estado||'—'))+'</div>'
+    +'<div style="font-size:15px;font-weight:700;color:#1e2d4e;margin-top:8px">'+fmtCLP(r.precio)+'</div>'
+    +'</div>'
+    +'</div>'
+    +propsHtml
+    +'</div>';
+}
+
+document.addEventListener('click',function(e){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.nav-mobile-menu'))
+    p.classList.remove('open');
+});
+
+(function(){
+  const token=localStorage.getItem('tm_token');
+  const role=localStorage.getItem('tm_role');
+  if(!token||role!=='admin'){window.location.replace('/admin-login.html');return;}
+  cargar();
+})();
+</script></body></html>
