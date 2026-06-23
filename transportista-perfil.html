@@ -651,10 +651,15 @@
       <div class="card">
         <div class="card-title">Seguridad de la cuenta</div>
 
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px 0;border-top:1px solid #eef0f5">
-          <div>
-            <div style="font-size:14px;font-weight:600;color:#1e2d4e;margin-bottom:3px">Contraseña</div>
-            <div style="font-size:13px;color:#6B7280;line-height:1.5">Para cambiarla, cierra sesión y usa la opción "¿Olvidaste tu contraseña?" en el inicio de sesión.</div>
+        <div style="padding:16px 0;border-top:1px solid #eef0f5">
+          <div style="font-size:14px;font-weight:600;color:#1e2d4e;margin-bottom:3px">Cambiar contraseña</div>
+          <div style="font-size:13px;color:#6B7280;line-height:1.5;margin-bottom:12px">Actualiza tu contraseña sin cerrar sesión. Mínimo 8 caracteres.</div>
+          <div style="display:flex;flex-direction:column;gap:10px;max-width:380px">
+            <div style="position:relative"><input type="password" id="pwd-actual" placeholder="Contraseña actual" autocomplete="current-password" style="width:100%;padding:10px 40px 10px 12px;border:1.5px solid #eef0f5;border-radius:8px;font-size:14px;outline:none"/><button type="button" onclick="togglePwd('pwd-actual',this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;padding:0;display:flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            <div style="position:relative"><input type="password" id="pwd-nueva" placeholder="Nueva contraseña" autocomplete="new-password" style="width:100%;padding:10px 40px 10px 12px;border:1.5px solid #eef0f5;border-radius:8px;font-size:14px;outline:none"/><button type="button" onclick="togglePwd('pwd-nueva',this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;padding:0;display:flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            <div style="position:relative"><input type="password" id="pwd-confirma" placeholder="Repetir nueva contraseña" autocomplete="new-password" style="width:100%;padding:10px 40px 10px 12px;border:1.5px solid #eef0f5;border-radius:8px;font-size:14px;outline:none"/><button type="button" onclick="togglePwd('pwd-confirma',this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;padding:0;display:flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            <div id="pwd-msg" style="display:none;font-size:13px;padding:8px 11px;border-radius:7px"></div>
+            <div><button class="btn btn-orange btn-sm" id="btn-cambiar-pwd" onclick="cambiarPassword()">Actualizar contraseña</button></div>
           </div>
         </div>
 
@@ -722,6 +727,42 @@ var U   = {};
   // Campos empresa extendidos
   inp('inp-giro-t',U.giro); inp('inp-dir-t',U.direccion); inp('inp-ciudad-t',U.ciudad);
 })();
+
+function togglePwd(id,btn){
+  var inp=document.getElementById(id);
+  if(!inp)return;
+  inp.type = inp.type==='password' ? 'text' : 'password';
+  if(btn) btn.style.color = inp.type==='text' ? '#1e2d4e' : '#9CA3AF';
+}
+
+async function cambiarPassword(){
+  var actual=document.getElementById('pwd-actual').value;
+  var nueva=document.getElementById('pwd-nueva').value;
+  var confirma=document.getElementById('pwd-confirma').value;
+  var msg=document.getElementById('pwd-msg');
+  function showMsg(text,ok){ msg.textContent=text; msg.style.display='block'; msg.style.background=ok?'#DCFCE7':'#FEF2F2'; msg.style.color=ok?'#14532D':'#991B1B'; }
+
+  if(!actual||!nueva||!confirma){ showMsg('Completa los tres campos',false); return; }
+  if(nueva.length<8){ showMsg('La nueva contraseña debe tener al menos 8 caracteres',false); return; }
+  if(nueva!==confirma){ showMsg('La nueva contraseña y su confirmación no coinciden',false); return; }
+  if(nueva===actual){ showMsg('La nueva contraseña debe ser distinta a la actual',false); return; }
+
+  var btn=document.getElementById('btn-cambiar-pwd');
+  btn.disabled=true; var txt=btn.textContent; btn.textContent='Actualizando...';
+  try{
+    var res=await fetch(API+'/api/auth/cambiar-password',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({passwordActual:actual,passwordNueva:nueva})});
+    var data={}; try{data=await res.json();}catch(e){}
+    if(res.ok){
+      showMsg('Contraseña actualizada correctamente',true);
+      document.getElementById('pwd-actual').value='';
+      document.getElementById('pwd-nueva').value='';
+      document.getElementById('pwd-confirma').value='';
+    } else {
+      showMsg(data.error||'No se pudo actualizar la contraseña',false);
+    }
+  }catch(e){ showMsg('Error de conexión. Intenta nuevamente.',false); }
+  finally{ btn.disabled=false; btn.textContent=txt; }
+}
 
 function fill() {
   var n   = U.nombre   || localStorage.getItem('tm_nombre')  || '';
