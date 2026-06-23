@@ -250,6 +250,14 @@ var ESTADOS = [
   {id:'entregado',      label:'Entregado',       icon:'·'},
 ];
 
+function toggleFacturacion(btn){
+  var box = btn.closest('div').parentNode;
+  var panel = box.querySelector('.fact-panel');
+  if(!panel) return;
+  var abierto = panel.style.display==='block';
+  panel.style.display = abierto ? 'none' : 'block';
+  btn.textContent = abierto ? 'Ver datos de facturación' : 'Ocultar datos de facturación';
+}
 function estadoIdx(e){ return ESTADOS.findIndex(function(x){return x.id===e;}); }
 function estadoLabel(e){ var m=ESTADOS.find(function(x){return x.id===e;}); return m?m.icon+' '+m.label:e; }
 function peso(n){ return n?new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n):'--'; }
@@ -375,6 +383,27 @@ function renderDetalle(t){
     });
   }
   h+='</div>';
+
+  // ── DATOS DE FACTURACIÓN DEL CLIENTE ─────────────────────────
+  var fc = t.clienteFacturacion||{};
+  var tieneFact = fc.razonSocial||fc.rut||fc.giro||fc.direccion;
+  h+='<div style="border:0.5px solid #e8eaf0;border-radius:10px;padding:14px;margin-bottom:16px">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">';
+  h+='<div style="font-size:12px;font-weight:700;color:#1e2d4e;text-transform:uppercase;letter-spacing:.04em">Datos de facturación del cliente</div>';
+  h+='<button class="btn btn-outline" style="font-size:12px;padding:5px 12px" onclick="toggleFacturacion(this)">Ver datos de facturación</button>';
+  h+='</div>';
+  h+='<div class="fact-panel" style="display:none;margin-top:12px;padding-top:12px;border-top:0.5px solid #e8eaf0">';
+  if(tieneFact){
+    h+='<div style="font-size:12px;color:#6B7280;margin-bottom:10px">Usa estos datos para emitir la factura del servicio de transporte al cliente.</div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+    var df=function(label,val){ return '<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">'+label+'</div><div style="font-size:13px;color:#1e2d4e">'+(val||'—')+'</div></div>'; };
+    h+=df('Razón social',fc.razonSocial)+df('RUT',fc.rut)+df('Giro',fc.giro)+df('Dirección',fc.direccion)+df('Email facturación',fc.email)+df('Teléfono',fc.telefono);
+    if(fc.contactoNombre) h+=df('Contacto',fc.contactoNombre);
+    h+='</div>';
+  } else {
+    h+='<div style="font-size:13px;color:#9CA3AF">El cliente aún no ha completado sus datos de facturación. Puedes solicitarlos por los datos de contacto de arriba.</div>';
+  }
+  h+='</div></div>';
 
   // ── DIRECCIONES ──────────────────────────────────────────────
   var dirs = t.direcciones||{};

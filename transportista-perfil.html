@@ -292,6 +292,19 @@
     <!-- CONTACTOS (Etapa 2) -->
     <div class="pane" id="pane-contactos">
       <div class="card" style="margin-bottom:16px">
+        <div class="card-title" style="margin-bottom:4px">Datos de facturación de tu empresa</div>
+        <div style="font-size:12px;color:#6B7280;margin-bottom:16px">TransMatch usa estos datos para emitirte la factura mensual por comisión. Asegúrate de que coincidan con tu información en el SII.</div>
+        <div class="grid2">
+          <div class="fg"><label>Razón social</label><input type="text" id="inp-fact-rs" placeholder="Transportes y Logística SpA"/></div>
+          <div class="fg"><label>RUT empresa</label><input type="text" id="inp-fact-rut" placeholder="76.123.456-7"/></div>
+          <div class="fg"><label>Giro tributario</label><input type="text" id="inp-fact-giro" placeholder="Ej: Transporte de carga por carretera"/></div>
+          <div class="fg"><label>Dirección comercial</label><input type="text" id="inp-fact-dir" placeholder="Calle, número, comuna, ciudad"/></div>
+          <div class="fg"><label>Email para facturas</label><input type="email" id="inp-fact-email" placeholder="facturas@empresa.cl"/></div>
+        </div>
+        <div class="ok" id="ok-datos-fact" style="margin-top:12px">Datos de facturación guardados correctamente</div>
+        <div style="margin-top:16px"><button class="btn btn-primary" onclick="guardarDatosFacturacion()">Guardar datos de facturación</button></div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
         <div class="card-title" style="margin-bottom:4px">Contacto de Operaciones</div>
         <div style="font-size:12px;color:#6B7280;margin-bottom:16px">Persona encargada de coordinar los transportes en terreno.</div>
         <div class="grid2">
@@ -724,6 +737,9 @@ var U   = {};
   inp('inp-op-nombre',opC.nombre); inp('inp-op-cargo',opC.cargo); inp('inp-op-tel',opC.telefono); inp('inp-op-email',opC.email);
   inp('inp-com-nombre',comC.nombre); inp('inp-com-cargo',comC.cargo); inp('inp-com-tel',comC.telefono); inp('inp-com-email',comC.email);
   inp('inp-fac-nombre',facC.nombre); inp('inp-fac-cargo',facC.cargo); inp('inp-fac-tel',facC.telefono); inp('inp-fac-email',facC.email);
+  // Datos de facturación de la empresa (para que TransMatch facture)
+  var facE = U.facturacion||{};
+  inp('inp-fact-rs',facE.razonSocial); inp('inp-fact-rut',facE.rut); inp('inp-fact-giro',facE.giro); inp('inp-fact-dir',facE.direccion); inp('inp-fact-email',facE.email);
   // Campos empresa extendidos
   inp('inp-giro-t',U.giro); inp('inp-dir-t',U.direccion); inp('inp-ciudad-t',U.ciudad);
 })();
@@ -939,6 +955,19 @@ function calcCompletitudT(u){
   var eqs=u.equipos||[];if(eqs.length>0)pts+=10;
   var conDocs=eqs.filter(function(e){return Object.keys(e.documentos||{}).length>=3;});if(conDocs.length>0)pts+=10;
   return Math.min(100,pts);
+}
+
+async function guardarDatosFacturacion(){
+  var gv=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
+  var body={ facturacion:{ razonSocial:gv('inp-fact-rs'), rut:gv('inp-fact-rut'), giro:gv('inp-fact-giro'), direccion:gv('inp-fact-dir'), email:gv('inp-fact-email') } };
+  try{
+    var res=await fetch(API+'/api/perfil',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(body)});
+    if(res.ok){
+      Object.assign(U,body);
+      if(typeof renderProgresoT==='function') renderProgresoT(U);
+      var el=document.getElementById('ok-datos-fact');if(el){el.style.display='block';setTimeout(function(){el.style.display='none';},3000);}
+    }
+  }catch(e){}
 }
 
 async function guardarContactos(){
