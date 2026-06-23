@@ -435,6 +435,24 @@ function renderDetalle(t){
     return '<div class="det-cell"><div class="det-label">'+it[0]+'</div><div class="det-val">'+it[1]+'</div></div>';
   }).join('')+'</div>';
 
+  // Datos de facturación del cliente (para emisión de facturas de comisión)
+  var fc = t.clienteFacturacion||{};
+  if(fc.razonSocial||fc.rut||fc.giro||fc.direccion||fc.email){
+    html+='<div class="det-section-title">Datos de facturación del cliente</div>';
+    var fitems=[
+      ['Razón social', fc.razonSocial||'—'],
+      ['RUT', fc.rut||'—'],
+      ['Giro', fc.giro||'—'],
+      ['Dirección', fc.direccion||'—'],
+      ['Email facturación', fc.email||'—'],
+      ['Teléfono', fc.telefono||'—']
+    ];
+    if(fc.contactoNombre) fitems.push(['Contacto', fc.contactoNombre]);
+    html+='<div class="det-grid">'+fitems.map(function(it){
+      return '<div class="det-cell"><div class="det-label">'+it[0]+'</div><div class="det-val">'+it[1]+'</div></div>';
+    }).join('')+'</div>';
+  }
+
   // Documentos
   html+='<div class="det-section-title">Documentos</div>';
   html+='<div class="docs-row">';
