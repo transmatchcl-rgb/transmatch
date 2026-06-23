@@ -205,7 +205,7 @@
     document.getElementById('lista-transportistas').innerHTML = lista.length === 0
       ? '<div class="empty">Sin resultados</div>'
       : lista.map((t, i) =>
-          '<div class="row" style="cursor:pointer" onclick="irPerfil(\'' + t.email + '\')">' +
+          '<div class="row" style="cursor:pointer;flex-wrap:wrap" onclick="toggleCard(this)">' +
           '<div class="av" style="background:' + avColors[i % avColors.length] + '">' + (t.nombre[0] || 'T').toUpperCase() + '</div>' +
           '<div class="row-body">' +
             '<div class="row-name">' + t.nombre + '</div>' +
@@ -221,8 +221,53 @@
             : '') +
             '<a href="/admin-perfil-usuario.html?email=' + encodeURIComponent(t.email) + '" class="btn btn-outline btn-sm" onclick="event.stopPropagation()">Ver perfil</a>' +
           '</div>' +
+          detalleTransportista(t) +
           '</div>'
         ).join('');
+  }
+
+  function dato(label,val){ if(val==null||val===''||(Array.isArray(val)&&val.length===0)) return ''; var v=Array.isArray(val)?val.join(', '):val; return '<div style="margin-bottom:7px"><div style="font-size:10px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:.04em">'+label+'</div><div style="font-size:13px;color:#1e2d4e">'+v+'</div></div>'; }
+
+  function detalleTransportista(t){
+    var sec = function(s){ return '<div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin:4px 0 8px;grid-column:1/-1">'+s+'</div>'; };
+    var html = '<div class="card-detalle" style="display:none;width:100%;margin-top:12px;padding-top:14px;border-top:0.5px solid #E5E7EB" onclick="event.stopPropagation()">';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px 18px">';
+    html += sec('Contacto');
+    html += dato('Nombre', t.nombre) + dato('Email', t.email) + dato('Teléfono', t.telefono) + dato('WhatsApp', t.whatsapp) + dato('Cargo', t.cargo) + dato('RUT personal', t.rut);
+    html += sec('Empresa');
+    html += dato('Razón social', t.empresa) + dato('RUT empresa', t.rutEmpresa) + dato('Giro', t.giro) + dato('Dirección', t.direccion) + dato('Ciudad', t.ciudadEmpresa||t.ciudad) + dato('Tel. empresa', t.telEmpresa) + dato('Web', t.web) + dato('Años experiencia', t.anosExperiencia);
+    html += sec('Operación');
+    html += dato('Zonas de cobertura', t.zonas) + dato('Tipos de equipo', t.tiposEquipo);
+    if(t.descripcion) html += sec('Descripción') + '<div style="grid-column:1/-1;font-size:13px;color:#374151;line-height:1.5">'+t.descripcion+'</div>';
+    // Equipos detallados
+    if(t.equipos && t.equipos.length){
+      html += sec('Equipos registrados ('+t.equipos.length+')');
+      html += '<div style="grid-column:1/-1;display:flex;flex-direction:column;gap:6px">';
+      html += t.equipos.map(function(e){
+        var specs = [];
+        if(e.capacidadMax) specs.push('Cap: '+e.capacidadMax+' ton');
+        if(e.largoMax) specs.push('Largo: '+e.largoMax+'m');
+        if(e.anchoMax) specs.push('Ancho: '+e.anchoMax+'m');
+        if(e.altoMax) specs.push('Alto: '+e.altoMax+'m');
+        return '<div style="background:#fafbfc;border:0.5px solid #eef0f5;border-radius:8px;padding:9px 11px">'
+          +'<div style="font-size:13px;font-weight:600;color:#1e2d4e">'+(e.tipo||'Equipo')+(e.marca?' · '+e.marca:'')+(e.modelo?' '+e.modelo:'')+(e.ano?' ('+e.ano+')':'')+'</div>'
+          +(e.patente?'<div style="font-size:12px;color:#6B7280">Patente: '+e.patente+'</div>':'')
+          +(specs.length?'<div style="font-size:12px;color:#9CA3AF;margin-top:2px">'+specs.join(' · ')+'</div>':'')
+          +'</div>';
+      }).join('');
+      html += '</div>';
+    }
+    html += sec('Cuenta');
+    html += dato('Estado', t.estado) + dato('Rating', t.rating?('★ '+t.rating):'') + dato('Total transportes', t.totalTransportes) + dato('Total cotizaciones', t.totalCotizaciones) + dato('Perfil completo', t.perfilCompletitud?t.perfilCompletitud+'%':'') + dato('Notif. email', t.notifEmail?'Sí':'No');
+    if(t.notasAdmin) html += sec('Notas del admin') + '<div style="grid-column:1/-1;font-size:13px;color:#374151;line-height:1.5;background:#FEF9C3;padding:8px 10px;border-radius:6px">'+t.notasAdmin+'</div>';
+    html += '</div></div>';
+    return html;
+  }
+
+  function toggleCard(row){
+    var d = row.querySelector('.card-detalle');
+    if(!d) return;
+    d.style.display = d.style.display==='none' ? 'block' : 'none';
   }
 
   function irPerfil(email) {
