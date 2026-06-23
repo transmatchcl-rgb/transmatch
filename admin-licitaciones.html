@@ -674,6 +674,9 @@ function renderDetalle(l){
   // Acciones
   var acc=[];
   if(l.estado==='pendiente_admin'){
+    html+='<div style="margin-top:14px"><label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:6px">Comentario para el transportista (opcional)</label>'
+      +'<textarea id="coment-admin-'+l.id+'" rows="2" placeholder="Ej: Revisar especificaciones técnicas adjuntas — la carga requiere amarre especial." style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>'
+      +'<div style="font-size:11px;color:#9CA3AF;margin-top:4px">Este comentario será visible para los transportistas en el detalle de la licitación.</div></div>';
     acc.push('<button class="btn btn-green" onclick="event.stopPropagation();aprobar(\''+l.id+'\')">Aprobar y publicar</button>');
     acc.push('<button class="btn btn-red" onclick="event.stopPropagation();rechazar(\''+l.id+'\')">Rechazar</button>');
   }
@@ -696,7 +699,9 @@ function renderDetalle(l){
 }
 
 async function aprobar(id){
-  const r=await api('/api/admin/licitacion/'+id+'/aprobar','POST',{});
+  var ta=document.getElementById('coment-admin-'+id);
+  var comentarioAdmin=ta?ta.value.trim():'';
+  const r=await api('/api/admin/licitacion/'+id+'/aprobar','POST',{comentarioAdmin:comentarioAdmin});
   if(r&&r.ok){toast('Licitación aprobada y publicada');cargar();}
   else toast(r&&r.data&&r.data.error||'Error al aprobar','err');
 }
