@@ -261,6 +261,7 @@
           <div class="fg"><label>Teléfono / WhatsApp</label><input type="tel" id="inp-tel" placeholder="+56 9 XXXX XXXX"/></div>
           <div class="fg"><label>Ciudad base</label><input type="text" id="inp-ciudad" placeholder="Ej: Santiago"/></div>
           <div class="fg"><label>RUT</label><input type="text" id="inp-rut" placeholder="12.345.678-9"/><div id="rut-err1" style="display:none;font-size:11px;color:#EF4444;margin-top:3px">RUT inválido — verifica el dígito verificador</div></div>
+          <div class="fg"><label>Cargo</label><input type="text" id="inp-cargo" placeholder="Ej: Gerente de operaciones"/></div>
         </div>
         <div class="ok" id="ok1">✓ Perfil actualizado correctamente</div>
         <div class="err" id="err1"></div>
@@ -584,7 +585,7 @@
           </div>
 <div class="ok" id="ok-eq">✓ Equipo agregado correctamente</div>
         <div class="err" id="err-eq"></div>
-        <div style="margin-top:14px;display:flex;gap:10px"><button class="btn btn-orange" onclick="agregarEquipo()">+ Agregar equipo</button><button class="btn btn-outline" onclick="cerrarForm('eq')">Cancelar</button></div>
+        <div style="margin-top:14px;display:flex;gap:10px"><button class="btn btn-orange" id="btn-agregar-eq" onclick="agregarEquipo()">+ Agregar equipo</button><button class="btn btn-outline" onclick="cerrarForm('eq')">Cancelar</button></div>
         </div>
       </div>
     </div>
@@ -742,6 +743,7 @@ function fill() {
   document.getElementById('inp-tel').value     = U.telefono || U.whatsapp || '';
   document.getElementById('inp-ciudad').value  = U.ciudad   || '';
   document.getElementById('inp-rut').value     = U.rut      || '';
+  document.getElementById('inp-cargo').value   = U.cargo    || '';
   document.getElementById('inp-empresa').value = emp;
   document.getElementById('inp-rut2').value    = U.rutEmpresa || '';
   document.getElementById('inp-anos').value    = U.anosExperiencia || '';
@@ -802,6 +804,7 @@ async function guardar() {
       whatsapp: document.getElementById('inp-tel').value.trim(),
       ciudad:   document.getElementById('inp-ciudad').value.trim(),
       rut:      document.getElementById('inp-rut').value.trim(),
+      cargo:    document.getElementById('inp-cargo').value.trim(),
     };
     var res = await fetch(API + '/api/perfil', {
       method: 'PUT',
@@ -984,6 +987,14 @@ async function guardarZonas() {
 
 async function cargarEquipos() {
   var el = document.getElementById('lista-eq');
+  // Recordar qué tarjetas estaban expandidas para no colapsarlas al re-renderizar
+  var _expandidos = [];
+  if (el) {
+    el.querySelectorAll('.eq-row[data-eqid]').forEach(function(row){
+      var body = row.querySelector('.eq-card-body');
+      if (body && body.style.display === 'block') _expandidos.push(row.getAttribute('data-eqid'));
+    });
+  }
   el.innerHTML = '<div class="spinner" style="width:22px;height:22px;border-width:2px;margin:16px auto"></div>';
   // Verificar vencimientos y crear notificaciones
   try {
@@ -1016,7 +1027,7 @@ async function cargarEquipos() {
       var completo = subidos >= reqKeys.length;
       var pillBg = completo ? '#DCFCE7' : '#FEF3C7';
       var pillColor = completo ? '#14532D' : '#92400E';
-      return '<div class="eq-row" style="flex-direction:column;align-items:stretch;padding:0;overflow:hidden">'
+      return '<div class="eq-row" data-eqid="'+eq.id+'" style="flex-direction:column;align-items:stretch;padding:0;overflow:hidden">'
         +'<div onclick="toggleEqCard(this)" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px;cursor:pointer">'
         +'<div style="flex:1;min-width:0">'
         +'<div class="eq-name">'+eq.tipo+(eq.marca?' — '+eq.marca:'')+(eq.modelo?' '+eq.modelo:'')+(eq.ano?' ('+eq.ano+')':'')+'</div>'
@@ -1036,6 +1047,15 @@ async function cargarEquipos() {
         + renderDocumentos(eq.id, eq.documentos)
         +'</div>';
     }).join('');
+    // Re-expandir las tarjetas que estaban abiertas antes del re-render
+    _expandidos.forEach(function(eqid){
+      var row = el.querySelector('.eq-row[data-eqid="'+eqid+'"]');
+      if (!row) return;
+      var body = row.querySelector('.eq-card-body');
+      var chev = row.querySelector('.eq-chevron');
+      if (body) body.style.display = 'block';
+      if (chev) chev.style.transform = 'rotate(180deg)';
+    });
   } catch(e) { el.innerHTML='<div style="text-align:center;padding:16px;color:#EF4444;font-size:13px">Error al cargar equipos</div>'; }
 }
 
@@ -1260,6 +1280,8 @@ async function agregarEquipo() {
   var okEl=document.getElementById('ok-eq'); var errEl=document.getElementById('err-eq');
   okEl.style.display='none'; errEl.style.display='none';
   if (!tipo) { errEl.textContent=_selTipo==='Otro'?'Especifica el equipo en "Otro"':'Selecciona el tipo de equipo'; errEl.style.display='block'; return; }
+  var _btnAdd = document.getElementById('btn-agregar-eq');
+  if (_btnAdd) { if (_btnAdd.disabled) return; _btnAdd.disabled = true; _btnAdd.dataset._txt = _btnAdd.textContent; _btnAdd.textContent = 'Guardando...'; }
   try {
     var res = await fetch(API+'/api/equipos', {
       method:'POST',
@@ -1336,6 +1358,7 @@ async function agregarEquipo() {
       setTimeout(function(){ okEl.style.display='none'; },3000);
     } else { var d=await res.json(); errEl.textContent=d.error||'Error al agregar equipo'; errEl.style.display='block'; }
   } catch(e) { errEl.textContent='Error de conexión'; errEl.style.display='block'; }
+  finally { if (_btnAdd) { _btnAdd.disabled = false; _btnAdd.textContent = _btnAdd.dataset._txt || '+ Agregar equipo'; } }
 }
 
 async function eliminarEquipo(id) {
