@@ -123,6 +123,8 @@ var emp=localStorage.getItem('tm_empresa')||'';
 var av=document.getElementById('nav-avatar');if(av&&n)av.textContent=n[0].toUpperCase();
 var nn=document.getElementById('nav-nombre');if(nn)nn.textContent=n;
 var ne=document.getElementById('nav-empresa');if(ne)ne.textContent=emp;
+var umn=document.getElementById('um-nombre');if(umn)umn.textContent=n;
+var ume=document.getElementById('um-empresa');if(ume)ume.textContent=emp;
 var p=localStorage.getItem('tm_plan')||'basico';
 if(p==='basico'){var nr=document.getElementById('nav-retornos');if(nr)nr.style.display='none';}
 setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
@@ -152,7 +154,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
   <span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center"></span>
 </div>
-<div class="nav-avatar" id="nav-avatar" onclick="window.location.href='/cliente-perfil.html'">?</div>
+<div style="position:relative"><div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div><div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:220px;z-index:999;overflow:hidden"><div style="padding:14px 16px;border-bottom:1px solid #f3f4f6"><div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div><div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div></div><a href="/cliente-perfil.html" class="um-item">Configuracion</a><a href="/ayuda.html" class="um-item">Ayuda</a><a href="/landing-servicios.html" class="um-item">Planes y precios</a><div style="border-top:1px solid #f3f4f6"><button onclick="cerrarSesion()" class="um-item um-danger">Cerrar sesion</button></div></div></div>
 </div>
 <div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:360px;background:#fff;border-radius:14px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.14);z-index:500;overflow:hidden;max-height:520px;flex-direction:column">
   <!-- Header dinámico: cambia entre "Notificaciones" y "← Configuración" -->
@@ -1171,7 +1173,8 @@ function actualizarPlazoExpress(){
 }
 
 var _API='https://transmatch.transmatchcl.workers.dev';
-function closeAllPanels(){var p=document.getElementById('notif-panel');if(p)p.style.display='none';}
+function closeAllPanels(){var p=document.getElementById('notif-panel');if(p)p.style.display='none';var m=document.getElementById('user-menu');if(m)m.style.display='none';}
+function toggleUserMenu(e){if(e)e.stopPropagation();var m=document.getElementById('user-menu');var open=m&&m.style.display==='block';closeAllPanels();if(!open&&m)m.style.display='block';}
 function toggleNotifs(e){if(e)e.stopPropagation();var p=document.getElementById('notif-panel');var open=p&&p.style.display==='flex';closeAllPanels();if(!open&&p){p.style.display='flex';_cargarNotif();}}
 document.addEventListener('click',closeAllPanels);
 function _cargarNotif(){
