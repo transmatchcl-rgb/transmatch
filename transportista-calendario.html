@@ -51,9 +51,9 @@
 
   /* GRID CALENDARIO */
   .cal-grid{background:#fff;border-radius:12px;border:0.5px solid var(--border);overflow:hidden;box-shadow:0 1px 4px rgba(30,45,78,.05)}
-  .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);background:var(--navy)}
+  .cal-weekdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background:var(--navy)}
   .cal-weekday{padding:10px 8px;text-align:center;font-size:12px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.05em}
-  .cal-days{display:grid;grid-template-columns:repeat(7,1fr)}
+  .cal-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
   .cal-day{min-height:110px;padding:8px;border-right:0.5px solid var(--border);border-bottom:0.5px solid var(--border);position:relative;transition:background .1s}
   .cal-day:hover{background:#fafbff}
   .cal-day:nth-child(7n){border-right:none}
@@ -135,7 +135,11 @@
     [style*="grid-template-columns:repeat(2, 1fr)"],
     [style*="grid-template-columns:repeat(3,1fr)"],
     [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
-    body{overflow-x:hidden}
+    html,body{overflow-x:hidden;max-width:100%}
+    .cal-day{min-height:64px!important;padding:4px!important}
+    .cal-weekday{padding:8px 2px!important;font-size:10px!important}
+    .cal-event,.cal-evt{font-size:9px!important;padding:1px 3px!important}
+    main{padding:16px 10px!important}
   }
 </style>
 </head>

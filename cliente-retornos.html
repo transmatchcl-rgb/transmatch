@@ -62,9 +62,9 @@
  .cal-mini-nav{display:flex;gap:6px}
  .cal-mini-btn{width:28px;height:28px;border-radius:6px;border:0.5px solid #e8eaf0;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
  .cal-mini-btn:hover{background:#f5f7fb}
- .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:12px 16px;gap:2px}
+ .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));padding:12px 16px;gap:2px}
  .cal-dow{font-size:10px;font-weight:600;color:#9CA3AF;text-align:center;padding:4px 0;text-transform:uppercase}
- .cal-day{min-height:52px;border-radius:7px;padding:4px;position:relative;cursor:default}
+ .cal-day{min-height:52px;min-width:0;border-radius:7px;padding:4px;position:relative;cursor:default;overflow:hidden}
  .cal-day.other-month .cal-day-num{color:#D1D5DB}
  .cal-day.today .cal-day-num{background:#ff8904;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
  .cal-day-num{font-size:12px;font-weight:500;color:#374151;width:22px;height:22px;display:flex;align-items:center;justify-content:center;margin-bottom:2px}
@@ -95,7 +95,10 @@
     [style*="grid-template-columns:repeat(2, 1fr)"],
     [style*="grid-template-columns:repeat(3,1fr)"],
     [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
-    body{overflow-x:hidden}
+    html,body{overflow-x:hidden;max-width:100%}
+    main{padding:16px 12px!important}
+    .cal-grid{padding:8px!important;gap:1px!important}
+    .cal-evt{font-size:9px!important;padding:1px 3px!important}
   }
 </style></head><body>
 

@@ -100,6 +100,9 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
     [style*="grid-template-columns:repeat(3,1fr)"],
     [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
     body{overflow-x:hidden}
+    .filter-bar{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .filter-bar::-webkit-scrollbar{display:none}
+    .filter-bar .pill,.filter-bar .sel-mes{flex-shrink:0}
   }
 </style>
 <script>
@@ -177,9 +180,9 @@ document.dispatchEvent(new Event('_authReady'));
 
 
 <main>
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap">
 <div><div style="font-size:20px;font-weight:600;color:#1e2d4e">Mis licitaciones</div><div style="font-size:14px;color:#6B7280;margin-top:2px">Gestiona y revisa todas tus solicitudes de transporte</div></div>
-<a href="/cliente-nueva.html" class="btn btn-orange">+ Nueva licitacion</a>
+<a href="/cliente-nueva.html" class="btn btn-orange" style="white-space:nowrap;flex-shrink:0">+ Nueva licitacion</a>
 </div>
 
 <div class="grid-4">
