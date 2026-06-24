@@ -99,6 +99,8 @@
     main{padding:16px 12px!important}
     .cal-grid{padding:8px!important;gap:1px!important}
     .cal-evt{font-size:9px!important;padding:1px 3px!important}
+    .fil-estado-botones{display:none!important}
+    .fil-estado-select{display:block!important}
   }
 </style></head><body>
 
@@ -200,7 +202,14 @@
           <input type="date" id="fil-fecha" onchange="filtrarRet()" title="Filtrar por fecha disponible" style="padding:7px 10px;border:0.5px solid #E5E7EB;border-radius:7px;font-size:13px;background:#fff;color:#374151;cursor:pointer"/>
         </div>
         <!-- Fila 2: filtros por estado -->
-        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;width:100%">
+        <select id="fil-estado-mobile" class="fil-estado-select" onchange="setFiltroEstado(this.value)" style="display:none;width:100%;padding:9px 12px;border:0.5px solid #E5E7EB;border-radius:8px;font-size:13px;background:#fff;color:#374151;font-family:inherit;margin-bottom:4px">
+          <option value="todos">Estado: Todos</option>
+          <option value="sin">Sin propuesta</option>
+          <option value="pendiente">Propuesta enviada</option>
+          <option value="aceptada">Aceptadas</option>
+          <option value="rechazada">Rechazadas</option>
+        </select>
+        <div class="fil-estado-botones" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;width:100%">
           <span style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;margin-right:2px">Estado</span>
           <button class="fil-btn active" id="fbtn-todos"      onclick="setFiltroEstado('todos',this)">Todos</button>
           <button class="fil-btn"        id="fbtn-sin"        onclick="setFiltroEstado('sin',this)">Sin propuesta</button>
@@ -493,6 +502,8 @@
    _filtroEstadoRet = val;
    document.querySelectorAll('.fil-btn').forEach(function(b){ b.classList.remove('active'); });
    if(btn) btn.classList.add('active');
+   else { var b2=document.getElementById('fbtn-'+val); if(b2) b2.classList.add('active'); }
+   var sel=document.getElementById('fil-estado-mobile'); if(sel && sel.value!==val) sel.value=val;
    filtrarRet();
  }
 
@@ -502,6 +513,7 @@
    _filtroEstadoRet='todos';
    document.querySelectorAll('.fil-btn').forEach(function(b){ b.classList.remove('active'); });
    var btnTodos=document.getElementById('fbtn-todos'); if(btnTodos) btnTodos.classList.add('active');
+   var sel=document.getElementById('fil-estado-mobile'); if(sel) sel.value='todos';
    filtrarRet();
  }
 
