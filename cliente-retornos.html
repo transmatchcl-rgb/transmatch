@@ -85,7 +85,8 @@
   @media(max-width:860px){
     .nav-links,.nav-tabs{display:none!important}
     .nav-mobile-menu{display:flex!important}
-    .nav-user-name{display:none!important}
+    .nav-user-name,.nav-userinfo{display:none!important}
+    .nav-logo{display:none!important}
   }
   /* TM-MOBILE-FIX */
   @media(max-width:600px){
@@ -114,7 +115,7 @@
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px;">
-    <div style="text-align:right"><div class="nav-user" id="nav-nombre">—</div><div class="nav-sub" id="nav-empresa">—</div></div>
+    <div class="nav-userinfo" style="text-align:right"><div class="nav-user" id="nav-nombre">—</div><div class="nav-sub" id="nav-empresa">—</div></div>
     <div style="display:flex;align-items:center;gap:8px;">
       <div id="notif-btn" onclick="toggleNotifs(event)" style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
