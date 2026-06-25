@@ -108,6 +108,8 @@
     [style*="grid-template-columns:repeat(3,1fr)"],
     [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
     body{overflow-x:hidden}
+    .fil-estado-botones .fil-btn{display:none!important}
+    .fil-estado-select{display:block!important}
   }
 </style><script>
  const API='https://transmatch.transmatchcl.workers.dev';
@@ -460,13 +462,21 @@
       <span class="card-title">Mis retornos publicados</span>
       <span id="retornos-count" class="badge badge-green" style="font-size:11px">—</span>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <button class="fil-btn active" onclick="setFiltroEstado('todos',this)">Todos</button>
-      <button class="fil-btn" onclick="setFiltroEstado('disponible',this)">Disponible</button>
-      <button class="fil-btn" onclick="setFiltroEstado('reservado',this)">Reservados</button>
-      <button class="fil-btn" onclick="setFiltroEstado('confirmado',this)">Confirmados</button>
-      <button class="fil-btn" onclick="setFiltroEstado('completado',this)">Completados</button>
-      <button class="fil-btn" onclick="setFiltroEstado('inactivo',this)">Inactivos</button>
+    <select id="fil-estado-mobile" class="fil-estado-select" onchange="setFiltroEstado(this.value)" style="display:none;width:100%;padding:9px 12px;border:0.5px solid #E5E7EB;border-radius:8px;font-size:13px;background:#fff;color:#374151;font-family:inherit;margin-bottom:8px">
+      <option value="todos">Estado: Todos</option>
+      <option value="disponible">Disponible</option>
+      <option value="reservado">Reservados</option>
+      <option value="confirmado">Confirmados</option>
+      <option value="completado">Completados</option>
+      <option value="inactivo">Inactivos</option>
+    </select>
+    <div class="fil-estado-botones" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <button class="fil-btn active" id="fbtn-todos" onclick="setFiltroEstado('todos',this)">Todos</button>
+      <button class="fil-btn" id="fbtn-disponible" onclick="setFiltroEstado('disponible',this)">Disponible</button>
+      <button class="fil-btn" id="fbtn-reservado" onclick="setFiltroEstado('reservado',this)">Reservados</button>
+      <button class="fil-btn" id="fbtn-confirmado" onclick="setFiltroEstado('confirmado',this)">Confirmados</button>
+      <button class="fil-btn" id="fbtn-completado" onclick="setFiltroEstado('completado',this)">Completados</button>
+      <button class="fil-btn" id="fbtn-inactivo" onclick="setFiltroEstado('inactivo',this)">Inactivos</button>
       <div style="width:1px;height:18px;background:#e8eaf0;margin:0 4px"></div>
       <select id="fil-mes" onchange="filtrarRetornos()" style="font-size:12px;border:0.5px solid #e8eaf0;border-radius:5px;padding:4px 8px;color:#374151;background:#fff;cursor:pointer">
         <option value="">Todos los meses</option>
@@ -553,6 +563,8 @@ window._todosRetornos = mios;
     _filtroEstado = val;
     document.querySelectorAll('.fil-btn').forEach(function(b){ b.classList.remove('active'); });
     if(btn) btn.classList.add('active');
+    else { var b2=document.getElementById('fbtn-'+val); if(b2) b2.classList.add('active'); }
+    var sel=document.getElementById('fil-estado-mobile'); if(sel && sel.value!==val) sel.value=val;
     filtrarRetornos();
   }
 
@@ -560,6 +572,7 @@ window._todosRetornos = mios;
     _filtroEstado = 'todos';
     document.querySelectorAll('.fil-btn').forEach(function(b){ b.classList.remove('active'); });
     var first = document.querySelector('.fil-btn'); if(first) first.classList.add('active');
+    var sel=document.getElementById('fil-estado-mobile'); if(sel) sel.value='todos';
     document.getElementById('fil-mes').value = '';
     filtrarRetornos();
   }
