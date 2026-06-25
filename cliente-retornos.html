@@ -199,7 +199,10 @@
         <!-- Fila 1: búsqueda de texto + fecha -->
         <div style="display:flex;gap:8px;flex-wrap:wrap;width:100%">
           <input type="text" id="fil-ret" placeholder="Ciudad de origen o destino..." oninput="filtrarRet()" style="flex:1;min-width:180px;padding:7px 12px;border:0.5px solid #E5E7EB;border-radius:7px;font-size:13px;background:#fff"/>
-          <input type="date" id="fil-fecha" onchange="filtrarRet()" title="Filtrar por fecha disponible" style="padding:7px 10px;border:0.5px solid #E5E7EB;border-radius:7px;font-size:13px;background:#fff;color:#374151;cursor:pointer"/>
+          <label style="display:flex;align-items:center;gap:6px;flex-shrink:0;font-size:12px;color:#6B7280;border:0.5px solid #E5E7EB;border-radius:7px;padding:4px 10px;background:#fff;cursor:pointer">
+            <span style="white-space:nowrap">Fecha</span>
+            <input type="date" id="fil-fecha" onchange="filtrarRet()" title="Filtrar por fecha disponible" style="border:none;font-size:13px;background:transparent;color:#374151;cursor:pointer;padding:0;font-family:inherit"/>
+          </label>
         </div>
         <!-- Fila 2: filtros por estado -->
         <select id="fil-estado-mobile" class="fil-estado-select" onchange="setFiltroEstado(this.value)" style="display:none;width:100%;padding:9px 12px;border:0.5px solid #E5E7EB;border-radius:8px;font-size:13px;background:#fff;color:#374151;font-family:inherit;margin-bottom:4px">

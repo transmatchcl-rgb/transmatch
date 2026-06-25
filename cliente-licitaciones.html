@@ -96,7 +96,9 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
   @media(max-width:600px){
     html,body{overflow-x:hidden;max-width:100%}
     .grid-4{grid-template-columns:1fr 1fr!important}
-    .filter-bar{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .card{max-width:100%;overflow:hidden}
+    main{max-width:100%;overflow-x:hidden;box-sizing:border-box}
+    .filter-bar{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;max-width:100%}
     .filter-bar::-webkit-scrollbar{display:none}
     .filter-bar .pill,.filter-bar .sel-mes{flex-shrink:0}
   }
@@ -201,7 +203,7 @@ document.dispatchEvent(new Event('_authReady'));
 <span class="pill pill-rech" onclick="togglePill(this,'expirada')">Vencidas</span>
 <select class="sel-mes" id="fil-mes" onchange="aplicarFiltros()"><option value="">Todos los meses</option></select>
 </div>
-<div id="lista-licitaciones" style="max-width:820px;margin:0 auto"><div style="padding:40px;text-align:center"><div class="spinner" style="margin:0 auto"></div></div></div>
+<div id="lista-licitaciones" style="max-width:820px;width:100%;margin:0 auto"><div style="padding:40px;text-align:center"><div class="spinner" style="margin:0 auto"></div></div></div>
 </div>
 </main>
 </div>
