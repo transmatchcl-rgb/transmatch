@@ -102,7 +102,7 @@ textarea{resize:vertical;min-height:80px}
     [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
     body{overflow-x:hidden}
   }
-</style>
+.badge-warn{background:#FFFBEB;color:#92400E;border:1px solid #FDE68A}.badge-info{background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE}.badge-success{background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0}.badge-error{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA}.badge-neutral{background:#F3F4F6;color:#6B7280;border:1px solid #E5E7EB}</style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
@@ -563,20 +563,20 @@ var _ganada=licitacionesGanadas.has(l.id);
 h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB">
 <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
 ${ _ganada
-   ? '<span class="badge badge-green">Adjudicada</span>'
+   ? '<span class="badge badge-success">Adjudicada</span>'
    : (yaCotize && (l.estado==='adjudicada'||l.estado==='completada')
-       ? '<span class="badge" style="background:#FEF2F2;color:#991B1B">No adjudicada</span>'
+       ? '<span class="badge badge-error">No adjudicada</span>'
        : (yaCotize && l.estado==='cerrada'
-           ? '<span class="badge badge-blue">En revision</span>'
+           ? '<span class="badge badge-info">En revision</span>'
            : (l.estado==='cerrada'
-               ? '<span class="badge" style="background:#F3F4F6;color:#6B7280">Cerrada</span>'
+               ? '<span class="badge badge-neutral">Cerrada</span>'
                : (yaCotize
-                   ? '<span class="badge badge-green">Cotizacion enviada</span>'
-                   : '<span class="badge badge-orange">Abierta</span>')))) }
+                   ? '<span class="badge badge-info">Cotizacion enviada</span>'
+                   : '<span class="badge badge-warn">Abierta</span>')))) }
 <span class="tag">${l.tipoLicitacion==='maquinaria'?'Maquinaria pesada':'Carga general'}</span>
 ${l.plazo?`<span class="tag">Plazo cotizacion: ${l.plazo}h</span>`:''}
 </div>
-<button onclick="descargarLicitacionPDF('${l.id}',${_ganada?'false':'true'})" style="margin-top:10px;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Descargar detalle (PDF)</button>
+<button onclick="descargarLicitacionPDF('${l.id}',${_ganada?'false':'true'})" style="margin-top:10px;width:fit-content;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Descargar detalle (PDF)</button>
 </div>`;
 
 // SECCIÓN: Equipo / carga solicitada
@@ -649,14 +649,14 @@ if(l.requiereEstandar){
 h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB;background:#FFFBEB">
 <div style="font-size:12px;font-weight:600;color:#92400E;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Requiere estándar minero</div>
 ${l.estandarDetalle?`<div style="font-size:13px;color:#374151;line-height:1.6;margin-bottom:${(l.estandarArchivoId&&_ganada)?'8px':'0'}">${l.estandarDetalle}</div>`:'<div style="font-size:13px;color:#6B7280">El cliente requiere cumplir un estándar minero para esta licitación.</div>'}
-${(l.estandarArchivoId&&_ganada)?`<button onclick="descargarArchivo('${l.estandarArchivoId}','${l.estandarArchivoNombre||'estandar_minero'}')" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${l.estandarArchivoNombre||'Documento del estándar'}</button>`:(l.estandarArchivoId?`<div style="font-size:12px;color:#9CA3AF;margin-top:6px">El documento del estándar estará disponible al adjudicarte la licitación.</div>`:'')}
+${(l.estandarArchivoId&&_ganada)?`<button onclick="descargarArchivo('${l.estandarArchivoId}','${l.estandarArchivoNombre||'estandar_minero'}')" style="width:fit-content;display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${l.estandarArchivoNombre||'Documento del estándar'}</button>`:(l.estandarArchivoId?`<div style="font-size:12px;color:#9CA3AF;margin-top:6px">El documento del estándar estará disponible al adjudicarte la licitación.</div>`:'')}
 </div>`;
 }
 
 // Archivo de especificaciones (solo si ganó)
 if(l.archivoId && _ganada){
 h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Especificaciones técnicas</div><button onclick="descargarArchivo('${l.archivoId}','${l.archivoNombre||'especificaciones'}')"
-style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">
+style="width:fit-content;display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
 ${l.archivoNombre||'Descargar especificaciones'}
 </button></div>`;

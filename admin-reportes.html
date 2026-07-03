@@ -80,7 +80,7 @@
     [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
     body{overflow-x:hidden}
   }
-</style><script>
+.badge-warn{background:#FFFBEB;color:#92400E;border:1px solid #FDE68A}.badge-info{background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE}.badge-success{background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0}.badge-error{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA}.badge-neutral{background:#F3F4F6;color:#6B7280;border:1px solid #E5E7EB}</style><script>
  const API='https://transmatch.transmatchcl.workers.dev';
  (async function(){
  const token=localStorage.getItem('tm_token');
@@ -147,7 +147,7 @@
  function since(iso){const d=(Date.now()-new Date(iso).getTime())/86400000;if(d<1)return'Hoy';if(d<2)return'Ayer';return`Hace ${Math.floor(d)} días`}
 
  function estadoBadge(e){
- const m={pendiente_admin:'<span class="badge badge-orange">Pendiente</span>',abierta:'<span class="badge badge-orange">Abierta</span>',cerrada:'<span class="badge badge-blue">En revisión</span>',adjudicada:'<span class="badge badge-blue">Adjudicada</span>',completada:'<span class="badge badge-green">Completada</span>',rechazada:'<span class="badge" style="background:#FEF2F2;color:#991B1B">Rechazada</span>'};
+ const m={pendiente_admin:'<span class="badge badge-warn">Pendiente</span>',abierta:'<span class="badge badge-warn">Abierta</span>',cerrada:'<span class="badge badge-info">En revisión</span>',adjudicada:'<span class="badge badge-success">Adjudicada</span>',completada:'<span class="badge badge-success">Completada</span>',rechazada:'<span class="badge badge-error">Rechazada</span>'};
  return m[e]||`<span class="badge badge-gray">${e}</span>`;
  }
 

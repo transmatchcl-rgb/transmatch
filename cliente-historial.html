@@ -105,7 +105,7 @@
     [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
     body{overflow-x:hidden}
   }
-</style><script>
+.badge-warn{background:#FFFBEB;color:#92400E;border:1px solid #FDE68A}.badge-info{background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE}.badge-success{background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0}.badge-error{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA}.badge-neutral{background:#F3F4F6;color:#6B7280;border:1px solid #E5E7EB}</style><script>
  const API='https://transmatch.transmatchcl.workers.dev';
  (async function(){
  const token=localStorage.getItem('tm_token');
@@ -162,7 +162,7 @@
  function peso(n){return n?new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n):'—'}
  function fecha(iso){if(!iso)return'—';return new Date(iso+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'})}
  function bdg(e){
- const m={completada:['badge-green','Completada'],adjudicada:['badge-green','Adjudicada'],cerrada:['badge-blue','Con cotizaciones'],abierta:['badge-orange','Abierta'],pendiente_admin:['badge-gray','En revision'],rechazada:['badge-red','Rechazada'],anulada:['badge-red','Anulada']};
+ const m={completada:['badge-success','Completada'],adjudicada:['badge-success','Adjudicada'],cerrada:['badge-info','Con cotizaciones'],abierta:['badge-warn','Abierta'],pendiente_admin:['badge-warn','En revision'],rechazada:['badge-error','Rechazada'],anulada:['badge-error','Anulada']};
  const[c,l]=m[e]||['badge-gray',e];return`<span class="badge ${c}">${l}</span>`;
  }
 

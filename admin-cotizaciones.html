@@ -112,7 +112,7 @@
     [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
     body{overflow-x:hidden}
   }
-</style>
+.badge-warn{background:#FFFBEB;color:#92400E;border:1px solid #FDE68A}.badge-info{background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE}.badge-success{background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0}.badge-error{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA}.badge-neutral{background:#F3F4F6;color:#6B7280;border:1px solid #E5E7EB}</style>
 </head>
 <body>
 
@@ -219,12 +219,12 @@
 
   function estadoBadge(e){
     const m = {
-      pendiente_admin: ['badge-orange','Pendiente aprobacion'],
-      abierta:   ['badge-orange','Abierta'],
-      cerrada:   ['badge-blue','En revisión'],
-      adjudicada:['badge-blue','Adjudicada'],
-      completada:['badge-green','Completada'],
-      rechazada: ['badge-red','Rechazada'],
+      pendiente_admin: ['badge-warn','Pendiente aprobacion'],
+      abierta:   ['badge-warn','Abierta'],
+      cerrada:   ['badge-info','En revisión'],
+      adjudicada:['badge-success','Adjudicada'],
+      completada:['badge-success','Completada'],
+      rechazada: ['badge-error','Rechazada'],
     };
     const [cls, lbl] = m[e] || ['badge-gray', e];
     return '<span class="badge '+cls+'">'+lbl+'</span>';

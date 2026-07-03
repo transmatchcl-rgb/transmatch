@@ -103,7 +103,7 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
     .filter-bar::-webkit-scrollbar{display:none}
     .filter-bar .pill,.filter-bar .sel-mes{flex-shrink:0}
   }
-</style>
+.badge-warn{background:#FFFBEB;color:#92400E;border:1px solid #FDE68A}.badge-info{background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE}.badge-success{background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0}.badge-error{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA}.badge-neutral{background:#F3F4F6;color:#6B7280;border:1px solid #E5E7EB}</style>
 <script>
 var API='https://transmatch.transmatchcl.workers.dev';
 (async function(){
@@ -356,7 +356,7 @@ return 'hace '+Math.floor(d/1440)+'d';
 }
 
 function bdg(e){
-var m={pendiente_admin:['badge-gray','En revision'],abierta:['badge-orange','Abierta'],cerrada:['badge-blue','Con cotizaciones'],adjudicada:['badge-green','Adjudicada'],completada:['badge-green','Completada'],rechazada:['badge-red','Rechazada'],anulada:['badge-red','Anulada'],expirada:['badge-gray','Vencida sin cotizaciones']};
+var m={pendiente_admin:['badge-warn','En revision'],abierta:['badge-warn','Abierta'],cerrada:['badge-info','Con cotizaciones'],adjudicada:['badge-success','Adjudicada'],completada:['badge-success','Completada'],rechazada:['badge-error','Rechazada'],anulada:['badge-error','Anulada'],expirada:['badge-neutral','Vencida sin cotizaciones']};
 var cl=m[e]||['badge-gray',e];
 return '<span class="badge '+cl[0]+'">'+cl[1]+'</span>';
 }
@@ -651,7 +651,7 @@ if(window._miUsuario&&!window._miUsuario.esSubusuario&&l.esCreadoPorSubusuario)i
 h+='<div style="background:#eef1f8;border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px">';
 h+=infoRows.map(function(r,idx){var last=(idx===infoRows.length-1);return '<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;'+(last?'':'border-bottom:0.5px solid rgba(30,45,78,.1);')+'flex-wrap:wrap"><span style="color:#6B7280">'+r[0]+'</span><span style="font-weight:500;text-align:right">'+r[1]+'</span></div>';}).join('');
 h+='</div>';
-h+='<button onclick="descargarLicitacionPDF(\''+l.id+'\')" style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;margin-bottom:14px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Descargar detalle (PDF)</button>';
+h+='<button onclick="descargarLicitacionPDF(\''+l.id+'\')" style="width:fit-content;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;margin-bottom:14px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Descargar detalle (PDF)</button>';
 
 // Paradas intermedias
 if(Array.isArray(l.paradas)&&l.paradas.length>0){
@@ -666,14 +666,14 @@ h+='<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:600;c
 }
 
 if(l.archivoId){
-h+='<div style="margin-bottom:14px"><button onclick="descargarArchivo(\''+l.archivoId+'\',\''+(l.archivoNombre||'especificaciones')+'\')" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#EFF6FF;color:#1e2d4e;border:0.5px solid #BFDBFE;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">Descargar especificaciones</button></div>';
+h+='<div style="margin-bottom:14px"><button onclick="descargarArchivo(\''+l.archivoId+'\',\''+(l.archivoNombre||'especificaciones')+'\')" style="width:fit-content;display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#EFF6FF;color:#1e2d4e;border:0.5px solid #BFDBFE;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">Descargar especificaciones</button></div>';
 }
 
 if(l.requiereEstandar){
 h+='<div style="background:#FFFBEB;border:0.5px solid #FDE68A;border-radius:8px;padding:12px 14px;margin-bottom:14px">';
 h+='<div style="font-size:12px;font-weight:600;color:#92400E;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Requiere estándar minero</div>';
 h+='<div style="font-size:13px;color:#374151;line-height:1.6">'+(l.estandarDetalle||'Requerido')+'</div>';
-if(l.estandarArchivoId)h+='<button onclick="descargarArchivo(\''+l.estandarArchivoId+'\',\''+(l.estandarArchivoNombre||'estandar')+'\')" style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">Descargar documento del estándar</button>';
+if(l.estandarArchivoId)h+='<button onclick="descargarArchivo(\''+l.estandarArchivoId+'\',\''+(l.estandarArchivoNombre||'estandar')+'\')" style="margin-top:8px;width:fit-content;display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">Descargar documento del estándar</button>';
 h+='</div>';
 }
 

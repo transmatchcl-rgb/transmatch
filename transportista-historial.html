@@ -41,13 +41,13 @@
   .row-meta{font-size:11px;color:#6B7280;margin-top:3px}
   .row-right{text-align:right;flex-shrink:0}
   .badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px}
-  .b-abierta{background:#FFF7ED;color:#92400E}
-  .b-cerrada{background:#DBEAFE;color:#1e40af}
-  .b-adjudicada{background:#F0FDF4;color:#14532D}
-  .b-completada{background:#F0FDF4;color:#14532D}
-  .b-ganada{background:#F0FDF4;color:#14532D}
-  .b-perdida{background:#f8f9fc;color:#9CA3AF;border:0.5px solid #e8eaf0}
-  .b-pendiente{background:#FFF7ED;color:#92400E}
+  .b-abierta{background:#FFFBEB;color:#92400E;border:1px solid #FDE68A}
+  .b-cerrada{background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE}
+  .b-adjudicada{background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0}
+  .b-completada{background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0}
+  .b-ganada{background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0}
+  .b-perdida{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA}
+  .b-pendiente{background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE}
   .precio{font-size:14px;font-weight:700;color:#1e2d4e}
   .empty{text-align:center;padding:48px;color:#9CA3AF;font-size:13px}
 
@@ -263,7 +263,7 @@ function filtrar(f, btn){
     var precioMostrar = l.gane ? l.precioAdjudicado : (l.miCotizacion ? l.miCotizacion.precio : null);
 
     return '<div class="row" onclick="irDetalle(\''+l.estado+'\',\''+l.id+'\')">'+
-      '<div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;background:'+(l.gane?'#1ED24E':l.estado==='abierta'?'#FF8808':'#e8eaf0')+'"></div>'+
+      '<div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;background:'+(l.gane?'#16A34A':l.estado==='abierta'?'#F59E0B':'#e8eaf0')+'"></div>'+
       '<div class="row-body">'+
         '<div class="row-title">'+
           (l.codigo?'<span style="font-size:10px;font-family:IBM Plex Mono,monospace;color:#9CA3AF;margin-right:6px">'+l.codigo+'</span>':'')+
