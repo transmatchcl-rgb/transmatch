@@ -240,6 +240,17 @@ document.dispatchEvent(new Event('_authReady'));
 </div>
 <div id="alok-empresa" class="alert-ok">Empresa actualizada correctamente</div>
 <div style="margin-top:16px"><button class="btn btn-green" onclick="guardarEmpresa()">Guardar empresa</button></div>
+
+<!-- CONTACTOS DE LA EMPRESA -->
+<div style="margin-top:28px;padding-top:20px;border-top:0.5px solid #E5E7EB">
+<div style="margin-bottom:4px;font-size:14px;font-weight:600;color:#1e2d4e">Contactos de la empresa</div>
+<div class="sec-sub" style="margin-bottom:12px">Personas de contacto para coordinar licitaciones y temas comerciales.</div>
+<div id="contactos-list"></div>
+<button type="button" class="btn" style="margin-top:4px;background:#F3F4F6;color:#1e2d4e" onclick="agregarContacto()">+ Agregar contacto</button>
+<div id="alok-empresa-contactos" class="alert-ok" style="margin-top:12px">Contactos actualizados correctamente</div>
+<div id="alerr-empresa-contactos" class="alert-ok" style="background:#FEF2F2;color:#991B1B;display:none;margin-top:12px"></div>
+<div style="margin-top:16px"><button class="btn btn-green" onclick="guardarContactosEmpresa()">Guardar contactos</button></div>
+</div>
 </div>
 
 <!-- FACTURACIÓN (Etapa 2) -->
@@ -331,6 +342,19 @@ document.getElementById('inp-direccion').value=U.direccion||'';
 document.getElementById('inp-web').value=U.web||'';
 document.getElementById('inp-desc').value=U.descripcion||'';
 
+// Contactos de la empresa: usar U.contactos (nuevo) o migrar desde los campos fijos antiguos
+var contOp = U.contactoOperaciones||{};
+var contDec = U.contactoComercial||{};
+if(U.contactos && U.contactos.length){
+  _contactos = U.contactos.slice();
+}else{
+  _contactos = [];
+  if(contOp.nombre||contOp.telefono||contOp.email) _contactos.push({nombre:contOp.nombre||'',cargo:contOp.cargo||'',telefono:contOp.telefono||'',email:contOp.email||''});
+  if(contDec.nombre||contDec.telefono||contDec.email) _contactos.push({nombre:contDec.nombre||'',cargo:contDec.cargo||'',telefono:contDec.telefono||'',email:contDec.email||''});
+}
+if(!_contactos.length) _contactos=[{nombre:'',cargo:'',telefono:'',email:''}];
+renderContactos();
+
 // Facturación
 var fact = U.facturacion||{};
 document.getElementById('inp-rs-fact').value=fact.razonSocial||U.empresa||'';
@@ -415,6 +439,62 @@ web:document.getElementById('inp-web').value.trim(),
 descripcion:document.getElementById('inp-desc').value.trim()};
 var res=await fetch(API+'/api/perfil',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(body)});
 if(res.ok){Object.assign(U,body);localStorage.setItem('tm_empresa',body.empresa);renderProgreso(U);var el=document.getElementById('alok-empresa');el.style.display='block';setTimeout(function(){el.style.display='none'},3000);}
+}
+
+var _contactos=[];
+function esc(v){return (v||'').replace(/"/g,'&quot;');}
+function renderContactos(){
+var cont=document.getElementById('contactos-list');
+if(!cont)return;
+var html='';
+_contactos.forEach(function(c,idx){
+html+='<div class="grid2" data-idx="'+idx+'" style="position:relative;margin-bottom:12px;padding-bottom:12px;'+(idx<_contactos.length-1?'border-bottom:0.5px solid #f0f1f5':'')+'">'
++'<div class="fg"><label>Nombre</label><input type="text" class="contacto-nombre" value="'+esc(c.nombre)+'" placeholder="Nombre y apellido"/></div>'
++'<div class="fg"><label>Cargo (opcional)</label><input type="text" class="contacto-cargo" value="'+esc(c.cargo)+'" placeholder="Ej: Coordinador de logística"/></div>'
++'<div class="fg"><label>Teléfono</label><input type="tel" class="contacto-telefono" value="'+esc(c.telefono)+'" placeholder="+56 9 XXXX XXXX"/></div>'
++'<div class="fg"><label>Email</label><input type="email" class="contacto-email" value="'+esc(c.email)+'" placeholder="nombre@empresa.cl"/></div>'
++(_contactos.length>1?'<button type="button" onclick="quitarContacto('+idx+')" style="position:absolute;top:0;right:0;background:none;border:none;color:#EF4444;cursor:pointer;font-size:12px;font-weight:600">Quitar</button>':'')
++'</div>';
+});
+cont.innerHTML=html;
+}
+function _syncContactosDom(){
+document.querySelectorAll('#contactos-list > div[data-idx]').forEach(function(row){
+var idx=parseInt(row.getAttribute('data-idx'));
+if(!_contactos[idx])return;
+_contactos[idx].nombre=row.querySelector('.contacto-nombre').value.trim();
+_contactos[idx].cargo=row.querySelector('.contacto-cargo').value.trim();
+_contactos[idx].telefono=row.querySelector('.contacto-telefono').value.trim();
+_contactos[idx].email=row.querySelector('.contacto-email').value.trim();
+});
+}
+function agregarContacto(){
+_syncContactosDom();
+if(_contactos.length>=6)return;
+_contactos.push({nombre:'',cargo:'',telefono:'',email:''});
+renderContactos();
+}
+function quitarContacto(idx){
+_syncContactosDom();
+_contactos.splice(idx,1);
+renderContactos();
+}
+
+async function guardarContactosEmpresa(){
+_syncContactosDom();
+var body={contactos:_contactos.filter(function(c){return c.nombre||c.telefono||c.email;})};
+try{
+var res=await fetch(API+'/api/perfil',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(body)});
+if(res.ok){
+Object.assign(U,body);
+var el=document.getElementById('alok-empresa-contactos');el.style.display='block';setTimeout(function(){el.style.display='none'},3000);
+}else{
+var d=await res.json();
+var eel=document.getElementById('alerr-empresa-contactos');eel.textContent=d.error||'Error al guardar';eel.style.display='block';setTimeout(function(){eel.style.display='none'},3000);
+}
+}catch(e){
+var eel2=document.getElementById('alerr-empresa-contactos');eel2.textContent='Error de conexión';eel2.style.display='block';
+}
 }
 
 async function guardarOcConfig(){

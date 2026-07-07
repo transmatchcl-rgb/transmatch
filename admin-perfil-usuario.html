@@ -283,9 +283,15 @@
         '</div></div></div>';
     }
 
-    // ── Contactos operacionales (operaciones, comercial, facturación) ──
+    // ── Contactos operacionales (lista dinámica + facturación aparte) ──
     var contactosHtml = '';
-    var cOp = u.contactoOperaciones, cCom = u.contactoComercial, cFac = u.contactoFacturacion;
+    var listaContactos = (u.contactos && u.contactos.length) ? u.contactos : [];
+    // Compatibilidad con registros antiguos que aún no migraron a la lista dinámica
+    if(!listaContactos.length){
+      if(u.contactoOperaciones && (u.contactoOperaciones.nombre||u.contactoOperaciones.telefono||u.contactoOperaciones.email)) listaContactos.push(Object.assign({_legacy:'Operaciones'},u.contactoOperaciones));
+      if(u.contactoComercial && (u.contactoComercial.nombre||u.contactoComercial.telefono||u.contactoComercial.email)) listaContactos.push(Object.assign({_legacy:'Comercial'},u.contactoComercial));
+    }
+    var cFac = u.contactoFacturacion;
     var renderContacto = function(titulo, c){
       if(!c || (!c.nombre && !c.email && !c.telefono)) return '';
       return '<div style="margin-bottom:14px"><div class="info-label" style="margin-bottom:4px">' + titulo + '</div>' +
@@ -295,7 +301,7 @@
         (c.email ? '<br>' + c.email : '') +
         '</div></div>';
     };
-    var contactosInner = renderContacto('Operaciones', cOp) + renderContacto('Comercial', cCom) + renderContacto('Facturación', cFac);
+    var contactosInner = listaContactos.map(function(c,i){ return renderContacto(c._legacy || ('Contacto ' + (i+1)), c); }).join('') + renderContacto('Facturación', cFac);
     if (contactosInner) {
       contactosHtml = '<div class="card"><div class="card-hdr">Contactos de la empresa</div><div class="card-body">' + contactosInner + '</div></div>';
     }

@@ -309,6 +309,44 @@
         <div class="err" id="err2"></div>
         <div style="margin-top:16px"><button class="btn btn-primary" onclick="guardarEmpresa()">Guardar cambios</button></div>
       </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="card-title" style="margin-bottom:4px">Datos bancarios</div>
+        <div style="font-size:12px;color:#6B7280;margin-bottom:16px">Usados para el cobro mensual de comisiones de TransMatch.</div>
+        <div class="grid2">
+          <div class="fg"><label>Banco</label>
+            <select id="inp-banco">
+              <option value="">Selecciona...</option>
+              <option value="Banco de Chile">Banco de Chile</option>
+              <option value="Banco Estado">Banco Estado</option>
+              <option value="Santander">Santander</option>
+              <option value="BCI">BCI</option>
+              <option value="Scotiabank">Scotiabank</option>
+              <option value="Itaú">Itaú</option>
+              <option value="Banco Falabella">Banco Falabella</option>
+              <option value="Banco Security">Banco Security</option>
+              <option value="Banco Consorcio">Banco Consorcio</option>
+              <option value="Banco BICE">Banco BICE</option>
+              <option value="Banco Internacional">Banco Internacional</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+          <div class="fg"><label>Tipo de cuenta</label>
+            <select id="inp-tipo-cuenta">
+              <option value="">Selecciona...</option>
+              <option value="Cuenta Corriente">Cuenta Corriente</option>
+              <option value="Cuenta Vista">Cuenta Vista</option>
+              <option value="Cuenta de Ahorro">Cuenta de Ahorro</option>
+            </select>
+          </div>
+          <div class="fg"><label>Número de cuenta</label><input type="text" id="inp-num-cuenta" placeholder="00-000-00000-00" autocomplete="off"/></div>
+          <div class="fg"><label>Titular de la cuenta</label><input type="text" id="inp-titular-cuenta" placeholder="Nombre o razón social" autocomplete="off"/></div>
+          <div class="fg"><label>RUT del titular</label><input type="text" id="inp-rut-titular" placeholder="76.XXX.XXX-X" autocomplete="off"/></div>
+        </div>
+        <div class="ok" id="ok-banco">Datos bancarios actualizados correctamente</div>
+        <div class="err" id="err-banco"></div>
+        <div style="margin-top:16px"><button class="btn btn-primary" onclick="guardarDatosBancarios()">Guardar datos bancarios</button></div>
+      </div>
     </div>
 
     <!-- CONTACTOS (Etapa 2) -->
@@ -327,24 +365,10 @@
         <div style="margin-top:16px"><button class="btn btn-primary" onclick="guardarDatosFacturacion()">Guardar datos de facturación</button></div>
       </div>
       <div class="card" style="margin-bottom:16px">
-        <div class="card-title" style="margin-bottom:4px">Contacto de Operaciones</div>
-        <div style="font-size:12px;color:#6B7280;margin-bottom:16px">Persona encargada de coordinar los transportes en terreno.</div>
-        <div class="grid2">
-          <div class="fg"><label>Nombre</label><input type="text" id="inp-op-nombre" placeholder="Juan Pérez"/></div>
-          <div class="fg"><label>Cargo</label><input type="text" id="inp-op-cargo" placeholder="Jefe de operaciones"/></div>
-          <div class="fg"><label>Teléfono</label><input type="tel" id="inp-op-tel" placeholder="+56 9 XXXX XXXX"/></div>
-          <div class="fg"><label>Email</label><input type="email" id="inp-op-email" placeholder="operaciones@empresa.cl"/></div>
-        </div>
-      </div>
-      <div class="card" style="margin-bottom:16px">
-        <div class="card-title" style="margin-bottom:4px">Contacto Comercial</div>
-        <div style="font-size:12px;color:#6B7280;margin-bottom:16px">Persona encargada de las relaciones comerciales y cotizaciones.</div>
-        <div class="grid2">
-          <div class="fg"><label>Nombre</label><input type="text" id="inp-com-nombre" placeholder="María González"/></div>
-          <div class="fg"><label>Cargo</label><input type="text" id="inp-com-cargo" placeholder="Gerente comercial"/></div>
-          <div class="fg"><label>Teléfono</label><input type="tel" id="inp-com-tel" placeholder="+56 9 XXXX XXXX"/></div>
-          <div class="fg"><label>Email</label><input type="email" id="inp-com-email" placeholder="comercial@empresa.cl"/></div>
-        </div>
+        <div class="card-title" style="margin-bottom:4px">Contactos de la empresa</div>
+        <div style="font-size:12px;color:#6B7280;margin-bottom:16px">Personas de contacto para coordinar transportes y temas comerciales.</div>
+        <div id="contactos-list"></div>
+        <button type="button" class="btn btn-outline" style="margin-top:4px" onclick="agregarContacto()">+ Agregar contacto</button>
       </div>
       <div class="card">
         <div class="card-title" style="margin-bottom:4px">Contacto de Facturación</div>
@@ -709,13 +733,20 @@ var U   = {};
   if(tabUT && !U.esSubusuario && (U.max_usuarios||0) > 0){ tabUT.style.display=''; cargarUsuariosT(); }
   // Barra de progreso
   renderProgresoT(U);
-  // Rellenar contactos
+  // Rellenar contactos: usar U.contactos (nuevo) o migrar desde los campos fijos antiguos
   var opC = U.contactoOperaciones||{};
   var comC = U.contactoComercial||{};
   var facC = U.contactoFacturacion||{};
   var inp = function(id,val){ var el=document.getElementById(id); if(el) el.value=val||''; };
-  inp('inp-op-nombre',opC.nombre); inp('inp-op-cargo',opC.cargo); inp('inp-op-tel',opC.telefono); inp('inp-op-email',opC.email);
-  inp('inp-com-nombre',comC.nombre); inp('inp-com-cargo',comC.cargo); inp('inp-com-tel',comC.telefono); inp('inp-com-email',comC.email);
+  if(U.contactos && U.contactos.length){
+    _contactos = U.contactos.slice();
+  }else{
+    _contactos = [];
+    if(opC.nombre||opC.telefono||opC.email) _contactos.push({nombre:opC.nombre||'',cargo:opC.cargo||'',telefono:opC.telefono||'',email:opC.email||''});
+    if(comC.nombre||comC.telefono||comC.email) _contactos.push({nombre:comC.nombre||'',cargo:comC.cargo||'',telefono:comC.telefono||'',email:comC.email||''});
+  }
+  if(!_contactos.length) _contactos=[{nombre:'',cargo:'',telefono:'',email:''}];
+  renderContactos();
   inp('inp-fac-nombre',facC.nombre); inp('inp-fac-cargo',facC.cargo); inp('inp-fac-tel',facC.telefono); inp('inp-fac-email',facC.email);
   // Datos de facturación de la empresa (para que TransMatch facture)
   var facE = U.facturacion||{};
@@ -762,6 +793,12 @@ async function cambiarPassword(){
 
 function fill() {
   renderEqTiposFijos();
+  var db = U.datosBancarios||{};
+  document.getElementById('inp-banco').value = db.banco||'';
+  document.getElementById('inp-tipo-cuenta').value = db.tipoCuenta||'';
+  document.getElementById('inp-num-cuenta').value = db.numeroCuenta||'';
+  document.getElementById('inp-titular-cuenta').value = db.titular||'';
+  document.getElementById('inp-rut-titular').value = db.rutTitular||'';
   var n   = U.nombre   || localStorage.getItem('tm_nombre')  || '';
   var em  = U.email    || localStorage.getItem('tm_email')   || '';
   var emp = U.empresa  || localStorage.getItem('tm_empresa') || '';
@@ -867,6 +904,43 @@ async function guardar() {
   btn.disabled = false; btn.textContent = 'Guardar cambios';
 }
 
+async function guardarDatosBancarios() {
+  var btn = event.target; btn.disabled = true; btn.textContent = 'Guardando...';
+  var gv=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
+  try {
+    var payload = {
+      datosBancarios: {
+        banco: gv('inp-banco'),
+        tipoCuenta: gv('inp-tipo-cuenta'),
+        numeroCuenta: gv('inp-num-cuenta'),
+        titular: gv('inp-titular-cuenta'),
+        rutTitular: gv('inp-rut-titular'),
+      }
+    };
+    var res = await fetch(API + '/api/perfil', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') },
+      body: JSON.stringify(payload)
+    });
+    var okB = document.getElementById('ok-banco');
+    if (res.ok) {
+      Object.assign(U, payload);
+      renderProgresoT(U);
+      okB.style.display='block';
+      setTimeout(function(){ okB.style.display='none'; },3000);
+    } else {
+      var d = await res.json();
+      document.getElementById('err-banco').textContent = d.error || 'Error al guardar';
+      document.getElementById('err-banco').style.display = 'block';
+      setTimeout(function(){ document.getElementById('err-banco').style.display='none'; },3000);
+    }
+  } catch(e) {
+    document.getElementById('err-banco').textContent = 'Error de conexión';
+    document.getElementById('err-banco').style.display = 'block';
+  }
+  btn.disabled = false; btn.textContent = 'Guardar datos bancarios';
+}
+
 async function guardarEmpresa() {
   var btn = event.target; btn.disabled = true; btn.textContent = 'Guardando...';
   var gv=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
@@ -951,11 +1025,50 @@ async function guardarDatosFacturacion(){
   }catch(e){}
 }
 
+var _contactos=[];
+function renderContactos(){
+  var cont=document.getElementById('contactos-list');
+  if(!cont)return;
+  var html='';
+  _contactos.forEach(function(c,idx){
+    html+='<div class="grid2" data-idx="'+idx+'" style="position:relative;margin-bottom:12px;padding-bottom:12px;'+(idx<_contactos.length-1?'border-bottom:0.5px solid #f0f1f5':'')+'">'
+      +'<div class="fg"><label>Nombre</label><input type="text" class="contacto-nombre" value="'+esc(c.nombre)+'" placeholder="Nombre y apellido"/></div>'
+      +'<div class="fg"><label>Cargo (opcional)</label><input type="text" class="contacto-cargo" value="'+esc(c.cargo)+'" placeholder="Ej: Jefe de operaciones"/></div>'
+      +'<div class="fg"><label>Teléfono</label><input type="tel" class="contacto-tel" value="'+esc(c.telefono)+'" placeholder="+56 9 XXXX XXXX"/></div>'
+      +'<div class="fg"><label>Email</label><input type="email" class="contacto-email" value="'+esc(c.email)+'" placeholder="nombre@empresa.cl"/></div>'
+      +(_contactos.length>1?'<button type="button" onclick="quitarContacto('+idx+')" style="position:absolute;top:0;right:0;background:none;border:none;color:#EF4444;cursor:pointer;font-size:12px;font-weight:600">Quitar</button>':'')
+      +'</div>';
+  });
+  cont.innerHTML=html;
+}
+function esc(v){return (v||'').replace(/"/g,'&quot;');}
+function _syncContactosDom(){
+  document.querySelectorAll('#contactos-list > div[data-idx]').forEach(function(row){
+    var idx=parseInt(row.getAttribute('data-idx'));
+    if(!_contactos[idx])return;
+    _contactos[idx].nombre=row.querySelector('.contacto-nombre').value.trim();
+    _contactos[idx].cargo=row.querySelector('.contacto-cargo').value.trim();
+    _contactos[idx].telefono=row.querySelector('.contacto-tel').value.trim();
+    _contactos[idx].email=row.querySelector('.contacto-email').value.trim();
+  });
+}
+function agregarContacto(){
+  _syncContactosDom();
+  if(_contactos.length>=6)return;
+  _contactos.push({nombre:'',cargo:'',telefono:'',email:''});
+  renderContactos();
+}
+function quitarContacto(idx){
+  _syncContactosDom();
+  _contactos.splice(idx,1);
+  renderContactos();
+}
+
 async function guardarContactos(){
+  _syncContactosDom();
   var gv=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
   var body={
-    contactoOperaciones:{nombre:gv('inp-op-nombre'),cargo:gv('inp-op-cargo'),telefono:gv('inp-op-tel'),email:gv('inp-op-email')},
-    contactoComercial:  {nombre:gv('inp-com-nombre'),cargo:gv('inp-com-cargo'),telefono:gv('inp-com-tel'),email:gv('inp-com-email')},
+    contactos:_contactos.filter(function(c){return c.nombre||c.telefono||c.email;}),
     contactoFacturacion:{nombre:gv('inp-fac-nombre'),cargo:gv('inp-fac-cargo'),telefono:gv('inp-fac-tel'),email:gv('inp-fac-email')},
   };
   try{
