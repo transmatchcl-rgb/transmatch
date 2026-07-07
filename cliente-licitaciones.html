@@ -399,6 +399,7 @@ sel.appendChild(opt);
 
 function iconoTipo(l){
 if(!l.tipoLicitacion||l.tipoLicitacion==='maquinaria') return '&#9881;';
+if(l.tipoLicitacion==='contenedor') return '&#128230;';
 return '&#128666;';
 }
 
@@ -494,7 +495,7 @@ function _generarPDFLicitacion(l, ocultarSensible){
   var tEntMap={mina:'Dentro de la mina',garita:'En garita',no_aplica:'No aplica'};
   function fd(f){ if(!f)return ''; try{return new Date(f+'T12:00:00').toLocaleDateString('es-CL');}catch(e){return f;} }
   var rows=[];
-  rows.push(['Tipo', l.tipoLicitacion==='maquinaria'?'Maquinaria pesada':'Carga general']);
+  rows.push(['Tipo', l.tipoLicitacion==='maquinaria'?'Maquinaria pesada':(l.tipoLicitacion==='contenedor'?'Contenedores':'Carga general')]);
   if(l.tipoLicitacion==='maquinaria'){
     if(l.tipoEquipo)rows.push(['Tipo de maquinaria',l.tipoEquipo]);
     if(l.tipoEquipoRequerido&&l.tipoEquipoRequerido!=='cualquiera')rows.push(['Equipo requerido',l.tipoEquipoRequerido]);
@@ -503,6 +504,16 @@ function _generarPDFLicitacion(l, ocultarSensible){
     if(l.modelo)rows.push(['Modelo',l.modelo]);
     if(l.peso)rows.push(['Peso aprox.',l.peso+' ton']);
     if(l.dimensiones)rows.push(['Dimensiones',l.dimensiones]);
+  }else if(l.tipoLicitacion==='contenedor'){
+    if(l.tipoContenedor)rows.push(['Tipo de contenedor',l.tipoContenedor]);
+    if(l.cantidadContenedores)rows.push(['Cantidad de contenedores',String(l.cantidadContenedores)]);
+    if(l.condicionContenedor)rows.push(['Condicion',l.condicionContenedor]);
+    if(l.pesoVGM)rows.push(['Peso VGM',l.pesoVGM+' kg']);
+    if(l.numeroContenedor)rows.push(['N de contenedor',l.numeroContenedor]);
+    if(l.selloContenedor)rows.push(['N de sello',l.selloContenedor]);
+    if(l.mercanciaPeligrosa)rows.push(['Mercancia peligrosa','Clase IMO '+(l.claseIMO||'-')+(l.numeroUN?' - '+l.numeroUN:'')]);
+    if(l.refrigerado)rows.push(['Refrigerado',l.temperaturaReefer?l.temperaturaReefer+' C':'Si']);
+    if(l.contSobredimensionado)rows.push(['Sobredimensionado',l.contSobredimensionadoDetalle||'Si']);
   }else{
     if(l.tipoEquipoRequerido&&l.tipoEquipoRequerido!=='cualquiera')rows.push(['Equipo requerido',l.tipoEquipoRequerido]);
     if(l.tipoCarga)rows.push(['Tipo de carga',l.tipoCarga]);
@@ -616,7 +627,7 @@ var h='';
 // Detalle completo de la licitación
 var tEntMap={mina:'Dentro de la mina',garita:'En garita',no_aplica:'No aplica'};
 var infoRows=[];
-infoRows.push(['Tipo',l.tipoLicitacion==='maquinaria'?'Maquinaria pesada':'Carga general']);
+infoRows.push(['Tipo',l.tipoLicitacion==='maquinaria'?'Maquinaria pesada':(l.tipoLicitacion==='contenedor'?'Contenedores':'Carga general')]);
 // Equipo / carga
 if(l.tipoLicitacion==='maquinaria'){
   if(l.tipoEquipo)infoRows.push(['Tipo de maquinaria',l.tipoEquipo]);
@@ -626,6 +637,16 @@ if(l.tipoLicitacion==='maquinaria'){
   if(l.modelo)infoRows.push(['Modelo',l.modelo]);
   if(l.peso)infoRows.push(['Peso aprox.',l.peso+' ton']);
   if(l.dimensiones)infoRows.push(['Dimensiones',l.dimensiones]);
+}else if(l.tipoLicitacion==='contenedor'){
+  if(l.tipoContenedor)infoRows.push(['Tipo de contenedor',l.tipoContenedor]);
+  if(l.cantidadContenedores)infoRows.push(['Cantidad de contenedores',l.cantidadContenedores]);
+  if(l.condicionContenedor)infoRows.push(['Condición',l.condicionContenedor]);
+  if(l.pesoVGM)infoRows.push(['Peso VGM',l.pesoVGM+' kg']);
+  if(l.numeroContenedor)infoRows.push(['N° de contenedor',l.numeroContenedor]);
+  if(l.selloContenedor)infoRows.push(['N° de sello',l.selloContenedor]);
+  if(l.mercanciaPeligrosa)infoRows.push(['Mercancía peligrosa','Clase IMO '+(l.claseIMO||'—')+(l.numeroUN?' · '+l.numeroUN:'')]);
+  if(l.refrigerado)infoRows.push(['Refrigerado',l.temperaturaReefer?l.temperaturaReefer+' °C':'Sí']);
+  if(l.contSobredimensionado)infoRows.push(['Sobredimensionado',l.contSobredimensionadoDetalle||'Sí']);
 }else{
   if(l.tipoEquipoRequerido&&l.tipoEquipoRequerido!=='cualquiera')infoRows.push(['Equipo requerido',l.tipoEquipoRequerido]);
   if(l.tipoCarga)infoRows.push(['Tipo de carga',l.tipoCarga]);

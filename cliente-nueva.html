@@ -257,6 +257,10 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
         <div style="font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:3px">Carga general</div>
         <div style="font-size:11px;color:#9CA3AF">Maxi sacos, tambores, tubería y materiales de construcción</div>
       </button>
+      <button onclick="seleccionarTipo('contenedor')" style="flex:1;padding:12px 16px;border-radius:9px;border:1.5px solid #e8eaf0;background:#fff;cursor:pointer;text-align:left;transition:all .15s;font-family:inherit" onmouseover="this.style.borderColor='#1e2d4e';this.style.background='#f8f9fc'" onmouseout="this.style.borderColor='#e8eaf0';this.style.background='#fff'">
+        <div style="font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:3px">Contenedores</div>
+        <div style="font-size:11px;color:#9CA3AF">20', 40', reefer, sobredimensionado y otros</div>
+      </button>
     </div>
   </div>
 </div>
@@ -360,6 +364,107 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <div style="font-size:20px">&#128196;</div>
 <div><div class="file-name" id="file-name-carga"></div><div class="file-size" id="file-size-carga"></div></div>
 <button class="file-remove" onclick="removeFile(event,'carga')">&#10005;</button>
+</div>
+</div>
+<div class="btn-row">
+<button class="btn btn-outline" onclick="volverPaso0()">Cambiar tipo</button>
+<button class="btn btn-primary" onclick="irPaso(2)">Siguiente</button>
+</div>
+</div>
+
+<div class="form-card" id="paso1-contenedor">
+<label style="font-size:15px;font-weight:700;color:#1e2d4e;margin-bottom:8px;display:block">Detalle del contenedor</label>
+<div class="grid-2">
+<div class="form-group"><label>Tipo de contenedor <span class="required">*</span></label>
+<select id="tipoContenedor">
+<option value="">Selecciona...</option>
+<option value="20' Standard">20' Standard</option>
+<option value="40' Standard">40' Standard</option>
+<option value="40' High Cube">40' High Cube</option>
+<option value="20' Reefer">20' Reefer</option>
+<option value="40' Reefer">40' Reefer</option>
+<option value="20' Open Top">20' Open Top</option>
+<option value="40' Open Top">40' Open Top</option>
+<option value="20' Flat Rack">20' Flat Rack</option>
+<option value="40' Flat Rack">40' Flat Rack</option>
+<option value="Tanque ISO">Tanque ISO</option>
+<option value="Otro">Otro</option>
+</select>
+</div>
+<div class="form-group"><label>Cantidad de contenedores <span class="required">*</span></label><input type="number" id="cantidadContenedores" placeholder="Ej: 1" min="1" autocomplete="off"/></div>
+</div>
+<div class="grid-2">
+<div class="form-group"><label>Condición <span class="required">*</span></label>
+<select id="condicionContenedor">
+<option value="">Selecciona...</option>
+<option value="Lleno (FCL)">Lleno (FCL)</option>
+<option value="Vacío">Vacío</option>
+</select>
+</div>
+<div class="form-group"><label>Peso bruto verificado - VGM (kg) <span class="required">*</span></label><input type="number" id="pesoVGM" placeholder="Ej: 24000" min="0" autocomplete="off"/></div>
+</div>
+<div class="grid-2">
+<div class="form-group"><label>N&deg; de contenedor</label><input type="text" id="numeroContenedor" placeholder="Ej: MSCU1234567" maxlength="20" autocomplete="off"/></div>
+<div class="form-group"><label>N&deg; de sello / precinto</label><input type="text" id="selloContenedor" placeholder="Ej: SL204981" maxlength="30" autocomplete="off"/></div>
+</div>
+
+<div class="form-group" style="margin-top:8px">
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;color:#1e2d4e">
+<input type="checkbox" id="mercanciaPeligrosa" onchange="toggleMercanciaPeligrosa()" style="width:17px;height:17px;cursor:pointer;accent-color:#1e2d4e"/> Contiene mercancía peligrosa (IMO)
+</label>
+<div id="peligrosa-detalle" style="display:none;margin-top:10px" class="grid-2">
+<div class="form-group"><label>Clase IMO</label>
+<select id="claseIMO">
+<option value="">Selecciona...</option>
+<option value="1">Clase 1 - Explosivos</option>
+<option value="2">Clase 2 - Gases</option>
+<option value="3">Clase 3 - Líquidos inflamables</option>
+<option value="4">Clase 4 - Sólidos inflamables</option>
+<option value="5">Clase 5 - Comburentes / peróxidos</option>
+<option value="6">Clase 6 - Tóxicos / infecciosos</option>
+<option value="7">Clase 7 - Radiactivos</option>
+<option value="8">Clase 8 - Corrosivos</option>
+<option value="9">Clase 9 - Varios</option>
+</select>
+</div>
+<div class="form-group"><label>N&deg; UN</label><input type="text" id="numeroUN" placeholder="Ej: UN1203" maxlength="10" autocomplete="off"/></div>
+</div>
+</div>
+
+<div class="form-group">
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;color:#1e2d4e">
+<input type="checkbox" id="refrigerado" onchange="toggleRefrigerado()" style="width:17px;height:17px;cursor:pointer;accent-color:#1e2d4e"/> Requiere refrigeración (reefer)
+</label>
+<div id="reefer-detalle" style="display:none;margin-top:10px">
+<div class="form-group"><label>Temperatura requerida (&deg;C)</label><input type="number" id="temperaturaReefer" placeholder="Ej: -18" autocomplete="off"/></div>
+</div>
+</div>
+
+<div class="form-group">
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;color:#1e2d4e">
+<input type="checkbox" id="contSobredimensionado" onchange="toggleContSobredimensionado()" style="width:17px;height:17px;cursor:pointer;accent-color:#1e2d4e"/> Carga sobredimensionada (excede el contenedor)
+</label>
+<div id="sobredim-detalle" style="display:none;margin-top:10px">
+<div class="form-group"><label>Detalle (cuánto excede, en qué dimensión)</label><input type="text" id="contSobredimensionadoDetalle" placeholder="Ej: Sobresale 80cm en altura" maxlength="150" autocomplete="off"/></div>
+<div class="hint">Puede requerir permiso especial de ruta, igual que la carga sobredimensionada estándar.</div>
+</div>
+</div>
+
+<div class="form-group">
+<label>Descripcion y condiciones especiales</label>
+<textarea id="descripcionContenedor" placeholder="Ej: Retiro en depósito, entrega en bodega cliente..."></textarea>
+</div>
+<div class="form-group">
+<label>Archivo de especificaciones (opcional)</label>
+<div class="upload-zone" id="upload-zone-contenedor" onclick="document.getElementById('archivo-input-contenedor').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event,'contenedor')">
+<div class="upload-title">Arrastra tu archivo o haz clic para seleccionar</div>
+<div class="upload-sub">Excel, PDF, Word o imagen &middot; Maximo 8 MB</div>
+</div>
+<input type="file" id="archivo-input-contenedor" accept=".xlsx,.xls,.pdf,.docx,.doc,.jpg,.jpeg,.png" style="display:none" onchange="handleFile(event,'contenedor')"/>
+<div class="file-preview" id="file-preview-contenedor">
+<div style="font-size:20px">&#128196;</div>
+<div><div class="file-name" id="file-name-contenedor"></div><div class="file-size" id="file-size-contenedor"></div></div>
+<button class="file-remove" onclick="removeFile(event,'contenedor')">&#10005;</button>
 </div>
 </div>
 <div class="btn-row">
@@ -511,6 +616,7 @@ var tipoLicitacion=null;
 var modoEdicion=null;
 var archivoMaq=null;
 var archivoCarga=null;
+var archivoContenedor=null;
 var archivoEstandar=null;
 var _estandarArchivoIdPrevio=null;
 var _estandarArchivoNombrePrevio=null;
@@ -611,11 +717,11 @@ function seleccionarTipo(tipo){
 tipoLicitacion=tipo;
 document.getElementById('paso0').style.display='none';
 document.getElementById('stepper').style.display='flex';
-document.getElementById('sl1').textContent=tipo==='maquinaria'?'Equipo':'Carga';
-document.getElementById(tipo==='maquinaria'?'paso1-maquinaria':'paso1-carga').classList.add('active');
+document.getElementById('sl1').textContent=tipo==='maquinaria'?'Equipo':(tipo==='contenedor'?'Contenedor':'Carga');
+document.getElementById(paso1Id()).classList.add('active');
 var tel=document.getElementById('tipo-elegido');
 var tlbl=document.getElementById('tipo-elegido-label');
-if(tel&&tlbl){tlbl.textContent=tipo==='maquinaria'?'Maquinaria pesada':'Carga general';tel.style.display='block';}
+if(tel&&tlbl){tlbl.textContent=tipo==='maquinaria'?'Maquinaria pesada':(tipo==='contenedor'?'Contenedores':'Carga general');tel.style.display='block';}
 toggleCamposPorTipoRuta();
 currentStep=1;updateStepper(1);
 window.scrollTo({top:0,behavior:'smooth'});
@@ -693,6 +799,7 @@ document.getElementById('paso0').style.display='block';
 document.getElementById('stepper').style.display='none';
 document.getElementById('paso1-maquinaria').classList.remove('active');
 document.getElementById('paso1-carga').classList.remove('active');
+document.getElementById('paso1-contenedor').classList.remove('active');
 var tel=document.getElementById('tipo-elegido');if(tel)tel.style.display='none';
 currentStep=0;tipoLicitacion=null;
 }
@@ -732,7 +839,7 @@ var reader=new FileReader();
 reader.onload=function(ev){
 var base64=ev.target.result.split(',')[1];
 var d={nombre:file.name,tipo:file.type,base64:base64};
-if(key==='maq')archivoMaq=d;else if(key==='estandar')archivoEstandar=d;else archivoCarga=d;
+if(key==='maq')archivoMaq=d;else if(key==='estandar')archivoEstandar=d;else if(key==='contenedor')archivoContenedor=d;else archivoCarga=d;
 var fp=document.getElementById('file-preview-'+key);
 fp.classList.add('show');
 document.getElementById('file-name-'+key).textContent=file.name;
@@ -743,7 +850,7 @@ reader.readAsDataURL(file);
 
 function removeFile(e,key){
 e.stopPropagation();
-if(key==='maq')archivoMaq=null;else if(key==='estandar')archivoEstandar=null;else archivoCarga=null;
+if(key==='maq')archivoMaq=null;else if(key==='estandar')archivoEstandar=null;else if(key==='contenedor')archivoContenedor=null;else archivoCarga=null;
 var fp=document.getElementById('file-preview-'+key);fp.classList.remove('show');
 document.getElementById('archivo-input-'+key).value='';
 }
@@ -768,6 +875,29 @@ if(!on){
 }
 }
 
+// ── Contenedor: id del paso 1 según tipoLicitacion ──
+function paso1Id(){
+  if(tipoLicitacion==='maquinaria') return 'paso1-maquinaria';
+  if(tipoLicitacion==='contenedor') return 'paso1-contenedor';
+  return 'paso1-carga';
+}
+
+function toggleMercanciaPeligrosa(){
+var on=document.getElementById('mercanciaPeligrosa').checked;
+document.getElementById('peligrosa-detalle').style.display=on?'block':'none';
+if(!on){document.getElementById('claseIMO').value='';document.getElementById('numeroUN').value='';}
+}
+function toggleRefrigerado(){
+var on=document.getElementById('refrigerado').checked;
+document.getElementById('reefer-detalle').style.display=on?'block':'none';
+if(!on){document.getElementById('temperaturaReefer').value='';}
+}
+function toggleContSobredimensionado(){
+var on=document.getElementById('contSobredimensionado').checked;
+document.getElementById('sobredim-detalle').style.display=on?'block':'none';
+if(!on){document.getElementById('contSobredimensionadoDetalle').value='';}
+}
+
 function irPaso(paso){
 if(paso===2){
 if(tipoLicitacion==='maquinaria'){
@@ -780,6 +910,12 @@ if(!document.getElementById('modeloMaq').value.trim()){showToast('Indica el mode
 if(!document.getElementById('pesoMaq').value){showToast('Indica el peso aproximado','err');return;}
 if(!document.getElementById('dimensionesMaq').value.trim()){showToast('Indica las dimensiones','err');return;}
 if(!modoEdicion&&!archivoMaq){showToast('Debes adjuntar el archivo de especificaciones','err');return;}
+}else if(tipoLicitacion==='contenedor'){
+if(!document.getElementById('tipoContenedor').value){showToast('Selecciona el tipo de contenedor','err');return;}
+if(!document.getElementById('cantidadContenedores').value){showToast('Indica la cantidad de contenedores','err');return;}
+if(!document.getElementById('condicionContenedor').value){showToast('Indica la condición (lleno o vacío)','err');return;}
+if(!document.getElementById('pesoVGM').value){showToast('Indica el peso bruto verificado (VGM)','err');return;}
+if(document.getElementById('mercanciaPeligrosa').checked&&!document.getElementById('claseIMO').value){showToast('Selecciona la clase IMO','err');return;}
 }else{
 var _occ=document.querySelector('.eq-carga-cb[value="Otro"]');if(_occ&&_occ.checked&&!(document.getElementById('otro-carga-text').value||'').trim()){showToast('Especifica el equipo en "Otro"','err');var _e=document.getElementById('err-otro-carga');if(_e)_e.style.display='block';return;}
 if(!getEqRequeridoCarga()){showToast('Selecciona al menos un tipo de equipo requerido','err');return;}
@@ -802,10 +938,11 @@ actualizarPlazoExpress();
 if(paso===4)buildResumen();
 document.getElementById('paso1-maquinaria').classList.remove('active');
 document.getElementById('paso1-carga').classList.remove('active');
+document.getElementById('paso1-contenedor').classList.remove('active');
 document.getElementById('paso2').classList.remove('active');
 document.getElementById('paso3').classList.remove('active');
 document.getElementById('paso4').classList.remove('active');
-if(paso===1){document.getElementById(tipoLicitacion==='maquinaria'?'paso1-maquinaria':'paso1-carga').classList.add('active');}
+if(paso===1){document.getElementById(paso1Id()).classList.add('active');}
 else{document.getElementById('paso'+paso).classList.add('active');}
 // La opción "Cambiar tipo" del encabezado solo se muestra en el paso 1
 var _tel=document.getElementById('tipo-elegido');
@@ -818,7 +955,7 @@ function buildResumen(){
 var rows=[];
 function gv(id){var el=document.getElementById(id);return el?el.value:'';}
 try{
-rows.push(['Tipo',tipoLicitacion==='maquinaria'?'Maquinaria pesada':'Carga general']);
+rows.push(['Tipo',tipoLicitacion==='maquinaria'?'Maquinaria pesada':(tipoLicitacion==='contenedor'?'Contenedores':'Carga general')]);
 if(tipoLicitacion==='maquinaria'){
 rows.push(['Maquinaria',getTipoEquipo()]);
 rows.push(['Equipo requerido',getEqRequerido()||'--']);
@@ -827,6 +964,16 @@ var marca=gv('marca').trim();var modelo=gv('modeloMaq').trim();
 if(marca||modelo)rows.push(['Marca / modelo',(marca+' '+modelo).trim()]);
 var peso=gv('pesoMaq');if(peso)rows.push(['Peso',peso+' ton']);
 var dimM=gv('dimensionesMaq').trim();if(dimM)rows.push(['Dimensiones',dimM]);
+}else if(tipoLicitacion==='contenedor'){
+rows.push(['Tipo de contenedor',gv('tipoContenedor')||'--']);
+var cantCont=gv('cantidadContenedores');if(cantCont)rows.push(['Cantidad',cantCont]);
+rows.push(['Condición',gv('condicionContenedor')||'--']);
+var vgm=gv('pesoVGM');if(vgm)rows.push(['Peso VGM',vgm+' kg']);
+var nCont=gv('numeroContenedor').trim();if(nCont)rows.push(['N° contenedor',nCont]);
+var sello=gv('selloContenedor').trim();if(sello)rows.push(['N° sello',sello]);
+if(document.getElementById('mercanciaPeligrosa').checked)rows.push(['Mercancía peligrosa','Clase IMO '+gv('claseIMO')+(gv('numeroUN').trim()?' · '+gv('numeroUN').trim():'')]);
+if(document.getElementById('refrigerado').checked)rows.push(['Refrigerado',gv('temperaturaReefer')?gv('temperaturaReefer')+' °C':'Sí']);
+if(document.getElementById('contSobredimensionado').checked)rows.push(['Sobredimensionado',gv('contSobredimensionadoDetalle').trim()||'Sí']);
 }else{
 var eq=gv('tipoEquipoCarga');if(eq)rows.push(['Camion requerido',eq]);
 var tc=document.getElementById('tipoCarga').value.trim();if(tc)rows.push(['Tipo de carga',tc]);
@@ -878,7 +1025,7 @@ if(chkT && !chkT.checked){ if(errT) errT.style.display='block'; chkT.scrollIntoV
 if(errT) errT.style.display='none';
 var btn=document.getElementById('btn-publicar');
 btn.disabled=true;btn.textContent='Publicando...';
-var archivo=tipoLicitacion==='maquinaria'?archivoMaq:archivoCarga;
+var archivo=tipoLicitacion==='maquinaria'?archivoMaq:(tipoLicitacion==='contenedor'?archivoContenedor:archivoCarga);
 var archivoId=null;
 if(archivo){
 try{
@@ -924,6 +1071,31 @@ var _otroTxtMaq=(document.getElementById('otro-req-text').value||'').trim();
 payload.tipoEquipoRequerido='cualquiera';
 if(_otroTxtMaq) payload.descripcion=('Equipo solicitado (fuera de lista): '+_otroTxtMaq+'. '+payload.descripcion).trim();
 }
+}else if(tipoLicitacion==='contenedor'){
+// El equipo requerido siempre es Portacontenedor: no se le pide elegir al cliente.
+payload.tipoEquipoRequerido='Portacontenedor';
+payload.tipoEquipo=document.getElementById('tipoContenedor').value||'Contenedor';
+payload.tipoContenedor=document.getElementById('tipoContenedor').value||'';
+payload.cantidadContenedores=document.getElementById('cantidadContenedores').value||'';
+payload.condicionContenedor=document.getElementById('condicionContenedor').value||'';
+payload.pesoVGM=document.getElementById('pesoVGM').value||'';
+payload.numeroContenedor=document.getElementById('numeroContenedor').value.trim();
+payload.selloContenedor=document.getElementById('selloContenedor').value.trim();
+payload.mercanciaPeligrosa=document.getElementById('mercanciaPeligrosa').checked;
+if(payload.mercanciaPeligrosa){
+payload.claseIMO=document.getElementById('claseIMO').value||'';
+payload.numeroUN=document.getElementById('numeroUN').value.trim();
+}
+payload.refrigerado=document.getElementById('refrigerado').checked;
+if(payload.refrigerado){
+payload.temperaturaReefer=document.getElementById('temperaturaReefer').value||'';
+}
+payload.contSobredimensionado=document.getElementById('contSobredimensionado').checked;
+if(payload.contSobredimensionado){
+payload.contSobredimensionadoDetalle=document.getElementById('contSobredimensionadoDetalle').value.trim();
+}
+payload.descripcion=document.getElementById('descripcionContenedor').value.trim();
+payload.tipoEntregaDestino=document.getElementById('tipoEntregaDestino').value||'no_aplica';
 }else{
 payload.tipoEquipoRequerido=getEqRequeridoCarga();
 payload.tipoCarga=document.getElementById('tipoCarga').value.trim();
@@ -972,10 +1144,10 @@ tipoLicitacion=l.tipoLicitacion||(l.tipoCarga?'carga':'maquinaria');
 toggleCamposPorTipoRuta();
 document.getElementById('paso0').style.display='none';
 document.getElementById('stepper').style.display='flex';
-document.getElementById('sl1').textContent=tipoLicitacion==='maquinaria'?'Equipo':'Carga';
+document.getElementById('sl1').textContent=tipoLicitacion==='maquinaria'?'Equipo':(tipoLicitacion==='contenedor'?'Contenedor':'Carga');
 document.getElementById('page-title').textContent='Editar licitacion';
 document.getElementById('page-sub').textContent='Modifica los datos que necesites';
-document.getElementById(tipoLicitacion==='maquinaria'?'paso1-maquinaria':'paso1-carga').classList.add('active');
+document.getElementById(paso1Id()).classList.add('active');
 currentStep=1;updateStepper(1);
 if(l.origen)document.getElementById('origen').value=l.origen;
 if(l.destino)document.getElementById('destino').value=l.destino;
@@ -1030,6 +1202,36 @@ if(l.archivoNombre){
 var fp=document.getElementById('file-preview-maq');fp.classList.add('show');
 document.getElementById('file-name-maq').textContent=l.archivoNombre;
 document.getElementById('file-size-maq').textContent='Archivo existente';
+}
+}else if(tipoLicitacion==='contenedor'){
+if(l.tipoContenedor)document.getElementById('tipoContenedor').value=l.tipoContenedor;
+if(l.cantidadContenedores)document.getElementById('cantidadContenedores').value=l.cantidadContenedores;
+if(l.condicionContenedor)document.getElementById('condicionContenedor').value=l.condicionContenedor;
+if(l.pesoVGM)document.getElementById('pesoVGM').value=l.pesoVGM;
+if(l.numeroContenedor)document.getElementById('numeroContenedor').value=l.numeroContenedor;
+if(l.selloContenedor)document.getElementById('selloContenedor').value=l.selloContenedor;
+if(l.mercanciaPeligrosa){
+document.getElementById('mercanciaPeligrosa').checked=true;
+toggleMercanciaPeligrosa();
+if(l.claseIMO)document.getElementById('claseIMO').value=l.claseIMO;
+if(l.numeroUN)document.getElementById('numeroUN').value=l.numeroUN;
+}
+if(l.refrigerado){
+document.getElementById('refrigerado').checked=true;
+toggleRefrigerado();
+if(l.temperaturaReefer)document.getElementById('temperaturaReefer').value=l.temperaturaReefer;
+}
+if(l.contSobredimensionado){
+document.getElementById('contSobredimensionado').checked=true;
+toggleContSobredimensionado();
+if(l.contSobredimensionadoDetalle)document.getElementById('contSobredimensionadoDetalle').value=l.contSobredimensionadoDetalle;
+}
+if(l.descripcion)document.getElementById('descripcionContenedor').value=l.descripcion;
+// Mostrar archivo previo contenedor
+if(l.archivoNombre){
+var fpC=document.getElementById('file-preview-contenedor');fpC.classList.add('show');
+document.getElementById('file-name-contenedor').textContent=l.archivoNombre;
+document.getElementById('file-size-contenedor').textContent='Archivo existente';
 }
 }else{
 if(l.tipoEquipoRequerido)document.getElementById('tipoEquipoCarga').value=l.tipoEquipoRequerido;

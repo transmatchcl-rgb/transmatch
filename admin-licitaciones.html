@@ -328,7 +328,7 @@ function descargarLicitacionAdminPDF(licId){
   function fd(f){ if(!f)return ''; try{return new Date(f+'T12:00:00').toLocaleDateString('es-CL');}catch(e){return f;} }
   var tipoLic=l.tipoLicitacion||'maquinaria';
   var rows=[];
-  rows.push(['Tipo', tipoLic==='maquinaria'?'Maquinaria pesada':'Carga general']);
+  rows.push(['Tipo', tipoLic==='maquinaria'?'Maquinaria pesada':(tipoLic==='contenedor'?'Contenedores':'Carga general')]);
   rows.push(['Cliente', l.clienteEmpresa||'-']);
   rows.push(['Contacto cliente', l.clienteNombre||'-']);
   if(l.clienteEmail)rows.push(['Email cliente', l.clienteEmail]);
@@ -341,6 +341,16 @@ function descargarLicitacionAdminPDF(licId){
     if(l.cantidadEquipos)rows.push(['Cantidad de equipos',String(l.cantidadEquipos)]);
     if(l.peso)rows.push(['Peso aprox.',l.peso+' ton']);
     if(l.dimensiones)rows.push(['Dimensiones',l.dimensiones]);
+  }else if(tipoLic==='contenedor'){
+    if(l.tipoContenedor)rows.push(['Tipo de contenedor',l.tipoContenedor]);
+    if(l.cantidadContenedores)rows.push(['Cantidad de contenedores',String(l.cantidadContenedores)]);
+    if(l.condicionContenedor)rows.push(['Condicion',l.condicionContenedor]);
+    if(l.pesoVGM)rows.push(['Peso VGM',l.pesoVGM+' kg']);
+    if(l.numeroContenedor)rows.push(['N de contenedor',l.numeroContenedor]);
+    if(l.selloContenedor)rows.push(['N de sello',l.selloContenedor]);
+    if(l.mercanciaPeligrosa)rows.push(['Mercancia peligrosa','Clase IMO '+(l.claseIMO||'-')+(l.numeroUN?' - '+l.numeroUN:'')]);
+    if(l.refrigerado)rows.push(['Refrigerado',l.temperaturaReefer?l.temperaturaReefer+' C':'Si']);
+    if(l.contSobredimensionado)rows.push(['Sobredimensionado',l.contSobredimensionadoDetalle||'Si']);
   }else{
     if(l.tipoCarga)rows.push(['Tipo de carga',l.tipoCarga]);
     if(l.cantidadEquipos)rows.push(['Cantidad de equipos',String(l.cantidadEquipos)]);
@@ -539,7 +549,7 @@ function renderDetalle(l){
   var tipoLic=l.tipoLicitacion||'maquinaria';
   var items=[
     ['Código',l.codigo||'—'],
-    ['Tipo de licitación',tipoLic==='maquinaria'?'Maquinaria pesada':'Carga general'],
+    ['Tipo de licitación',tipoLic==='maquinaria'?'Maquinaria pesada':(tipoLic==='contenedor'?'Contenedores':'Carga general')],
     ['Cliente',l.clienteEmpresa||'—'],
     ['Contacto',l.clienteNombre||'—'],
     ['Email cliente',l.clienteEmail||'—'],
@@ -551,6 +561,16 @@ function renderDetalle(l){
     items.push(['Marca',l.marca||'—']);
     items.push(['Modelo',l.modelo||'—']);
     items.push(['Cantidad de equipos',l.cantidadEquipos||'—']);
+  }else if(tipoLic==='contenedor'){
+    items.push(['Tipo de contenedor',l.tipoContenedor||'—']);
+    items.push(['Cantidad de contenedores',l.cantidadContenedores||'—']);
+    items.push(['Condición',l.condicionContenedor||'—']);
+    items.push(['Peso VGM',l.pesoVGM?l.pesoVGM+' kg':'—']);
+    items.push(['N° de contenedor',l.numeroContenedor||'—']);
+    items.push(['N° de sello',l.selloContenedor||'—']);
+    items.push(['Mercancía peligrosa',l.mercanciaPeligrosa?('Clase IMO '+(l.claseIMO||'—')+(l.numeroUN?' · '+l.numeroUN:'')):'No']);
+    items.push(['Refrigerado',l.refrigerado?(l.temperaturaReefer?l.temperaturaReefer+' °C':'Sí'):'No']);
+    items.push(['Sobredimensionado',l.contSobredimensionado?(l.contSobredimensionadoDetalle||'Sí'):'No']);
   }else{
     items.push(['Tipo de carga',l.tipoCarga||l.tipoEquipo||'—']);
     items.push(['Cantidad de equipos',l.cantidadEquipos||'—']);
