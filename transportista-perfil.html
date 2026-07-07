@@ -240,25 +240,12 @@
 </div>
 
   <main>
-    <!-- Barra de progreso -->
-    <div id="progreso-banner-t" style="display:none;background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;padding:14px 18px;margin-bottom:16px;box-shadow:0 1px 4px rgba(30,45,78,.06)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <span style="font-size:12px;font-weight:600;color:#1e2d4e">Completitud del perfil</span>
-        <span id="progreso-pct-t" style="font-size:12px;font-weight:700;color:#FF8808">0%</span>
-      </div>
-      <div style="background:#e8eaf0;border-radius:999px;height:6px;overflow:hidden">
-        <div id="progreso-bar-t" style="height:100%;background:linear-gradient(90deg,#FF8808,#1e2d4e);border-radius:999px;transition:width .4s ease;width:0%"></div>
-      </div>
-      <div id="progreso-hint-t" style="font-size:11px;color:#9CA3AF;margin-top:5px"></div>
-    </div>
-
     <div class="page-title">Mi perfil</div>
     <div class="page-sub">Gestiona tu información personal, empresa, equipos y zona de operaciones</div>
 
     <div class="tabs">
       <button class="tab active" onclick="showTab('perfil',this)">Datos personales</button>
       <button class="tab" onclick="showTab('empresa',this)">Mi empresa</button>
-      <button class="tab" onclick="showTab('contactos',this)">Contactos</button>
       <button class="tab" onclick="showTab('zonas',this)">Operaciones</button>
       <button class="tab" onclick="showTab('equipos',this)">Mis equipos</button>
       <button class="tab" onclick="showTab('conductores',this)">Conductores</button>
@@ -347,18 +334,21 @@
         <div class="err" id="err-banco"></div>
         <div style="margin-top:16px"><button class="btn btn-primary" onclick="guardarDatosBancarios()">Guardar datos bancarios</button></div>
       </div>
-    </div>
 
-    <!-- CONTACTOS (Etapa 2) -->
-    <div class="pane" id="pane-contactos">
-      <div class="card" style="margin-bottom:16px">
+      <div class="card" style="margin-top:16px;margin-bottom:16px">
         <div class="card-title" style="margin-bottom:4px">Datos de facturación de tu empresa</div>
-        <div style="font-size:12px;color:#6B7280;margin-bottom:16px">TransMatch usa estos datos para emitirte la factura mensual por comisión. Asegúrate de que coincidan con tu información en el SII.</div>
-        <div class="grid2">
+        <div style="font-size:12px;color:#6B7280;margin-bottom:16px">TransMatch usa estos datos para emitirte la factura mensual por comisión.</div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;margin-bottom:12px">
+          <input type="checkbox" id="chk-fact-mismos-datos" onchange="toggleFactMismosDatos()" style="width:16px;height:16px;cursor:pointer;accent-color:#1e2d4e"/>
+          Usar los mismos datos que en "Información de la empresa"
+        </label>
+        <div id="fact-datos-wrap" class="grid2">
           <div class="fg"><label>Razón social</label><input type="text" id="inp-fact-rs" placeholder="Transportes y Logística SpA"/></div>
           <div class="fg"><label>RUT empresa</label><input type="text" id="inp-fact-rut" placeholder="76.123.456-7"/></div>
           <div class="fg"><label>Giro tributario</label><input type="text" id="inp-fact-giro" placeholder="Ej: Transporte de carga por carretera"/></div>
           <div class="fg"><label>Dirección comercial</label><input type="text" id="inp-fact-dir" placeholder="Calle, número, comuna, ciudad"/></div>
+        </div>
+        <div class="grid2">
           <div class="fg"><label>Email para facturas</label><input type="email" id="inp-fact-email" placeholder="facturas@empresa.cl"/></div>
         </div>
         <div class="ok" id="ok-datos-fact" style="margin-top:12px">Datos de facturación guardados correctamente</div>
@@ -751,6 +741,11 @@ var U   = {};
   // Datos de facturación de la empresa (para que TransMatch facture)
   var facE = U.facturacion||{};
   inp('inp-fact-rs',facE.razonSocial); inp('inp-fact-rut',facE.rut); inp('inp-fact-giro',facE.giro); inp('inp-fact-dir',facE.direccion); inp('inp-fact-email',facE.email);
+  // ¿Los datos de facturación son iguales a los de la empresa (o no se han cargado)? -> usar el toggle
+  var _mismos = !facE.razonSocial && !facE.rut && !facE.giro && !facE.direccion;
+  if(!_mismos && facE.razonSocial===U.empresa && facE.rut===U.rutEmpresa && facE.giro===U.giro && facE.direccion===U.direccion) _mismos=true;
+  document.getElementById('chk-fact-mismos-datos').checked=_mismos;
+  toggleFactMismosDatos();
   // Campos empresa extendidos
   inp('inp-giro-t',U.giro); inp('inp-dir-t',U.direccion); inp('inp-ciudad-t',U.ciudad);
 })();
@@ -994,7 +989,7 @@ function renderProgresoT(u){
   var eqs=u.equipos||[];
   if(pct < 30) hint.textContent='Completa tus datos básicos para comenzar';
   else if(!u.giro||!u.direccion) hint.textContent='Siguiente: completa los datos de tu empresa';
-  else if(!u.contactoOperaciones||!u.contactoOperaciones.nombre) hint.textContent='Siguiente: agrega tus contactos en la pestaña Contactos';
+  else if(!u.contactoOperaciones||!u.contactoOperaciones.nombre) hint.textContent='Siguiente: agrega tus contactos en la pestaña Mi empresa';
   else if(eqs.length===0) hint.textContent='Siguiente: agrega tus equipos en la pestaña Mis equipos';
   else { var conDocs=eqs.filter(function(e){return Object.keys(e.documentos||{}).length>=3;}); if(conDocs.length===0) hint.textContent='Siguiente: sube los documentos de tus equipos'; else hint.textContent='Perfil casi completo'; }
 }
@@ -1012,9 +1007,18 @@ function calcCompletitudT(u){
   return Math.min(100,pts);
 }
 
+function toggleFactMismosDatos(){
+  var on=document.getElementById('chk-fact-mismos-datos').checked;
+  document.getElementById('fact-datos-wrap').style.display=on?'none':'grid';
+}
+
 async function guardarDatosFacturacion(){
   var gv=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
-  var body={ facturacion:{ razonSocial:gv('inp-fact-rs'), rut:gv('inp-fact-rut'), giro:gv('inp-fact-giro'), direccion:gv('inp-fact-dir'), email:gv('inp-fact-email') } };
+  var usarMismos=document.getElementById('chk-fact-mismos-datos').checked;
+  var body={ facturacion: usarMismos
+    ? { razonSocial:gv('inp-empresa'), rut:gv('inp-rut2'), giro:gv('inp-giro-t'), direccion:gv('inp-dir-t'), email:gv('inp-fact-email') }
+    : { razonSocial:gv('inp-fact-rs'), rut:gv('inp-fact-rut'), giro:gv('inp-fact-giro'), direccion:gv('inp-fact-dir'), email:gv('inp-fact-email') }
+  };
   try{
     var res=await fetch(API+'/api/perfil',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(body)});
     if(res.ok){

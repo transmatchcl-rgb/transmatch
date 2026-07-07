@@ -61,7 +61,8 @@ input:disabled{background:#f8f9fc;color:#9CA3AF}
 textarea{resize:vertical;min-height:80px}
 .btn{padding:10px 20px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s}
 .btn:hover{opacity:.88}
-.btn-green{background:#16a34a;color:#fff}
+.btn-green{background:#1E2D4E;color:#fff}
+.btn-green:hover{background:#2A3D63}
 .btn-red{background:#FEF2F2;color:#DC2626;border:0.5px solid #FECACA}
 .alert-ok{background:#F0FDF4;color:#14532D;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:12px;display:none}
 .sec-row{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:0.5px solid #f3f4f6;gap:16px}
@@ -187,20 +188,11 @@ document.dispatchEvent(new Event('_authReady'));
 <div class="card-title">Configuracion de cuenta</div>
 <button class="close-btn" onclick="window.location.href='/cliente.html'">x</button>
 </div>
-<!-- Barra de progreso — dentro de la card -->
-<div class="progreso-wrap" id="progreso-banner" style="display:none">
-  <div class="progreso-header">
-    <span class="progreso-label">Completitud del perfil</span>
-    <span class="progreso-pct" id="progreso-pct">0%</span>
-  </div>
-  <div class="progreso-track"><div class="progreso-fill" id="progreso-bar" style="width:0%"></div></div>
-  <div class="progreso-hint" id="progreso-hint"></div>
-</div>
 <div class="tabs">
 <div class="tab active" onclick="showTab('perfil',this)">Perfil</div>
 <div class="tab" onclick="showTab('empresa',this)">Empresa</div>
 <div class="tab" onclick="showTab('facturacion',this)">Facturación</div>
-<div class="tab" onclick="showTab('cuenta',this)">Mi Cuenta</div>
+<div class="tab" onclick="showTab('cuenta',this)">Seguridad</div>
 <div class="tab" id="tab-usuarios" style="display:none" onclick="showTab('usuarios',this)">Usuarios</div>
 </div>
 
@@ -255,11 +247,17 @@ document.dispatchEvent(new Event('_authReady'));
 
 <!-- FACTURACIÓN (Etapa 2) -->
 <div class="tab-pane" id="pane-facturacion">
-<div class="grid2">
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;margin-bottom:14px">
+<input type="checkbox" id="chk-fact-mismos-datos" onchange="toggleFactMismosDatos()" style="width:16px;height:16px;cursor:pointer"/>
+Usar los mismos datos que en "Empresa"
+</label>
+<div class="grid2" id="fact-datos-wrap">
 <div class="fg full"><label>Razón social (facturación)</label><input type="text" id="inp-rs-fact" placeholder="Nombre legal para facturas"/></div>
 <div class="fg"><label>RUT empresa</label><input type="text" id="inp-rut-fact" placeholder="76.123.456-7" oninput="formatRut(this)"/></div>
 <div class="fg"><label>Giro tributario</label><input type="text" id="inp-giro-fact" placeholder="Ej: Servicios de minería"/></div>
 <div class="fg full"><label>Dirección fiscal</label><input type="text" id="inp-dir-fact" placeholder="Calle, número, comuna, ciudad"/></div>
+</div>
+<div class="grid2">
 <div class="fg"><label>Email de facturación</label><input type="email" id="inp-email-fact" placeholder="facturas@empresa.cl"/></div>
 <div class="fg"><label>Teléfono área facturación</label><input type="tel" id="inp-tel-fact" placeholder="+56 2 XXXX XXXX"/></div>
 <div class="fg"><label>Nombre contacto facturación</label><input type="text" id="inp-contacto-fact" placeholder="María González"/></div>
@@ -365,6 +363,11 @@ document.getElementById('inp-email-fact').value=fact.email||'';
 document.getElementById('inp-tel-fact').value=fact.telefono||'';
 document.getElementById('inp-contacto-fact').value=fact.contactoNombre||'';
 document.getElementById('inp-cargo-fact').value=fact.contactoCargo||'';
+// ¿Los datos de facturación son iguales a los de Empresa (o no se han cargado)? -> usar el toggle
+var _mismosF = !fact.razonSocial && !fact.rut && !fact.giro && !fact.direccion;
+if(!_mismosF && fact.razonSocial===U.empresa && fact.rut===U.rutEmpresa && fact.giro===U.giro && fact.direccion===U.direccion) _mismosF=true;
+document.getElementById('chk-fact-mismos-datos').checked=_mismosF;
+toggleFactMismosDatos();
 
 localStorage.setItem('tm_genera_oc_propia','true');
 
@@ -608,8 +611,23 @@ async function marcarUnaLeida(id){
 try{var token=localStorage.getItem('tm_token');await fetch(API+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:id})});await cargarNotificaciones();}catch(e){}
 }
 
+function toggleFactMismosDatos(){
+  var on=document.getElementById('chk-fact-mismos-datos').checked;
+  document.getElementById('fact-datos-wrap').style.display=on?'none':'grid';
+}
+
 async function guardarFacturacion(){
-  var body={facturacion:{
+  var usarMismos=document.getElementById('chk-fact-mismos-datos').checked;
+  var body={facturacion: usarMismos ? {
+    razonSocial:document.getElementById('inp-empresa').value.trim(),
+    rut:document.getElementById('inp-rut-empresa').value.trim(),
+    giro:document.getElementById('inp-giro').value.trim(),
+    direccion:document.getElementById('inp-direccion').value.trim(),
+    email:document.getElementById('inp-email-fact').value.trim(),
+    telefono:document.getElementById('inp-tel-fact').value.trim(),
+    contactoNombre:document.getElementById('inp-contacto-fact').value.trim(),
+    contactoCargo:document.getElementById('inp-cargo-fact').value.trim(),
+  } : {
     razonSocial:document.getElementById('inp-rs-fact').value.trim(),
     rut:document.getElementById('inp-rut-fact').value.trim(),
     giro:document.getElementById('inp-giro-fact').value.trim(),
