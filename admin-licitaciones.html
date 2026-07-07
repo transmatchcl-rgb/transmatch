@@ -343,7 +343,6 @@ function descargarLicitacionAdminPDF(licId){
     if(l.dimensiones)rows.push(['Dimensiones',l.dimensiones]);
   }else if(tipoLic==='contenedor'){
     if(l.tipoContenedor)rows.push(['Tipo de contenedor',l.tipoContenedor]);
-    if(l.cantidadContenedores)rows.push(['Cantidad de contenedores',String(l.cantidadContenedores)]);
     if(l.condicionContenedor)rows.push(['Condicion',l.condicionContenedor]);
     if(l.pesoVGM)rows.push(['Peso VGM',l.pesoVGM+' kg']);
     if(l.numeroContenedor)rows.push(['N de contenedor',l.numeroContenedor]);
@@ -563,7 +562,6 @@ function renderDetalle(l){
     items.push(['Cantidad de equipos',l.cantidadEquipos||'—']);
   }else if(tipoLic==='contenedor'){
     items.push(['Tipo de contenedor',l.tipoContenedor||'—']);
-    items.push(['Cantidad de contenedores',l.cantidadContenedores||'—']);
     items.push(['Condición',l.condicionContenedor||'—']);
     items.push(['Peso VGM',l.pesoVGM?l.pesoVGM+' kg':'—']);
     items.push(['N° de contenedor',l.numeroContenedor||'—']);

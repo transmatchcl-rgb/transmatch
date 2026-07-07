@@ -591,7 +591,6 @@ if(l.tipoLicitacion==='maquinaria'){
   if(l.dimensiones)eqRows.push(['Dimensiones',l.dimensiones]);
 }else if(l.tipoLicitacion==='contenedor'){
   if(l.tipoContenedor)eqRows.push(['Tipo de contenedor',l.tipoContenedor]);
-  if(l.cantidadContenedores)eqRows.push(['Cantidad de contenedores',l.cantidadContenedores]);
   if(l.condicionContenedor)eqRows.push(['Condición',l.condicionContenedor]);
   if(l.pesoVGM)eqRows.push(['Peso VGM',l.pesoVGM+' kg']);
   if(l.numeroContenedor)eqRows.push(['N° de contenedor',l.numeroContenedor]);
@@ -1019,7 +1018,6 @@ function descargarLicitacionPDF(licId, ocultarSensible){
     if(l.dimensiones)rows.push(['Dimensiones',l.dimensiones]);
   }else if(l.tipoLicitacion==='contenedor'){
     if(l.tipoContenedor)rows.push(['Tipo de contenedor',l.tipoContenedor]);
-    if(l.cantidadContenedores)rows.push(['Cantidad de contenedores',String(l.cantidadContenedores)]);
     if(l.condicionContenedor)rows.push(['Condicion',l.condicionContenedor]);
     if(l.pesoVGM)rows.push(['Peso VGM',l.pesoVGM+' kg']);
     if(l.numeroContenedor)rows.push(['N de contenedor',l.numeroContenedor]);

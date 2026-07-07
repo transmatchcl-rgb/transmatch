@@ -376,7 +376,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <label style="font-size:15px;font-weight:700;color:#1e2d4e;margin-bottom:8px;display:block">Detalle del contenedor</label>
 <div class="grid-2">
 <div class="form-group"><label>Tipo de contenedor <span class="required">*</span></label>
-<select id="tipoContenedor">
+<select id="tipoContenedor" onchange="toggleOtroContenedor()">
 <option value="">Selecciona...</option>
 <option value="20' Standard">20' Standard</option>
 <option value="40' Standard">40' Standard</option>
@@ -390,10 +390,10 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <option value="Tanque ISO">Tanque ISO</option>
 <option value="Otro">Otro</option>
 </select>
+<div id="tipoContenedor-otro-wrap" style="display:none;margin-top:8px">
+<input type="text" id="tipoContenedor-otro-text" placeholder="Especifica el tipo de contenedor" maxlength="60" autocomplete="off"/>
 </div>
-<div class="form-group"><label>Cantidad de contenedores <span class="required">*</span></label><input type="number" id="cantidadContenedores" placeholder="Ej: 1" min="1" autocomplete="off"/></div>
 </div>
-<div class="grid-2">
 <div class="form-group"><label>Condición <span class="required">*</span></label>
 <select id="condicionContenedor">
 <option value="">Selecciona...</option>
@@ -401,12 +401,12 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <option value="Vacío">Vacío</option>
 </select>
 </div>
-<div class="form-group"><label>Peso bruto verificado - VGM (kg) <span class="required">*</span></label><input type="number" id="pesoVGM" placeholder="Ej: 24000" min="0" autocomplete="off"/></div>
 </div>
 <div class="grid-2">
-<div class="form-group"><label>N&deg; de contenedor</label><input type="text" id="numeroContenedor" placeholder="Ej: MSCU1234567" maxlength="20" autocomplete="off"/></div>
+<div class="form-group"><label>Peso bruto verificado - VGM (kg) <span class="required">*</span></label><input type="number" id="pesoVGM" placeholder="Ej: 24000" min="0" autocomplete="off"/></div>
 <div class="form-group"><label>N&deg; de sello / precinto</label><input type="text" id="selloContenedor" placeholder="Ej: SL204981" maxlength="30" autocomplete="off"/></div>
 </div>
+<div class="form-group"><label>N&deg; de contenedor</label><input type="text" id="numeroContenedor" placeholder="Ej: MSCU1234567" maxlength="20" autocomplete="off"/></div>
 
 <div class="form-group" style="margin-top:8px">
 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;color:#1e2d4e">
@@ -486,11 +486,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <button type="button" class="btn btn-outline" id="btn-agregar-parada" style="margin-top:8px" onclick="agregarParada()">+ Agregar parada</button>
 </div>
 <div class="form-group"><label>Dirección de destino</label><input type="text" id="direccionDestino" placeholder="Ej: Bodega central, acceso camiones" autocomplete="off"/></div>
-<div class="form-group">
-<label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:500">
-<input type="checkbox" id="requiereEstandar" onchange="toggleEstandarMinero()" style="width:17px;height:17px;cursor:pointer;accent-color:#1e2d4e"/>
-<span>Se requiere estándar minero</span>
-</label>
+<div class="form-group" id="estandar-minero-section">
 <div id="estandar-minero-detalle" style="display:none;margin-top:12px;padding:14px;background:#f8f9fc;border:0.5px solid #e8eaf0;border-radius:10px">
 <label>¿Qué estándar se requiere?</label>
 <input type="text" id="estandarDetalle" maxlength="80" placeholder="Ej: ESTÁNDAR CODELCO" autocomplete="off" style="margin-bottom:12px"/>
@@ -729,8 +725,16 @@ window.scrollTo({top:0,behavior:'smooth'});
 
 function toggleCamposPorTipoRuta(){
 var esCarga=tipoLicitacion==='carga';
+var esContenedor=tipoLicitacion==='contenedor';
 var pSec=document.getElementById('paradas-section');if(pSec)pSec.style.display=esCarga?'block':'none';
-var tSec=document.getElementById('tipo-entrega-section');if(tSec)tSec.style.display='block';
+var tSec=document.getElementById('tipo-entrega-section');if(tSec)tSec.style.display=esContenedor?'none':'block';
+var eSec=document.getElementById('estandar-minero-section');if(eSec)eSec.style.display=esContenedor?'none':'block';
+if(esContenedor){
+// No aplica a contenedores: forzar valores neutros por si quedaron marcados de una selección previa
+var reCb=document.getElementById('requiereEstandar');if(reCb&&reCb.checked){reCb.checked=false;toggleEstandarMinero();}
+document.querySelectorAll('.entrega-cb').forEach(function(cb){cb.checked=(cb.value==='no_aplica');});
+var tEnt=document.getElementById('tipoEntregaDestino');if(tEnt)tEnt.value='no_aplica';
+}
 }
 
 var PARADAS_MAX=5;
@@ -897,6 +901,13 @@ var on=document.getElementById('contSobredimensionado').checked;
 document.getElementById('sobredim-detalle').style.display=on?'block':'none';
 if(!on){document.getElementById('contSobredimensionadoDetalle').value='';}
 }
+function toggleOtroContenedor(){
+var sel=document.getElementById('tipoContenedor');
+var w=document.getElementById('tipoContenedor-otro-wrap');
+var on=sel&&sel.value==='Otro';
+if(w)w.style.display=on?'block':'none';
+if(!on){var t=document.getElementById('tipoContenedor-otro-text');if(t)t.value='';}
+}
 
 function irPaso(paso){
 if(paso===2){
@@ -912,7 +923,7 @@ if(!document.getElementById('dimensionesMaq').value.trim()){showToast('Indica la
 if(!modoEdicion&&!archivoMaq){showToast('Debes adjuntar el archivo de especificaciones','err');return;}
 }else if(tipoLicitacion==='contenedor'){
 if(!document.getElementById('tipoContenedor').value){showToast('Selecciona el tipo de contenedor','err');return;}
-if(!document.getElementById('cantidadContenedores').value){showToast('Indica la cantidad de contenedores','err');return;}
+if(document.getElementById('tipoContenedor').value==='Otro'&&!(document.getElementById('tipoContenedor-otro-text').value||'').trim()){showToast('Especifica el tipo de contenedor','err');return;}
 if(!document.getElementById('condicionContenedor').value){showToast('Indica la condición (lleno o vacío)','err');return;}
 if(!document.getElementById('pesoVGM').value){showToast('Indica el peso bruto verificado (VGM)','err');return;}
 if(document.getElementById('mercanciaPeligrosa').checked&&!document.getElementById('claseIMO').value){showToast('Selecciona la clase IMO','err');return;}
@@ -965,8 +976,9 @@ if(marca||modelo)rows.push(['Marca / modelo',(marca+' '+modelo).trim()]);
 var peso=gv('pesoMaq');if(peso)rows.push(['Peso',peso+' ton']);
 var dimM=gv('dimensionesMaq').trim();if(dimM)rows.push(['Dimensiones',dimM]);
 }else if(tipoLicitacion==='contenedor'){
-rows.push(['Tipo de contenedor',gv('tipoContenedor')||'--']);
-var cantCont=gv('cantidadContenedores');if(cantCont)rows.push(['Cantidad',cantCont]);
+var _tCont=gv('tipoContenedor');
+if(_tCont==='Otro')_tCont=gv('tipoContenedor-otro-text').trim()||'Otro';
+rows.push(['Tipo de contenedor',_tCont||'--']);
 rows.push(['Condición',gv('condicionContenedor')||'--']);
 var vgm=gv('pesoVGM');if(vgm)rows.push(['Peso VGM',vgm+' kg']);
 var nCont=gv('numeroContenedor').trim();if(nCont)rows.push(['N° contenedor',nCont]);
@@ -1074,9 +1086,11 @@ if(_otroTxtMaq) payload.descripcion=('Equipo solicitado (fuera de lista): '+_otr
 }else if(tipoLicitacion==='contenedor'){
 // El equipo requerido siempre es Portacontenedor: no se le pide elegir al cliente.
 payload.tipoEquipoRequerido='Portacontenedor';
-payload.tipoEquipo=document.getElementById('tipoContenedor').value||'Contenedor';
-payload.tipoContenedor=document.getElementById('tipoContenedor').value||'';
-payload.cantidadContenedores=document.getElementById('cantidadContenedores').value||'';
+var _tipoContSel=document.getElementById('tipoContenedor').value||'';
+var _tipoContFinal=_tipoContSel==='Otro'?(document.getElementById('tipoContenedor-otro-text').value||'').trim():_tipoContSel;
+payload.tipoEquipo=_tipoContFinal||'Contenedor';
+payload.tipoContenedor=_tipoContFinal;
+payload.cantidadContenedores='1';
 payload.condicionContenedor=document.getElementById('condicionContenedor').value||'';
 payload.pesoVGM=document.getElementById('pesoVGM').value||'';
 payload.numeroContenedor=document.getElementById('numeroContenedor').value.trim();
@@ -1095,7 +1109,7 @@ if(payload.contSobredimensionado){
 payload.contSobredimensionadoDetalle=document.getElementById('contSobredimensionadoDetalle').value.trim();
 }
 payload.descripcion=document.getElementById('descripcionContenedor').value.trim();
-payload.tipoEntregaDestino=document.getElementById('tipoEntregaDestino').value||'no_aplica';
+payload.tipoEntregaDestino='no_aplica';
 }else{
 payload.tipoEquipoRequerido=getEqRequeridoCarga();
 payload.tipoCarga=document.getElementById('tipoCarga').value.trim();
@@ -1204,8 +1218,17 @@ document.getElementById('file-name-maq').textContent=l.archivoNombre;
 document.getElementById('file-size-maq').textContent='Archivo existente';
 }
 }else if(tipoLicitacion==='contenedor'){
-if(l.tipoContenedor)document.getElementById('tipoContenedor').value=l.tipoContenedor;
-if(l.cantidadContenedores)document.getElementById('cantidadContenedores').value=l.cantidadContenedores;
+if(l.tipoContenedor){
+var _selCont=document.getElementById('tipoContenedor');
+var _opts=[];_selCont.querySelectorAll('option').forEach(function(o){_opts.push(o.value);});
+if(_opts.indexOf(l.tipoContenedor)>=0){
+_selCont.value=l.tipoContenedor;
+}else{
+_selCont.value='Otro';
+toggleOtroContenedor();
+document.getElementById('tipoContenedor-otro-text').value=l.tipoContenedor;
+}
+}
 if(l.condicionContenedor)document.getElementById('condicionContenedor').value=l.condicionContenedor;
 if(l.pesoVGM)document.getElementById('pesoVGM').value=l.pesoVGM;
 if(l.numeroContenedor)document.getElementById('numeroContenedor').value=l.numeroContenedor;

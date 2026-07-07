@@ -506,7 +506,6 @@ function _generarPDFLicitacion(l, ocultarSensible){
     if(l.dimensiones)rows.push(['Dimensiones',l.dimensiones]);
   }else if(l.tipoLicitacion==='contenedor'){
     if(l.tipoContenedor)rows.push(['Tipo de contenedor',l.tipoContenedor]);
-    if(l.cantidadContenedores)rows.push(['Cantidad de contenedores',String(l.cantidadContenedores)]);
     if(l.condicionContenedor)rows.push(['Condicion',l.condicionContenedor]);
     if(l.pesoVGM)rows.push(['Peso VGM',l.pesoVGM+' kg']);
     if(l.numeroContenedor)rows.push(['N de contenedor',l.numeroContenedor]);
@@ -639,7 +638,6 @@ if(l.tipoLicitacion==='maquinaria'){
   if(l.dimensiones)infoRows.push(['Dimensiones',l.dimensiones]);
 }else if(l.tipoLicitacion==='contenedor'){
   if(l.tipoContenedor)infoRows.push(['Tipo de contenedor',l.tipoContenedor]);
-  if(l.cantidadContenedores)infoRows.push(['Cantidad de contenedores',l.cantidadContenedores]);
   if(l.condicionContenedor)infoRows.push(['Condición',l.condicionContenedor]);
   if(l.pesoVGM)infoRows.push(['Peso VGM',l.pesoVGM+' kg']);
   if(l.numeroContenedor)infoRows.push(['N° de contenedor',l.numeroContenedor]);
