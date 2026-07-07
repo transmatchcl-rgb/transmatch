@@ -368,50 +368,7 @@
         <div class="card-title">Equipos que opero</div>
         <p style="font-size:13px;color:#6B7280;margin-bottom:18px">Selecciona los equipos con los que tu empresa opera. Solo verás licitaciones compatibles con tu flota.</p>
         <div id="eq-tipos-maquinaria" style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
-                    <div class="zona-card" onclick="toggleTipoEquipo('Cama baja',this)">
-            <input type="checkbox" class="eq-tipo-cb" value="Cama baja" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
-            <div><div class="zona-title">Cama baja</div></div>
-          </div>
-          <div class="zona-card" onclick="toggleTipoEquipo('Camilla',this)">
-            <input type="checkbox" class="eq-tipo-cb" value="Camilla" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
-            <div><div class="zona-title">Camilla</div></div>
-          </div>
-          <div class="zona-card" onclick="toggleTipoEquipo('Equipo modular',this)">
-            <input type="checkbox" class="eq-tipo-cb" value="Equipo modular" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
-            <div><div class="zona-title">Equipo modular</div></div>
-          </div>
-          <div class="zona-card" onclick="toggleTipoEquipo('Palote',this)">
-            <input type="checkbox" class="eq-tipo-cb" value="Palote" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
-            <div><div class="zona-title">Palote</div></div>
-          </div>
-          <div class="zona-card" onclick="toggleTipoEquipo('Rampla / plataforma',this)">
-            <input type="checkbox" class="eq-tipo-cb" value="Rampla / plataforma" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
-            <div><div class="zona-title">Rampla / plataforma</div></div>
-          </div>
-          <div class="zona-card" onclick="toggleTipoEquipo('Camión pluma',this)">
-            <input type="checkbox" class="eq-tipo-cb" value="Camión pluma" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
-            <div><div class="zona-title">Camión pluma</div><div class="zona-sub">autocarga</div></div>
-          </div>
-          <div class="zona-card" onclick="toggleTipoEquipo('Cama cuna',this)">
-            <input type="checkbox" class="eq-tipo-cb" value="Cama cuna" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
-            <div><div class="zona-title">Cama cuna</div></div>
-          </div>
-          <div class="zona-card" onclick="toggleTipoEquipo('Furgón / Sider',this)">
-            <input type="checkbox" class="eq-tipo-cb" value="Furgón / Sider" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
-            <div><div class="zona-title">Furgón / Sider</div><div class="zona-sub">cerrado</div></div>
-          </div>
-          <div class="zona-card" onclick="toggleTipoEquipo('Tolva',this)">
-            <input type="checkbox" class="eq-tipo-cb" value="Tolva" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
-            <div><div class="zona-title">Tolva</div><div class="zona-sub">granel</div></div>
-          </div>
-          <div class="zona-card" onclick="toggleTipoEquipo('Portacontenedor',this)">
-            <input type="checkbox" class="eq-tipo-cb" value="Portacontenedor" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
-            <div><div class="zona-title">Portacontenedor</div></div>
-          </div>
-          <div class="zona-card" onclick="toggleTipoEquipo('Camión plano',this)">
-            <input type="checkbox" class="eq-tipo-cb" value="Camión plano" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
-            <div><div class="zona-title">Camión plano</div><div class="zona-sub">plataforma rígida</div></div>
-          </div>
+          <div id="eq-tipos-fijos-cont"></div>
           <div class="zona-card" onclick="toggleTipoEquipo('Otro',this);toggleOtroTipo()">
             <input type="checkbox" class="eq-tipo-cb" value="Otro" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()" onchange="toggleOtroTipo()"/>
             <div><div class="zona-title">Otro</div><div class="zona-sub">Especificar</div></div>
@@ -718,6 +675,7 @@
   </main>
 </div>
 
+<script src="/categorias-equipo.js"></script>
 <script>
 var API = 'https://transmatch.transmatchcl.workers.dev';
 var U   = {};
@@ -803,6 +761,7 @@ async function cambiarPassword(){
 }
 
 function fill() {
+  renderEqTiposFijos();
   var n   = U.nombre   || localStorage.getItem('tm_nombre')  || '';
   var em  = U.email    || localStorage.getItem('tm_email')   || '';
   var emp = U.empresa  || localStorage.getItem('tm_empresa') || '';
@@ -1007,6 +966,20 @@ async function guardarContactos(){
       var el=document.getElementById('ok-contactos');if(el){el.style.display='block';setTimeout(function(){el.style.display='none';},3000);}
     }
   }catch(e){}
+}
+
+// ── EQUIPOS: render desde el listado único (categorias-equipo.js) ──
+function renderEqTiposFijos(){
+  var cont = document.getElementById('eq-tipos-fijos-cont');
+  if(!cont || typeof TM_CATEGORIAS_EQUIPO==='undefined' || cont.dataset.rendered) return;
+  var html = '';
+  TM_CATEGORIAS_EQUIPO.forEach(function(cat){
+    html += '<div class="zona-card" onclick="toggleTipoEquipo(\''+cat.value+'\',this)">'
+      + '<input type="checkbox" class="eq-tipo-cb" value="'+cat.value+'" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>'
+      + '<div><div class="zona-title">'+cat.value+'</div>'+(cat.sub?'<div class="zona-sub">'+cat.sub+'</div>':'')+'</div></div>';
+  });
+  cont.innerHTML = html;
+  cont.dataset.rendered = '1';
 }
 
 function toggleTipoEquipo(val, card) {

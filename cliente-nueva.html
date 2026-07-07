@@ -275,12 +275,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <div class="form-group">
 <label style="font-size:15px;font-weight:700;color:#1e2d4e;margin-bottom:8px">Equipo requerido <span class="required">*</span></label>
 <div id="equipo-requerido-list" style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
-<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Cama baja" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Cama baja</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Camilla" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Camilla</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Equipo modular" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Equipo modular</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Palote" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Palote</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Rampla / plataforma" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Rampla / plataforma</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Camión pluma" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Camión pluma (autocarga)</label>
+<div id="eq-req-fijos-cont"></div>
 <label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Otro" onchange="handleEqReq(this);toggleOtroReq()" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Otro (especificar)</label>
 <div id="otro-req-wrap" style="display:none">
 <input type="text" id="otro-req-text" placeholder="Especifica el equipo" maxlength="80" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box" oninput="var e=document.getElementById('err-otro-req');if(e)e.style.display='none'"/>
@@ -328,13 +323,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <div class="form-group">
 <label style="font-size:15px;font-weight:700;color:#1e2d4e;margin-bottom:8px">Equipo requerido <span class="required">*</span></label>
 <div id="equipo-requerido-carga-list" style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
-<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Rampla / plataforma" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Rampla / plataforma</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Camión pluma" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Camión pluma (autocarga)</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Cama cuna" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Cama cuna</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Furgón / Sider" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Furgón / Sider (cerrado)</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Tolva" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Tolva</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Portacontenedor" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Portacontenedor</label>
-<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Camión plano" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Camión plano</label>
+<div id="eq-carga-fijos-cont"></div>
 <label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Otro" onchange="handleEqCarga(this);toggleOtroCarga()" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Otro (especificar)</label>
 <div id="otro-carga-wrap" style="display:none">
 <input type="text" id="otro-carga-text" placeholder="Especifica el equipo" maxlength="80" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box" oninput="var e=document.getElementById('err-otro-carga');if(e)e.style.display='none'"/>
@@ -515,6 +504,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 </div>
 <div id="toast"></div>
 
+<script src="/categorias-equipo.js"></script>
 <script>
 var API='https://transmatch.transmatchcl.workers.dev';
 var tipoLicitacion=null;
@@ -531,6 +521,40 @@ var el=document.getElementById('toast');
 el.textContent=msg;el.style.background=type==='err'?'#EF4444':'#1ED24E';
 el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(function(){el.style.opacity='0'},3500);
 }
+
+// ── EQUIPO REQUERIDO: render desde el listado único (categorias-equipo.js) ──
+// Cada tipo de licitación usa un subconjunto (no todas las categorías aplican a maquinaria vs carga),
+// pero los VALORES y NOMBRES salen siempre del mismo listado compartido.
+var EQUIPOS_MAQUINARIA = ["Cama baja","Camilla","Equipo modular","Palote","Rampla / plataforma","Camión pluma"];
+var EQUIPOS_CARGA = ["Rampla / plataforma","Camión pluma","Cama cuna","Furgón / Sider","Tolva","Portacontenedor","Camión plano"];
+
+function _catByValue(val){
+  if(typeof TM_CATEGORIAS_EQUIPO==='undefined') return null;
+  for(var i=0;i<TM_CATEGORIAS_EQUIPO.length;i++){ if(TM_CATEGORIAS_EQUIPO[i].value===val) return TM_CATEGORIAS_EQUIPO[i]; }
+  return null;
+}
+
+function renderEquipoRequerido(){
+  var contMaq = document.getElementById('eq-req-fijos-cont');
+  var contCarga = document.getElementById('eq-carga-fijos-cont');
+  if(contMaq && !contMaq.dataset.rendered){
+    var htmlMaq='';
+    EQUIPOS_MAQUINARIA.forEach(function(val){
+      var cat=_catByValue(val); var label=val+(cat&&cat.sub?' ('+cat.sub+')':'');
+      htmlMaq+='<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="'+val+'" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> '+label+'</label>';
+    });
+    contMaq.innerHTML=htmlMaq; contMaq.dataset.rendered='1';
+  }
+  if(contCarga && !contCarga.dataset.rendered){
+    var htmlCarga='';
+    EQUIPOS_CARGA.forEach(function(val){
+      var cat=_catByValue(val); var label=val+(cat&&cat.sub?' ('+cat.sub+')':'');
+      htmlCarga+='<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="'+val+'" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> '+label+'</label>';
+    });
+    contCarga.innerHTML=htmlCarga; contCarga.dataset.rendered='1';
+  }
+}
+document.addEventListener('DOMContentLoaded', renderEquipoRequerido);
 
 function handleEqCarga(cb){
 var checks=document.querySelectorAll('.eq-carga-cb:checked');
@@ -893,6 +917,13 @@ payload.peso=document.getElementById('pesoMaq').value||'';
 payload.dimensiones=document.getElementById('dimensionesMaq').value.trim();
 payload.descripcion=document.getElementById('descripcionMaq').value.trim();
 payload.tipoEntregaDestino=document.getElementById('tipoEntregaDestino').value||'no_aplica';
+// Si se marcó "Otro": no se puede filtrar por texto libre, así que la licitación
+// debe llegar a TODOS los transportistas ("cualquiera"). El texto queda como nota.
+if(document.querySelector('.eq-req-cb[value="Otro"]:checked')){
+var _otroTxtMaq=(document.getElementById('otro-req-text').value||'').trim();
+payload.tipoEquipoRequerido='cualquiera';
+if(_otroTxtMaq) payload.descripcion=('Equipo solicitado (fuera de lista): '+_otroTxtMaq+'. '+payload.descripcion).trim();
+}
 }else{
 payload.tipoEquipoRequerido=getEqRequeridoCarga();
 payload.tipoCarga=document.getElementById('tipoCarga').value.trim();
@@ -905,6 +936,13 @@ payload.dimensiones=document.getElementById('dimensionesCarga').value.trim();
 payload.descripcion=document.getElementById('descripcionCarga').value.trim();
 payload.tipoEntregaDestino=document.getElementById('tipoEntregaDestino').value||'no_aplica';
 payload.paradas=getParadas();
+// Si se marcó "Otro": no se puede filtrar por texto libre, así que la licitación
+// debe llegar a TODOS los transportistas ("cualquiera"). El texto queda como nota.
+if(document.querySelector('.eq-carga-cb[value="Otro"]:checked')){
+var _otroTxtCarga=(document.getElementById('otro-carga-text').value||'').trim();
+payload.tipoEquipoRequerido='cualquiera';
+if(_otroTxtCarga) payload.descripcion=('Equipo solicitado (fuera de lista): '+_otroTxtCarga+'. '+payload.descripcion).trim();
+}
 }
 try{
 var url=modoEdicion?API+'/api/licitaciones/'+modoEdicion:API+'/api/licitaciones';

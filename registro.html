@@ -275,20 +275,8 @@ textarea{resize:vertical;min-height:72px}
 
         <div class="section-label">Equipos que opero</div>
         <p style="font-size:12px;color:#6B7280;margin-bottom:10px">Selecciona los tipos de equipo con los que trabajas</p>
-        <div id="equipos-reg" style="display:flex;flex-direction:column;gap:6px">
-                    <label class="equipo-check"><input type="checkbox" value="Cama baja"/><div><div class="eq-name">Cama baja</div></div></label>
-          <label class="equipo-check"><input type="checkbox" value="Camilla"/><div><div class="eq-name">Camilla</div></div></label>
-          <label class="equipo-check"><input type="checkbox" value="Equipo modular"/><div><div class="eq-name">Equipo modular</div></div></label>
-          <label class="equipo-check"><input type="checkbox" value="Palote"/><div><div class="eq-name">Palote</div></div></label>
-          <label class="equipo-check"><input type="checkbox" value="Rampla / plataforma"/><div><div class="eq-name">Rampla / plataforma</div></div></label>
-          <label class="equipo-check"><input type="checkbox" value="Camión pluma"/><div><div class="eq-name">Camión pluma</div><div class="eq-sub">autocarga</div></div></label>
-          <label class="equipo-check"><input type="checkbox" value="Cama cuna"/><div><div class="eq-name">Cama cuna</div></div></label>
-          <label class="equipo-check"><input type="checkbox" value="Furgón / Sider"/><div><div class="eq-name">Furgón / Sider</div><div class="eq-sub">cerrado</div></div></label>
-          <label class="equipo-check"><input type="checkbox" value="Tolva"/><div><div class="eq-name">Tolva</div><div class="eq-sub">granel</div></div></label>
-          <label class="equipo-check"><input type="checkbox" value="Portacontenedor"/><div><div class="eq-name">Portacontenedor</div></div></label>
-          <label class="equipo-check"><input type="checkbox" value="Camión plano"/><div><div class="eq-name">Camión plano</div><div class="eq-sub">plataforma rígida</div></div></label>
-          <label class="equipo-check" id="otro-equipo-card"><input type="checkbox" value="otro" onchange="toggleOtroEquipo(this)"/><div><div class="eq-name">Otro</div><div class="eq-sub">Especificar</div></div></label>
-        </div>
+        <div id="equipos-reg" style="display:flex;flex-direction:column;gap:6px"></div>
+        <label class="equipo-check" id="otro-equipo-card" style="margin-top:6px"><input type="checkbox" value="otro" onchange="toggleOtroEquipo(this)"/><div><div class="eq-name">Otro</div><div class="eq-sub">Especificar</div></div></label>
         <div id="otro-equipo-input" style="display:none;margin-top:8px">
           <input type="text" id="reg-otro-equipo" placeholder="Describe el tipo de equipo..." style="font-size:13px"/>
           <div style="font-size:11px;color:#9CA3AF;margin-top:4px">El equipo quedará pendiente de aprobación por TransMatch.</div>
@@ -311,6 +299,7 @@ textarea{resize:vertical;min-height:72px}
 
 </div><!-- fin screen-registro -->
 
+<script src="/categorias-equipo.js"></script>
 <script>
 var API = 'https://transmatch.transmatchcl.workers.dev';
 var selectedRole = 'mandante';
@@ -390,6 +379,18 @@ document.addEventListener('change', function(e){
     item.classList.toggle('selected', e.target.checked);
   }
 });
+
+// ── EQUIPOS: render desde el listado único (categorias-equipo.js) ──
+function renderEquiposReg(){
+  var cont = document.getElementById('equipos-reg');
+  if(!cont || typeof TM_CATEGORIAS_EQUIPO==='undefined') return;
+  var html = '';
+  TM_CATEGORIAS_EQUIPO.forEach(function(cat){
+    html += '<label class="equipo-check"><input type="checkbox" value="'+cat.value+'"/><div><div class="eq-name">'+cat.value+'</div>'+(cat.sub?'<div class="eq-sub">'+cat.sub+'</div>':'')+'</div></label>';
+  });
+  cont.innerHTML = html;
+}
+document.addEventListener('DOMContentLoaded', renderEquiposReg);
 
 function toggleOtroEquipo(cb){
   document.getElementById('otro-equipo-input').style.display = cb.checked ? 'block' : 'none';
