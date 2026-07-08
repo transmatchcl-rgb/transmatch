@@ -580,8 +580,8 @@ function renderDetalle(t){
     h+='<div class="doc-ok"><span>Subida el '+fechaHora(t.factura.subidoAt)+'</span><button class="btn btn-outline btn-sm" onclick="descargar(\''+t.factura.archivoId+'\',\''+t.factura.nombre+'\')">Descargar</button></div>';
   } else {
     h+='<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Sube tu factura para registrar el cobro en el sistema.</div>'+
-      '<input type="file" id="fac-file-'+t.id+'" accept=".pdf,.doc,.docx" style="font-size:13px;margin-bottom:8px;display:block"/>'+
-      '<button class="btn btn-orange btn-sm" onclick="subirFactura(\''+t.id+'\')">Subir factura</button>';
+      '<input type="file" id="fac-file-'+t.id+'" accept=".pdf,.doc,.docx" style="font-size:13px;display:block" onchange="subirFactura(\''+t.id+'\')"/>'+
+      '<div id="fac-status-'+t.id+'" style="font-size:12px;color:#6B7280;margin-top:6px"></div>';
   }
   h+='</div>';
   // Guía de despacho — la sube el cliente
@@ -613,8 +613,10 @@ function renderDetalle(t){
   // Historial
   var hist=(t.historial||[]);
   if(hist.length>0){
-    h+='<div style="font-size:12px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-top:14px;margin-bottom:8px">Historial</div>'+
-      '<div class="hist-list">'+
+    h+='<div style="font-size:12px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-top:14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:6px;user-select:none" onclick="toggleHistorial(\''+t.id+'\')">'
+      +'<span id="hist-arrow-'+t.id+'" style="display:inline-block;transition:transform .15s">▸</span> Historial'
+      +'</div>'+
+      '<div id="hist-list-'+t.id+'" class="hist-list" style="display:none">'+
       hist.slice().reverse().map(function(ev){
         return '<div class="hist-item"><div class="hist-dot"></div><div>'+
           '<div class="hist-text"><strong>'+estadoLabel(ev.estado)+'</strong>'+(ev.nota?' — '+ev.nota:'')+'</div>'+
@@ -630,7 +632,6 @@ function renderDetalle(t){
   h += '<div style="font-size:14px;font-weight:600;color:#111827">Incidencias</div>';
   h += '<button class="btn btn-outline btn-sm" onclick="abrirModalIncidencia(\''+t.id+'\')">Reportar una incidencia</button>';
   h += '</div>';
-  h += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:10px">Solo TransMatch ve estos reportes — no se le notifican al cliente. Úsalo para dejar constancia de un problema, no reemplaza resolverlo directamente con la otra parte.</div>';
   var incsT=t.incidenciasTransportista||[];
   if(incsT.length){
     incsT.slice().reverse().forEach(function(inc){
@@ -644,6 +645,15 @@ function renderDetalle(t){
   h += '</div>';
 
   return h;
+}
+
+function toggleHistorial(transporteId){
+  var list=document.getElementById('hist-list-'+transporteId);
+  var arrow=document.getElementById('hist-arrow-'+transporteId);
+  if(!list) return;
+  var abierto = list.style.display!=='none';
+  list.style.display = abierto?'none':'block';
+  if(arrow) arrow.style.transform = abierto?'rotate(0deg)':'rotate(90deg)';
 }
 
 function toggleCard(id){
@@ -1036,8 +1046,10 @@ async function eliminarContactoOp(transporteId, rol, idx){
 
 async function subirFactura(transporteId){
   var fi=document.getElementById('fac-file-'+transporteId);
-  if(!fi||!fi.files[0]){toast('Selecciona un archivo PDF','err');return;}
+  var statusEl=document.getElementById('fac-status-'+transporteId);
+  if(!fi||!fi.files[0]){return;}
   var file=fi.files[0];
+  if(statusEl) statusEl.textContent='Subiendo '+file.name+'...';
   var reader=new FileReader();
   reader.onload=async function(e){
     var base64=e.target.result.split(',')[1];
@@ -1052,8 +1064,8 @@ async function subirFactura(transporteId){
         toast('Factura subida. La OV ha sido confirmada y el transporte completado.');
         await cargar();
         setTimeout(function(){toggleCard(transporteId);},200);
-      } else toast(d.error||'Error al subir','err');
-    } catch(e){toast('Error de conexion','err');}
+      } else { if(statusEl) statusEl.textContent=''; toast(d.error||'Error al subir','err'); }
+    } catch(e){ if(statusEl) statusEl.textContent=''; toast('Error de conexion','err'); }
   };
   reader.readAsDataURL(file);
 }

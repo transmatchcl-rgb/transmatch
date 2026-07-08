@@ -344,8 +344,8 @@ function renderDetalle(t){
   } else {
     h += '<div style="font-size:12px;color:#92400E;margin-bottom:8px">Sube tu Orden de Compra para que el transportista pueda descargarla.</div>'
       + '<label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Seleccionar OC (PDF)</label>'
-      + '<input type="file" id="oc-file-'+t.id+'" accept=".pdf" style="font-size:13px;margin-bottom:8px"/>'
-      + '<button class="btn btn-orange btn-sm" onclick="subirOC(\''+t.id+'\')">Subir OC</button>';
+      + '<input type="file" id="oc-file-'+t.id+'" accept=".pdf" style="font-size:13px" onchange="subirOC(\''+t.id+'\')"/>'
+      + '<div id="oc-status-'+t.id+'" style="font-size:12px;color:#6B7280;margin-top:6px"></div>';
   }
   h += '</div>';
 
@@ -356,8 +356,8 @@ function renderDetalle(t){
   } else {
     h += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Sube la guía de despacho que respalda el traslado de la carga.</div>'
       + '<label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Seleccionar guía (PDF)</label>'
-      + '<input type="file" id="guia-file-'+t.id+'" accept=".pdf" style="font-size:13px;margin-bottom:8px"/>'
-      + '<button class="btn btn-outline btn-sm" onclick="subirGuia(\''+t.id+'\')">Subir guía</button>';
+      + '<input type="file" id="guia-file-'+t.id+'" accept=".pdf" style="font-size:13px" onchange="subirGuia(\''+t.id+'\')"/>'
+      + '<div id="guia-status-'+t.id+'" style="font-size:12px;color:#6B7280;margin-top:6px"></div>';
   }
   h += '</div>';
   h += '<div class="doc-section"><div class="doc-title">Factura del transporte <span style="font-size:10px;font-weight:400;color:#EF4444;margin-left:4px">requerida para completar</span></div>';
@@ -380,14 +380,18 @@ function renderDetalle(t){
   // Historial
   var hist = t.historial || [];
   if(hist.length > 0){
-    h += '<div style="margin-top:14px"><div class="tl-title">Historial de eventos</div>';
+    h += '<div style="margin-top:14px">';
+    h += '<div class="tl-title" style="cursor:pointer;display:flex;align-items:center;gap:6px;user-select:none" onclick="toggleHistorial(\''+t.id+'\')">'
+      + '<span id="hist-arrow-'+t.id+'" style="display:inline-block;transition:transform .15s">▸</span> Historial de eventos'
+      + '</div>';
+    h += '<div id="hist-list-'+t.id+'" style="display:none;margin-top:6px">';
     hist.slice().reverse().forEach(function(ev){
       h += '<div class="hist-item"><div class="hist-dot"></div><div>'
         + '<div class="hist-content"><strong>'+estadoLabel(ev.estado)+'</strong>'+(ev.nota?' — '+ev.nota:'')+'</div>'
         + '<div class="hist-fecha">'+fechaHora(ev.fecha)+'</div>'
         + '</div></div>';
     });
-    h += '</div>';
+    h += '</div></div>';
   }
 
   // Valoración del transportista (solo cuando el transporte está completado: entregado + facturado)
@@ -412,7 +416,6 @@ function renderDetalle(t){
   h += '<div style="font-size:14px;font-weight:600;color:#111827">Incidencias</div>';
   h += '<button class="btn btn-outline btn-sm" onclick="abrirModalIncidencia(\''+t.id+'\')">Reportar una incidencia</button>';
   h += '</div>';
-  h += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:10px">Solo TransMatch ve estos reportes — no se le notifican al transportista. Úsalo para dejar constancia de un problema, no reemplaza resolverlo directamente con la otra parte.</div>';
   var incs=t.incidenciasCliente||[];
   if(incs.length){
     incs.slice().reverse().forEach(function(inc){
@@ -426,6 +429,15 @@ function renderDetalle(t){
   h += '</div>';
 
   return h;
+}
+
+function toggleHistorial(transporteId){
+  var list=document.getElementById('hist-list-'+transporteId);
+  var arrow=document.getElementById('hist-arrow-'+transporteId);
+  if(!list) return;
+  var abierto = list.style.display!=='none';
+  list.style.display = abierto?'none':'block';
+  if(arrow) arrow.style.transform = abierto?'rotate(0deg)':'rotate(90deg)';
 }
 
 function toggleCard(id){
@@ -462,8 +474,10 @@ async function enviarValoracion(transporteId){
 
 async function subirOC(transporteId){
   var fileInput = document.getElementById('oc-file-'+transporteId);
-  if(!fileInput || !fileInput.files[0]){ toast('Selecciona un archivo', 'err'); return; }
+  var statusEl = document.getElementById('oc-status-'+transporteId);
+  if(!fileInput || !fileInput.files[0]){ return; }
   var file = fileInput.files[0];
+  if(statusEl) statusEl.textContent='Subiendo '+file.name+'...';
   var reader = new FileReader();
   reader.onload = async function(e){
     var base64 = e.target.result.split(',')[1];
@@ -475,16 +489,18 @@ async function subirOC(transporteId){
       });
       var d = await res.json();
       if(res.ok){ toast('OC subida correctamente.'); await cargar(); setTimeout(function(){ toggleCard(transporteId); }, 100); }
-      else toast(d.error || 'Error al subir', 'err');
-    } catch(e){ toast('Error de conexion', 'err'); }
+      else { if(statusEl) statusEl.textContent=''; toast(d.error || 'Error al subir', 'err'); }
+    } catch(e){ if(statusEl) statusEl.textContent=''; toast('Error de conexion', 'err'); }
   };
   reader.readAsDataURL(file);
 }
 
 async function subirGuia(transporteId){
   var fileInput = document.getElementById('guia-file-'+transporteId);
-  if(!fileInput || !fileInput.files[0]){ toast('Selecciona un archivo', 'err'); return; }
+  var statusEl = document.getElementById('guia-status-'+transporteId);
+  if(!fileInput || !fileInput.files[0]){ return; }
   var file = fileInput.files[0];
+  if(statusEl) statusEl.textContent='Subiendo '+file.name+'...';
   var reader = new FileReader();
   reader.onload = async function(e){
     var base64 = e.target.result.split(',')[1];
@@ -496,8 +512,8 @@ async function subirGuia(transporteId){
       });
       var d = await res.json();
       if(res.ok){ toast('Guía de despacho subida correctamente.'); await cargar(); setTimeout(function(){ toggleCard(transporteId); }, 100); }
-      else toast(d.error || 'Error al subir', 'err');
-    } catch(e){ toast('Error de conexion', 'err'); }
+      else { if(statusEl) statusEl.textContent=''; toast(d.error || 'Error al subir', 'err'); }
+    } catch(e){ if(statusEl) statusEl.textContent=''; toast('Error de conexion', 'err'); }
   };
   reader.readAsDataURL(file);
 }
