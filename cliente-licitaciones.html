@@ -316,6 +316,7 @@ document.dispatchEvent(new Event('_authReady'));
 <div class="pmenu-wrap" id="det-menu-wrap" style="display:none">
 <button class="pmenu-btn" onclick="togglePanelMenu(event,'det-pmenu')">&#8943;</button>
 <div class="pmenu-dd" id="det-pmenu">
+<button class="pmenu-item" id="det-btn-duplicar" onclick="closePanelMenu();duplicarLicitacion()">Duplicar licitación</button>
 <button class="pmenu-item" id="det-btn-editar" onclick="closePanelMenu();editarLicitacion()">Editar licitacion</button>
 <button class="pmenu-item danger" id="det-btn-eliminar" onclick="closePanelMenu();confirmarEliminar()">Eliminar licitacion</button>
 <button class="pmenu-item danger" id="det-btn-anular" style="display:none" onclick="closePanelMenu();confirmarAnular()">Anular licitacion</button>
@@ -469,10 +470,9 @@ document.getElementById('det-titulo').textContent=(l.codigo?l.codigo+' -- ':'')+
 document.getElementById('det-meta').textContent='';
 document.getElementById('det-badge').innerHTML=bdg(l.estado);
 
-// Menu opciones
+// Menu opciones — Duplicar siempre disponible (cualquier estado); Editar/Eliminar/Anular según estado
 var menuWrap=document.getElementById('det-menu-wrap');
-var tieneMenu=(l.estado==='pendiente_admin'||l.estado==='abierta'||l.estado==='cerrada');
-menuWrap.style.display=tieneMenu?'block':'none';
+menuWrap.style.display='block';
 document.getElementById('det-btn-editar').style.display=l.estado==='pendiente_admin'?'flex':'none';
 document.getElementById('det-btn-eliminar').style.display=l.estado==='pendiente_admin'?'flex':'none';
 document.getElementById('det-btn-anular').style.display=(l.estado==='abierta'||l.estado==='cerrada')?'flex':'none';
@@ -964,6 +964,7 @@ if(r&&r.ok){
 else toast((r&&r.data&&r.data.error)||'Error al adjudicar','err');
 }
 
+function duplicarLicitacion(){window.location.href='/cliente-nueva.html?duplicar='+_selectedId;}
 function editarLicitacion(){window.location.href='/cliente-nueva.html?editar='+_selectedId;}
 function editarLicitacionId(id){window.location.href='/cliente-nueva.html?editar='+id;}
 

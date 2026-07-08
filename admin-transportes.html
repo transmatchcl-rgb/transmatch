@@ -524,6 +524,27 @@ function renderDetalle(t){
   }
   html+='</div>';
 
+  // Incidencias reportadas (visibles solo para TransMatch — ambos lados)
+  var incC=t.incidenciasCliente||[], incT=t.incidenciasTransportista||[];
+  if(incC.length||incT.length){
+    html+='<div style="margin-top:16px"><div style="font-size:12px;font-weight:700;color:#1e2d4e;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Incidencias reportadas</div>';
+    incC.forEach(function(inc){
+      html+='<div style="background:#FFFBEB;border:0.5px solid #FDE68A;border-radius:8px;padding:10px 12px;margin-bottom:8px">'
+        +'<div style="font-size:11px;font-weight:600;color:#92400E">Reportado por CLIENTE · '+inc.tipo+'</div>'
+        +'<div style="font-size:12px;color:#78350F;margin-top:2px">'+inc.descripcion+'</div>'
+        +'<div style="font-size:10px;color:#9CA3AF;margin-top:4px">'+(inc.reportadoPorNombre||inc.reportadoPorEmail||'')+' · '+fechaCorta(inc.createdAt)+'</div>'
+        +'</div>';
+    });
+    incT.forEach(function(inc){
+      html+='<div style="background:#EEF1F6;border:0.5px solid #C7CEDB;border-radius:8px;padding:10px 12px;margin-bottom:8px">'
+        +'<div style="font-size:11px;font-weight:600;color:#1E2D4E">Reportado por TRANSPORTISTA · '+inc.tipo+'</div>'
+        +'<div style="font-size:12px;color:#1E2D4E;margin-top:2px">'+inc.descripcion+'</div>'
+        +'<div style="font-size:10px;color:#9CA3AF;margin-top:4px">'+(inc.reportadoPorNombre||inc.reportadoPorEmail||'')+' · '+fechaCorta(inc.createdAt)+'</div>'
+        +'</div>';
+    });
+    html+='</div>';
+  }
+
   // Acciones admin
   html+='<div class="det-actions">';
   if(t.estado!=='entregado'){

@@ -116,6 +116,7 @@ textarea{resize:vertical;min-height:90px}
 <script>
 var API='https://transmatch.transmatchcl.workers.dev';
 var editId=new URLSearchParams(window.location.search).get('editar');
+var duplicarId=new URLSearchParams(window.location.search).get('duplicar');
 (async function(){
 var token=localStorage.getItem('tm_token');
 var role=localStorage.getItem('tm_role');
@@ -1146,31 +1147,34 @@ window.scrollTo({top:0,behavior:'smooth'});
 }catch(e){showToast('Error de conexion. Intenta nuevamente.','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';}
 }
 
-async function cargarEdicion(id){
+async function cargarEdicion(id, esDuplicado){
 try{
 var res=await fetch(API+'/api/licitaciones/'+id,{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
 if(!res.ok)return;
 var data=await res.json();
 var l=data.licitacion;if(!l)return;
-modoEdicion=id;
+if(!esDuplicado) modoEdicion=id;
 var _chkT=document.getElementById('acepta-tyc'); if(_chkT) _chkT.checked=true;
 tipoLicitacion=l.tipoLicitacion||(l.tipoCarga?'carga':'maquinaria');
 toggleCamposPorTipoRuta();
 document.getElementById('paso0').style.display='none';
 document.getElementById('stepper').style.display='flex';
 document.getElementById('sl1').textContent=tipoLicitacion==='maquinaria'?'Equipo':(tipoLicitacion==='contenedor'?'Contenedor':'Carga');
-document.getElementById('page-title').textContent='Editar licitacion';
-document.getElementById('page-sub').textContent='Modifica los datos que necesites';
+document.getElementById('page-title').textContent=esDuplicado?'Duplicar licitación':'Editar licitacion';
+document.getElementById('page-sub').textContent=esDuplicado?'Revisa los datos, ajusta lo necesario y elige nuevas fechas':'Modifica los datos que necesites';
 document.getElementById(paso1Id()).classList.add('active');
 currentStep=1;updateStepper(1);
 if(l.origen)document.getElementById('origen').value=l.origen;
 if(l.destino)document.getElementById('destino').value=l.destino;
 if(l.direccionOrigen)document.getElementById('direccionOrigen').value=l.direccionOrigen;
 if(l.direccionDestino)document.getElementById('direccionDestino').value=l.direccionDestino;
+// Fechas y horas: al duplicar, NO se copian — son de un despacho distinto y deben elegirse de nuevo
+if(!esDuplicado){
 if(l.fechaCarga)document.getElementById('fechaCarga').value=l.fechaCarga;
 if(l.horaCarga){document.getElementById('horaCarga').value=l.horaCarga;document.getElementById('chkHoraCarga').checked=true;toggleHora('carga');}
 if(l.fechaEntrega)document.getElementById('fechaEntrega').value=l.fechaEntrega;
 if(l.horaDescarga){document.getElementById('horaDescarga').value=l.horaDescarga;document.getElementById('chkHoraDescarga').checked=true;toggleHora('descarga');}
+}
 if(l.contactoOrigenNombre)document.getElementById('contactoOrigenNombre').value=l.contactoOrigenNombre;
 if(l.contactoOrigenTelefono)document.getElementById('contactoOrigenTelefono').value=l.contactoOrigenTelefono;
 if(l.contactoOrigenEmail)document.getElementById('contactoOrigenEmail').value=l.contactoOrigenEmail;
@@ -1211,8 +1215,8 @@ if(l.cantidadEquipos)document.getElementById('cantidadEquiposMaq').value=l.canti
 if(l.peso)document.getElementById('pesoMaq').value=l.peso;
 if(l.dimensiones)document.getElementById('dimensionesMaq').value=l.dimensiones;
 if(l.descripcion)document.getElementById('descripcionMaq').value=l.descripcion;
-// Mostrar archivo previo maquinaria
-if(l.archivoNombre){
+// Mostrar archivo previo maquinaria (no aplica al duplicar: hay que adjuntar uno nuevo)
+if(l.archivoNombre&&!esDuplicado){
 var fp=document.getElementById('file-preview-maq');fp.classList.add('show');
 document.getElementById('file-name-maq').textContent=l.archivoNombre;
 document.getElementById('file-size-maq').textContent='Archivo existente';
@@ -1231,8 +1235,11 @@ document.getElementById('tipoContenedor-otro-text').value=l.tipoContenedor;
 }
 if(l.condicionContenedor)document.getElementById('condicionContenedor').value=l.condicionContenedor;
 if(l.pesoVGM)document.getElementById('pesoVGM').value=l.pesoVGM;
+// N° de contenedor y sello son de una unidad física puntual: no se copian al duplicar
+if(!esDuplicado){
 if(l.numeroContenedor)document.getElementById('numeroContenedor').value=l.numeroContenedor;
 if(l.selloContenedor)document.getElementById('selloContenedor').value=l.selloContenedor;
+}
 if(l.mercanciaPeligrosa){
 document.getElementById('mercanciaPeligrosa').checked=true;
 toggleMercanciaPeligrosa();
@@ -1250,14 +1257,23 @@ toggleContSobredimensionado();
 if(l.contSobredimensionadoDetalle)document.getElementById('contSobredimensionadoDetalle').value=l.contSobredimensionadoDetalle;
 }
 if(l.descripcion)document.getElementById('descripcionContenedor').value=l.descripcion;
-// Mostrar archivo previo contenedor
-if(l.archivoNombre){
+// Mostrar archivo previo contenedor (no aplica al duplicar)
+if(l.archivoNombre&&!esDuplicado){
 var fpC=document.getElementById('file-preview-contenedor');fpC.classList.add('show');
 document.getElementById('file-name-contenedor').textContent=l.archivoNombre;
 document.getElementById('file-size-contenedor').textContent='Archivo existente';
 }
 }else{
-if(l.tipoEquipoRequerido)document.getElementById('tipoEquipoCarga').value=l.tipoEquipoRequerido;
+if(l.tipoEquipoRequerido){
+document.getElementById('tipoEquipoCarga').value=l.tipoEquipoRequerido;
+var valsC=l.tipoEquipoRequerido.split(' / ');
+document.querySelectorAll('.eq-carga-cb').forEach(function(cb){
+if(valsC.indexOf(cb.value)>=0){cb.checked=true;var lblC=cb.closest('label');if(lblC){lblC.style.borderColor='#1e2d4e';lblC.style.background='#eef1f8';}}
+});
+var _knownC=[];document.querySelectorAll('.eq-carga-cb').forEach(function(cb){if(cb.value!=='Otro')_knownC.push(cb.value);});
+var _customC=valsC.filter(function(v){return v&&_knownC.indexOf(v)<0;});
+if(_customC.length){var _ocC=document.querySelector('.eq-carga-cb[value="Otro"]');if(_ocC){_ocC.checked=true;var _lC=_ocC.closest('label');if(_lC){_lC.style.borderColor='#1e2d4e';_lC.style.background='#eef1f8';}}document.getElementById('otro-carga-text').value=_customC.join(' / ');toggleOtroCarga();}
+}
 if(l.tipoCarga)document.getElementById('tipoCarga').value=l.tipoCarga;
 if(l.cantidadEquipos)document.getElementById('cantidadEquiposCarga').value=l.cantidadEquipos;
 if(l.peso)document.getElementById('pesoCarga').value=l.peso;
@@ -1269,8 +1285,8 @@ if(l.descripcion)document.getElementById('descripcionCarga').value=l.descripcion
 if(Array.isArray(l.paradas)){
 l.paradas.forEach(function(p){agregarParada(p);});
 }
-// Mostrar archivo previo carga
-if(l.archivoNombre){
+// Mostrar archivo previo carga (no aplica al duplicar)
+if(l.archivoNombre&&!esDuplicado){
 var fp2=document.getElementById('file-preview-carga');fp2.classList.add('show');
 document.getElementById('file-name-carga').textContent=l.archivoNombre;
 document.getElementById('file-size-carga').textContent='Archivo existente';
@@ -1403,6 +1419,7 @@ function toggleConfigNotif(){
   }
 
 if(editId) document.addEventListener('DOMContentLoaded', function(){ cargarEdicion(editId); });
+if(duplicarId) document.addEventListener('DOMContentLoaded', function(){ cargarEdicion(duplicarId, true); });
 
 // Fecha mínima de carga: hoy + 2 días (se bloquea hoy y el día siguiente; mínimo = pasado mañana)
 function aplicarFechaMinima(){

@@ -406,6 +406,25 @@ function renderDetalle(t){
     }
   }
 
+  // ── INCIDENCIAS ────────────────────────────────────────────────
+  h += '<div style="margin-top:14px;padding-top:14px;border-top:0.5px solid #E5E7EB">';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
+  h += '<div style="font-size:14px;font-weight:600;color:#111827">Incidencias</div>';
+  h += '<button class="btn btn-outline btn-sm" onclick="abrirModalIncidencia(\''+t.id+'\')">Reportar una incidencia</button>';
+  h += '</div>';
+  h += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:10px">Solo TransMatch ve estos reportes — no se le notifican al transportista. Úsalo para dejar constancia de un problema, no reemplaza resolverlo directamente con la otra parte.</div>';
+  var incs=t.incidenciasCliente||[];
+  if(incs.length){
+    incs.slice().reverse().forEach(function(inc){
+      h+='<div style="background:#FFFBEB;border:0.5px solid #FDE68A;border-radius:8px;padding:10px 12px;margin-bottom:8px">'
+        +'<div style="font-size:12px;font-weight:600;color:#92400E">'+inc.tipo+'</div>'
+        +'<div style="font-size:12px;color:#78350F;margin-top:2px">'+inc.descripcion+'</div>'
+        +'<div style="font-size:10px;color:#9CA3AF;margin-top:4px">'+fechaHora(inc.createdAt)+'</div>'
+        +'</div>';
+    });
+  }
+  h += '</div>';
+
   return h;
 }
 
@@ -576,6 +595,51 @@ function abrirModalContactoCliente(transporteId){
   document.getElementById('cc-cancel').onclick=function(){ modal.remove(); };
   document.getElementById('cc-save').onclick=function(){ guardarContactoCliente(transporteId,modal); };
   modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
+}
+
+function abrirModalIncidencia(transporteId){
+  var modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  var inner=document.createElement('div');
+  inner.style.cssText='background:#fff;border-radius:16px;padding:28px;width:100%;max-width:440px';
+  inner.innerHTML='<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Reportar una incidencia</div>'
+    +'<div style="font-size:12px;color:#6B7280;margin-bottom:16px">Este reporte queda registrado con fines de control de calidad. <strong>Solo lo ve TransMatch</strong> — no se le notifica al transportista, y TransMatch no interviene en la resolución de conflictos entre las partes (ver Términos y Condiciones). Si necesitas resolver esto, te recomendamos contactar directamente al transportista.</div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px">'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Categoría *</label>'
+    +'<select id="inc-tipo" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px">'
+    +'<option value="">Selecciona...</option>'
+    +'<option value="No se presentó">No se presentó</option>'
+    +'<option value="Llegó con atraso significativo">Llegó con atraso significativo</option>'
+    +'<option value="Carga dañada">Carga dañada</option>'
+    +'<option value="Cobro distinto al cotizado">Cobro distinto al cotizado</option>'
+    +'<option value="Otro">Otro</option>'
+    +'</select></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Descripción *</label><textarea id="inc-desc" placeholder="Cuéntanos brevemente qué ocurrió" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px;min-height:80px;resize:vertical;font-family:inherit"></textarea></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">'
+    +'<button id="inc-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
+    +'<button id="inc-save" style="padding:9px 18px;border-radius:8px;background:#FF8808;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Enviar reporte</button>'
+    +'</div>';
+  modal.appendChild(inner); document.body.appendChild(modal);
+  document.getElementById('inc-cancel').onclick=function(){ modal.remove(); };
+  document.getElementById('inc-save').onclick=function(){ enviarIncidencia(transporteId,modal); };
+  modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
+}
+
+async function enviarIncidencia(transporteId, modal){
+  var tipo=document.getElementById('inc-tipo').value;
+  var descripcion=(document.getElementById('inc-desc').value||'').trim();
+  if(!tipo){ toast('Selecciona una categoría','err'); return; }
+  if(!descripcion){ toast('Describe brevemente lo ocurrido','err'); return; }
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/incidencia',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify({tipo:tipo,descripcion:descripcion})
+    });
+    if(res.ok){ toast('Reporte enviado — queda registrado internamente'); modal.remove(); await cargar(); setTimeout(function(){ toggleCard(transporteId); },100); }
+    else{ var d=await res.json(); toast(d.error||'Error','err'); }
+  }catch(e){ toast('Error de conexión','err'); }
 }
 
 function autocompletarMisDatosCliente(){
