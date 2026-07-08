@@ -167,19 +167,19 @@
     <!-- KPIs -->
     <div class="kpi-grid">
       <div class="kpi">
-        <div class="kpi-label">Comisión pendiente</div>
-        <div class="kpi-val" id="kpi-pendiente" style="color:#FF8808">—</div>
-        <div class="kpi-sub">OV confirmadas sin facturar</div>
+        <div class="kpi-label">Facturado este mes</div>
+        <div class="kpi-val" id="kpi-mes" style="color:#FF8808">—</div>
+        <div class="kpi-sub">A tus clientes</div>
       </div>
       <div class="kpi">
-        <div class="kpi-label">Comisión facturada</div>
-        <div class="kpi-val" id="kpi-facturada" style="color:#1e2d4e">—</div>
-        <div class="kpi-sub">En facturas emitidas</div>
+        <div class="kpi-label">Facturado total</div>
+        <div class="kpi-val" id="kpi-total" style="color:#1e2d4e">—</div>
+        <div class="kpi-sub">Histórico en TransMatch</div>
       </div>
       <div class="kpi">
-        <div class="kpi-label">Total pagado</div>
-        <div class="kpi-val" id="kpi-pagado" style="color:#16a34a">—</div>
-        <div class="kpi-sub">Comisiones ya pagadas</div>
+        <div class="kpi-label">Transportes facturados</div>
+        <div class="kpi-val" id="kpi-cantidad" style="color:#1e2d4e">—</div>
+        <div class="kpi-sub">Con factura subida</div>
       </div>
       <div class="kpi">
         <div class="kpi-label">OV vencidas</div>
@@ -258,16 +258,23 @@ function switchTab(id,btn){
 }
 
 function actualizarKPIs(){
-  var pendiente=0,facturada=0,pagado=0,vencidas=0;
+  var mesActual=new Date(); mesActual.setDate(1); mesActual.setHours(0,0,0,0);
+  var totalMes=0, totalHist=0, cantidadFacturada=0, vencidas=0;
   allOVs.forEach(function(ov){
-    if(ov.estado==='CONFIRMADA') pendiente+=(ov.comision_final||ov.comision_estimada||0);
-    if(ov.estado==='FACTURADA')  facturada+=(ov.comision_final||0);
-    if(ov.estado==='PAGADA')     pagado+=(ov.comision_final||0);
-    if(ov.estado==='VENCIDA')    vencidas++;
+    if(ov.estado==='VENCIDA') vencidas++;
+    if(ov.estado==='ANULADA') return;
+    var monto = ov.monto_facturado || ov.monto_cotizado || 0;
+    if(!monto) return;
+    // Solo cuenta como "facturado" una vez que subieron su factura (CONFIRMADA en adelante)
+    if(!['CONFIRMADA','FACTURADA','PAGADA'].includes(ov.estado)) return;
+    totalHist += monto;
+    cantidadFacturada++;
+    var fechaOv = ov.fecha_confirmacion ? new Date(ov.fecha_confirmacion) : (ov.fecha_adjudicacion ? new Date(ov.fecha_adjudicacion) : null);
+    if(fechaOv && fechaOv >= mesActual) totalMes += monto;
   });
-  document.getElementById('kpi-pendiente').textContent=peso(pendiente);
-  document.getElementById('kpi-facturada').textContent=peso(facturada);
-  document.getElementById('kpi-pagado').textContent=peso(pagado);
+  document.getElementById('kpi-mes').textContent=peso(totalMes);
+  document.getElementById('kpi-total').textContent=peso(totalHist);
+  document.getElementById('kpi-cantidad').textContent=cantidadFacturada||'0';
   document.getElementById('kpi-vencidas').textContent=vencidas||'0';
   // Alertas
   var alertas='';
