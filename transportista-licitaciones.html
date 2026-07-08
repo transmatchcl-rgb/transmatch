@@ -644,6 +644,29 @@ if(l.comentarioAdmin){
 h+=`<div style="padding:14px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Nota de TransMatch</div><div style="font-size:13px;color:#6B7280;line-height:1.6">${l.comentarioAdmin}</div></div>`;
 }
 
+// Preguntas y respuestas — mediado por la plataforma, sin revelar identidad en ningún sentido.
+// Cualquier transportista ve todas las preguntas y respuestas (misma información para todos los que coticen).
+var preguntas=l.preguntas||[];
+h+=`<div style="padding:14px 18px;border-bottom:0.5px solid #E5E7EB">
+<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Preguntas sobre esta carga</div>`;
+if(preguntas.length){
+  h+=preguntas.map(function(p){
+    return `<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:0.5px solid #f0f1f5">
+<div style="font-size:13px;color:#374151"><strong>${p.esTuya?'Tu pregunta':'Pregunta'}:</strong> ${p.texto}</div>
+${p.respuesta?`<div style="font-size:13px;color:#1e2d4e;margin-top:4px;background:#EEF1F6;border-radius:6px;padding:8px 10px"><strong>Respuesta:</strong> ${p.respuesta}</div>`:'<div style="font-size:12px;color:#9CA3AF;margin-top:4px;font-style:italic">Esperando respuesta del cliente</div>'}
+</div>`;
+  }).join('');
+} else {
+  h+='<div style="font-size:12px;color:#9CA3AF;margin-bottom:10px">Todavía no hay preguntas.</div>';
+}
+if(l.estado==='abierta'){
+  h+=`<div style="display:flex;gap:8px;margin-top:8px">
+<input type="text" id="pregunta-input-${l.id}" placeholder="Escribe tu pregunta (no se revela tu identidad)" maxlength="500" style="flex:1;padding:8px 10px;border:1px solid #e8eaf0;border-radius:6px;font-size:13px">
+<button onclick="enviarPregunta('${l.id}')" style="padding:8px 14px;background:#FF8808;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Preguntar</button>
+</div>`;
+}
+h+='</div>';
+
 // Estándar minero
 if(l.requiereEstandar){
 h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB;background:#FFFBEB">
@@ -1108,6 +1131,19 @@ function abrirEditarCotiz(licitacionId, nombre){
   if(mc && mc.id) p.set('cotizId', mc.id);
   window.location.href='/cotizacion-editor.html?'+p.toString();
 }
+async function enviarPregunta(licitacionId){
+var input=document.getElementById('pregunta-input-'+licitacionId);
+var texto=(input&&input.value||'').trim();
+if(!texto){ toast('Escribe tu pregunta','err'); return; }
+const r=await api('/api/licitaciones/'+licitacionId+'/pregunta','POST',{texto:texto});
+if(r&&r.ok){
+toast('Pregunta enviada');
+await cargarLicitaciones();
+const l=allLicitaciones.find(x=>x.id===licitacionId);
+if(l) renderPanel(l);
+} else { toast((r&&r.data&&r.data.error)||'Error al enviar','err'); }
+}
+
 async function eliminarCotizacion(licitacionId){
 if(!confirm('¿Eliminar tu cotización? Esta acción no se puede deshacer.')) return;
 const r=await api('/api/cotizaciones/eliminar','POST',{licitacionId});

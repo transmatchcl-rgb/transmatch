@@ -674,6 +674,20 @@ if(l.archivoId){
 h+='<div style="margin-bottom:14px"><button onclick="descargarArchivo(\''+l.archivoId+'\',\''+(l.archivoNombre||'especificaciones')+'\')" style="width:fit-content;display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#EFF6FF;color:#1e2d4e;border:0.5px solid #BFDBFE;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">Descargar especificaciones</button></div>';
 }
 
+// Preguntas de transportistas — mediado por la plataforma, nunca se revela quién pregunta.
+// La respuesta la ven todos los que coticen, no solo quien preguntó.
+var preguntasC=l.preguntas||[];
+if(preguntasC.length){
+h+='<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Preguntas de transportistas</div>';
+h+=preguntasC.map(function(p){
+var respBox = p.respuesta
+  ? '<div style="font-size:13px;color:#1e2d4e;margin-top:6px;background:#EEF1F6;border-radius:6px;padding:8px 10px"><strong>Tu respuesta:</strong> '+p.respuesta+'</div>'
+  : '<div style="display:flex;gap:8px;margin-top:6px"><input type="text" id="resp-input-'+p.id+'" placeholder="Responder (lo verán todos los que coticen)" maxlength="1000" style="flex:1;padding:7px 10px;border:1px solid #e8eaf0;border-radius:6px;font-size:13px"><button onclick="responderPregunta(\''+l.id+'\',\''+p.id+'\')" style="padding:7px 14px;background:#FF8808;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Responder</button></div>';
+return '<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:0.5px solid #f0f1f5"><div style="font-size:13px;color:#374151"><strong>Pregunta:</strong> '+p.texto+'</div>'+respBox+'</div>';
+}).join('');
+h+='</div>';
+}
+
 if(l.requiereEstandar){
 h+='<div style="background:#FFFBEB;border:0.5px solid #FDE68A;border-radius:8px;padding:12px 14px;margin-bottom:14px">';
 h+='<div style="font-size:12px;font-weight:600;color:#92400E;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Requiere estándar minero</div>';
@@ -1039,6 +1053,21 @@ async function guardarContactoLicitacion(id, modal){
     });
     if(res.ok){ modal.remove(); await cargarLicitaciones(); abrirDetalle(id); }
     else{ var d=await res.json(); alert(d.error||'Error al guardar'); }
+  }catch(e){ alert('Error de conexión'); }
+}
+
+async function responderPregunta(licitacionId, preguntaId){
+  var input=document.getElementById('resp-input-'+preguntaId);
+  var respuesta=(input&&input.value||'').trim();
+  if(!respuesta){ alert('Escribe una respuesta'); return; }
+  try{
+    var res=await fetch(API+'/api/licitaciones/'+licitacionId+'/pregunta/'+preguntaId+'/responder',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify({respuesta:respuesta})
+    });
+    if(res.ok){ await cargarLicitaciones(); abrirDetalle(licitacionId); }
+    else{ var d=await res.json(); alert(d.error||'Error al responder'); }
   }catch(e){ alert('Error de conexión'); }
 }
 
