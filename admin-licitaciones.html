@@ -438,7 +438,7 @@ function descargarCotizacionAdminPDF(licId, cotId){
 function toast(msg,type){
   const el=document.getElementById('toast');
   el.textContent=msg;
-  el.style.background=type==='err'?'#EF4444':type==='warn'?'#FF8808':'#1ED24E';
+  el.style.background=type==='err'?'#EF4444':type==='warn'?'#FF8808':'#1E2D4E';
   el.style.opacity='1';
   clearTimeout(el._t);
   el._t=setTimeout(()=>{el.style.opacity='0';},3500);
@@ -469,7 +469,7 @@ function renderStats(){
     '<div class="stat-card"><div class="sc-label">Pend. aprobación</div><div class="sc-val" style="color:#EF4444">'+pend+'</div><div class="sc-sub">Requieren revisión</div></div>'+
     '<div class="stat-card"><div class="sc-label">Abiertas</div><div class="sc-val" style="color:#FF8808">'+abiertas+'</div><div class="sc-sub">Cotizando ahora</div></div>'+
     '<div class="stat-card"><div class="sc-label">En proceso</div><div class="sc-val" style="color:#1e2d4e">'+cerradas+'</div><div class="sc-sub">Revisión / Adjudicadas</div></div>'+
-    '<div class="stat-card"><div class="sc-label">Completadas</div><div class="sc-val" style="color:#1ED24E">'+completadas+'</div><div class="sc-sub">Transportes realizados</div></div>';
+    '<div class="stat-card"><div class="sc-label">Completadas</div><div class="sc-val" style="color:#1E2D4E">'+completadas+'</div><div class="sc-sub">Transportes realizados</div></div>';
 }
 
 function setChip(estado,el){

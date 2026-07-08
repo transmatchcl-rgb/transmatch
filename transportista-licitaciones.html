@@ -317,7 +317,7 @@ var historialNoGanadas={};
 var licitacionesGanadas=new Set();
 function toast(msg,type='ok'){
 const el=document.getElementById('toast');
-el.textContent=msg;el.style.background=type==='ok'?'#1ED24E':'#EF4444';
+el.textContent=msg;el.style.background=type==='ok'?'#1E2D4E':'#EF4444';
 el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0'},3500);
 }
 function peso(n){return new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n)}
@@ -678,7 +678,7 @@ const estaAdjudicada = l.estado === 'adjudicada' || l.estado === 'completada';
 if(esGanador && estaAdjudicada){
 var adjArchId = (l.adjudicadaA && l.adjudicadaA.archivoPropioId) || '';
 var adjArchNom = (l.adjudicadaA && l.adjudicadaA.archivoPropioNombre) || 'propuesta';
-h+=`<div style="padding:16px 18px"><div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:16px;text-align:center;margin-bottom:12px"><div style="font-size:15px;font-weight:700;color:#14532D;margin-bottom:4px">Ganaste esta licitación</div><div style="font-size:12px;color:#6B7280">El cliente te seleccionó. Coordina los detalles directamente.</div></div>
+h+=`<div style="padding:16px 18px"><div style="background:#fff;border:1.5px solid #FF8808;border-radius:10px;padding:16px;text-align:center;margin-bottom:12px"><div style="font-size:15px;font-weight:600;color:#1E2D4E;margin-bottom:4px;display:flex;align-items:center;justify-content:center;gap:6px"><span style="color:#3B6D11">✓</span> Ganaste esta licitación</div><div style="font-size:12px;color:#6B7280">El cliente te seleccionó. Coordina los detalles directamente.</div></div>
 <div style="display:flex;gap:8px">
 <button class="btn btn-outline btn-sm" onclick="verPreviewCotiz('${l.id}')">Ver cotización</button>
 ${adjArchId ? `<button class="btn btn-outline btn-sm" onclick="verArchivoCotiz('${adjArchId}','${adjArchNom}')">Ver archivo adjunto</button>` : ''}
@@ -756,9 +756,9 @@ ${ce.precio?`<div style="display:flex;justify-content:space-between;font-size:13
 const precioFmt = mc ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(mc.precio) : '—';
 const entregaFmt = mc ? (mc.tiempoEntrega||'—') : '—';
 h+=`<div style="padding:16px 18px">
-<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:14px;margin-bottom:12px">
-<div style="font-size:13px;font-weight:600;color:#14532D;margin-bottom:10px">Tu cotización enviada</div>
-<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:0.5px solid #dcfce7">
+<div style="background:#EEF1F6;border:0.5px solid #C7CEDB;border-radius:10px;padding:14px;margin-bottom:12px">
+<div style="font-size:13px;font-weight:600;color:#1E2D4E;margin-bottom:10px">Tu cotización enviada</div>
+<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:0.5px solid #C7CEDB">
 <span style="color:#6B7280">Precio</span>
 <span style="font-weight:700;color:#1e2d4e">${precioFmt}</span>
 </div>
