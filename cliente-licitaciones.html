@@ -318,6 +318,7 @@ document.dispatchEvent(new Event('_authReady'));
 <div class="pmenu-dd" id="det-pmenu">
 <button class="pmenu-item" id="det-btn-duplicar" onclick="closePanelMenu();duplicarLicitacion()">Duplicar licitación</button>
 <button class="pmenu-item" id="det-btn-editar" onclick="closePanelMenu();editarLicitacion()">Editar licitacion</button>
+<button class="pmenu-item" id="det-btn-editar-contacto" onclick="closePanelMenu();abrirModalEditarContacto()">Editar datos de contacto</button>
 <button class="pmenu-item danger" id="det-btn-eliminar" onclick="closePanelMenu();confirmarEliminar()">Eliminar licitacion</button>
 <button class="pmenu-item danger" id="det-btn-anular" style="display:none" onclick="closePanelMenu();confirmarAnular()">Anular licitacion</button>
 </div>
@@ -473,7 +474,11 @@ document.getElementById('det-badge').innerHTML=bdg(l.estado);
 // Menu opciones — Duplicar siempre disponible (cualquier estado); Editar/Eliminar/Anular según estado
 var menuWrap=document.getElementById('det-menu-wrap');
 menuWrap.style.display='block';
-document.getElementById('det-btn-editar').style.display=l.estado==='pendiente_admin'?'flex':'none';
+var _sinCotizaciones=!l.cotizaciones||l.cotizaciones.length===0;
+var _puedeEditarTodo=l.estado==='pendiente_admin'||(l.estado==='abierta'&&_sinCotizaciones);
+var _puedeEditarContacto=!_puedeEditarTodo&&['abierta','cerrada','adjudicada','completada'].includes(l.estado);
+document.getElementById('det-btn-editar').style.display=_puedeEditarTodo?'flex':'none';
+document.getElementById('det-btn-editar-contacto').style.display=_puedeEditarContacto?'flex':'none';
 document.getElementById('det-btn-eliminar').style.display=l.estado==='pendiente_admin'?'flex':'none';
 document.getElementById('det-btn-anular').style.display=(l.estado==='abierta'||l.estado==='cerrada')?'flex':'none';
 
@@ -752,7 +757,8 @@ if(fc||fe){
 // Botón ver preview del formulario (anónimo)
 h+='<button onclick="verPreviewCotiz('+i+')" style="display:block;width:100%;margin-bottom:8px;padding:7px;background:#EFF6FF;color:#1e2d4e;border:0.5px solid #BFDBFE;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer">Ver cotización completa</button>';
 h+='<div class="score-bar"><div class="score-fill" style="width:'+sc+'%"></div></div>';
-h+='<div style="display:flex;justify-content:space-between;font-size:11px;color:#9CA3AF;margin-top:3px;margin-bottom:10px"><span>Score TransMatch</span><span>'+sc+'%</span></div>';
+h+='<div style="display:flex;justify-content:space-between;font-size:11px;color:#9CA3AF;margin-top:3px;margin-bottom:2px"><span style="cursor:pointer;text-decoration:underline;text-underline-offset:2px" onclick="toggleScoreInfo(\''+l.id+'-'+i+'\')">Score TransMatch <span style="font-weight:700">?</span></span><span>'+sc+'%</span></div>';
+h+='<div id="score-info-'+l.id+'-'+i+'" style="display:none;font-size:11px;color:#6B7280;background:#f8f9fb;border-radius:6px;padding:8px 10px;margin-bottom:10px">Se calcula así: 50% precio, 30% cumplimiento de la fecha de entrega y 20% valoración del transportista.</div>';
 if(!yaAdjudicada&&(l.estado==='abierta'||l.estado==='cerrada')){
   h+='<button style="width:100%;justify-content:center;padding:9px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:#FF8808;color:#fff" onclick="adjudicarPorIdx(this)" data-idx="'+i+'" data-precio="'+c.precio+'">Adjudicar esta cotizacion</button>';
 }
@@ -793,6 +799,12 @@ var idx=parseInt(btn.getAttribute('data-idx'));
 var precio=btn.getAttribute('data-precio');
 var entry=_cotizMap[idx]||{};
 abrirAdj(entry.id||('cotiz_'+idx),entry.empresa||'esta cotización',parseFloat(precio)||0);
+}
+
+function toggleScoreInfo(key){
+  var el=document.getElementById('score-info-'+key);
+  if(!el) return;
+  el.style.display = el.style.display==='none' ? 'block' : 'none';
 }
 
 function verPreviewCotiz(idx){
@@ -978,6 +990,56 @@ if(r&&r.ok){
   abrirDetalle(licId);
 }
 else toast((r&&r.data&&r.data.error)||'Error al adjudicar','err');
+}
+
+function abrirModalEditarContacto(){
+  var l=_selectedLic; if(!l) return;
+  var modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  var inner=document.createElement('div');
+  inner.style.cssText='background:#fff;border-radius:16px;padding:28px;width:100%;max-width:460px;max-height:85vh;overflow-y:auto';
+  inner.innerHTML='<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Editar datos de contacto</div>'
+    +'<div style="font-size:12px;color:#6B7280;margin-bottom:16px">Ya hay cotizaciones basadas en la carga, ruta y fechas de esta licitación, así que esos datos no se pueden modificar. Solo puedes actualizar a quién contactar en origen y destino.</div>'
+    +'<div style="font-size:12px;font-weight:600;color:#1e2d4e;margin-bottom:8px">Contacto en origen</div>'
+    +'<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">'
+    +'<input type="text" id="ec-origen-nombre" placeholder="Nombre" value="'+(l.contactoOrigenNombre||'').replace(/"/g,'&quot;')+'" style="padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/>'
+    +'<input type="tel" id="ec-origen-tel" placeholder="Teléfono" value="'+(l.contactoOrigenTelefono||'').replace(/"/g,'&quot;')+'" style="padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/>'
+    +'<input type="email" id="ec-origen-email" placeholder="Email" value="'+(l.contactoOrigenEmail||'').replace(/"/g,'&quot;')+'" style="padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/>'
+    +'</div>'
+    +'<div style="font-size:12px;font-weight:600;color:#1e2d4e;margin-bottom:8px">Contacto en destino</div>'
+    +'<div style="display:flex;flex-direction:column;gap:8px">'
+    +'<input type="text" id="ec-destino-nombre" placeholder="Nombre" value="'+(l.contactoDestinoNombre||'').replace(/"/g,'&quot;')+'" style="padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/>'
+    +'<input type="tel" id="ec-destino-tel" placeholder="Teléfono" value="'+(l.contactoDestinoTelefono||'').replace(/"/g,'&quot;')+'" style="padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/>'
+    +'<input type="email" id="ec-destino-email" placeholder="Email" value="'+(l.contactoDestinoEmail||'').replace(/"/g,'&quot;')+'" style="padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/>'
+    +'</div>'
+    +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">'
+    +'<button id="ec-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
+    +'<button id="ec-save" style="padding:9px 18px;border-radius:8px;background:#FF8808;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar</button>'
+    +'</div>';
+  modal.appendChild(inner); document.body.appendChild(modal);
+  document.getElementById('ec-cancel').onclick=function(){ modal.remove(); };
+  document.getElementById('ec-save').onclick=function(){ guardarContactoLicitacion(l.id,modal); };
+  modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
+}
+
+async function guardarContactoLicitacion(id, modal){
+  var body={
+    contactoOrigenNombre:document.getElementById('ec-origen-nombre').value.trim(),
+    contactoOrigenTelefono:document.getElementById('ec-origen-tel').value.trim(),
+    contactoOrigenEmail:document.getElementById('ec-origen-email').value.trim(),
+    contactoDestinoNombre:document.getElementById('ec-destino-nombre').value.trim(),
+    contactoDestinoTelefono:document.getElementById('ec-destino-tel').value.trim(),
+    contactoDestinoEmail:document.getElementById('ec-destino-email').value.trim(),
+  };
+  try{
+    var res=await fetch(API+'/api/licitaciones/'+id+'/contacto',{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify(body)
+    });
+    if(res.ok){ modal.remove(); await cargarLicitaciones(); abrirDetalle(id); }
+    else{ var d=await res.json(); alert(d.error||'Error al guardar'); }
+  }catch(e){ alert('Error de conexión'); }
 }
 
 function duplicarLicitacion(){window.location.href='/cliente-nueva.html?duplicar='+_selectedId;}
