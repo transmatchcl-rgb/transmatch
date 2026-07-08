@@ -580,7 +580,7 @@ function renderDetalle(t){
     h+='<div class="doc-ok"><span>Subida el '+fechaHora(t.factura.subidoAt)+'</span><button class="btn btn-outline btn-sm" onclick="descargar(\''+t.factura.archivoId+'\',\''+t.factura.nombre+'\')">Descargar</button></div>';
   } else {
     h+='<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Sube tu factura para registrar el cobro en el sistema.</div>'+
-      '<input type="file" id="fac-file-'+t.id+'" accept=".pdf,.doc,.docx" style="font-size:13px;display:block" onchange="subirFactura(\''+t.id+'\')"/>'+
+      '<label style="display:block;border:1px dashed #cbd2de;border-radius:8px;padding:10px 14px;font-size:13px;color:#6B7280;cursor:pointer;text-align:center">Seleccionar factura (PDF/Word)<input type="file" id="fac-file-'+t.id+'" accept=".pdf,.doc,.docx" style="display:none" onchange="subirFactura(\''+t.id+'\')"/></label>'+
       '<div id="fac-status-'+t.id+'" style="font-size:12px;color:#6B7280;margin-top:6px"></div>';
   }
   h+='</div>';

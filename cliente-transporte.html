@@ -335,16 +335,14 @@ function renderDetalle(t){
   // ── DOCUMENTOS ───────────────────────────────────────────────
   h += '<div class="tl-title" style="margin-bottom:10px">Documentos</div>';
 
-  // OC — destacada, con llamada a la acción
+  // OC — el cliente sube su propia OC (opcional, la automática la genera TransMatch al adjudicar)
   var ocReal = t.oc && t.oc.tipo !== 'oc_automatica';
-  h += '<div class="doc-section" style="border:0.5px solid '+(ocReal?'#BBF7D0':'#FDE68A')+';border-radius:10px;padding:14px;margin-bottom:10px;background:'+(ocReal?'#F0FDF4':'#FFFBEB')+'">';
-  h += '<div class="doc-title" style="color:#1e2d4e">Orden de compra <span style="font-size:10px;font-weight:400;color:#9CA3AF;margin-left:4px">— sube tu OC al inicio del transporte</span></div>';
+  h += '<div class="doc-section"><div class="doc-title" style="color:#1e2d4e">Orden de compra <span style="font-size:10px;font-weight:400;color:#9CA3AF;margin-left:4px">— sube tu OC al inicio del transporte</span></div>';
   if(ocReal){
     h += '<div class="doc-done">OC disponible desde '+fechaHora(t.oc.subidoAt)+' <button class="btn btn-outline btn-sm" onclick="descargar(\''+t.oc.archivoId+'\',\''+t.oc.nombre+'\')">Descargar OC</button></div>';
   } else {
-    h += '<div style="font-size:12px;color:#92400E;margin-bottom:8px">Sube tu Orden de Compra para que el transportista pueda descargarla.</div>'
-      + '<label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Seleccionar OC (PDF)</label>'
-      + '<input type="file" id="oc-file-'+t.id+'" accept=".pdf" style="font-size:13px" onchange="subirOC(\''+t.id+'\')"/>'
+    h += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Sube tu Orden de Compra para que el transportista pueda descargarla.</div>'
+      + '<label style="display:block;border:1px dashed #cbd2de;border-radius:8px;padding:10px 14px;font-size:13px;color:#6B7280;cursor:pointer;text-align:center">Seleccionar OC (PDF)<input type="file" id="oc-file-'+t.id+'" accept=".pdf" style="display:none" onchange="subirOC(\''+t.id+'\')"/></label>'
       + '<div id="oc-status-'+t.id+'" style="font-size:12px;color:#6B7280;margin-top:6px"></div>';
   }
   h += '</div>';
@@ -355,8 +353,7 @@ function renderDetalle(t){
     h += '<div class="doc-done">Guía disponible desde '+fechaHora(t.guiaDespacho.subidoAt)+' <button class="btn btn-outline btn-sm" onclick="descargar(\''+t.guiaDespacho.archivoId+'\',\''+t.guiaDespacho.nombre+'\')">Descargar guía</button></div>';
   } else {
     h += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Sube la guía de despacho que respalda el traslado de la carga.</div>'
-      + '<label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Seleccionar guía (PDF)</label>'
-      + '<input type="file" id="guia-file-'+t.id+'" accept=".pdf" style="font-size:13px" onchange="subirGuia(\''+t.id+'\')"/>'
+      + '<label style="display:block;border:1px dashed #cbd2de;border-radius:8px;padding:10px 14px;font-size:13px;color:#6B7280;cursor:pointer;text-align:center">Seleccionar guía (PDF)<input type="file" id="guia-file-'+t.id+'" accept=".pdf" style="display:none" onchange="subirGuia(\''+t.id+'\')"/></label>'
       + '<div id="guia-status-'+t.id+'" style="font-size:12px;color:#6B7280;margin-top:6px"></div>';
   }
   h += '</div>';
