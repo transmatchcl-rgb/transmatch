@@ -488,6 +488,10 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 </div>
 <div class="form-group"><label>Dirección de destino</label><input type="text" id="direccionDestino" placeholder="Ej: Bodega central, acceso camiones" autocomplete="off"/></div>
 <div class="form-group" id="estandar-minero-section">
+<label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:500">
+<input type="checkbox" id="requiereEstandar" onchange="toggleEstandarMinero()" style="width:17px;height:17px;cursor:pointer;accent-color:#1e2d4e"/>
+<span>Se requiere estándar minero</span>
+</label>
 <div id="estandar-minero-detalle" style="display:none;margin-top:12px;padding:14px;background:#f8f9fc;border:0.5px solid #e8eaf0;border-radius:10px">
 <label>¿Qué estándar se requiere?</label>
 <input type="text" id="estandarDetalle" maxlength="80" placeholder="Ej: ESTÁNDAR CODELCO" autocomplete="off" style="margin-bottom:12px"/>
@@ -1038,6 +1042,9 @@ if(chkT && !chkT.checked){ if(errT) errT.style.display='block'; chkT.scrollIntoV
 if(errT) errT.style.display='none';
 var btn=document.getElementById('btn-publicar');
 btn.disabled=true;btn.textContent='Publicando...';
+// Red de seguridad: pase lo que pase adentro (incluso un error de programación inesperado),
+// el botón SIEMPRE se reactiva. Nunca más debería quedar pegado en "Publicando...".
+try{
 var archivo=tipoLicitacion==='maquinaria'?archivoMaq:(tipoLicitacion==='contenedor'?archivoContenedor:archivoCarga);
 var archivoId=null;
 if(archivo){
@@ -1145,6 +1152,13 @@ var th=document.getElementById('tipo-elegido');if(th)th.style.display='none';
 document.querySelectorAll('a.btn.btn-outline').forEach(function(b){b.style.display='none';});
 window.scrollTo({top:0,behavior:'smooth'});
 }catch(e){showToast('Error de conexion. Intenta nuevamente.','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';}
+}catch(eGeneral){
+// Red de seguridad: cualquier error no previsto (ej. un elemento del formulario que falte)
+// libera el botón en vez de dejarlo pegado para siempre, y avisa para que se pueda reportar.
+console.error('Error inesperado al publicar:', eGeneral);
+showToast('Ocurrió un error inesperado. Si persiste, contacta a soporte.','err');
+btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';
+}
 }
 
 async function cargarEdicion(id, esDuplicado){
