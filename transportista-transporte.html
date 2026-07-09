@@ -626,6 +626,31 @@ function renderDetalle(t){
       '</div>';
   }
 
+  // ── VALORACIÓN RECIBIDA ────────────────────────────────────────
+  if(t.valoracion){
+    var estrellas='';
+    var prom=Math.round(t.valoracion.promedio||0);
+    for(var _s=1;_s<=5;_s++){ estrellas+=(_s<=prom?'★':'☆'); }
+    h += '<div style="margin-top:14px;padding-top:14px;border-top:0.5px solid #E5E7EB">';
+    h += '<div style="font-size:14px;font-weight:600;color:#111827;margin-bottom:8px">Valoración del cliente</div>';
+    h += '<div style="background:#f8f9fb;border-radius:8px;padding:12px 14px;margin-bottom:8px">';
+    h += '<div style="color:#FF8808;font-size:14px;letter-spacing:1px">'+estrellas+' <span style="color:#374151;font-size:12px;font-weight:500">'+(t.valoracion.promedio||0)+'/5</span></div>';
+    if(t.valoracion.comentario) h += '<div style="font-size:13px;color:#374151;margin-top:6px">"'+t.valoracion.comentario+'"</div>';
+    h += '</div>';
+    if(t.valoracion.respuestaTransportista){
+      h += '<div style="background:#EEF1F6;border-radius:8px;padding:10px 12px;margin-bottom:8px">'
+        + '<div style="font-size:11px;font-weight:600;color:#1E2D4E;margin-bottom:2px">Tu respuesta</div>'
+        + '<div style="font-size:13px;color:#1e2d4e">'+t.valoracion.respuestaTransportista+'</div></div>';
+    } else {
+      h += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:6px">La nota no se puede cambiar, pero puedes agregar contexto — los futuros clientes verán tu respuesta junto a la valoración.</div>';
+      h += '<div style="display:flex;gap:8px">';
+      h += '<input type="text" id="valresp-input-'+t.id+'" placeholder="Responder a esta valoración" maxlength="500" style="flex:1;padding:8px 10px;border:1px solid #e8eaf0;border-radius:6px;font-size:13px">';
+      h += '<button onclick="responderValoracion(\''+t.id+'\')" style="padding:8px 14px;background:#FF8808;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Responder</button>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
   // ── INCIDENCIAS ────────────────────────────────────────────────
   h += '<div style="margin-top:14px;padding-top:14px;border-top:0.5px solid #E5E7EB">';
   h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
@@ -935,6 +960,21 @@ async function guardarConductorAsignado(transporteId, modal){
       toast('Conductor asignado correctamente'); modal.remove(); await cargar(); setTimeout(function(){toggleCard(transporteId);},200);
     } else { var d=await res.json(); toast(d.error||'Error al guardar','err'); if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Guardar'; } }
   }catch(e){ toast('Error de conexión','err'); if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Guardar'; } }
+}
+
+async function responderValoracion(transporteId){
+  var input=document.getElementById('valresp-input-'+transporteId);
+  var respuesta=(input&&input.value||'').trim();
+  if(!respuesta){ toast('Escribe una respuesta','err'); return; }
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/valoracion/responder',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify({respuesta:respuesta})
+    });
+    if(res.ok){ toast('Respuesta publicada'); await cargar(); setTimeout(function(){ toggleCard(transporteId); },200); }
+    else{ var d=await res.json(); toast(d.error||'Error','err'); }
+  }catch(e){ toast('Error de conexión','err'); }
 }
 
 function abrirModalIncidencia(transporteId){

@@ -394,7 +394,12 @@ function renderDetalle(t){
   // Valoración del transportista (solo cuando el transporte está completado: entregado + facturado)
   if(t.estado === 'entregado' && t.factura){
     if(t.valoracion){
-      h += '<div style="margin-top:14px;padding:12px;background:#F0FDF4;border-radius:8px;font-size:13px;font-weight:500;color:#14532D">Valoración enviada — Promedio: '+t.valoracion.promedio+' / 5</div>';
+      h += '<div style="margin-top:14px;padding:12px;background:#EEF1F6;border-radius:8px;font-size:13px;font-weight:500;color:#1E2D4E">Valoración enviada — Promedio: '+t.valoracion.promedio+' / 5</div>';
+      if(t.valoracion.respuestaTransportista){
+        h += '<div style="margin-top:8px;padding:12px;background:#f8f9fb;border-radius:8px">'
+          + '<div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:2px">Respuesta del transportista</div>'
+          + '<div style="font-size:13px;color:#374151">'+t.valoracion.respuestaTransportista+'</div></div>';
+      }
     } else {
       h += '<div style="margin-top:14px;padding-top:14px;border-top:0.5px solid #E5E7EB"><div style="font-size:14px;font-weight:600;color:#111827;margin-bottom:4px">Valora el servicio</div>';
       h += '<div style="font-size:12px;color:#6B7280;margin-bottom:14px">El transporte está completado. Cuéntanos cómo fue el servicio del transportista.</div>';
