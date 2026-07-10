@@ -711,6 +711,9 @@ const mc = histData.miCotizacion;
 const total = histData.totalCotizaciones || '?';
 const precio = mc.precio;
 const entrega = mc.tiempoEntrega || '—';
+const posP = histData.posPrecio || '—';
+const posE = histData.posEntrega || '—';
+const posV = histData.posValoracion || '—';
 h+=`<div style="padding:16px 18px">
 <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:16px;margin-bottom:12px;text-align:center">
 <div style="font-size:20px;margin-bottom:4px"></div>
@@ -725,7 +728,7 @@ h+=`<div style="padding:16px 18px">
 Precio
 </div>
 <div style="text-align:right">
-<span style="font-size:15px;font-weight:700;color:#1e2d4e" id="pos-precio-${l.id}">—</span>
+<span style="font-size:15px;font-weight:700;color:#1e2d4e">${posP}</span>
 <span style="font-size:11px;color:#9CA3AF"> de ${typeof total === 'number' ? total : '?'}</span>
 <div style="font-size:11px;color:#6B7280">${new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(precio)}</div>
 </div>
@@ -736,7 +739,7 @@ Precio
 Tiempo de entrega
 </div>
 <div style="text-align:right">
-<span style="font-size:15px;font-weight:700;color:#1e2d4e" id="pos-entrega-${l.id}">—</span>
+<span style="font-size:15px;font-weight:700;color:#1e2d4e">${posE}</span>
 <span style="font-size:11px;color:#9CA3AF"> de ${typeof total === 'number' ? total : '?'}</span>
 <div style="font-size:11px;color:#6B7280">${entrega}</div>
 </div>
@@ -747,7 +750,7 @@ Tiempo de entrega
 Valoración histórica
 </div>
 <div style="text-align:right">
-<span style="font-size:15px;font-weight:700;color:#1e2d4e" id="pos-valoracion-${l.id}">—</span>
+<span style="font-size:15px;font-weight:700;color:#1e2d4e">${posV}</span>
 <span style="font-size:11px;color:#9CA3AF"> de ${typeof total === 'number' ? total : '?'}</span>
 </div>
 </div>
@@ -757,7 +760,6 @@ Valoración histórica
 Las posiciones 1/N son las mejores (más barato, más rápido, mejor valorado)
 </div>
 </div>`;
-setTimeout(function(){ cargarPosiciones('${l.id}'); }, 100);
 } else if(estaAdjudicada){
 h+=`<div style="padding:16px 18px"><div style="background:#F3F4F6;border-radius:8px;padding:14px;text-align:center"><div style="font-size:14px;color:#6B7280">Esta licitación ya fue adjudicada</div></div></div>`;
 } else {
