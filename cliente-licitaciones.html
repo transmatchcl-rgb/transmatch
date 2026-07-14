@@ -73,7 +73,7 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
 .btn-outline{background:transparent;border:0.5px solid #E5E7EB;color:#374151}
 .btn-green{background:#1E2D4E;color:#fff}
 .cotiz-card{border:1px solid #EAECF1;border-radius:12px;margin-bottom:14px;overflow:hidden;background:#FAFBFC;box-shadow:0 1px 3px rgba(30,45,78,.05)}
-.cotiz-card.winner{background:#fff;border-color:#E5E7EB;box-shadow:0 22px 50px rgba(30,45,78,.34)}
+.cotiz-card.winner{background:#fff;border-color:#E5E7EB;box-shadow:0 10px 26px rgba(30,45,78,.18)}
 .score-bar{height:7px;background:#E5E7EB;border-radius:999px;overflow:hidden}
 .score-fill{height:100%;border-radius:999px;background:#1e2d4e}
 .val-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid #F3F4F6}
@@ -344,6 +344,14 @@ var el=document.getElementById('toast');
 el.textContent=msg;el.style.background=type==='err'?'#EF4444':'#1ED24E';
 el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(function(){el.style.opacity='0'},3500);
 }
+
+function copiarTelefono(btn,num){
+var t=(num||'').toString();
+function done(){ if(btn){btn.style.color='#1F9D63';setTimeout(function(){btn.style.color='#9CA3AF';},1200);} toast('Número copiado'); }
+if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(done).catch(function(){fallbackCopiar(t);done();}); }
+else { fallbackCopiar(t); done(); }
+}
+function fallbackCopiar(t){ try{var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);}catch(e){} }
 
 function peso(n){return new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n)}
 function formatoRestante(ms){if(ms<=0)return 'Cerrada';var s=Math.floor(ms/1000);var h=Math.floor(s/3600);s-=h*3600;var m=Math.floor(s/60);s-=m*60;if(h>0)return 'Cierra en '+h+'h '+m+'m';if(m>0)return 'Cierra en '+m+'m '+s+'s';return 'Cierra en '+s+'s';}
@@ -698,13 +706,15 @@ h+='</div>';
 
 // Transportista adjudicado
 if((l.estado==='adjudicada'||l.estado==='completada')&&l.adjudicadaA){
-h+='<div style="border:2px solid #1E2D4E;border-radius:10px;overflow:hidden;margin-bottom:8px">';
-h+='<div style="background:#1E2D4E;padding:10px 14px"><div style="font-size:12px;font-weight:600;color:#fff;letter-spacing:.02em">Transportista adjudicado</div></div>';
-h+='<div style="background:#fff;padding:14px">';
-h+='<div style="font-size:16px;font-weight:700;color:#111827;margin-bottom:2px">'+l.adjudicadaA.transportistaEmpresa+'</div>';
-h+='<div style="font-size:13px;color:#374151;margin-bottom:2px">'+l.adjudicadaA.transportistaNombre+'</div>';
-if(l.adjudicadaA.transportistaTelefono)h+='<div style="font-size:13px;color:#374151;margin-bottom:10px">'+l.adjudicadaA.transportistaTelefono+'</div>';
-h+='<div style="font-size:24px;font-weight:700;color:#FF8808">'+peso(l.adjudicadaA.precio)+'</div>';
+h+='<div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;margin-bottom:8px;box-shadow:0 1px 4px rgba(30,45,78,.07)">';
+h+='<div style="background:#FF8808;padding:13px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px">';
+h+='<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:16px;font-weight:700;color:#fff;letter-spacing:.5px;text-transform:uppercase">Transportista adjudicado</div>';
+h+='<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:22px;font-weight:700;color:#fff;text-align:right;line-height:1">'+peso(l.adjudicadaA.precio)+'<small style="display:block;font-family:Barlow,sans-serif;font-size:10px;color:rgba(255,255,255,.8);font-weight:400;margin-top:2px">Monto adjudicado</small></div>';
+h+='</div>';
+h+='<div style="padding:14px 16px">';
+h+='<div style="font-size:18px;font-weight:700;color:#1e2d4e;margin-bottom:10px">'+l.adjudicadaA.transportistaEmpresa+'</div>';
+if(l.adjudicadaA.transportistaNombre)h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F1F2F6;font-size:13px"><span style="color:#6B7280">Contacto</span><span style="color:#1e2d4e;font-weight:600">'+l.adjudicadaA.transportistaNombre+'</span></div>';
+if(l.adjudicadaA.transportistaTelefono)h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:13px"><span style="color:#6B7280">Teléfono</span><span style="display:inline-flex;align-items:center;gap:8px;color:#1e2d4e;font-weight:600">'+l.adjudicadaA.transportistaTelefono+'<button onclick="copiarTelefono(this,\''+l.adjudicadaA.transportistaTelefono+'\')" title="Copiar número" aria-label="Copiar número" style="background:none;border:none;padding:2px;cursor:pointer;color:#9CA3AF;display:inline-flex;align-items:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button></span></div>';
 h+='</div></div>';
 h+='<div style="text-align:right;margin-bottom:14px"><span onclick="verInformeAdjudicacion(\''+l.id+'\')" style="font-size:12px;color:#1E2D4E;font-weight:500;cursor:pointer;text-decoration:underline;text-underline-offset:2px">Ver informe de adjudicación</span></div>';
 }
