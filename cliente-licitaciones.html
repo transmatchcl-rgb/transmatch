@@ -671,7 +671,7 @@ h+='<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:600;c
 }
 
 if(l.archivoId){
-h+='<div style="margin-bottom:14px"><button onclick="descargarArchivo(\''+l.archivoId+'\',\''+(l.archivoNombre||'especificaciones')+'\')" style="width:fit-content;display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;color:#1e2d4e;border:0.5px solid #e8eaf0;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">Descargar especificaciones</button></div>';
+h+='<div style="margin-bottom:14px"><button onclick="descargarArchivo(\''+l.archivoId+'\',\''+(l.archivoNombre||'especificaciones')+'\')" style="width:fit-content;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">Descargar especificaciones</button></div>';
 }
 
 // Preguntas de transportistas — mediado por la plataforma, nunca se revela quién pregunta.
@@ -769,9 +769,9 @@ if(fc||fe){
   h+='</div>';
 }
 // Botón ver preview del formulario (anónimo)
-h+='<button onclick="verPreviewCotiz('+i+')" style="display:inline-flex;align-items:center;width:auto;margin-bottom:8px;padding:6px 14px;background:#fff;color:#1e2d4e;border:0.5px solid #e8eaf0;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer">Ver cotización completa</button>';
-h+='<div class="score-bar"><div class="score-fill" style="width:'+sc+'%"></div></div>';
-h+='<div style="display:flex;justify-content:space-between;font-size:11px;color:#9CA3AF;margin-top:3px;margin-bottom:10px"><span title="Se calcula así: 50% precio, 30% cumplimiento de la fecha de entrega y 20% valoración del transportista." style="cursor:help;text-decoration:underline dotted;text-underline-offset:2px">Score TransMatch <span style="font-weight:700">?</span></span><span>'+sc+'%</span></div>';
+h+='<button onclick="verPreviewCotiz('+i+')" style="width:fit-content;display:inline-flex;align-items:center;gap:6px;margin-bottom:8px;padding:7px 12px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">Ver cotización completa</button>';
+h+='<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#9CA3AF;margin-top:8px;margin-bottom:5px"><span title="Se calcula así: 50% precio, 30% cumplimiento de la fecha de entrega y 20% valoración del transportista." style="cursor:help;text-decoration:underline dotted;text-underline-offset:2px">Score <span style="font-weight:700">?</span></span><span style="font-weight:600;color:#1e2d4e">'+sc+'%</span></div>';
+h+='<div class="score-bar" style="margin-bottom:10px"><div class="score-fill" style="width:'+sc+'%"></div></div>';
 if(!yaAdjudicada&&(l.estado==='abierta'||l.estado==='cerrada')){
   h+='<button style="width:100%;justify-content:center;padding:9px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:#FF8808;color:#fff" onclick="adjudicarPorIdx(this)" data-idx="'+i+'" data-precio="'+c.precio+'">Adjudicar esta cotizacion</button>';
 }
