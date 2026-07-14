@@ -72,10 +72,10 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
 .btn-orange{background:#FF8808;color:#fff}
 .btn-outline{background:transparent;border:0.5px solid #E5E7EB;color:#374151}
 .btn-green{background:#1E2D4E;color:#fff}
-.cotiz-card{border:0.5px solid #E5E7EB;border-radius:10px;padding:14px;margin-bottom:10px}
-.cotiz-card.winner{border-color:#FF8808;border-width:1.5px;background:#fff}
-.score-bar{height:4px;background:#E5E7EB;border-radius:2px;margin-top:8px}
-.score-fill{height:100%;border-radius:2px;background:#1e2d4e}
+.cotiz-card{border:1px solid #EAECF1;border-radius:12px;margin-bottom:14px;overflow:hidden;background:#FAFBFC;box-shadow:0 1px 3px rgba(30,45,78,.05)}
+.cotiz-card.winner{background:#fff;border-color:#E5E7EB;box-shadow:0 22px 50px rgba(30,45,78,.34)}
+.score-bar{height:7px;background:#E5E7EB;border-radius:999px;overflow:hidden}
+.score-fill{height:100%;border-radius:999px;background:#1e2d4e}
 .val-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid #F3F4F6}
 .star{width:28px;height:28px;border-radius:6px;border:0.5px solid #E5E7EB;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .15s}
 .star.active{background:#FF8808;border-color:#FF8808}
@@ -749,32 +749,32 @@ var sc=Math.round((c.score||0)*100);
 _cotizMap[i]={id:c.id,empresa:'Cotización '+(displayIdx+1),precio:c.precio,full:c};
 var esDestacada=yaAdjudicada?esAdjudicada:esMejorScoreOriginal;
 h+='<div class="cotiz-card '+(esDestacada?'winner':'')+'">';
+// Banda navy: título + estado + precio
+h+='<div style="background:#1e2d4e;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px">';
+h+='<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:17px;font-weight:700;color:#fff;letter-spacing:.4px;display:flex;align-items:center;gap:9px">Cotización '+(displayIdx+1);
 if(yaAdjudicada){
-  if(esAdjudicada)h+='<div style="background:#FF8808;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;display:inline-block;margin-bottom:8px">Adjudicada</div>';
-  else if(esMejorScoreOriginal)h+='<div style="background:var(--surface-1);color:#6B7280;font-size:10px;font-weight:500;padding:2px 8px;border-radius:999px;display:inline-block;margin-bottom:8px;border:0.5px solid #E5E7EB">Mejor score</div>';
+  if(esAdjudicada)h+='<span style="background:#FF8808;color:#fff;font-size:10px;font-weight:700;padding:2px 9px;border-radius:999px;letter-spacing:.3px">Adjudicada</span>';
+  else if(esMejorScoreOriginal)h+='<span style="background:rgba(255,255,255,.14);color:#fff;font-size:10px;font-weight:600;padding:2px 9px;border-radius:999px">Mejor score</span>';
 }else{
-  if(esMejorScoreOriginal)h+='<div style="background:#FF8808;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;display:inline-block;margin-bottom:8px">Mejor propuesta</div>';
+  if(esMejorScoreOriginal)h+='<span style="background:#FF8808;color:#fff;font-size:10px;font-weight:700;padding:2px 9px;border-radius:999px;letter-spacing:.3px">Mejor propuesta</span>';
 }
-h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
-h+='<div><div style="font-size:14px;font-weight:600;color:#111827">Cotización '+(displayIdx+1)+'</div>';
-h+='<div style="font-size:12px;color:#FF8808;margin-top:2px">&#9733; '+(c.transportistaRating||5)+((c.transportistaTransportes||0)>10?' &middot; '+c.transportistaTransportes+' transportes':'')+'</div></div>';
-h+='<div style="text-align:right"><div style="font-size:22px;font-weight:700;color:#1e2d4e">'+peso(c.precio)+'</div><div style="font-size:11px;color:#9CA3AF">Monto neto</div></div></div>';
-// Fechas relevantes
+h+='</div>';
+h+='<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:22px;font-weight:700;color:#fff;text-align:right;line-height:1">'+peso(c.precio)+'<small style="display:block;font-family:Barlow,sans-serif;font-size:10px;color:#AEB7CC;font-weight:400;margin-top:2px">Monto neto</small></div>';
+h+='</div>';
+// Cuerpo: ficha con etiquetas
+h+='<div style="padding:14px 16px">';
+h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F1F2F6;font-size:13px"><span style="color:#6B7280">Transportista</span><span style="color:#1e2d4e;font-weight:600">'+(c.transportistaRating||5)+' <span style="color:#FF8808">&#9733;</span>'+((c.transportistaTransportes||0)>10?' <span style="color:#9CA3AF;font-weight:400">&middot; '+c.transportistaTransportes+' transportes</span>':'')+'</span></div>';
 var fc = (c.formulario&&c.formulario.fechaCarga)||c.fechaCargaISO||'';
 var fe = (c.formulario&&c.formulario.fechaEntrega)||c.fechaEntregaISO||c.tiempoEntrega||'';
-if(fc||fe){
-  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">';
-  if(fc)h+='<span style="font-size:11px;background:#f5f7fb;color:#374151;padding:3px 8px;border-radius:4px">Carga: '+fc+'</span>';
-  if(fe)h+='<span style="font-size:11px;background:#f5f7fb;color:#374151;padding:3px 8px;border-radius:4px">Entrega: '+fe+'</span>';
-  h+='</div>';
-}
-// Botón ver preview del formulario (anónimo)
+if(fc)h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F1F2F6;font-size:13px"><span style="color:#6B7280">Carga</span><span style="color:#1e2d4e;font-weight:600">'+fc+'</span></div>';
+if(fe)h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F1F2F6;font-size:13px"><span style="color:#6B7280">Entrega</span><span style="color:#1e2d4e;font-weight:600">'+fe+'</span></div>';
+h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:13px"><span title="Se calcula así: 50% precio, 30% cumplimiento de la fecha de entrega y 20% valoración del transportista." style="color:#6B7280;text-decoration:underline dotted;text-underline-offset:2px;cursor:help">Score</span><span style="color:#1e2d4e;font-weight:600">'+sc+'%</span></div>';
+h+='<div class="score-bar" style="margin:2px 0 14px"><div class="score-fill" style="width:'+sc+'%"></div></div>';
 h+='<button onclick="verPreviewCotiz('+i+')" style="width:fit-content;display:inline-flex;align-items:center;gap:6px;margin-bottom:8px;padding:7px 12px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">Ver cotización completa</button>';
-h+='<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#9CA3AF;margin-top:8px;margin-bottom:5px"><span title="Se calcula así: 50% precio, 30% cumplimiento de la fecha de entrega y 20% valoración del transportista." style="cursor:help;text-decoration:underline dotted;text-underline-offset:2px">Score <span style="font-weight:700">?</span></span><span style="font-weight:600;color:#1e2d4e">'+sc+'%</span></div>';
-h+='<div class="score-bar" style="margin-bottom:10px"><div class="score-fill" style="width:'+sc+'%"></div></div>';
 if(!yaAdjudicada&&(l.estado==='abierta'||l.estado==='cerrada')){
   h+='<button style="width:100%;justify-content:center;padding:9px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:#FF8808;color:#fff" onclick="adjudicarPorIdx(this)" data-idx="'+i+'" data-precio="'+c.precio+'">Adjudicar esta cotizacion</button>';
 }
+h+='</div>';
 h+='</div>';
 });
 var extras=cotiz.slice(3);
