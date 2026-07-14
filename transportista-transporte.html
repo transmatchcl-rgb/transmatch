@@ -457,56 +457,62 @@ function renderDetalle(t){
   h+='</div></div>';
 
   // ── PATENTE Y EQUIPO ──────────────────────────────────────────
-  h+='<div style="border:0.5px solid #e8eaf0;border-radius:10px;padding:14px;margin-bottom:16px">';
-  h+='<div style="font-size:12px;font-weight:700;color:#1e2d4e;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Equipo asignado</div>';
+  h+='<div style="background:#fff;border:1px solid #e8eaf0;border-radius:12px;overflow:hidden;margin-bottom:16px;box-shadow:0 1px 4px rgba(30,45,78,.05)">';
+  h+='<div style="background:#1e2d4e;padding:12px 16px"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px">EQUIPO ASIGNADO</div></div>';
+  h+='<div style="padding:16px">';
   if(t.equipoAsignado&&t.equipoAsignado.patente){
     var eq=t.equipoAsignado;
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
-    h+='<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Patente</div><div style="font-size:14px;font-weight:700;color:#1e2d4e;font-family:IBM Plex Mono,monospace">'+eq.patente+'</div></div>';
-    if(eq.tipo) h+='<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Tipo</div><div style="font-size:13px;color:#374151">'+eq.tipo+'</div></div>';
-    if(eq.marca||eq.modelo) h+='<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Marca / Modelo</div><div style="font-size:13px;color:#374151">'+[eq.marca,eq.modelo].filter(Boolean).join(' ')+'</div></div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;margin-bottom:16px">';
+    h+='<div><div style="font-size:10px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Patente</div><div><span style="font-family:IBM Plex Mono,monospace;font-size:18px;font-weight:600;color:#1e2d4e;letter-spacing:1px;background:#FFF4E8;border:1px solid #FBD9AE;border-radius:6px;padding:2px 10px;display:inline-block">'+eq.patente+'</span></div></div>';
+    if(eq.tipo) h+='<div><div style="font-size:10px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Tipo</div><div style="font-size:14px;color:#1e2d4e;font-weight:600">'+eq.tipo+'</div></div>';
+    if(eq.marca||eq.modelo) h+='<div><div style="font-size:10px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Marca / Modelo</div><div style="font-size:14px;color:#1e2d4e;font-weight:600">'+[eq.marca,eq.modelo].filter(Boolean).join(' ')+'</div></div>';
     h+='</div>';
-    // Documentos del equipo (resumen)
+    // Documentos del equipo (resumen) — el chip de color es clickeable para descargar
     if(eq.documentos&&Object.keys(eq.documentos).length){
-      h+='<div style="font-size:11px;font-weight:600;color:#6B7280;margin-bottom:6px">Documentos del equipo</div>';
-      h+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
+      h+='<div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Documentos del equipo</div>';
+      h+='<div style="display:flex;flex-wrap:wrap;gap:7px">';
       Object.values(eq.documentos).forEach(function(doc){
         if(!doc) return;
         var hoy2=new Date(); hoy2.setHours(0,0,0,0);
         var dias=doc.vencimiento?Math.round((new Date(doc.vencimiento+'T12:00:00')-hoy2)/86400000):999;
         var bg=dias<0?'#FEF2F2':dias<=15?'#FFFBEB':'#F0FDF4';
         var color=dias<0?'#991B1B':dias<=15?'#92400E':'#14532D';
+        var bd=dias<0?'#FECACA':dias<=15?'#FDE68A':'#BBF7D0';
         var texto=dias<0?'Vencido':dias===0?'Vence hoy':dias<=15?'Vence en '+dias+'d':'Vigente';
-        h+='<span style="background:'+bg+';color:'+color+';font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px">'+(doc.label||doc.key)+' · '+texto+'</span>';
-        if(doc.archivoId) h+='<button class="btn btn-outline btn-sm" style="padding:2px 8px;font-size:11px" onclick="descargar(\''+doc.archivoId+'\',\''+(doc.label||doc.key||'documento')+'\')">Descargar</button>';
+        var etq=(doc.label||doc.key)+' · '+texto;
+        if(doc.archivoId) h+='<button onclick="descargar(\''+doc.archivoId+'\',\''+(doc.label||doc.key||'documento')+'\')" title="Descargar" style="background:'+bg+';color:'+color+';border:1px solid '+bd+';font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;cursor:pointer">'+etq+'</button>';
+        else h+='<span style="background:'+bg+';color:'+color+';border:1px solid '+bd+';font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px">'+etq+'</span>';
       });
       h+='</div>';
     }
-    h+='<div style="margin-top:12px"><button class="btn btn-outline btn-sm" onclick="abrirModalPatente(\''+t.id+'\')">Cambiar equipo</button></div>';
+    h+='<div style="margin-top:15px;padding-top:14px;border-top:1px solid #F1F2F6"><button class="btn btn-outline btn-sm" onclick="abrirModalPatente(\''+t.id+'\')">Cambiar equipo</button></div>';
   } else {
-    h+='<div style="font-size:13px;color:#9CA3AF;margin-bottom:12px">Aún no has asignado el equipo específico para este transporte.</div>';
-    h+='<button class="btn btn-orange btn-sm" onclick="abrirModalPatente(\''+t.id+'\')">Asignar equipo / Ingresar patente</button>';
+    h+='<div style="text-align:center;padding:12px 4px 4px"><div style="font-size:13px;color:#6B7280;margin-bottom:15px;line-height:1.45">Aún no asignas el equipo para este transporte. No es obligatorio — el transporte igual sigue su curso.</div>';
+    h+='<button class="btn btn-orange btn-sm" onclick="abrirModalPatente(\''+t.id+'\')">Asignar equipo / Ingresar patente</button></div>';
   }
+  h+='</div>';
   h+='</div>';
 
   // ── CONDUCTOR ASIGNADO ────────────────────────────────────────
-  h+='<div style="border:0.5px solid #e8eaf0;border-radius:10px;padding:14px;margin-bottom:16px">';
-  h+='<div style="font-size:12px;font-weight:700;color:#1e2d4e;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Conductor asignado</div>';
+  h+='<div style="background:#fff;border:1px solid #e8eaf0;border-radius:12px;overflow:hidden;margin-bottom:16px;box-shadow:0 1px 4px rgba(30,45,78,.05)">';
+  h+='<div style="background:#1e2d4e;padding:12px 16px"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px">CONDUCTOR ASIGNADO</div></div>';
+  h+='<div style="padding:16px">';
   if(t.conductorAsignado&&t.conductorAsignado.nombre){
     var cd=t.conductorAsignado;
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
-    h+='<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Nombre</div><div style="font-size:14px;font-weight:700;color:#1e2d4e">'+cd.nombre+'</div></div>';
-    h+='<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">RUT</div><div style="font-size:13px;color:#374151">'+cd.rut+'</div></div>';
-    if(cd.telefono) h+='<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Telefono</div><div style="font-size:13px;color:#374151">'+cd.telefono+'</div></div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;margin-bottom:16px">';
+    h+='<div><div style="font-size:10px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Nombre</div><div style="font-size:14px;color:#1e2d4e;font-weight:600">'+cd.nombre+'</div></div>';
+    h+='<div><div style="font-size:10px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">RUT</div><div style="font-family:IBM Plex Mono,monospace;font-size:14px;color:#1e2d4e">'+cd.rut+'</div></div>';
+    if(cd.telefono) h+='<div><div style="font-size:10px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Teléfono</div><div style="font-size:14px;color:#1e2d4e;font-weight:600">'+cd.telefono+'</div></div>';
     h+='</div>';
-    function dlCond(id,nom,lbl){ return id?'<button class="btn btn-outline btn-sm" onclick="descargar(\''+id+'\',\''+(nom||lbl)+'\')">'+lbl+'</button>':'<span style="font-size:12px;color:#9CA3AF">'+lbl+': no cargado</span>'; }
-    h+='<div style="font-size:11px;font-weight:600;color:#6B7280;margin-bottom:6px">Documentos del conductor</div>';
-    h+='<div style="display:flex;flex-wrap:wrap;gap:6px">'+dlCond(cd.carnetFrenteId,cd.carnetFrenteNombre,'Carnet frente')+dlCond(cd.carnetReversoId,cd.carnetReversoNombre,'Carnet reverso')+dlCond(cd.licenciaFrenteId,cd.licenciaFrenteNombre,'Licencia frente')+dlCond(cd.licenciaReversoId,cd.licenciaReversoNombre,'Licencia reverso')+'</div>';
-    h+='<div style="margin-top:12px"><button class="btn btn-outline btn-sm" onclick="abrirModalConductor(\''+t.id+'\')">Cambiar conductor</button></div>';
+    function dlCond(id,nom,lbl){ return id?'<button onclick="descargar(\''+id+'\',\''+(nom||lbl)+'\')" title="Descargar" style="background:#F0FDF4;color:#14532D;border:1px solid #BBF7D0;font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;cursor:pointer">'+lbl+'</button>':'<span style="background:transparent;color:#6B7280;border:1px dashed #e8eaf0;font-size:12px;font-weight:500;padding:6px 11px;border-radius:7px">'+lbl+' · no cargado</span>'; }
+    h+='<div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Documentos del conductor</div>';
+    h+='<div style="display:flex;flex-wrap:wrap;gap:7px">'+dlCond(cd.carnetFrenteId,cd.carnetFrenteNombre,'Carnet frente')+dlCond(cd.carnetReversoId,cd.carnetReversoNombre,'Carnet reverso')+dlCond(cd.licenciaFrenteId,cd.licenciaFrenteNombre,'Licencia frente')+dlCond(cd.licenciaReversoId,cd.licenciaReversoNombre,'Licencia reverso')+'</div>';
+    h+='<div style="margin-top:15px;padding-top:14px;border-top:1px solid #F1F2F6"><button class="btn btn-outline btn-sm" onclick="abrirModalConductor(\''+t.id+'\')">Cambiar conductor</button></div>';
   } else {
-    h+='<div style="font-size:13px;color:#9CA3AF;margin-bottom:12px">Aun no has asignado el conductor para este transporte.</div>';
-    h+='<button class="btn btn-orange btn-sm" onclick="abrirModalConductor(\''+t.id+'\')">Asignar conductor</button>';
+    h+='<div style="text-align:center;padding:12px 4px 4px"><div style="font-size:13px;color:#6B7280;margin-bottom:15px;line-height:1.45">Aún no asignas el conductor para este transporte. No es obligatorio.</div>';
+    h+='<button class="btn btn-orange btn-sm" onclick="abrirModalConductor(\''+t.id+'\')">Asignar conductor</button></div>';
   }
+  h+='</div>';
   h+='</div>';
 
   // ── CONTACTOS OPERACIONALES DEL TRANSPORTISTA ─────────────────
