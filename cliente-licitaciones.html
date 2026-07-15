@@ -298,7 +298,7 @@ document.dispatchEvent(new Event('_authReady'));
 <div style="font-size:16px;font-weight:700;color:#1e2d4e">Informe de adjudicación</div>
 <button onclick="document.getElementById('modal-informe').classList.remove('open')" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6B7280;line-height:1">&times;</button>
 </div>
-<div style="font-size:12px;color:#9CA3AF;margin-bottom:16px">Trazabilidad del proceso de licitación. Documento informativo de uso interno.</div>
+<div style="font-size:12px;color:#9CA3AF;margin-bottom:16px">Trazabilidad del proceso de licitación.</div>
 <div id="informe-body"></div>
 </div>
 </div>
@@ -715,8 +715,8 @@ h+='<div style="padding:14px 16px">';
 h+='<div style="font-size:18px;font-weight:700;color:#1e2d4e;margin-bottom:10px">'+l.adjudicadaA.transportistaEmpresa+'</div>';
 if(l.adjudicadaA.transportistaNombre)h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F1F2F6;font-size:13px"><span style="color:#6B7280">Contacto</span><span style="color:#1e2d4e;font-weight:600">'+l.adjudicadaA.transportistaNombre+'</span></div>';
 if(l.adjudicadaA.transportistaTelefono)h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:13px"><span style="color:#6B7280">Teléfono</span><span style="display:inline-flex;align-items:center;gap:8px;color:#1e2d4e;font-weight:600">'+l.adjudicadaA.transportistaTelefono+'<button onclick="copiarTelefono(this,\''+l.adjudicadaA.transportistaTelefono+'\')" title="Copiar número" aria-label="Copiar número" style="background:none;border:none;padding:2px;cursor:pointer;color:#9CA3AF;display:inline-flex;align-items:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button></span></div>';
+h+='<div style="margin-top:12px;padding-top:12px;border-top:1px solid #F1F2F6;text-align:center"><span onclick="verInformeAdjudicacion(\''+l.id+'\')" style="font-size:12.5px;color:#1E2D4E;font-weight:600;cursor:pointer">Ver informe de adjudicación &rarr;</span></div>';
 h+='</div></div>';
-h+='<div style="text-align:right;margin-bottom:14px"><span onclick="verInformeAdjudicacion(\''+l.id+'\')" style="font-size:12px;color:#1E2D4E;font-weight:500;cursor:pointer;text-decoration:underline;text-underline-offset:2px">Ver informe de adjudicación</span></div>';
 }
 
 // Estado mensaje
@@ -928,35 +928,35 @@ function verInformeAdjudicacion(licId){
   var fmt=function(f){ if(!f)return '—'; try{return new Date(f).toLocaleDateString('es-CL');}catch(e){return f;} };
   var h='';
   // Encabezado de la licitación
-  h+='<div style="background:#f8f9fb;border-radius:10px;padding:14px;margin-bottom:16px">';
-  h+='<div style="font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:6px">'+(l.codigo?l.codigo+' — ':'')+(l.tipoEquipo||'')+(l.marca?' '+l.marca:'')+'</div>';
-  h+='<div style="font-size:12px;color:#6B7280">Ruta: '+(l.origen||'')+' → '+(l.destino||'')+'</div>';
-  h+='<div style="font-size:12px;color:#6B7280">Fecha de adjudicación: '+fmt(l.adjudicadaAt)+'</div>';
-  h+='<div style="font-size:12px;color:#6B7280">Cotizaciones evaluadas: '+enviadas.length+'</div>';
+  h+='<div style="background:#f8f9fb;border:1px solid #EEF0F4;border-radius:10px;padding:14px 16px;margin-bottom:18px">';
+  h+='<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:10px;letter-spacing:.3px">'+(l.codigo?l.codigo+' — ':'')+(l.tipoEquipo||'')+(l.marca?' '+l.marca:'')+'</div>';
+  h+='<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:12.5px"><span style="color:#6B7280">Ruta</span><span style="color:#1e2d4e;font-weight:600;text-align:right">'+(l.origen||'')+' → '+(l.destino||'')+'</span></div>';
+  h+='<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:12.5px"><span style="color:#6B7280">Fecha de adjudicación</span><span style="color:#1e2d4e;font-weight:600">'+fmt(l.adjudicadaAt)+'</span></div>';
+  h+='<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:12.5px"><span style="color:#6B7280">Cotizaciones evaluadas</span><span style="color:#1e2d4e;font-weight:600">'+enviadas.length+'</span></div>';
   h+='</div>';
-  // Tabla de cotizaciones presentadas
-  h+='<div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Cotizaciones presentadas</div>';
+  // Lista de cotizaciones presentadas
+  h+='<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:700;color:#1e2d4e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Cotizaciones presentadas</div>';
   if(enviadas.length===0){
     h+='<div style="font-size:13px;color:#9CA3AF;padding:12px 0">No hay cotizaciones registradas para esta licitación.</div>';
   } else {
     enviadas.forEach(function(c,i){
       var esGanadora=(adj.cotizacionId&&c.id===adj.cotizacionId)||(adj.transportistaId&&c.transportistaId===adj.transportistaId)||(adj.precio&&c.precio===adj.precio&&i===0);
-      var bg=esGanadora?'#F0FDF4':'#fff';
-      var bd=esGanadora?'#BBF7D0':'#E5E7EB';
+      var bg=esGanadora?'#FFF9F2':'#fff';
+      var bd=esGanadora?'#FBD9AE':'#E5E7EB';
       h+='<div style="border:1px solid '+bd+';background:'+bg+';border-radius:10px;padding:12px 14px;margin-bottom:10px">';
       h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">';
-      h+='<div style="font-size:14px;font-weight:600;color:#1e2d4e">Cotización '+(i+1)+(esGanadora?' <span style="font-size:11px;font-weight:500;color:#0F6E56;background:#E1F5EE;padding:2px 8px;border-radius:999px;margin-left:4px">Adjudicada</span>':'')+'</div>';
+      h+='<div style="font-size:14px;font-weight:600;color:#1e2d4e">Cotización '+(i+1)+(esGanadora?' <span style="font-size:10px;font-weight:700;color:#fff;background:#FF8808;padding:2px 9px;border-radius:999px;margin-left:6px;vertical-align:middle">Adjudicada</span>':'')+'</div>';
       h+='<div style="font-size:15px;font-weight:700;color:#1e2d4e;text-align:right">'+peso(c.precio)+'<div style="font-size:10px;font-weight:400;color:#9CA3AF">monto neto</div></div>';
       h+='</div>';
-      h+='<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:12px;color:#6B7280">';
+      h+='<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:#6B7280">';
       if(c.fechaEntregaISO) h+='<span>Entrega: '+fmt(c.fechaEntregaISO)+'</span>';
       else if(c.tiempoEntrega) h+='<span>Entrega: '+c.tiempoEntrega+'</span>';
-      if(typeof c.transportistaRating!=='undefined') h+='<span>Valoración: '+(c.transportistaRating||'—')+' ★</span>';
+      if(typeof c.transportistaRating!=='undefined') h+='<span>Valoración: '+(c.transportistaRating||'—')+' <span style="color:#FF8808">★</span></span>';
       if(typeof c.score!=='undefined' && c.score) h+='<span>Score: '+Math.round(c.score*100)+'%</span>';
       h+='</div>';
       // Identidad solo de la ganadora (ya revelada al adjudicar)
       if(esGanadora){
-        h+='<div style="margin-top:8px;padding-top:8px;border-top:0.5px solid #BBF7D0;font-size:12px;color:#14532D">';
+        h+='<div style="margin-top:10px;padding-top:9px;border-top:1px solid #FBD9AE;font-size:12.5px;color:#1e2d4e">';
         h+='<strong>'+(adj.transportistaEmpresa||c.transportistaEmpresa||'')+'</strong>';
         if(adj.transportistaNombre||c.transportistaNombre) h+=' · '+(adj.transportistaNombre||c.transportistaNombre);
         h+='</div>';
@@ -964,7 +964,7 @@ function verInformeAdjudicacion(licId){
       h+='</div>';
     });
   }
-  h+='<div style="font-size:11px;color:#9CA3AF;margin-top:6px;line-height:1.5">Las cotizaciones se presentan de forma anónima durante la licitación. La identidad del transportista se revela únicamente al adjudicar. Criterio de evaluación: Precio (50%), Puntualidad de entrega (30%), Valoración (20%).</div>';
+  h+='<div style="font-size:11px;color:#9CA3AF;margin-top:10px;line-height:1.5">Las cotizaciones se presentan de forma anónima durante la licitación. La identidad del transportista se revela únicamente al adjudicar. Criterio de evaluación: Precio (50%), Puntualidad de entrega (30%), Valoración (20%).</div>';
   document.getElementById('informe-body').innerHTML=h;
   document.getElementById('modal-informe').classList.add('open');
 }
