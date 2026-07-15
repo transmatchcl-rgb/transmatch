@@ -288,6 +288,25 @@ function renderDetalle(t){
     h+='</div></div>';
   }
 
+  // -- DOCUMENTOS REQUERIDOS POR LA FAENA (estandar) --
+  var _reqs=t.requisitosEstandar||[];
+  if(_reqs.length){
+    var _carg=_reqs.filter(function(r){return r.archivoId;}).length;
+    h+='<div style="background:#fff;border:1px solid #e8eaf0;border-radius:12px;overflow:hidden;margin-bottom:16px;box-shadow:0 1px 4px rgba(30,45,78,.05)">';
+    h+='<div style="background:#1e2d4e;padding:12px 16px;display:flex;justify-content:space-between;align-items:center"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px">DOCUMENTOS REQUERIDOS POR LA FAENA</div><div style="font-size:11.5px;color:#AEB7CC">'+_carg+' de '+_reqs.length+'</div></div>';
+    h+='<div style="padding:14px 16px">';
+    _reqs.forEach(function(r,ri){
+      var _bb=ri<_reqs.length-1?'border-bottom:1px solid #F1F2F6':'';
+      var _nom=((r.archivoNombre||r.label||'documento')+'').split("'").join('').split('"').join('');
+      h+='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;'+_bb+'">';
+      h+='<span style="font-size:13.5px;font-weight:600;color:#1e2d4e">'+(r.label||'Documento')+'</span>';
+      if(r.archivoId){ h+='<span style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;font-weight:600;background:#F0FDF4;color:#14532D;border:1px solid #BBF7D0;padding:3px 10px;border-radius:999px">Cargado</span><button class="btn btn-outline btn-sm" onclick="descargar(\''+r.archivoId+'\',\''+_nom+'\')">Descargar</button></span>'; }
+      else { h+='<span style="font-size:11px;font-weight:500;background:#F5F6F9;color:#6B7280;border:1px dashed #e8eaf0;padding:3px 10px;border-radius:999px">Pendiente</span>'; }
+      h+='</div>';
+    });
+    h+='<div style="font-size:11.5px;color:#6B7280;margin-top:12px;line-height:1.5">Documentos que el transportista debe presentar para esta faena.</div>';
+    h+='</div></div>';
+  }
   // ── DIRECCIONES ──────────────────────────────────────────────
   var dirs=t.direcciones||{};
   h+='<div style="border:0.5px solid #e8eaf0;border-radius:10px;padding:14px;margin-bottom:16px">';

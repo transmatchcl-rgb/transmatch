@@ -506,6 +506,16 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <div><div class="file-name" id="file-name-estandar"></div><div class="file-size" id="file-size-estandar"></div></div>
 <button class="file-remove" onclick="removeFile(event,'estandar')">&#10005;</button>
 </div>
+<div id="estandar-checklist" style="margin-top:16px">
+<label>Documentos que deberá presentar el transportista (opcional)</label>
+<div id="req-list" style="margin:8px 0 0"></div>
+<div style="font-size:11.5px;color:#6B7280;margin:12px 0 7px">Sugerencias de requisitos</div>
+<div id="req-sugerencias" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px"></div>
+<div style="display:flex;gap:8px">
+<input type="text" id="req-custom-input" placeholder="+ Agregar requisito personalizado…" autocomplete="off" style="flex:1;padding:8px 11px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px" onkeydown="if(event.key==='Enter'){event.preventDefault();tmAddCustomReq();}"/>
+<button type="button" onclick="tmAddCustomReq()" style="font-size:12.5px;font-weight:500;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid #d1d5db;background:#fff;color:#1e2d4e;white-space:nowrap">Agregar</button>
+</div>
+</div>
 </div>
 </div>
 <div class="form-group" id="tipo-entrega-section" style="display:none">
@@ -881,7 +891,33 @@ if(!on){
   archivoEstandar=null;
   var fp=document.getElementById('file-preview-estandar');if(fp)fp.classList.remove('show');
   var inp=document.getElementById('archivo-input-estandar');if(inp)inp.value='';
+  TM_reqs=[];
 }
+tmRenderReqs();
+}
+
+// ── Checklist de requisitos del estándar ──
+var TM_reqs=[];
+var TM_REQ_SUG=["Revisión técnica vigente","Licencia municipal A4/A5","Hoja de vida del conductor","Certificado médico de aptitud","Examen preocupacional de salud","Examen psicosensotécnico","Salud compatible (altura geográfica)","Control de alcohol y drogas","Cinturones certificados","Cabina de seguridad ECE R66","GPS en tiempo real","Certificado de eficiencia de frenado","Inducción de seguridad minera"];
+function tmReqUid(){return 'r'+Math.random().toString(36).slice(2,9);}
+function tmEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function tmAddReq(label){label=(label||'').trim();if(!label)return;if(TM_reqs.some(function(r){return r.label.toLowerCase()===label.toLowerCase();}))return;TM_reqs.push({id:tmReqUid(),label:label});tmRenderReqs();}
+function tmRemoveReq(id){TM_reqs=TM_reqs.filter(function(r){return r.id!==id;});tmRenderReqs();}
+function tmAddCustomReq(){var inp=document.getElementById('req-custom-input');if(!inp)return;tmAddReq(inp.value);inp.value='';inp.focus();}
+function tmRenderReqs(){
+  var list=document.getElementById('req-list');
+  if(list){
+    list.innerHTML=TM_reqs.length?TM_reqs.map(function(r){
+      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#FFF9F2;border:1px solid #FBD9AE;border-radius:8px;padding:9px 12px;margin-bottom:7px;font-size:13px"><span>'+tmEsc(r.label)+'</span><button type="button" onclick="tmRemoveReq(\''+r.id+'\')" style="color:#b25f00;cursor:pointer;font-weight:700;font-size:15px;background:none;border:none;line-height:1">&#10005;</button></div>';
+    }).join(''):'<div style="font-size:12px;color:#9CA3AF;padding:2px 0 4px">Sin requisitos agregados. Toca una sugerencia o escribe uno.</div>';
+  }
+  var sug=document.getElementById('req-sugerencias');
+  if(sug){
+    var pend=TM_REQ_SUG.filter(function(s){return !TM_reqs.some(function(r){return r.label.toLowerCase()===s.toLowerCase();});});
+    sug.innerHTML=pend.map(function(s){
+      return '<span onclick="tmAddReq(\''+s.replace(/'/g,"\\'")+'\')" style="font-size:12px;color:#1e2d4e;background:#fff;border:1px solid #d1d5db;border-radius:999px;padding:5px 11px;cursor:pointer"><span style="color:#FF8808;font-weight:700">+</span> '+s+'</span>';
+    }).join('');
+  }
 }
 
 // ── Contenedor: id del paso 1 según tipoLicitacion ──
@@ -1062,6 +1098,7 @@ var reqEstandar=document.getElementById('requiereEstandar').checked;
 payload.requiereEstandar=reqEstandar;
 if(reqEstandar){
 payload.estandarDetalle=document.getElementById('estandarDetalle').value.trim();
+payload.estandarRequisitos=TM_reqs;
 if(archivoEstandar){
 try{
 var rE=await fetch(API+'/api/archivos/upload',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(archivoEstandar)});
@@ -1205,6 +1242,7 @@ if(l.requiereEstandar){
 document.getElementById('requiereEstandar').checked=true;
 toggleEstandarMinero();
 if(l.estandarDetalle)document.getElementById('estandarDetalle').value=l.estandarDetalle;
+if(Array.isArray(l.estandarRequisitos)){TM_reqs=l.estandarRequisitos.map(function(r){return {id:r.id||tmReqUid(),label:r.label};});tmRenderReqs();}
 if(l.estandarArchivoId&&l.estandarArchivoNombre){
 _estandarArchivoIdPrevio=l.estandarArchivoId;
 _estandarArchivoNombrePrevio=l.estandarArchivoNombre;
