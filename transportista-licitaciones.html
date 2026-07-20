@@ -468,6 +468,8 @@ if(tabActual==='no-adjudicadas') return misCotizaciones.has(l.id) && !licitacion
 if(tabActual==='completadas')   return licitacionesGanadas.has(l.id) && l.estado==='completada';
 // "Todas": ocultar las abiertas que ya vencieron y no cotizé (ya no son una oportunidad)
 if(l.estado==='abierta' && !misCotizaciones.has(l.id) && !licitacionVigente(l)) return false;
+// Ocultar cerradas/adjudicadas/completadas en las que el transportista no participo
+if(l.estado!=='abierta' && !misCotizaciones.has(l.id)) return false;
 return true;
 });
 if(lista.length===0){
