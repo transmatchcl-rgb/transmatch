@@ -58,7 +58,7 @@
   .ok{background:#F0FDF4;color:#14532D;border:1px solid #BBF7D0;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:12px;display:none}
   .err{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:12px;display:none}
   .info-box{background:#EFF6FF;border-radius:8px;padding:12px 14px;font-size:13px;color:#1e40af;margin-bottom:16px}
-  .eq-row{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);margin-bottom:10px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:0;overflow:hidden;transition:box-shadow .15s,border-color .15s}
+  .eq-row{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 2px 8px rgba(30,45,78,.09);margin-bottom:16px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:0;overflow:hidden;transition:box-shadow .15s,border-color .15s}
   .eq-row:hover{box-shadow:0 4px 16px rgba(30,45,78,.10);border-color:#c7d0e8}
   .eq-name{font-size:13px;font-weight:600;color:#1e2d4e}
   .eq-meta{font-size:11px;color:#6B7280;margin-top:3px}
@@ -240,12 +240,25 @@
 </div>
 
   <main>
+    <!-- Barra de progreso -->
+    <div id="progreso-banner-t" style="display:none;background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;padding:14px 18px;margin-bottom:16px;box-shadow:0 1px 4px rgba(30,45,78,.06)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:12px;font-weight:600;color:#1e2d4e">Completitud del perfil</span>
+        <span id="progreso-pct-t" style="font-size:12px;font-weight:700;color:#FF8808">0%</span>
+      </div>
+      <div style="background:#e8eaf0;border-radius:999px;height:6px;overflow:hidden">
+        <div id="progreso-bar-t" style="height:100%;background:linear-gradient(90deg,#FF8808,#1e2d4e);border-radius:999px;transition:width .4s ease;width:0%"></div>
+      </div>
+      <div id="progreso-hint-t" style="font-size:11px;color:#9CA3AF;margin-top:5px"></div>
+    </div>
+
     <div class="page-title">Mi perfil</div>
     <div class="page-sub">Gestiona tu información personal, empresa, equipos y zona de operaciones</div>
 
     <div class="tabs">
       <button class="tab active" onclick="showTab('perfil',this)">Datos personales</button>
       <button class="tab" onclick="showTab('empresa',this)">Mi empresa</button>
+      <button class="tab" onclick="showTab('contactos',this)">Contactos</button>
       <button class="tab" onclick="showTab('zonas',this)">Operaciones</button>
       <button class="tab" onclick="showTab('equipos',this)">Mis equipos</button>
       <button class="tab" onclick="showTab('conductores',this)">Conductores</button>
@@ -296,69 +309,42 @@
         <div class="err" id="err2"></div>
         <div style="margin-top:16px"><button class="btn btn-primary" onclick="guardarEmpresa()">Guardar cambios</button></div>
       </div>
+    </div>
 
-      <div class="card" style="margin-top:16px">
-        <div class="card-title" style="margin-bottom:4px">Datos bancarios</div>
-        <div style="font-size:12px;color:#6B7280;margin-bottom:16px">Usados para el cobro mensual de comisiones de TransMatch.</div>
-        <div class="grid2">
-          <div class="fg"><label>Banco</label>
-            <select id="inp-banco">
-              <option value="">Selecciona...</option>
-              <option value="Banco de Chile">Banco de Chile</option>
-              <option value="Banco Estado">Banco Estado</option>
-              <option value="Santander">Santander</option>
-              <option value="BCI">BCI</option>
-              <option value="Scotiabank">Scotiabank</option>
-              <option value="Itaú">Itaú</option>
-              <option value="Banco Falabella">Banco Falabella</option>
-              <option value="Banco Security">Banco Security</option>
-              <option value="Banco Consorcio">Banco Consorcio</option>
-              <option value="Banco BICE">Banco BICE</option>
-              <option value="Banco Internacional">Banco Internacional</option>
-              <option value="Otro">Otro</option>
-            </select>
-          </div>
-          <div class="fg"><label>Tipo de cuenta</label>
-            <select id="inp-tipo-cuenta">
-              <option value="">Selecciona...</option>
-              <option value="Cuenta Corriente">Cuenta Corriente</option>
-              <option value="Cuenta Vista">Cuenta Vista</option>
-              <option value="Cuenta de Ahorro">Cuenta de Ahorro</option>
-            </select>
-          </div>
-          <div class="fg"><label>Número de cuenta</label><input type="text" id="inp-num-cuenta" placeholder="00-000-00000-00" autocomplete="off"/></div>
-          <div class="fg"><label>Titular de la cuenta</label><input type="text" id="inp-titular-cuenta" placeholder="Nombre o razón social" autocomplete="off"/></div>
-          <div class="fg"><label>RUT del titular</label><input type="text" id="inp-rut-titular" placeholder="76.XXX.XXX-X" autocomplete="off"/></div>
-        </div>
-        <div class="ok" id="ok-banco">Datos bancarios actualizados correctamente</div>
-        <div class="err" id="err-banco"></div>
-        <div style="margin-top:16px"><button class="btn btn-primary" onclick="guardarDatosBancarios()">Guardar datos bancarios</button></div>
-      </div>
-
-      <div class="card" style="margin-top:16px;margin-bottom:16px">
+    <!-- CONTACTOS (Etapa 2) -->
+    <div class="pane" id="pane-contactos">
+      <div class="card" style="margin-bottom:16px">
         <div class="card-title" style="margin-bottom:4px">Datos de facturación de tu empresa</div>
-        <div style="font-size:12px;color:#6B7280;margin-bottom:16px">TransMatch usa estos datos para emitirte la factura mensual por comisión.</div>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;margin-bottom:12px">
-          <input type="checkbox" id="chk-fact-mismos-datos" onchange="toggleFactMismosDatos()" style="width:16px;height:16px;cursor:pointer;accent-color:#1e2d4e"/>
-          Usar los mismos datos que en "Información de la empresa"
-        </label>
-        <div id="fact-datos-wrap" class="grid2">
+        <div style="font-size:12px;color:#6B7280;margin-bottom:16px">TransMatch usa estos datos para emitirte la factura mensual por comisión. Asegúrate de que coincidan con tu información en el SII.</div>
+        <div class="grid2">
           <div class="fg"><label>Razón social</label><input type="text" id="inp-fact-rs" placeholder="Transportes y Logística SpA"/></div>
           <div class="fg"><label>RUT empresa</label><input type="text" id="inp-fact-rut" placeholder="76.123.456-7"/></div>
           <div class="fg"><label>Giro tributario</label><input type="text" id="inp-fact-giro" placeholder="Ej: Transporte de carga por carretera"/></div>
           <div class="fg"><label>Dirección comercial</label><input type="text" id="inp-fact-dir" placeholder="Calle, número, comuna, ciudad"/></div>
-        </div>
-        <div class="grid2">
           <div class="fg"><label>Email para facturas</label><input type="email" id="inp-fact-email" placeholder="facturas@empresa.cl"/></div>
         </div>
         <div class="ok" id="ok-datos-fact" style="margin-top:12px">Datos de facturación guardados correctamente</div>
         <div style="margin-top:16px"><button class="btn btn-primary" onclick="guardarDatosFacturacion()">Guardar datos de facturación</button></div>
       </div>
       <div class="card" style="margin-bottom:16px">
-        <div class="card-title" style="margin-bottom:4px">Contactos de la empresa</div>
-        <div style="font-size:12px;color:#6B7280;margin-bottom:16px">Personas de contacto para coordinar transportes y temas comerciales.</div>
-        <div id="contactos-list"></div>
-        <button type="button" class="btn btn-outline" style="margin-top:4px" onclick="agregarContacto()">+ Agregar contacto</button>
+        <div class="card-title" style="margin-bottom:4px">Contacto de Operaciones</div>
+        <div style="font-size:12px;color:#6B7280;margin-bottom:16px">Persona encargada de coordinar los transportes en terreno.</div>
+        <div class="grid2">
+          <div class="fg"><label>Nombre</label><input type="text" id="inp-op-nombre" placeholder="Juan Pérez"/></div>
+          <div class="fg"><label>Cargo</label><input type="text" id="inp-op-cargo" placeholder="Jefe de operaciones"/></div>
+          <div class="fg"><label>Teléfono</label><input type="tel" id="inp-op-tel" placeholder="+56 9 XXXX XXXX"/></div>
+          <div class="fg"><label>Email</label><input type="email" id="inp-op-email" placeholder="operaciones@empresa.cl"/></div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title" style="margin-bottom:4px">Contacto Comercial</div>
+        <div style="font-size:12px;color:#6B7280;margin-bottom:16px">Persona encargada de las relaciones comerciales y cotizaciones.</div>
+        <div class="grid2">
+          <div class="fg"><label>Nombre</label><input type="text" id="inp-com-nombre" placeholder="María González"/></div>
+          <div class="fg"><label>Cargo</label><input type="text" id="inp-com-cargo" placeholder="Gerente comercial"/></div>
+          <div class="fg"><label>Teléfono</label><input type="tel" id="inp-com-tel" placeholder="+56 9 XXXX XXXX"/></div>
+          <div class="fg"><label>Email</label><input type="email" id="inp-com-email" placeholder="comercial@empresa.cl"/></div>
+        </div>
       </div>
       <div class="card">
         <div class="card-title" style="margin-bottom:4px">Contacto de Facturación</div>
@@ -382,7 +368,50 @@
         <div class="card-title">Equipos que opero</div>
         <p style="font-size:13px;color:#6B7280;margin-bottom:18px">Selecciona los equipos con los que tu empresa opera. Solo verás licitaciones compatibles con tu flota.</p>
         <div id="eq-tipos-maquinaria" style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
-          <div id="eq-tipos-fijos-cont"></div>
+                    <div class="zona-card" onclick="toggleTipoEquipo('Cama baja',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Cama baja" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Cama baja</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Camilla',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Camilla" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Camilla</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Equipo modular',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Equipo modular" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Equipo modular</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Palote',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Palote" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Palote</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Rampla / plataforma',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Rampla / plataforma" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Rampla / plataforma</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Camión pluma',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Camión pluma" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Camión pluma</div><div class="zona-sub">autocarga</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Cama cuna',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Cama cuna" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Cama cuna</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Furgón / Sider',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Furgón / Sider" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Furgón / Sider</div><div class="zona-sub">cerrado</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Tolva',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Tolva" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Tolva</div><div class="zona-sub">granel</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Portacontenedor',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Portacontenedor" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Portacontenedor</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Camión plano',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Camión plano" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Camión plano</div><div class="zona-sub">plataforma rígida</div></div>
+          </div>
           <div class="zona-card" onclick="toggleTipoEquipo('Otro',this);toggleOtroTipo()">
             <input type="checkbox" class="eq-tipo-cb" value="Otro" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()" onchange="toggleOtroTipo()"/>
             <div><div class="zona-title">Otro</div><div class="zona-sub">Especificar</div></div>
@@ -689,7 +718,6 @@
   </main>
 </div>
 
-<script src="/categorias-equipo.js"></script>
 <script>
 var API = 'https://transmatch.transmatchcl.workers.dev';
 var U   = {};
@@ -723,29 +751,17 @@ var U   = {};
   if(tabUT && !U.esSubusuario && (U.max_usuarios||0) > 0){ tabUT.style.display=''; cargarUsuariosT(); }
   // Barra de progreso
   renderProgresoT(U);
-  // Rellenar contactos: usar U.contactos (nuevo) o migrar desde los campos fijos antiguos
+  // Rellenar contactos
   var opC = U.contactoOperaciones||{};
   var comC = U.contactoComercial||{};
   var facC = U.contactoFacturacion||{};
   var inp = function(id,val){ var el=document.getElementById(id); if(el) el.value=val||''; };
-  if(U.contactos && U.contactos.length){
-    _contactos = U.contactos.slice();
-  }else{
-    _contactos = [];
-    if(opC.nombre||opC.telefono||opC.email) _contactos.push({nombre:opC.nombre||'',cargo:opC.cargo||'',telefono:opC.telefono||'',email:opC.email||''});
-    if(comC.nombre||comC.telefono||comC.email) _contactos.push({nombre:comC.nombre||'',cargo:comC.cargo||'',telefono:comC.telefono||'',email:comC.email||''});
-  }
-  if(!_contactos.length) _contactos=[{nombre:'',cargo:'',telefono:'',email:''}];
-  renderContactos();
+  inp('inp-op-nombre',opC.nombre); inp('inp-op-cargo',opC.cargo); inp('inp-op-tel',opC.telefono); inp('inp-op-email',opC.email);
+  inp('inp-com-nombre',comC.nombre); inp('inp-com-cargo',comC.cargo); inp('inp-com-tel',comC.telefono); inp('inp-com-email',comC.email);
   inp('inp-fac-nombre',facC.nombre); inp('inp-fac-cargo',facC.cargo); inp('inp-fac-tel',facC.telefono); inp('inp-fac-email',facC.email);
   // Datos de facturación de la empresa (para que TransMatch facture)
   var facE = U.facturacion||{};
   inp('inp-fact-rs',facE.razonSocial); inp('inp-fact-rut',facE.rut); inp('inp-fact-giro',facE.giro); inp('inp-fact-dir',facE.direccion); inp('inp-fact-email',facE.email);
-  // ¿Los datos de facturación son iguales a los de la empresa (o no se han cargado)? -> usar el toggle
-  var _mismos = !facE.razonSocial && !facE.rut && !facE.giro && !facE.direccion;
-  if(!_mismos && facE.razonSocial===U.empresa && facE.rut===U.rutEmpresa && facE.giro===U.giro && facE.direccion===U.direccion) _mismos=true;
-  document.getElementById('chk-fact-mismos-datos').checked=_mismos;
-  toggleFactMismosDatos();
   // Campos empresa extendidos
   inp('inp-giro-t',U.giro); inp('inp-dir-t',U.direccion); inp('inp-ciudad-t',U.ciudad);
 })();
@@ -787,13 +803,6 @@ async function cambiarPassword(){
 }
 
 function fill() {
-  renderEqTiposFijos();
-  var db = U.datosBancarios||{};
-  document.getElementById('inp-banco').value = db.banco||'';
-  document.getElementById('inp-tipo-cuenta').value = db.tipoCuenta||'';
-  document.getElementById('inp-num-cuenta').value = db.numeroCuenta||'';
-  document.getElementById('inp-titular-cuenta').value = db.titular||'';
-  document.getElementById('inp-rut-titular').value = db.rutTitular||'';
   var n   = U.nombre   || localStorage.getItem('tm_nombre')  || '';
   var em  = U.email    || localStorage.getItem('tm_email')   || '';
   var emp = U.empresa  || localStorage.getItem('tm_empresa') || '';
@@ -899,43 +908,6 @@ async function guardar() {
   btn.disabled = false; btn.textContent = 'Guardar cambios';
 }
 
-async function guardarDatosBancarios() {
-  var btn = event.target; btn.disabled = true; btn.textContent = 'Guardando...';
-  var gv=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
-  try {
-    var payload = {
-      datosBancarios: {
-        banco: gv('inp-banco'),
-        tipoCuenta: gv('inp-tipo-cuenta'),
-        numeroCuenta: gv('inp-num-cuenta'),
-        titular: gv('inp-titular-cuenta'),
-        rutTitular: gv('inp-rut-titular'),
-      }
-    };
-    var res = await fetch(API + '/api/perfil', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') },
-      body: JSON.stringify(payload)
-    });
-    var okB = document.getElementById('ok-banco');
-    if (res.ok) {
-      Object.assign(U, payload);
-      renderProgresoT(U);
-      okB.style.display='block';
-      setTimeout(function(){ okB.style.display='none'; },3000);
-    } else {
-      var d = await res.json();
-      document.getElementById('err-banco').textContent = d.error || 'Error al guardar';
-      document.getElementById('err-banco').style.display = 'block';
-      setTimeout(function(){ document.getElementById('err-banco').style.display='none'; },3000);
-    }
-  } catch(e) {
-    document.getElementById('err-banco').textContent = 'Error de conexión';
-    document.getElementById('err-banco').style.display = 'block';
-  }
-  btn.disabled = false; btn.textContent = 'Guardar datos bancarios';
-}
-
 async function guardarEmpresa() {
   var btn = event.target; btn.disabled = true; btn.textContent = 'Guardando...';
   var gv=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
@@ -989,7 +961,7 @@ function renderProgresoT(u){
   var eqs=u.equipos||[];
   if(pct < 30) hint.textContent='Completa tus datos básicos para comenzar';
   else if(!u.giro||!u.direccion) hint.textContent='Siguiente: completa los datos de tu empresa';
-  else if(!u.contactoOperaciones||!u.contactoOperaciones.nombre) hint.textContent='Siguiente: agrega tus contactos en la pestaña Mi empresa';
+  else if(!u.contactoOperaciones||!u.contactoOperaciones.nombre) hint.textContent='Siguiente: agrega tus contactos en la pestaña Contactos';
   else if(eqs.length===0) hint.textContent='Siguiente: agrega tus equipos en la pestaña Mis equipos';
   else { var conDocs=eqs.filter(function(e){return Object.keys(e.documentos||{}).length>=3;}); if(conDocs.length===0) hint.textContent='Siguiente: sube los documentos de tus equipos'; else hint.textContent='Perfil casi completo'; }
 }
@@ -1007,18 +979,9 @@ function calcCompletitudT(u){
   return Math.min(100,pts);
 }
 
-function toggleFactMismosDatos(){
-  var on=document.getElementById('chk-fact-mismos-datos').checked;
-  document.getElementById('fact-datos-wrap').style.display=on?'none':'grid';
-}
-
 async function guardarDatosFacturacion(){
   var gv=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
-  var usarMismos=document.getElementById('chk-fact-mismos-datos').checked;
-  var body={ facturacion: usarMismos
-    ? { razonSocial:gv('inp-empresa'), rut:gv('inp-rut2'), giro:gv('inp-giro-t'), direccion:gv('inp-dir-t'), email:gv('inp-fact-email') }
-    : { razonSocial:gv('inp-fact-rs'), rut:gv('inp-fact-rut'), giro:gv('inp-fact-giro'), direccion:gv('inp-fact-dir'), email:gv('inp-fact-email') }
-  };
+  var body={ facturacion:{ razonSocial:gv('inp-fact-rs'), rut:gv('inp-fact-rut'), giro:gv('inp-fact-giro'), direccion:gv('inp-fact-dir'), email:gv('inp-fact-email') } };
   try{
     var res=await fetch(API+'/api/perfil',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(body)});
     if(res.ok){
@@ -1029,50 +992,11 @@ async function guardarDatosFacturacion(){
   }catch(e){}
 }
 
-var _contactos=[];
-function renderContactos(){
-  var cont=document.getElementById('contactos-list');
-  if(!cont)return;
-  var html='';
-  _contactos.forEach(function(c,idx){
-    html+='<div class="grid2" data-idx="'+idx+'" style="position:relative;margin-bottom:12px;padding-bottom:12px;'+(idx<_contactos.length-1?'border-bottom:0.5px solid #f0f1f5':'')+'">'
-      +'<div class="fg"><label>Nombre</label><input type="text" class="contacto-nombre" value="'+esc(c.nombre)+'" placeholder="Nombre y apellido"/></div>'
-      +'<div class="fg"><label>Cargo (opcional)</label><input type="text" class="contacto-cargo" value="'+esc(c.cargo)+'" placeholder="Ej: Jefe de operaciones"/></div>'
-      +'<div class="fg"><label>Teléfono</label><input type="tel" class="contacto-tel" value="'+esc(c.telefono)+'" placeholder="+56 9 XXXX XXXX"/></div>'
-      +'<div class="fg"><label>Email</label><input type="email" class="contacto-email" value="'+esc(c.email)+'" placeholder="nombre@empresa.cl"/></div>'
-      +(_contactos.length>1?'<button type="button" onclick="quitarContacto('+idx+')" style="position:absolute;top:0;right:0;background:none;border:none;color:#EF4444;cursor:pointer;font-size:12px;font-weight:600">Quitar</button>':'')
-      +'</div>';
-  });
-  cont.innerHTML=html;
-}
-function esc(v){return (v||'').replace(/"/g,'&quot;');}
-function _syncContactosDom(){
-  document.querySelectorAll('#contactos-list > div[data-idx]').forEach(function(row){
-    var idx=parseInt(row.getAttribute('data-idx'));
-    if(!_contactos[idx])return;
-    _contactos[idx].nombre=row.querySelector('.contacto-nombre').value.trim();
-    _contactos[idx].cargo=row.querySelector('.contacto-cargo').value.trim();
-    _contactos[idx].telefono=row.querySelector('.contacto-tel').value.trim();
-    _contactos[idx].email=row.querySelector('.contacto-email').value.trim();
-  });
-}
-function agregarContacto(){
-  _syncContactosDom();
-  if(_contactos.length>=6)return;
-  _contactos.push({nombre:'',cargo:'',telefono:'',email:''});
-  renderContactos();
-}
-function quitarContacto(idx){
-  _syncContactosDom();
-  _contactos.splice(idx,1);
-  renderContactos();
-}
-
 async function guardarContactos(){
-  _syncContactosDom();
   var gv=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
   var body={
-    contactos:_contactos.filter(function(c){return c.nombre||c.telefono||c.email;}),
+    contactoOperaciones:{nombre:gv('inp-op-nombre'),cargo:gv('inp-op-cargo'),telefono:gv('inp-op-tel'),email:gv('inp-op-email')},
+    contactoComercial:  {nombre:gv('inp-com-nombre'),cargo:gv('inp-com-cargo'),telefono:gv('inp-com-tel'),email:gv('inp-com-email')},
     contactoFacturacion:{nombre:gv('inp-fac-nombre'),cargo:gv('inp-fac-cargo'),telefono:gv('inp-fac-tel'),email:gv('inp-fac-email')},
   };
   try{
@@ -1083,20 +1007,6 @@ async function guardarContactos(){
       var el=document.getElementById('ok-contactos');if(el){el.style.display='block';setTimeout(function(){el.style.display='none';},3000);}
     }
   }catch(e){}
-}
-
-// ── EQUIPOS: render desde el listado único (categorias-equipo.js) ──
-function renderEqTiposFijos(){
-  var cont = document.getElementById('eq-tipos-fijos-cont');
-  if(!cont || typeof TM_CATEGORIAS_EQUIPO==='undefined' || cont.dataset.rendered) return;
-  var html = '';
-  TM_CATEGORIAS_EQUIPO.forEach(function(cat){
-    html += '<div class="zona-card" onclick="toggleTipoEquipo(\''+cat.value+'\',this)">'
-      + '<input type="checkbox" class="eq-tipo-cb" value="'+cat.value+'" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>'
-      + '<div><div class="zona-title">'+cat.value+'</div>'+(cat.sub?'<div class="zona-sub">'+cat.sub+'</div>':'')+'</div></div>';
-  });
-  cont.innerHTML = html;
-  cont.dataset.rendered = '1';
 }
 
 function toggleTipoEquipo(val, card) {
