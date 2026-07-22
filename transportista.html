@@ -396,16 +396,10 @@
     const elDisp  = document.getElementById('lista-disponibles');
     const elKpi   = document.getElementById('kpi-disponibles');
 
-    if(tiposEquipo.length === 0){
-      elKpi.textContent = '0';
-      elDisp.innerHTML  =
-        '<div style="padding:24px;text-align:center">' +
-          '<div style="font-size:28px;margin-bottom:8px"></div>' +
-          '<div style="font-size:13px;font-weight:500;color:#92400E;margin-bottom:6px">Sin equipos en Mis Operaciones</div>' +
-          '<div style="font-size:12px;color:#6B7280;margin-bottom:12px">Selecciona tus equipos en Perfil → Operaciones</div>' +
-          '<a href="/transportista-perfil.html" style="display:inline-flex;padding:8px 16px;background:#1e2d4e;color:#fff;border-radius:8px;font-size:13px;font-weight:500;text-decoration:none">Ir a Operaciones →</a>' +
-        '</div>';
-    }
+    // Nota: aunque el transportista no tenga equipos en "Mis Operaciones", igual puede recibir
+    // licitaciones por el mecanismo de fallback (backend). Por eso NO bloqueamos la tarjeta aquí;
+    // las licitaciones disponibles se renderizan más abajo y, si no hay equipos, se muestra un
+    // aviso suave (no bloqueante) sobre la lista.
 
     // ── 3. Licitaciones disponibles + transportes activos ────
     const r = await api('/api/licitaciones');
@@ -455,12 +449,15 @@
       }).join('');
     }
 
-    // Licitaciones disponibles
-    if(tiposEquipo.length > 0){
+    // Licitaciones disponibles — se muestran SIEMPRE (el backend ya aplica el fallback).
+    {
       if(disponibles.length === 0){
         elDisp.innerHTML = '<div style="padding:24px;text-align:center;color:#9CA3AF;font-size:13px">Sin licitaciones disponibles ahora</div>';
       } else {
-        elDisp.innerHTML = disponibles.slice(0,5).map(function(l){
+        var hintEquipos = (tiposEquipo.length === 0)
+          ? '<div style="font-size:12px;color:#92400E;background:#FFF7ED;border:1px solid #FDE8CC;border-radius:8px;padding:8px 12px;margin-bottom:10px">Selecciona tus equipos en <a href="/transportista-perfil.html" style="color:#1e2d4e;font-weight:500;text-decoration:none">Operaciones</a> para recibir también las licitaciones compatibles con tu flota.</div>'
+          : '';
+        elDisp.innerHTML = hintEquipos + disponibles.slice(0,5).map(function(l){
           return '<div class="row" onclick="nav(this)" data-href="/transportista-licitaciones.html" data-lid="'+l.id+'" style="cursor:pointer" >' +
             '<div style="font-size:10px;font-weight:700;font-family:IBM Plex Mono,monospace;background:#eef1f8;color:#1e2d4e;padding:3px 7px;border-radius:5px;flex-shrink:0;white-space:nowrap;align-self:center">'+(l.codigo||l.codigo||'LIC')+'</div>' +
             '<div class="row-body">' +
