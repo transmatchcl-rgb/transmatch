@@ -455,7 +455,7 @@
         elDisp.innerHTML = '<div style="padding:24px;text-align:center;color:#9CA3AF;font-size:13px">Sin licitaciones disponibles ahora</div>';
       } else {
         var hintEquipos = (tiposEquipo.length === 0)
-          ? '<div style="margin:2px 8px 12px;text-align:center"><span style="display:inline-block;font-size:11px;color:#92400E;background:#FFF7ED;border:1px solid #FDE8CC;border-radius:999px;padding:4px 12px">Selecciona tus equipos en <a href="/transportista-perfil.html" style="color:#1e2d4e;font-weight:500;text-decoration:none">Operaciones</a> para ver las compatibles</span></div>'
+          ? '<div style="margin:14px 8px 14px;text-align:center"><span style="display:inline-block;font-size:11px;color:#92400E;background:#FFF7ED;border:1px solid #FDE8CC;border-radius:999px;padding:4px 12px">Selecciona los equipos que operas para recibir licitaciones de tu interés</span></div>'
           : '';
         elDisp.innerHTML = hintEquipos + disponibles.slice(0,5).map(function(l){
           return '<div class="row" onclick="nav(this)" data-href="/transportista-licitaciones.html" data-lid="'+l.id+'" style="cursor:pointer" >' +
