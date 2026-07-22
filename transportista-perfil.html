@@ -1137,6 +1137,7 @@ async function cargarEquipos() {
         + fotosHtml
         + renderAlertasVencimiento(eq.documentos)
         + renderDocumentos(eq.id, eq.documentos)
+        +'</div>'
         +'</div>';
     }).join('');
     // Re-expandir las tarjetas que estaban abiertas antes del re-render
@@ -1245,6 +1246,7 @@ async function cargarConductores() {
         +'<div style="display:flex;gap:8px;flex-wrap:wrap">'+docLink(c.carnetFrenteId,c.carnetFrenteNombre,'Carnet frente')+docLink(c.carnetReversoId,c.carnetReversoNombre,'Carnet reverso')+'</div></div>'
         +'<div style="margin-top:12px"><div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Licencia de conducir</div>'
         +'<div style="display:flex;gap:8px;flex-wrap:wrap">'+docLink(c.licenciaFrenteId,c.licenciaFrenteNombre,'Licencia frente')+docLink(c.licenciaReversoId,c.licenciaReversoNombre,'Licencia reverso')+'</div></div>'
+        +'</div>'
         +'</div>';
     }).join('');
   } catch(e) { el.innerHTML='<div style="text-align:center;padding:16px;color:#EF4444;font-size:13px">Error al cargar conductores</div>'; }
