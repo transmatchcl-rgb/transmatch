@@ -1114,16 +1114,26 @@ async function handleRequest(request, env) {
   if (path.startsWith("/api/admin/licitacion/")&&path.endsWith("/cerrar")&&method==="POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     const id=path.split("/")[4]; const raw=await env.LICITACIONES.get(id); if(!raw) return err("No encontrada",404);
+    let _body={}; try{_body=await request.json();}catch(e){}
     const l=JSON.parse(raw); if(l.estado!=="abierta") return err("No esta abierta");
     const cotizaciones=l.cotizaciones||[];
-    if(cotizaciones.length===0){
-      // Cierre por admin SIN cotizaciones: estado terminal. El cliente la ve "Cerrada" (flag cerradaPorAdmin)
-      // y el transportista la ve como "No adjudicada" (estado expirada, fuera del listado activo).
+    if(_body.sinEnviar || cotizaciones.length===0){
+      // Cierre por admin SIN enviar el TOP 3 (o sin cotizaciones): estado terminal.
+      // El cliente la ve "Cerrada" (flag cerradaPorAdmin) y el transportista "No adjudicada"
+      // (estado expirada, fuera del listado activo). No se envía correo a nadie.
       l.estado="expirada"; l.cerradaPorAdmin=true; l.expiradaAt=new Date().toISOString(); l.cerradaAt=new Date().toISOString();
       await env.LICITACIONES.put(id, JSON.stringify(l));
       await crearNotificacion(env,l.clienteId,"licitacion_cerrada",`Tu licitación se cerró: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`,{ licitacionId:id });
-      await registrarActividad(env,"licitacion_cerrada",`Licitación cerrada por admin sin cotizaciones: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo });
-      return ok({ ok:true, enviadas:0, sinCotizaciones:true });
+      // Avisar (interno, sin correo) a los transportistas que alcanzaron a cotizar
+      const _yaNotif=new Set();
+      for(const c of cotizaciones){
+        if(c.transportistaId && !_yaNotif.has(c.transportistaId)){
+          _yaNotif.add(c.transportistaId);
+          try{ await crearNotificacion(env,c.transportistaId,"licitacion_cerrada",`La licitación en la que cotizaste se cerró sin adjudicación: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`,{ licitacionId:id }); }catch(e){}
+        }
+      }
+      await registrarActividad(env,"licitacion_cerrada",`Licitación cerrada por admin sin enviar cotizaciones (${cotizaciones.length}): ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo });
+      return ok({ ok:true, enviadas:0, sinEnviar:true });
     }
     l.estado="cerrada"; l.cerradaAt=new Date().toISOString(); l.ronda=1;
     // Rankear por score (50% precio neto / 30% puntualidad / 20% rating) antes de enviar top 3
