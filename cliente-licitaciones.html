@@ -365,7 +365,9 @@ if(d<1440)return 'hace '+Math.floor(d/60)+'h';
 return 'hace '+Math.floor(d/1440)+'d';
 }
 
-function bdg(e){
+function bdg(e, l){
+// Licitación cerrada por el admin sin cotizaciones: el cliente la ve como "Cerrada"
+if(e==='expirada' && l && l.cerradaPorAdmin){ return '<span class="badge badge-info">Cerrada</span>'; }
 var m={pendiente_admin:['badge-warn','En revision'],abierta:['badge-warn','Abierta'],cerrada:['badge-info','Con cotizaciones'],adjudicada:['badge-success','Adjudicada'],completada:['badge-success','Completada'],rechazada:['badge-error','Rechazada'],anulada:['badge-error','Anulada'],expirada:['badge-neutral','Vencida sin cotizaciones']};
 var cl=m[e]||['badge-gray',e];
 return '<span class="badge '+cl[0]+'">'+cl[1]+'</span>';
@@ -444,7 +446,7 @@ return '<div class="lic-item" onclick="abrirDetalle(\''+l.id+'\')">'+
 '</div>'+
 '<div class="lic-right">'+
 (tieneMenu ? menuHtml : '')+
-bdg(l.estado)+
+bdg(l.estado, l)+
 (l.estado==='abierta'&&l.cierreAt?'<div class="cuenta-regresiva" data-cierre="'+l.cierreAt+'" style="font-size:10px;color:#9CA3AF;margin-top:2px;text-align:right"></div>':'')+
 '</div>'+
 '</div>';
@@ -477,7 +479,7 @@ if(!l)return;
 _selectedId=id;_selectedLic=l;
 document.getElementById('det-titulo').textContent=(l.codigo?l.codigo+' -- ':'')+l.tipoEquipo+(l.marca?' -- '+l.marca:'');
 document.getElementById('det-meta').textContent='';
-document.getElementById('det-badge').innerHTML=bdg(l.estado);
+document.getElementById('det-badge').innerHTML=bdg(l.estado, l);
 
 // Menu opciones — Duplicar siempre disponible (cualquier estado); Editar/Eliminar/Anular según estado
 var menuWrap=document.getElementById('det-menu-wrap');

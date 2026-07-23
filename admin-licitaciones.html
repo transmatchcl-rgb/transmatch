@@ -275,7 +275,9 @@ function timeAgo(iso){
 }
 function fechaCorta(iso){ return iso ? new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}) : '--'; }
 
-function estadoBadge(e){
+function estadoBadge(e, l){
+  // Licitación cerrada por el admin sin cotizaciones: se muestra como "Cerrada"
+  if(e==='expirada' && l && l.cerradaPorAdmin){ return '<span class="badge badge-info">Cerrada</span>'; }
   const m={
     pendiente_admin:['badge-warn','Pendiente aprobación'],
     abierta:['badge-warn','Abierta'],
@@ -517,7 +519,7 @@ function renderCard(l){
       '</div>'+
       '<div class="li-right">'+
         '<div class="li-cotiz">'+nCotiz+' cotiz.</div>'+
-        estadoBadge(l.estado)+
+        estadoBadge(l.estado, l)+
         (l.estado==='abierta'&&l.cierreAt?'<div class="cuenta-regresiva" data-cierre="'+l.cierreAt+'" style="font-size:10px;color:#9CA3AF;margin-top:2px;text-align:right"></div>':'')+
       '</div>'+
       '<span class="li-arr" id="arr-'+l.id+'">›</span>'+
@@ -713,6 +715,9 @@ function renderDetalle(l){
   if(l.estado==='abierta'&&cotizaciones.length>0){
     acc.push('<button class="btn btn-primary" onclick="event.stopPropagation();cerrarLicit(\''+l.id+'\')">Cerrar y enviar TOP 3 →</button>');
   }
+  if(l.estado==='abierta'&&cotizaciones.length===0){
+    acc.push('<button class="btn btn-outline" onclick="event.stopPropagation();cerrarLicitSinCotiz(\''+l.id+'\')">Cerrar licitación</button>');
+  }
   if(l.estado==='adjudicada'&&!l.cobro){
     acc.push('<button class="btn btn-orange" onclick="event.stopPropagation();generarCobro(\''+l.id+'\')">Generar cobro 4%</button>');
   }
@@ -746,6 +751,13 @@ async function rechazar(id){
 async function cerrarLicit(id){
   const r=await api('/api/admin/licitacion/'+id+'/cerrar','POST',{});
   if(r&&r.ok){toast('TOP 3 enviado al cliente');cargar();}
+  else toast(r&&r.data&&r.data.error||'Error','err');
+}
+
+async function cerrarLicitSinCotiz(id){
+  if(!confirm('Cerrar esta licitación sin cotizaciones? El cliente la verá como cerrada y ya no recibirá cotizaciones.')) return;
+  const r=await api('/api/admin/licitacion/'+id+'/cerrar','POST',{});
+  if(r&&r.ok){toast('Licitación cerrada');cargar();}
   else toast(r&&r.data&&r.data.error||'Error','err');
 }
 

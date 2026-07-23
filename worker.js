@@ -1115,7 +1115,16 @@ async function handleRequest(request, env) {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     const id=path.split("/")[4]; const raw=await env.LICITACIONES.get(id); if(!raw) return err("No encontrada",404);
     const l=JSON.parse(raw); if(l.estado!=="abierta") return err("No esta abierta");
-    const cotizaciones=l.cotizaciones||[]; if(cotizaciones.length===0) return err("Sin cotizaciones");
+    const cotizaciones=l.cotizaciones||[];
+    if(cotizaciones.length===0){
+      // Cierre por admin SIN cotizaciones: estado terminal. El cliente la ve "Cerrada" (flag cerradaPorAdmin)
+      // y el transportista la ve como "No adjudicada" (estado expirada, fuera del listado activo).
+      l.estado="expirada"; l.cerradaPorAdmin=true; l.expiradaAt=new Date().toISOString(); l.cerradaAt=new Date().toISOString();
+      await env.LICITACIONES.put(id, JSON.stringify(l));
+      await crearNotificacion(env,l.clienteId,"licitacion_cerrada",`Tu licitación se cerró: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`,{ licitacionId:id });
+      await registrarActividad(env,"licitacion_cerrada",`Licitación cerrada por admin sin cotizaciones: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo });
+      return ok({ ok:true, enviadas:0, sinCotizaciones:true });
+    }
     l.estado="cerrada"; l.cerradaAt=new Date().toISOString(); l.ronda=1;
     // Rankear por score (50% precio neto / 30% puntualidad / 20% rating) antes de enviar top 3
     const todosPrecios=cotizaciones.map(c=>c.precio);
