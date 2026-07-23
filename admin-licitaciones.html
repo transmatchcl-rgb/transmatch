@@ -283,6 +283,8 @@ function estadoBadge(e){
     adjudicada:['badge-success','Adjudicada'],
     completada:['badge-success','Completada'],
     rechazada:['badge-error','Rechazada'],
+    anulada:['badge-error','Anulada'],
+    expirada:['badge-gray','Vencida sin cotizaciones'],
   };
   const [cls,lbl]=m[e]||['badge-gray',e];
   return '<span class="badge '+cls+'">'+lbl+'</span>';

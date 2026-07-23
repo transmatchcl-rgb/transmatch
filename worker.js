@@ -542,6 +542,24 @@ function emailLicitacionAprobada(l) {
     ${btnEmail('https://transmatch.cl/cliente-licitaciones.html','Ver mi licitacion')}`, "Tu licitacion fue aprobada - TransMatch");
 }
 
+function emailLicitacionRechazada(l) {
+  const fila = (label, val) => `<tr>
+      <td style="padding:11px 0;border-bottom:1px solid #F1F3F8;font-size:13px;color:#8A93A6;width:150px;vertical-align:top">${label}</td>
+      <td style="padding:11px 0;border-bottom:1px solid #F1F3F8;font-size:14px;color:#1e2d4e;font-weight:600;vertical-align:top">${val}</td>
+    </tr>`;
+  return emailBase(`
+    <div style="display:inline-block;background:#FEF2F2;color:#B91C1C;font-size:12px;font-weight:600;padding:5px 12px;border-radius:999px;margin-bottom:16px">Requiere ajustes</div>
+    <h1 style="font-size:22px;font-weight:700;color:#1e2d4e;margin:0 0 8px;line-height:1.25">Tu licitación no fue aprobada</h1>
+    <p style="font-size:14px;color:#6B7280;margin:0 0 22px;line-height:1.6">Revisamos tu solicitud y por ahora no pudo publicarse. Puedes corregirla según el motivo indicado y volver a enviarla.</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border:1px solid #EEF1F6;border-radius:12px;padding:6px 18px;margin-bottom:24px">
+      ${fila('Carga', l.tipoEquipo + (l.marca?' — '+l.marca:''))}
+      ${fila('Ruta', l.origen + ' &rarr; ' + l.destino)}
+      ${fila('Motivo', l.motivoRechazo || 'Contacta al administrador')}
+    </table>
+    ${btnEmail('https://transmatch.cl/cliente-licitaciones.html','Revisar y corregir','#1e2d4e')}`,
+    "Tu licitación fue rechazada - TransMatch");
+}
+
 function emailNuevaLicitacionTransportista(l) {
   const fila = (label, val) => `<tr>
       <td style="padding:11px 0;border-bottom:1px solid #F1F3F8;font-size:13px;color:#8A93A6;width:150px;vertical-align:top">${label}</td>
@@ -1074,7 +1092,7 @@ async function handleRequest(request, env) {
     l.comentarioAdmin=(_body.comentarioAdmin||"").toString().trim();
     await env.LICITACIONES.put(id, JSON.stringify(l));
     await crearNotificacion(env,l.clienteId,"licitacion_aprobada",`Tu licitacion fue aprobada: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`,{ licitacionId:id });
-    await enviarEmail(env,{ to:l.clienteEmail, subject:"Tu licitacion fue aprobada - TransMatch", html:emailLicitacionAprobada(l) });
+    // Al aprobar NO se envía correo al cliente (solo notificación interna). El cliente solo recibe correo si es rechazada.
     // Notificar a los transportistas elegibles (in-app + email según preferencia)
     await notificarNuevaLicitacionTransportistas(env, l);
     await registrarActividad(env,"licitacion_aprobada",`Licitación aprobada y publicada: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo });
@@ -1088,6 +1106,7 @@ async function handleRequest(request, env) {
     const l=JSON.parse(raw); l.estado="rechazada"; l.motivoRechazo=body.motivo||"";
     await env.LICITACIONES.put(id, JSON.stringify(l));
     await crearNotificacion(env,l.clienteId,"licitacion_rechazada",`Tu licitacion fue rechazada: ${body.motivo||"Contacta al administrador"}`,{ licitacionId:id });
+    try{ await enviarEmail(env,{ to:l.clienteEmail, subject:"Tu licitación fue rechazada - TransMatch", html:emailLicitacionRechazada(l) }); }catch(e){}
     await registrarActividad(env,"licitacion_rechazada",`Licitación rechazada: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo, motivo:body.motivo||"" });
     return ok({ ok:true });
   }
@@ -1172,7 +1191,7 @@ async function handleRequest(request, env) {
     for(const c of (l.cotizaciones||[])){
       if(c.transportistaId && !yaNotif.has(c.transportistaId)){
         yaNotif.add(c.transportistaId);
-        try{ await crearNotificacion(env,c.transportistaId,"licitacion_cerrada",`La licitación en la que cotizaste se cerró: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`,{ licitacionId:id }); }catch(e){}
+        try{ await crearNotificacion(env,c.transportistaId,"licitacion_cerrada",`La licitación en la que cotizaste se cerró sin adjudicación: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`,{ licitacionId:id }); }catch(e){}
       }
     }
     await registrarActividad(env,"licitacion_anulada",`Licitación anulada por el cliente: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, motivo:body.motivo });
@@ -2603,9 +2622,7 @@ async function handleRequest(request, env) {
         posEntrega=porEntrega.findIndex(x=>x.id===miCotiz.id)+1;
         posValoracion=porValoracion.findIndex(x=>x.id===miCotiz.id)+1;
       }
-      // Para el transportista, una licitación anulada por el cliente se muestra como "cerrada".
-      const estadoVista = (l.estado==="anulada") ? "cerrada" : l.estado;
-      resultado.push({ id:l.id, codigo:l.codigo, tipoEquipo:l.tipoEquipo, marca:l.marca, origen:l.origen, destino:l.destino, estado:estadoVista, createdAt:l.createdAt, adjudicadaAt:l.adjudicadaAt, miCotizacion:miCotiz?{ id:miCotiz.id, precio:miCotiz.precio, tiempoEntrega:miCotiz.tiempoEntrega, score:miCotiz.score, createdAt:miCotiz.createdAt, creadoPor:(!user.esSubusuario ? (miCotiz.transportistaNombre||'') : '') }:null, gane:laGane, precioAdjudicado:laGane?l.adjudicadaA.precio:null, valoracion:laGane?(l.valoracion||null):null, posPrecio, posEntrega, posValoracion, totalCotizaciones }); }
+      resultado.push({ id:l.id, codigo:l.codigo, tipoEquipo:l.tipoEquipo, marca:l.marca, origen:l.origen, destino:l.destino, estado:l.estado, createdAt:l.createdAt, adjudicadaAt:l.adjudicadaAt, miCotizacion:miCotiz?{ id:miCotiz.id, precio:miCotiz.precio, tiempoEntrega:miCotiz.tiempoEntrega, score:miCotiz.score, createdAt:miCotiz.createdAt, creadoPor:(!user.esSubusuario ? (miCotiz.transportistaNombre||'') : '') }:null, gane:laGane, precioAdjudicado:laGane?l.adjudicadaA.precio:null, valoracion:laGane?(l.valoracion||null):null, posPrecio, posEntrega, posValoracion, totalCotizaciones }); }
     return ok({ licitaciones:resultado });
   }
 
