@@ -1166,15 +1166,13 @@ async function handleRequest(request, env) {
     l.estado="anulada"; l.anuladaAt=new Date().toISOString(); l.motivoAnulacion=body.motivo; l.anuladaPor=user.role;
     await env.LICITACIONES.put(id, JSON.stringify(l));
     await crearNotificacion(env,"admin","licitacion_anulada",`Licitacion anulada por cliente: ${l.tipoEquipo} - ${l.origen} - ${l.destino}. Motivo: ${body.motivo}`,{ licitacionId:id });
-    // Notificar a todos los transportistas que cotizaron que la licitación fue anulada
+    // A los transportistas que cotizaron NO se les informa que fue anulada: para ellos aparece
+    // simplemente como "cerrada". Solo notificación interna neutra, SIN correo.
     const yaNotif=new Set();
     for(const c of (l.cotizaciones||[])){
       if(c.transportistaId && !yaNotif.has(c.transportistaId)){
         yaNotif.add(c.transportistaId);
-        try{ await crearNotificacion(env,c.transportistaId,"licitacion_anulada",`La licitación fue anulada y no se adjudicó: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`,{ licitacionId:id }); }catch(e){}
-        if(c.transportistaEmail){
-          try{ await enviarEmail(env,{ to:c.transportistaEmail, subject:"Licitación anulada - TransMatch", html:emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Licitación anulada</h2><p style="font-size:14px;color:#6B7280;margin:0 0 20px">La licitación en la que cotizaste fue anulada por el cliente y no se adjudicará.</p><div style="background:#F9FAFB;border-radius:8px;padding:16px;margin-bottom:20px"><div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>Carga:</strong> ${l.tipoEquipo}${l.marca?' - '+l.marca:''}</div><div style="font-size:13px;color:#374151"><strong>Ruta:</strong> ${l.origen} - ${l.destino}</div></div><p style="font-size:13px;color:#6B7280">Puedes revisar otras licitaciones disponibles en tu panel.</p>`,"Licitación anulada - TransMatch") }); }catch(e){}
-        }
+        try{ await crearNotificacion(env,c.transportistaId,"licitacion_cerrada",`La licitación en la que cotizaste se cerró: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`,{ licitacionId:id }); }catch(e){}
       }
     }
     await registrarActividad(env,"licitacion_anulada",`Licitación anulada por el cliente: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, motivo:body.motivo });
@@ -2605,7 +2603,9 @@ async function handleRequest(request, env) {
         posEntrega=porEntrega.findIndex(x=>x.id===miCotiz.id)+1;
         posValoracion=porValoracion.findIndex(x=>x.id===miCotiz.id)+1;
       }
-      resultado.push({ id:l.id, codigo:l.codigo, tipoEquipo:l.tipoEquipo, marca:l.marca, origen:l.origen, destino:l.destino, estado:l.estado, createdAt:l.createdAt, adjudicadaAt:l.adjudicadaAt, miCotizacion:miCotiz?{ id:miCotiz.id, precio:miCotiz.precio, tiempoEntrega:miCotiz.tiempoEntrega, score:miCotiz.score, createdAt:miCotiz.createdAt, creadoPor:(!user.esSubusuario ? (miCotiz.transportistaNombre||'') : '') }:null, gane:laGane, precioAdjudicado:laGane?l.adjudicadaA.precio:null, valoracion:laGane?(l.valoracion||null):null, posPrecio, posEntrega, posValoracion, totalCotizaciones }); }
+      // Para el transportista, una licitación anulada por el cliente se muestra como "cerrada".
+      const estadoVista = (l.estado==="anulada") ? "cerrada" : l.estado;
+      resultado.push({ id:l.id, codigo:l.codigo, tipoEquipo:l.tipoEquipo, marca:l.marca, origen:l.origen, destino:l.destino, estado:estadoVista, createdAt:l.createdAt, adjudicadaAt:l.adjudicadaAt, miCotizacion:miCotiz?{ id:miCotiz.id, precio:miCotiz.precio, tiempoEntrega:miCotiz.tiempoEntrega, score:miCotiz.score, createdAt:miCotiz.createdAt, creadoPor:(!user.esSubusuario ? (miCotiz.transportistaNombre||'') : '') }:null, gane:laGane, precioAdjudicado:laGane?l.adjudicadaA.precio:null, valoracion:laGane?(l.valoracion||null):null, posPrecio, posEntrega, posValoracion, totalCotizaciones }); }
     return ok({ licitaciones:resultado });
   }
 
