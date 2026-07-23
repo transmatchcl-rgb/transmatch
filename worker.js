@@ -1025,7 +1025,7 @@ async function handleRequest(request, env) {
       let l = JSON.parse(raw);
       if (!l.codigo) { l.codigo = await generarCodigo(env,'LIC'); await env.LICITACIONES.put(id, JSON.stringify(l)); }
       if (user.role==="transportista") {
-        if (["abierta","cerrada"].includes(l.estado)) { const _enFallback = !l.modoNotificacion || l.modoNotificacion==="fallback"; if (!_enFallback && !puedeTransportar(equiposTransportista,l)) continue; const _anon=anonimizarCliente(l); const cotEmp=(l.cotizaciones||[]).find(c=>c.transportistaId===user.id || (c.transportistaEmail&&emailsEmpresaT.has(c.transportistaEmail.toLowerCase()))); _anon.empresaYaCotizo=!!cotEmp; _anon.empresaCotizoNombre=(!user.esSubusuario && cotEmp)?(cotEmp.transportistaNombre||''):''; _anon.preguntas=anonimizarPreguntas(l.preguntas,user.id,'transportista'); licitaciones.push(_anon); }
+        if (["abierta","cerrada"].includes(l.estado)) { /* Sin filtro por tipo de equipo: todas las licitaciones abiertas/en revisión se muestran a TODOS los transportistas (matching desactivado a pedido de Majo). */ const _anon=anonimizarCliente(l); const cotEmp=(l.cotizaciones||[]).find(c=>c.transportistaId===user.id || (c.transportistaEmail&&emailsEmpresaT.has(c.transportistaEmail.toLowerCase()))); _anon.empresaYaCotizo=!!cotEmp; _anon.empresaCotizoNombre=(!user.esSubusuario && cotEmp)?(cotEmp.transportistaNombre||''):''; _anon.preguntas=anonimizarPreguntas(l.preguntas,user.id,'transportista'); licitaciones.push(_anon); }
         else if (["adjudicada","completada"].includes(l.estado) && l.adjudicadaA?.transportistaEmail===user.email) licitaciones.push(l);
         else continue;
       } else if (user.role==="cliente") {
