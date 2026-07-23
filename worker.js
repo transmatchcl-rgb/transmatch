@@ -499,26 +499,32 @@ async function enviarEmail(env, { to, subject, html }) {
 }
 
 function emailBase(contenido, titulo) {
-  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>${titulo}</title></head>
-<body style="margin:0;padding:0;background:#F3F4F6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6;padding:32px 16px">
-    <tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
-      <tr><td style="background:#1e2d4e;border-radius:12px 12px 0 0;padding:22px 28px;text-align:center">
-        <span style="display:inline-block;width:30px;height:30px;line-height:30px;background:#FF8904;color:#fff;font-weight:800;font-size:17px;border-radius:8px;vertical-align:middle;margin-right:9px;text-align:center">T</span><span style="font-weight:800;color:#fff;font-size:20px;vertical-align:middle;letter-spacing:-0.3px">Trans<span style="color:#FF8904">Match</span></span>
-      </td></tr>
-      <tr><td style="background:#fff;padding:28px;border-radius:0 0 12px 12px">
-        ${contenido}
-        <div style="margin-top:24px;padding-top:20px;border-top:1px solid #F3F4F6;text-align:center;font-size:12px;color:#9CA3AF">
-          Email automatico de TransMatch · <a href="https://transmatch.cl" style="color:#1e2d4e;text-decoration:none">transmatch.cl</a>
-        </div>
-      </td></tr>
-    </table></td></tr>
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${titulo}</title></head>
+<body style="margin:0;padding:0;background:#EEF1F6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EEF1F6;padding:32px 16px">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;border-radius:16px;overflow:hidden;box-shadow:0 1px 4px rgba(30,45,78,.08)">
+        <tr><td style="background:#1e2d4e;height:4px;line-height:4px;font-size:0">&nbsp;</td></tr>
+        <tr><td style="background:#ffffff;padding:26px 28px 22px;border-bottom:1px solid #EEF1F6" align="center">
+          <img src="https://transmatch.cl/email-logo.png" alt="TransMatch" height="30" style="height:30px;width:auto;display:block;border:0" />
+        </td></tr>
+        <tr><td style="background:#ffffff;padding:32px 32px 28px">
+          ${contenido}
+        </td></tr>
+        <tr><td style="background:#ffffff;padding:0 32px 28px">
+          <div style="border-top:1px solid #EEF1F6;padding-top:20px;text-align:center;font-size:12px;color:#9CA3AF;line-height:1.6">
+            Este es un correo automático de TransMatch.<br/>
+            <a href="https://transmatch.cl" style="color:#1e2d4e;text-decoration:none;font-weight:500">transmatch.cl</a> · <a href="https://transmatch.cl/transportista-perfil.html" style="color:#9CA3AF;text-decoration:underline">Preferencias de notificación</a>
+          </div>
+        </td></tr>
+      </table>
+    </td></tr>
   </table>
 </body></html>`;
 }
 
 function btnEmail(href, texto, color='#1e2d4e') {
-  return `<div style="text-align:center;margin:20px 0"><a href="${href}" style="background:${color};color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;display:inline-block">${texto}</a></div>`;
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px auto 4px"><tr><td style="border-radius:10px;background:${color}"><a href="${href}" style="display:inline-block;padding:13px 30px;font-size:15px;font-weight:600;color:#fff;text-decoration:none;border-radius:10px">${texto}</a></td></tr></table>`;
 }
 
 function formatCLP(n) {
@@ -537,14 +543,22 @@ function emailLicitacionAprobada(l) {
 }
 
 function emailNuevaLicitacionTransportista(l) {
-  return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Nueva licitación disponible</h2>
-    <p style="font-size:14px;color:#6B7280;margin:0 0 20px">Hay una nueva solicitud de transporte que puedes cotizar.</p>
-    <div style="background:#F9FAFB;border-radius:8px;padding:16px;margin-bottom:20px">
-      <div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>Carga:</strong> ${l.tipoEquipo}${l.marca?' - '+l.marca:''}</div>
-      <div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>Ruta:</strong> ${l.origen} - ${l.destino}</div>
-      <div style="font-size:13px;color:#374151"><strong>Plazo para cotizar:</strong> ${l.plazo||'24'} horas</div>
-    </div>
-    ${btnEmail('https://transmatch.cl/transportista-licitaciones.html','Ver y cotizar','#FF8904')}`, "Nueva licitación disponible - TransMatch");
+  const fila = (label, val) => `<tr>
+      <td style="padding:11px 0;border-bottom:1px solid #F1F3F8;font-size:13px;color:#8A93A6;width:150px;vertical-align:top">${label}</td>
+      <td style="padding:11px 0;border-bottom:1px solid #F1F3F8;font-size:14px;color:#1e2d4e;font-weight:600;vertical-align:top">${val}</td>
+    </tr>`;
+  return emailBase(`
+    <div style="display:inline-block;background:#FFF3E6;color:#B45309;font-size:12px;font-weight:600;padding:5px 12px;border-radius:999px;margin-bottom:16px">Nueva oportunidad</div>
+    <h1 style="font-size:22px;font-weight:700;color:#1e2d4e;margin:0 0 8px;line-height:1.25">Nueva licitación disponible</h1>
+    <p style="font-size:14px;color:#6B7280;margin:0 0 22px;line-height:1.6">Hay una nueva solicitud de transporte compatible con tu operación. Revisa los detalles y envía tu cotización antes de que cierre el plazo.</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border:1px solid #EEF1F6;border-radius:12px;padding:6px 18px;margin-bottom:24px">
+      ${fila('Carga', l.tipoEquipo + (l.marca?' — '+l.marca:''))}
+      ${fila('Ruta', l.origen + ' &rarr; ' + l.destino)}
+      ${fila('Plazo para cotizar', (l.plazo||'24') + ' horas')}
+    </table>
+    ${btnEmail('https://transmatch.cl/transportista-licitaciones.html','Ver y cotizar','#FF8808')}
+    <p style="font-size:12px;color:#9CA3AF;text-align:center;margin:14px 0 0">Responder rápido a las licitaciones mejora tus oportunidades.</p>`,
+    "Nueva licitación disponible - TransMatch");
 }
 
 function emailNuevaLicitacionAdmin(l) {
