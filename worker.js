@@ -1251,6 +1251,31 @@ async function handleRequest(request, env) {
     return ok({ ok:true });
   }
 
+  // POST /api/admin/licitacion/:id/comentario — el admin agrega un comentario post-aprobación.
+  // Queda en el hilo de preguntas/respuestas y lo ven tanto los transportistas como el cliente.
+  if (path.match(/^\/api\/admin\/licitacion\/[^/]+\/comentario$/)&&method==="POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    const id=path.split("/")[4]; const raw=await env.LICITACIONES.get(id); if(!raw) return err("No encontrada",404);
+    let body={}; try{body=await request.json();}catch(e){}
+    if(!body.texto||!body.texto.trim()) return err("Escribe un comentario");
+    const l=JSON.parse(raw);
+    if(l.estado==="pendiente_admin") return err("La licitación aún no está aprobada");
+    const comentario={ id:crypto.randomUUID(), texto:body.texto.trim().slice(0,1000), createdAt:new Date().toISOString() };
+    l.comentariosAdmin=l.comentariosAdmin||[]; l.comentariosAdmin.push(comentario);
+    await env.LICITACIONES.put(id, JSON.stringify(l));
+    // Aviso interno (sin correo) al cliente y a los transportistas que cotizaron
+    try{ await crearNotificacion(env, l.clienteId, "comentario_licitacion", `TransMatch agregó un comentario a tu licitación ${l.codigo||''}: "${comentario.texto.slice(0,80)}"`, { licitacionId:id }); }catch(e){}
+    const _yaC=new Set();
+    for(const c of (l.cotizaciones||[])){
+      if(c.transportistaId && !_yaC.has(c.transportistaId)){
+        _yaC.add(c.transportistaId);
+        try{ await crearNotificacion(env, c.transportistaId, "comentario_licitacion", `Nuevo comentario del administrador en una licitación: "${comentario.texto.slice(0,80)}"`, { licitacionId:id }); }catch(e){}
+      }
+    }
+    await registrarActividad(env,"licitacion_comentario",`Comentario del admin en licitación ${l.codigo||''}: ${comentario.texto.slice(0,80)}`,{ licitacionId:id, codigo:l.codigo });
+    return ok({ ok:true, comentario });
+  }
+
   // POST /api/licitaciones/:id/ampliar-plazo — reabrir una licitación expirada con un nuevo plazo
   if (path.startsWith("/api/licitaciones/")&&path.endsWith("/ampliar-plazo")&&method==="POST") {
     const id=path.split("/")[3]; const user=await getUser(request,env); const d=deny(user,"cliente","admin"); if(d) return d;

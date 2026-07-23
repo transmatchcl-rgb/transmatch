@@ -727,6 +727,18 @@ function renderDetalle(l){
     html+='<div class="det-actions">'+acc.join('')+'</div>';
   }
 
+  // Comentarios del administrador (post-aprobación) — visibles para transportistas y cliente
+  if(['abierta','cerrada','adjudicada','completada'].includes(l.estado)){
+    var coms=l.comentariosAdmin||[];
+    html+='<div style="margin:14px 18px 4px"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Comentarios del administrador</div>';
+    if(coms.length){
+      html+=coms.map(function(cm){ return '<div style="background:#EEF1F6;border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:13px;color:#1e2d4e"><div>'+cm.texto+'</div><div style="font-size:11px;color:#9CA3AF;margin-top:4px">'+new Date(cm.createdAt).toLocaleString('es-CL')+'</div></div>'; }).join('');
+    } else {
+      html+='<div style="font-size:12px;color:#9CA3AF;margin-bottom:8px">Sin comentarios todavía.</div>';
+    }
+    html+='<div style="display:flex;gap:8px;margin-top:4px"><input type="text" id="coment-input-'+l.id+'" placeholder="Comentario para transportistas y cliente" maxlength="1000" onclick="event.stopPropagation()" style="flex:1;padding:8px 10px;border:1px solid #e8eaf0;border-radius:6px;font-size:13px"><button class="btn btn-primary" onclick="event.stopPropagation();agregarComentarioLicit(\''+l.id+'\')">Agregar</button></div></div>';
+  }
+
   // Motivo rechazo
   if(l.estado==='rechazada'&&l.motivoRechazo){
     html+='<div style="margin:0 18px 14px;background:#FEF2F2;border-radius:8px;padding:12px;font-size:13px;color:#991B1B">Motivo: '+l.motivoRechazo+'</div>';
@@ -748,6 +760,15 @@ async function rechazar(id){
   const r=await api('/api/admin/licitacion/'+id+'/rechazar','POST',{motivo});
   if(r&&r.ok){toast('Licitación rechazada');cargar();}
   else toast('Error al rechazar','err');
+}
+
+async function agregarComentarioLicit(id){
+  var inp=document.getElementById('coment-input-'+id);
+  var texto=inp?inp.value.trim():'';
+  if(!texto){ toast('Escribe un comentario','err'); return; }
+  const r=await api('/api/admin/licitacion/'+id+'/comentario','POST',{texto:texto});
+  if(r&&r.ok){ toast('Comentario agregado'); if(inp)inp.value=''; cargar(); }
+  else toast(r&&r.data&&r.data.error||'Error','err');
 }
 
 async function cerrarLicit(id){

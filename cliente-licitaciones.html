@@ -685,6 +685,14 @@ if(l.archivoId){
 h+='<div style="margin-bottom:14px"><button onclick="descargarArchivo(\''+l.archivoId+'\',\''+(l.archivoNombre||'especificaciones')+'\')" style="width:fit-content;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">Descargar especificaciones</button></div>';
 }
 
+// Comentarios del administrador (post-aprobación) — visibles para el cliente y los transportistas
+var comsAdmC=l.comentariosAdmin||[];
+if(comsAdmC.length){
+h+='<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Comentarios de TransMatch</div>';
+h+=comsAdmC.map(function(cm){ return '<div style="background:#FFF7ED;border:1px solid #FDE8CC;border-radius:8px;padding:10px 12px;margin-bottom:8px"><div style="font-size:13px;color:#374151;line-height:1.5">'+cm.texto+'</div><div style="font-size:11px;color:#9CA3AF;margin-top:4px">'+new Date(cm.createdAt).toLocaleString('es-CL')+'</div></div>'; }).join('');
+h+='</div>';
+}
+
 // Preguntas de transportistas — mediado por la plataforma, nunca se revela quién pregunta.
 // La respuesta la ven todos los que coticen, no solo quien preguntó.
 var preguntasC=l.preguntas||[];
