@@ -308,10 +308,11 @@ async function descargarArchivo(id,nombre){
 }
 
 // ---- PDFs del admin (texto nativo) ----
+var _tmPdfLogo = new Image(); _tmPdfLogo.src = '/logo-pdf.png'; // logo oficial precargado para el PDF
 function _pdfHeader(pdf,l,subtitulo){
   var pw=pdf.internal.pageSize.getWidth(), mL=18, mR=18;
-  pdf.setFont('helvetica','bold'); pdf.setTextColor(30,45,78); pdf.setFontSize(15);
-  pdf.text('TransMatch', mL, 20);
+  try { pdf.addImage(_tmPdfLogo, 'PNG', mL, 15.4, 30, 30/5.99); }
+  catch(e){ pdf.setFont('helvetica','bold'); pdf.setTextColor(30,45,78); pdf.setFontSize(15); pdf.text('TransMatch', mL, 20); }
   pdf.setFont('helvetica','normal'); pdf.setFontSize(9); pdf.setTextColor(107,114,128);
   pdf.text(subtitulo, mL, 25);
   pdf.setFont('helvetica','bold'); pdf.setTextColor(30,45,78); pdf.setFontSize(17);

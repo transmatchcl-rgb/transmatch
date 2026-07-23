@@ -1001,6 +1001,7 @@ async function descargarCotizacionPDF(){
 
 // Genera un PDF con el detalle del formulario de la licitación.
 // ocultarSensible=true => no incluye contacto ni referencia al archivo (transportista no adjudicado).
+var _tmPdfLogo = new Image(); _tmPdfLogo.src = '/logo-pdf.png'; // logo oficial precargado para el PDF
 function descargarLicitacionPDF(licId, ocultarSensible){
   var l=allLicitaciones.find(function(x){return x.id===licId;});
   if(!l){ showToast('No se encontró la licitación','err'); return; }
@@ -1051,8 +1052,8 @@ function descargarLicitacionPDF(licId, ocultarSensible){
     pdf.setDrawColor(225,228,235); pdf.setLineWidth(0.3); pdf.line(mL,y+1.5,pw-mR,y+1.5);
     nl(6);
   }
-  pdf.setFont('helvetica','bold'); pdf.setTextColor(30,45,78); pdf.setFontSize(15);
-  pdf.text('TransMatch', mL, y);
+  try { pdf.addImage(_tmPdfLogo, 'PNG', mL, y-4.6, 30, 30/5.99); }
+  catch(e){ pdf.setFont('helvetica','bold'); pdf.setTextColor(30,45,78); pdf.setFontSize(15); pdf.text('TransMatch', mL, y); }
   pdf.setFont('helvetica','normal'); pdf.setFontSize(9); pdf.setTextColor(107,114,128);
   pdf.text('Detalle de licitacion', mL, y+5);
   pdf.setFont('helvetica','bold'); pdf.setTextColor(30,45,78); pdf.setFontSize(17);
