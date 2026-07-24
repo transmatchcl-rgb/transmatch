@@ -1122,9 +1122,9 @@ async function handleRequest(request, env) {
       // El cliente la ve "Cerrada" (flag cerradaPorAdmin) y el transportista "No adjudicada"
       // (estado expirada, fuera del listado activo). No se envía correo a nadie.
       l.estado="expirada"; l.cerradaPorAdmin=true; l.expiradaAt=new Date().toISOString(); l.cerradaAt=new Date().toISOString();
-      l.motivoCierre=(_body.motivo||"").toString().trim().slice(0,300); // nota visible para el cliente
+      l.motivoCierre=(_body.motivo||"").toString().trim().slice(0,300); // nota visible para el cliente en el detalle
       await env.LICITACIONES.put(id, JSON.stringify(l));
-      await crearNotificacion(env,l.clienteId,"licitacion_cerrada",`Tu licitación se cerró${l.motivoCierre?': '+l.motivoCierre.slice(0,80):''} — ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id });
+      // Al cliente NO se le notifica el cierre (ni campanita ni correo); ve el motivo al abrir su licitación.
       // Avisar (interno, sin correo) a los transportistas que alcanzaron a cotizar
       const _yaNotif=new Set();
       for(const c of cotizaciones){
