@@ -289,7 +289,6 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 </div>
 <div class="hint">Puedes seleccionar hasta 2 opciones</div>
 </div>
-<div class="form-group"><label>Cantidad de equipos <span class="required">*</span></label><input type="number" id="cantidadEquiposMaq" placeholder="Ej: 1" min="1" autocomplete="off"/></div>
 <div class="form-group">
 <label style="font-size:15px;font-weight:700;color:#1e2d4e;margin-bottom:8px">Tipo de maquinaria <span class="required">*</span></label>
 <input type="text" id="tipoEquipo" placeholder="Ej: Excavadora, Cargador frontal, Motoniveladora..." autocomplete="off"/>
@@ -338,7 +337,6 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <div class="hint">Puedes seleccionar hasta 2 opciones</div>
 <input type="hidden" id="tipoEquipoCarga" value=""/>
 </div>
-<div class="form-group"><label>Cantidad de equipos <span class="required">*</span></label><input type="number" id="cantidadEquiposCarga" placeholder="Ej: 2" min="1" autocomplete="off"/></div>
 <label style="font-size:15px;font-weight:700;color:#1e2d4e;margin:24px 0 12px;display:block">Detalle de la carga</label>
 <div class="form-group"><label>Tipo de carga</label><input type="text" id="tipoCarga" placeholder="Ej: Maxi sacos de cemento, tambores de lubricante..." autocomplete="off"/></div>
 <div class="grid-2">
@@ -956,7 +954,6 @@ if(tipoLicitacion==='maquinaria'){
 var _ocm=document.querySelector('.eq-req-cb[value="Otro"]');if(_ocm&&_ocm.checked&&!(document.getElementById('otro-req-text').value||'').trim()){showToast('Especifica el equipo en "Otro"','err');var _e=document.getElementById('err-otro-req');if(_e)_e.style.display='block';return;}
 if(!getEqRequerido()){showToast('Selecciona al menos un tipo de equipo requerido','err');return;}
 if(!document.getElementById('tipoEquipo').value.trim()){showToast('Indica el tipo de maquinaria','err');return;}
-if(!document.getElementById('cantidadEquiposMaq').value){showToast('Indica la cantidad de equipos','err');return;}
 if(!document.getElementById('marca').value.trim()){showToast('Indica la marca','err');return;}
 if(!document.getElementById('modeloMaq').value.trim()){showToast('Indica el modelo','err');return;}
 if(!document.getElementById('pesoMaq').value){showToast('Indica el peso aproximado','err');return;}
@@ -971,7 +968,6 @@ if(document.getElementById('mercanciaPeligrosa').checked&&!document.getElementBy
 }else{
 var _occ=document.querySelector('.eq-carga-cb[value="Otro"]');if(_occ&&_occ.checked&&!(document.getElementById('otro-carga-text').value||'').trim()){showToast('Especifica el equipo en "Otro"','err');var _e=document.getElementById('err-otro-carga');if(_e)_e.style.display='block';return;}
 if(!getEqRequeridoCarga()){showToast('Selecciona al menos un tipo de equipo requerido','err');return;}
-if(!document.getElementById('cantidadEquiposCarga').value){showToast('Indica la cantidad de equipos','err');return;}
 if(!modoEdicion&&!archivoCarga){showToast('Debes adjuntar el archivo de especificaciones','err');return;}
 }
 }
@@ -1011,7 +1007,6 @@ rows.push(['Tipo',tipoLicitacion==='maquinaria'?'Maquinaria pesada':(tipoLicitac
 if(tipoLicitacion==='maquinaria'){
 rows.push(['Maquinaria',getTipoEquipo()]);
 rows.push(['Equipo requerido',getEqRequerido()||'--']);
-var cant=gv('cantidadEquiposMaq');if(cant)rows.push(['Cantidad de equipos',cant]);
 var marca=gv('marca').trim();var modelo=gv('modeloMaq').trim();
 if(marca||modelo)rows.push(['Marca / modelo',(marca+' '+modelo).trim()]);
 var peso=gv('pesoMaq');if(peso)rows.push(['Peso',peso+' ton']);
@@ -1030,7 +1025,6 @@ if(document.getElementById('contSobredimensionado').checked)rows.push(['Sobredim
 }else{
 var eq=gv('tipoEquipoCarga');if(eq)rows.push(['Camion requerido',eq]);
 var tc=document.getElementById('tipoCarga').value.trim();if(tc)rows.push(['Tipo de carga',tc]);
-var cantC=document.getElementById('cantidadEquiposCarga').value;if(cantC)rows.push(['Cantidad de equipos',cantC]);
 var pc=document.getElementById('pesoCarga').value;if(pc)rows.push(['Peso total',pc+' ton']);
 var vol=document.getElementById('volumenCarga').value;if(vol)rows.push(['Volumen',vol+' m³']);
 var nb=document.getElementById('cantidadBultos').value;if(nb)rows.push(['N° de bultos',nb]);
@@ -1114,7 +1108,6 @@ payload.estandarArchivoNombre=_estandarArchivoNombrePrevio;
 if(tipoLicitacion==='maquinaria'){
 payload.tipoEquipo=getTipoEquipo();
 payload.tipoEquipoRequerido=getEqRequerido();
-payload.cantidadEquipos=document.getElementById('cantidadEquiposMaq').value||'';
 payload.marca=document.getElementById('marca').value.trim();
 payload.modelo=document.getElementById('modeloMaq').value.trim();
 payload.peso=document.getElementById('pesoMaq').value||'';
@@ -1158,7 +1151,6 @@ payload.tipoEntregaDestino='no_aplica';
 }else{
 payload.tipoEquipoRequerido=getEqRequeridoCarga();
 payload.tipoCarga=document.getElementById('tipoCarga').value.trim();
-payload.cantidadEquipos=document.getElementById('cantidadEquiposCarga').value||'';
 payload.peso=document.getElementById('pesoCarga').value||'';
 payload.volumen=document.getElementById('volumenCarga').value||'';
 payload.cantidadBultos=document.getElementById('cantidadBultos').value||'';
@@ -1263,7 +1255,6 @@ if(_custom.length){var _oc=document.querySelector('.eq-req-cb[value="Otro"]');if
 }
 if(l.marca)document.getElementById('marca').value=l.marca;
 if(l.modelo)document.getElementById('modeloMaq').value=l.modelo;
-if(l.cantidadEquipos)document.getElementById('cantidadEquiposMaq').value=l.cantidadEquipos;
 if(l.peso)document.getElementById('pesoMaq').value=l.peso;
 if(l.dimensiones)document.getElementById('dimensionesMaq').value=l.dimensiones;
 if(l.descripcion)document.getElementById('descripcionMaq').value=l.descripcion;
@@ -1327,7 +1318,6 @@ var _customC=valsC.filter(function(v){return v&&_knownC.indexOf(v)<0;});
 if(_customC.length){var _ocC=document.querySelector('.eq-carga-cb[value="Otro"]');if(_ocC){_ocC.checked=true;var _lC=_ocC.closest('label');if(_lC){_lC.style.borderColor='#1e2d4e';_lC.style.background='#eef1f8';}}document.getElementById('otro-carga-text').value=_customC.join(' / ');toggleOtroCarga();}
 }
 if(l.tipoCarga)document.getElementById('tipoCarga').value=l.tipoCarga;
-if(l.cantidadEquipos)document.getElementById('cantidadEquiposCarga').value=l.cantidadEquipos;
 if(l.peso)document.getElementById('pesoCarga').value=l.peso;
 if(l.volumen)document.getElementById('volumenCarga').value=l.volumen;
 if(l.cantidadBultos)document.getElementById('cantidadBultos').value=l.cantidadBultos;
