@@ -478,7 +478,7 @@ var l=allLicitaciones.find(function(x){return x.id===id});
 if(!l)return;
 _selectedId=id;_selectedLic=l;
 document.getElementById('det-titulo').textContent=(l.codigo?l.codigo+' -- ':'')+l.tipoEquipo+(l.marca?' -- '+l.marca:'');
-document.getElementById('det-meta').textContent='';
+document.getElementById('det-meta').textContent=(l.cerradaPorAdmin&&l.motivoCierre)?('Motivo de cierre: '+l.motivoCierre):'';
 document.getElementById('det-badge').innerHTML=bdg(l.estado, l);
 
 // Menu opciones — Duplicar siempre disponible (cualquier estado); Editar/Eliminar/Anular según estado

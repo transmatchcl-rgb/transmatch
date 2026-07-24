@@ -778,8 +778,9 @@ async function cerrarLicit(id){
 }
 
 async function cerrarLicitSinEnviar(id){
-  if(!confirm('Cerrar esta licitación sin enviar cotizaciones al cliente? Se cerrará para todos los transportistas y no se enviará el TOP 3. Úsalo si el cliente ya resolvió por fuera.')) return;
-  const r=await api('/api/admin/licitacion/'+id+'/cerrar','POST',{sinEnviar:true});
+  var motivo=prompt('Cerrar esta licitación sin enviar cotizaciones. Escribe el motivo (opcional) — se mostrará al cliente:\n\nEj: El cliente resolvió el servicio por fuera de la plataforma.');
+  if(motivo===null) return; // cancelar
+  const r=await api('/api/admin/licitacion/'+id+'/cerrar','POST',{sinEnviar:true, motivo:motivo});
   if(r&&r.ok){toast('Licitación cerrada');cargar();}
   else toast(r&&r.data&&r.data.error||'Error','err');
 }
