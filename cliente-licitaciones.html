@@ -367,7 +367,7 @@ return 'hace '+Math.floor(d/1440)+'d';
 
 function bdg(e, l){
 // Licitación cerrada por el admin sin cotizaciones: el cliente la ve como "Cerrada"
-if(e==='expirada' && l && l.cerradaPorAdmin){ return '<span class="badge badge-info">Cerrada</span>'; }
+if(e==='expirada' && l && (l.cerradaPorAdmin||l.cerradaPorVencimiento)){ return '<span class="badge badge-info">Cerrada</span>'; }
 var m={pendiente_admin:['badge-warn','En revision'],abierta:['badge-warn','Abierta'],cerrada:['badge-info','Con cotizaciones'],adjudicada:['badge-success','Adjudicada'],completada:['badge-success','Completada'],rechazada:['badge-error','Rechazada'],anulada:['badge-error','Anulada'],expirada:['badge-neutral','Vencida sin cotizaciones']};
 var cl=m[e]||['badge-gray',e];
 return '<span class="badge '+cl[0]+'">'+cl[1]+'</span>';
@@ -478,7 +478,7 @@ var l=allLicitaciones.find(function(x){return x.id===id});
 if(!l)return;
 _selectedId=id;_selectedLic=l;
 document.getElementById('det-titulo').textContent=(l.codigo?l.codigo+' -- ':'')+l.tipoEquipo+(l.marca?' -- '+l.marca:'');
-document.getElementById('det-meta').textContent=(l.cerradaPorAdmin&&l.motivoCierre)?('Motivo de cierre: '+l.motivoCierre):'';
+document.getElementById('det-meta').textContent=((l.cerradaPorAdmin||l.cerradaPorVencimiento)&&l.motivoCierre)?('Motivo de cierre: '+l.motivoCierre):'';
 document.getElementById('det-badge').innerHTML=bdg(l.estado, l);
 
 // Menu opciones — Duplicar siempre disponible (cualquier estado); Editar/Eliminar/Anular según estado

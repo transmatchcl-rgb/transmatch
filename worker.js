@@ -268,6 +268,29 @@ async function procesarLicitacionesVencidas(env) {
         await registrarActividad(env,"recordatorio_adjudicar_enviado",`Recordatorio enviado: licitación cerrada sin adjudicar hace >24h: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo });
       } catch (e) {}
     }
+    // Cierre automático por fecha de carga: si una licitación NO adjudicada (abierta o en revisión del
+    // cliente) alcanza su día/hora de carga, se marca como terminal. El cliente la ve "Cerrada" y el
+    // transportista "No adjudicada". Se usa offset de Chile (~UTC-4) para no cerrar antes de tiempo.
+    const CHILE_OFFSET_MS = 4 * 3600000;
+    for (const id of ids) {
+      const raw = await env.LICITACIONES.get(id);
+      if (!raw) continue;
+      const l = JSON.parse(raw);
+      if (!["abierta","cerrada"].includes(l.estado)) continue; // solo activas sin adjudicar
+      if (!l.fechaCarga) continue;
+      const cargaStr = l.fechaCarga + "T" + (l.horaCarga && /^\d{1,2}:\d{2}/.test(l.horaCarga) ? l.horaCarga : "23:59") + ":00";
+      const cargaMs = Date.parse(cargaStr);
+      if (isNaN(cargaMs)) continue;
+      if ((cargaMs + CHILE_OFFSET_MS) > ahora) continue; // aún no llega la fecha/hora de carga
+      l.estado = "expirada"; l.cerradaPorVencimiento = true; l.expiradaAt = new Date().toISOString(); l.cerradaAt = l.cerradaAt || new Date().toISOString();
+      l.motivoCierre = l.motivoCierre || "Cerrada automáticamente: se alcanzó la fecha de carga sin adjudicación.";
+      await env.LICITACIONES.put(id, JSON.stringify(l));
+      // A los transportistas NO se les notifica el cierre (solo se notifica la adjudicación).
+      try {
+        await registrarActividad(env, "licitacion_cerrada", `Licitación cerrada automáticamente por fecha de carga sin adjudicación: ${l.tipoEquipo} (${l.origen} → ${l.destino})`, { licitacionId: id, codigo: l.codigo });
+      } catch (e) {}
+      procesadas++;
+    }
   } catch (e) {}
   return procesadas;
 }
@@ -1124,15 +1147,7 @@ async function handleRequest(request, env) {
       l.estado="expirada"; l.cerradaPorAdmin=true; l.expiradaAt=new Date().toISOString(); l.cerradaAt=new Date().toISOString();
       l.motivoCierre=(_body.motivo||"").toString().trim().slice(0,300); // nota visible para el cliente en el detalle
       await env.LICITACIONES.put(id, JSON.stringify(l));
-      // Al cliente NO se le notifica el cierre (ni campanita ni correo); ve el motivo al abrir su licitación.
-      // Avisar (interno, sin correo) a los transportistas que alcanzaron a cotizar
-      const _yaNotif=new Set();
-      for(const c of cotizaciones){
-        if(c.transportistaId && !_yaNotif.has(c.transportistaId)){
-          _yaNotif.add(c.transportistaId);
-          try{ await crearNotificacion(env,c.transportistaId,"licitacion_cerrada",`La licitación en la que cotizaste se cerró sin adjudicación: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`,{ licitacionId:id }); }catch(e){}
-        }
-      }
+      // Ni al cliente ni a los transportistas se les notifica el cierre (solo se notifica la adjudicación).
       await registrarActividad(env,"licitacion_cerrada",`Licitación cerrada por admin sin enviar cotizaciones (${cotizaciones.length}): ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo });
       return ok({ ok:true, enviadas:0, sinEnviar:true });
     }
@@ -1205,15 +1220,8 @@ async function handleRequest(request, env) {
     l.estado="anulada"; l.anuladaAt=new Date().toISOString(); l.motivoAnulacion=body.motivo; l.anuladaPor=user.role;
     await env.LICITACIONES.put(id, JSON.stringify(l));
     await crearNotificacion(env,"admin","licitacion_anulada",`Licitacion anulada por cliente: ${l.tipoEquipo} - ${l.origen} - ${l.destino}. Motivo: ${body.motivo}`,{ licitacionId:id });
-    // A los transportistas que cotizaron NO se les informa que fue anulada: para ellos aparece
-    // simplemente como "cerrada". Solo notificación interna neutra, SIN correo.
-    const yaNotif=new Set();
-    for(const c of (l.cotizaciones||[])){
-      if(c.transportistaId && !yaNotif.has(c.transportistaId)){
-        yaNotif.add(c.transportistaId);
-        try{ await crearNotificacion(env,c.transportistaId,"licitacion_cerrada",`La licitación en la que cotizaste se cerró sin adjudicación: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`,{ licitacionId:id }); }catch(e){}
-      }
-    }
+    // A los transportistas NO se les notifica (solo se notifica la adjudicación); para ellos la
+    // licitación simplemente deja de aparecer / queda como "No adjudicada" en su historial.
     await registrarActividad(env,"licitacion_anulada",`Licitación anulada por el cliente: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, motivo:body.motivo });
     return ok({ ok:true });
   }
@@ -1264,15 +1272,9 @@ async function handleRequest(request, env) {
     const comentario={ id:crypto.randomUUID(), texto:body.texto.trim().slice(0,1000), createdAt:new Date().toISOString() };
     l.comentariosAdmin=l.comentariosAdmin||[]; l.comentariosAdmin.push(comentario);
     await env.LICITACIONES.put(id, JSON.stringify(l));
-    // Aviso interno (sin correo) al cliente y a los transportistas que cotizaron
+    // Aviso interno (sin correo) SOLO al cliente. A los transportistas no se les notifica el comentario
+    // (solo se les notifica la adjudicación); igual lo ven en el hilo de la licitación.
     try{ await crearNotificacion(env, l.clienteId, "comentario_licitacion", `TransMatch agregó un comentario a tu licitación ${l.codigo||''}: "${comentario.texto.slice(0,80)}"`, { licitacionId:id }); }catch(e){}
-    const _yaC=new Set();
-    for(const c of (l.cotizaciones||[])){
-      if(c.transportistaId && !_yaC.has(c.transportistaId)){
-        _yaC.add(c.transportistaId);
-        try{ await crearNotificacion(env, c.transportistaId, "comentario_licitacion", `Nuevo comentario del administrador en una licitación: "${comentario.texto.slice(0,80)}"`, { licitacionId:id }); }catch(e){}
-      }
-    }
     await registrarActividad(env,"licitacion_comentario",`Comentario del admin en licitación ${l.codigo||''}: ${comentario.texto.slice(0,80)}`,{ licitacionId:id, codigo:l.codigo });
     return ok({ ok:true, comentario });
   }
@@ -1374,15 +1376,8 @@ async function handleRequest(request, env) {
     const porEntrega=[...todasCotiz].sort((a,b)=>fEntrega(a)-fEntrega(b));
     // Ranking por valoración histórica del transportista (mayor es mejor)
     const porValoracion=[...todasCotiz].sort((a,b)=>(b.transportistaRating||0)-(a.transportistaRating||0));
-    for (const c of todasCotiz) {
-      if(c.transportistaId===cotiz.transportistaId) continue;
-      const posPrecio=porPrecio.findIndex(x=>x.id===c.id)+1;
-      const posEntrega=porEntrega.findIndex(x=>x.id===c.id)+1;
-      const posValoracion=porValoracion.findIndex(x=>x.id===c.id)+1;
-      await crearNotificacion(env,c.transportistaId,"licitacion_cerrada",
-        `La licitacion fue adjudicada a otro transportista.`,
-        { licitacionId:id, feedback:{ posPrecio, posEntrega, posValoracion, total } });
-    }
+    // A los transportistas que NO ganaron ya no se les notifica. Igual pueden ver su posición
+    // (precio/entrega/valoración) en su historial cuando abren la licitación.
     return ok({ ok:true, transportista:l.adjudicadaA, ovId:ov.id_ov });
   }
 
@@ -1951,7 +1946,7 @@ async function handleRequest(request, env) {
     const raw=await env.USERS.get(email.toLowerCase()); if(!raw) return err("No encontrado",404);
     const u=JSON.parse(raw); u.estado=accion==="aprobar"?"activo":"rechazado"; u.revisadoAt=new Date().toISOString();
     await env.USERS.put(email.toLowerCase(), JSON.stringify(u));
-    if(accion==="aprobar"){ await crearNotificacion(env,u.id,"cuenta_aprobada","Tu cuenta fue aprobada! Ya puedes ver licitaciones y cotizar.",{}); await enviarEmail(env,{ to:u.email, subject:"Tu cuenta TransMatch fue aprobada", html:emailCuentaAprobada(u.nombre) }); await registrarActividad(env,"transportista_aprobado",`Transportista aprobado: ${u.empresa||u.nombre}`,{ transportistaId:u.id }); }
+    if(accion==="aprobar"){ await enviarEmail(env,{ to:u.email, subject:"Tu cuenta TransMatch fue aprobada", html:emailCuentaAprobada(u.nombre) }); await registrarActividad(env,"transportista_aprobado",`Transportista aprobado: ${u.empresa||u.nombre}`,{ transportistaId:u.id }); }
     return ok({ ok:true });
   }
 

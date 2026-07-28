@@ -277,7 +277,7 @@ function fechaCorta(iso){ return iso ? new Date(iso).toLocaleDateString('es-CL',
 
 function estadoBadge(e, l){
   // Licitación cerrada por el admin sin cotizaciones: se muestra como "Cerrada"
-  if(e==='expirada' && l && l.cerradaPorAdmin){ return '<span class="badge badge-info">Cerrada</span>'; }
+  if(e==='expirada' && l && (l.cerradaPorAdmin||l.cerradaPorVencimiento)){ return '<span class="badge badge-info">Cerrada</span>'; }
   const m={
     pendiente_admin:['badge-warn','Pendiente aprobación'],
     abierta:['badge-warn','Abierta'],
