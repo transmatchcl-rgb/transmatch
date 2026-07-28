@@ -384,11 +384,14 @@ if (hist && hist.ok) {
 (hist.data.licitaciones || []).forEach(function(lh) {
 if (lh.miCotizacion) misCotizaciones.add(lh.id);
 if (lh.gane) licitacionesGanadas.add(lh.id);
-if (lh.miCotizacion && !lh.gane && (lh.estado === 'adjudicada' || lh.estado === 'completada')) {
+// Guardar feedback de posición para las resueltas sin ganar (incluye cerradas/vencidas/anuladas)
+if (lh.miCotizacion && !lh.gane && ['adjudicada','completada','expirada','anulada'].includes(lh.estado)) {
 historialNoGanadas[lh.id] = lh;
-if (!allLicitaciones.find(function(x){ return x.id === lh.id; })) {
-allLicitaciones.push(lh);
 }
+// Traer al listado cualquier licitación en la que participé (cotizando o ganando) que no esté ya
+// en el listado activo — así las que coticé pero se cerraron sin adjudicarse igual aparecen.
+if ((lh.miCotizacion || lh.gane) && !allLicitaciones.find(function(x){ return x.id === lh.id; })) {
+allLicitaciones.push(lh);
 }
 });
 }
@@ -464,7 +467,7 @@ const lista=base.filter(function(l){
 if(tabActual==='pendientes')    return !misCotizaciones.has(l.id) && l.estado==='abierta' && licitacionVigente(l);
 if(tabActual==='enviadas')      return misCotizaciones.has(l.id) && (l.estado==='abierta' || l.estado==='cerrada');
 if(tabActual==='adjudicadas')   return licitacionesGanadas.has(l.id);
-if(tabActual==='no-adjudicadas') return misCotizaciones.has(l.id) && !licitacionesGanadas.has(l.id) && (l.estado==='adjudicada'||l.estado==='completada');
+if(tabActual==='no-adjudicadas') return misCotizaciones.has(l.id) && !licitacionesGanadas.has(l.id) && ['adjudicada','completada','expirada','anulada'].includes(l.estado);
 if(tabActual==='completadas')   return licitacionesGanadas.has(l.id) && l.estado==='completada';
 // "Todas": ocultar las abiertas que ya vencieron y no cotizé (ya no son una oportunidad)
 if(l.estado==='abierta' && !misCotizaciones.has(l.id) && !licitacionVigente(l)) return false;
@@ -479,7 +482,7 @@ return;
 document.getElementById('lista-licitaciones').innerHTML=lista.map(function(l){
 var yaCotize = misCotizaciones.has(l.id);
 var gane = licitacionesGanadas.has(l.id);
-var estaResuelta = l.estado==='adjudicada' || l.estado==='completada';
+var estaResuelta = ['adjudicada','completada','expirada','anulada'].includes(l.estado);
 var plazoCerrado = l.estado==='cerrada'; // el plazo de cotización ya cerró; cliente evaluando
 var tieneBorrador = tieneBorradorGuardado(l.id) && l.estado==='abierta' && !yaCotize;
 var badgeHtml;
@@ -499,7 +502,7 @@ if(gane){
   badgeHtml = '<span class="badge badge-orange">Disponible</span>';
 }
 var miCotiz = (l.cotizaciones||[]).find(function(c){ return (userId&&c.transportistaId===userId)||(miEmailGlobal&&(c.transportistaEmail||'').toLowerCase()===miEmailGlobal); });
-var precioMostrar = miCotiz ? miCotiz.precio : (l.presupuesto||null);
+var precioMostrar = miCotiz ? miCotiz.precio : ((l.miCotizacion&&l.miCotizacion.precio) || l.presupuesto || null);
 // Detalle inline
 var detalleHtml = renderDetalleInline(l, yaCotize, miCotiz);
 return '<div class="licit-card" id="licit-card-'+l.id+'">'+
