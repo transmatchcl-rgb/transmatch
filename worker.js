@@ -2414,6 +2414,24 @@ async function handleRequest(request, env) {
     return ok({ ok:true, estado });
   }
 
+  // POST /api/transportes/:id/pod — prueba de entrega (POD): fotos + datos del receptor.
+  // Opcional; el transportista la adjunta al entregar o después. La ven el cliente y el admin.
+  if (path.match(/^\/api\/transportes\/[^/]+\/pod$/)&&method==="POST") {
+    const user=await getUser(request,env); if(!user) return err("No autenticado",401);
+    if(user.role!=="transportista") return err("Solo transportistas",403);
+    const id=path.split("/")[3]; const raw=await env.RETORNOS.get("transporte:"+id); if(!raw) return err("No encontrado",404);
+    const t=JSON.parse(raw); if(!(await puedeGestionarTransporte(env,user,t))) return err("Sin acceso",403);
+    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    const fotos=Array.isArray(body.fotos)?body.fotos.filter(f=>f&&f.base64).slice(0,6).map(f=>({ base64:f.base64, mimeType:f.mimeType||"image/jpeg", nombre:(f.nombre||"foto").toString().slice(0,120) })):[];
+    const receptorNombre=(body.receptorNombre||"").toString().trim().slice(0,120);
+    const receptorRut=(body.receptorRut||"").toString().trim().slice(0,20);
+    if(!fotos.length && !receptorNombre && !receptorRut) return err("Agrega al menos una foto o los datos del receptor");
+    t.pod={ fotos, receptorNombre, receptorRut, registradoAt:new Date().toISOString(), registradoPor:user.nombre||user.email };
+    await env.RETORNOS.put("transporte:"+id, JSON.stringify(t));
+    try{ await crearNotificacion(env, t.empresaId||t.clienteId, "pod_registrado", `Se registró la prueba de entrega de tu transporte ${t.codigo||''}`, { transporteId:id }); }catch(e){}
+    return ok({ ok:true, pod:t.pod });
+  }
+
   // POST /api/transportes/:id/ceder — ceder la gestión del transporte a otro miembro de la empresa
   if (path.match(/^\/api\/transportes\/[^/]+\/ceder$/)&&method==="POST") {
     const user=await getUser(request,env); if(!user) return err("No autenticado",401);
