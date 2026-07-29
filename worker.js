@@ -583,6 +583,26 @@ function emailLicitacionRechazada(l) {
     "Tu licitación fue rechazada - TransMatch");
 }
 
+function generarPasswordProvisoria() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"; // sin caracteres ambiguos
+  const arr = new Uint32Array(10); crypto.getRandomValues(arr);
+  let p = ""; for (let i=0;i<10;i++) p += chars[arr[i] % chars.length];
+  return p;
+}
+
+function emailCredenciales(nombre, email, pass) {
+  return emailBase(`
+    <h1 style="font-size:22px;font-weight:700;color:#1e2d4e;margin:0 0 8px;line-height:1.25">Tu cuenta está lista</h1>
+    <p style="font-size:14px;color:#6B7280;margin:0 0 22px;line-height:1.6">Hola ${nombre||''}, creamos tu cuenta en TransMatch. Ingresa con estos datos y, por seguridad, cambia tu contraseña una vez dentro.</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border:1px solid #EEF1F6;border-radius:12px;padding:6px 18px;margin-bottom:24px">
+      <tr><td style="padding:11px 0;border-bottom:1px solid #F1F3F8;font-size:13px;color:#8A93A6;width:150px">Email</td><td style="padding:11px 0;border-bottom:1px solid #F1F3F8;font-size:14px;color:#1e2d4e;font-weight:600">${email}</td></tr>
+      <tr><td style="padding:11px 0;font-size:13px;color:#8A93A6">Contraseña provisoria</td><td style="padding:11px 0;font-size:15px;color:#1e2d4e;font-weight:700;font-family:'Courier New',monospace;letter-spacing:1px">${pass}</td></tr>
+    </table>
+    ${btnEmail('https://transmatch.cl/login.html','Iniciar sesión','#FF8808')}
+    <p style="font-size:12px;color:#9CA3AF;text-align:center;margin:14px 0 0">Recomendación: cambia tu contraseña después de tu primer ingreso, en tu perfil.</p>`,
+    "Tu cuenta TransMatch está lista");
+}
+
 function emailNuevaLicitacionTransportista(l) {
   const fila = (label, val) => `<tr>
       <td style="padding:11px 0;border-bottom:1px solid #F1F3F8;font-size:13px;color:#8A93A6;width:150px;vertical-align:top">${label}</td>
@@ -941,6 +961,39 @@ async function handleRequest(request, env) {
     const acceso = { role, creadoPor: user.email, createdAt: new Date().toISOString() };
     await env.SESSIONS.put("acceso:"+token, JSON.stringify(acceso), { expirationTtl: 60*60*24*14 });
     return ok({ ok:true, token, link:`https://transmatch.cl/registro.html?acceso=${token}`, role, expiraEnDias:14 });
+  }
+
+  // POST /api/admin/crear-usuario — el admin crea la cuenta directamente con una clave provisoria
+  // y se le envía por correo al usuario. Alternativa al link de acceso.
+  if (path === "/api/admin/crear-usuario" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    const email=(body.email||"").toLowerCase().trim();
+    const nombre=(body.nombre||"").trim();
+    const empresa=(body.empresa||"").trim();
+    let role = body.role==="mandante"?"cliente":(body.role||"cliente");
+    if(!["cliente","transportista"].includes(role)) return err("Rol invalido");
+    if(!email.includes("@")) return err("Email invalido");
+    if(!nombre) return err("Nombre requerido");
+    const existing=await env.USERS.get(email);
+    if(existing) return err("Este email ya está registrado");
+    const pass = generarPasswordProvisoria();
+    const nuevo = {
+      id:uid(), email, password:await hashPassword(pass),
+      nombre, empresa, telefono:(body.telefono||"").trim(), rut:(body.rut||"").trim(),
+      rutEmpresa:(body.rutEmpresa||"").trim(), cargo:(body.cargo||"").trim(),
+      notifEmail: role==="transportista", notifWhatsapp:false, whatsapp:"",
+      role, estado:"activo", plan: role==="cliente"?"basico":null,
+      rating:5.0, totalTransportes:0, zonas:[], industrias:[], equipos:[], tiposEquipo:[],
+      perfilCompletitud: role==="cliente"?40:30,
+      passwordProvisorio:true, creadoPorAdmin:true, createdAt:new Date().toISOString(),
+    };
+    await env.USERS.put(email, JSON.stringify(nuevo));
+    await env.USERS.put("id:"+nuevo.id, email);
+    let emailEnviado=false;
+    try{ const r=await enviarEmail(env,{ to:email, subject:"Tu cuenta TransMatch está lista", html:emailCredenciales(nombre, email, pass) }); emailEnviado = !!(r&&r.ok); }catch(e){}
+    await registrarActividad(env, role==="transportista"?"transportista_registrado":"cliente_registrado", `Cuenta creada por admin: ${empresa||nombre} (${role})`, { userId:nuevo.id });
+    return ok({ ok:true, email, password:pass, emailEnviado, role });
   }
 
 
