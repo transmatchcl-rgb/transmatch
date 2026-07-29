@@ -866,6 +866,13 @@ async function handleRequest(request, env) {
     if (!["cliente","transportista","mandante"].includes(role)) return err("Rol invalido");
     if (password.length<8) return err("Contrasena minimo 8 caracteres");
     if (!email.includes("@")) return err("Email invalido");
+    // Registro SOLO por invitación: requiere un link de acceso generado por el admin.
+    const _regToken = body.regToken || body.acceso;
+    if (!_regToken) return err("El registro es solo por invitación. Contacta al administrador para obtener acceso.");
+    const _accesoRaw = await env.SESSIONS.get("acceso:"+_regToken);
+    if (!_accesoRaw) return err("Tu link de acceso no es válido o ya expiró. Solicita uno nuevo al administrador.");
+    let _acceso={}; try{ _acceso=JSON.parse(_accesoRaw); }catch(e){}
+    if (_acceso.role && _acceso.role!=="cualquiera" && _acceso.role!==roleNorm) return err("Este link de acceso es para otro tipo de cuenta.");
     const emailLower = email.toLowerCase();
     const existing = await env.USERS.get(emailLower);
     if (existing) return err("Este email ya esta registrado");
@@ -891,6 +898,7 @@ async function handleRequest(request, env) {
     }
     await env.USERS.put(emailLower, JSON.stringify(user));
     await env.USERS.put("id:"+user.id, emailLower);
+    await env.SESSIONS.delete("acceso:"+_regToken); // el link de acceso es de un solo uso
     // Notificar al admin si hay equipo pendiente de aprobación
     if (otroEquipoPendiente) {
       await crearNotificacion(env, "admin", "equipo_pendiente_aprobacion",
@@ -911,6 +919,28 @@ async function handleRequest(request, env) {
     const token = await signToken({ id:user.id, email:emailLower, role:user.role, nombre:user.nombre, empresa:user.empresa, plan:user.plan }, env.JWT_SECRET);
     if(user.role==="transportista") await registrarActividad(env,"transportista_registrado",`Nuevo transportista registrado (pendiente de aprobación): ${user.empresa||user.nombre}`,{ transportistaId:user.id });
     return ok({ token, user:{ id:user.id, email:emailLower, role:user.role, nombre:user.nombre, empresa:user.empresa, plan:user.plan } });
+  }
+
+  // GET /api/acceso/:token — validar un link de acceso (para que registro.html decida si muestra el formulario)
+  if (path.startsWith("/api/acceso/") && method === "GET") {
+    const token = path.split("/")[3];
+    const raw = await env.SESSIONS.get("acceso:"+token);
+    if (!raw) return err("Link de acceso no válido o expirado", 404);
+    let a={}; try{ a=JSON.parse(raw); }catch(e){}
+    return ok({ ok:true, role: a.role||"cualquiera" });
+  }
+
+  // POST /api/admin/generar-acceso — el admin genera un link de acceso (de un solo uso, 14 días) para
+  // dar de alta a alguien ya veteado. Es el reemplazo del registro abierto: el alta pasa por el admin.
+  if (path === "/api/admin/generar-acceso" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    let body={}; try{body=await request.json();}catch(e){}
+    let role = body.role||"cualquiera";
+    if(!["cliente","transportista","cualquiera"].includes(role)) role="cualquiera";
+    const token = (uid()+uid()).replace(/[^a-zA-Z0-9]/g,"");
+    const acceso = { role, creadoPor: user.email, createdAt: new Date().toISOString() };
+    await env.SESSIONS.put("acceso:"+token, JSON.stringify(acceso), { expirationTtl: 60*60*24*14 });
+    return ok({ ok:true, token, link:`https://transmatch.cl/registro.html?acceso=${token}`, role, expiraEnDias:14 });
   }
 
 

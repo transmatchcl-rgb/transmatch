@@ -318,6 +318,7 @@ var selectedRole = 'mandante';
   }
 })();
 var _invToken = null;
+var _accesoToken = null;
 
 // ── TOGGLES UI ────────────────────────────────────────────────
 function togglePassEl(id, btn){
@@ -479,7 +480,7 @@ async function register(){
 
   var roleNorm = selectedRole==='mandante'?'cliente':selectedRole;
   var body = { nombre, empresa, rutEmpresa:rutEmp, cargo, email, telefono, password,
-    role:selectedRole, ...extra };
+    role:selectedRole, regToken:_accesoToken, ...extra };
 
   try{
     var res = await fetch(API+'/api/auth/register',{
@@ -539,6 +540,35 @@ async function register(){
     document.getElementById('inv-empresa-label').textContent='Crea tu contraseña para comenzar';
     document.getElementById('inv-sub').textContent='Completa tus datos para unirte a la empresa';
   }
+})();
+
+// ── GATE: el registro abierto queda bloqueado; solo se puede con link de acceso del admin ──
+function mostrarSoloInvitacion(msg){
+  var box=document.createElement('div');
+  box.style.cssText='max-width:440px;margin:48px auto;background:#fff;border-radius:16px;padding:34px 30px;text-align:center;font-family:inherit;box-shadow:0 2px 16px rgba(30,45,78,.10)';
+  box.innerHTML='<div style="font-size:18px;font-weight:700;color:#1e2d4e;margin-bottom:10px">Acceso por invitación</div>'
+    +'<div style="font-size:14px;color:#6B7280;line-height:1.6;margin-bottom:20px">'+(msg||'El registro en TransMatch es por invitación. Si quieres operar con nosotros, escríbenos y, tras validar tu empresa, te enviaremos tu acceso.')+'</div>'
+    +'<a href="/landing-contacto.html" style="display:inline-block;background:#FF8808;color:#fff;text-decoration:none;padding:11px 24px;border-radius:8px;font-size:14px;font-weight:600">Solicitar acceso</a>'
+    +'<div style="margin-top:16px"><a href="/login.html" style="color:#1e2d4e;font-size:13px;text-decoration:none">¿Ya tienes cuenta? Inicia sesión</a></div>';
+  document.body.appendChild(box);
+}
+(async function gateRegistro(){
+  var params=new URLSearchParams(window.location.search);
+  if(params.get('invitacion')) return; // invitación de subusuario: flujo intacto
+  var acceso=params.get('acceso');
+  var scr=document.getElementById('screen-registro');
+  if(!acceso){ if(scr) scr.style.display='none'; mostrarSoloInvitacion(); return; }
+  try{
+    var res=await fetch(API+'/api/acceso/'+encodeURIComponent(acceso));
+    var d=await res.json().catch(function(){return {};});
+    if(!res.ok){ if(scr) scr.style.display='none'; mostrarSoloInvitacion(d&&d.error); return; }
+    _accesoToken=acceso;
+    if(d.role==='transportista'||d.role==='cliente'){
+      var rol=d.role==='cliente'?'mandante':'transportista';
+      var btnM=document.getElementById('role-btn-mandante'), btnT=document.getElementById('role-btn-transportista');
+      if(btnM&&btnT){ elegirRol(rol, rol==='mandante'?btnM:btnT); var tabs=document.querySelector('.role-tabs'); if(tabs) tabs.style.display='none'; }
+    }
+  }catch(e){ _accesoToken=acceso; }
 })();
 
 async function aceptarInvitacion(){
