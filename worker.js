@@ -467,6 +467,33 @@ function anonimizarCliente(l) {
   return { ...l, clienteEmail:undefined, clienteNombre:undefined, clienteEmpresa: l.clienteEmpresa ? "Empresa verificada TransMatch" : "Empresa verificada", contactoOrigenNombre:undefined, contactoOrigenTelefono:undefined, contactoOrigenEmail:undefined, contactoDestinoNombre:undefined, contactoDestinoTelefono:undefined, contactoDestinoEmail:undefined, paradas: Array.isArray(l.paradas) ? l.paradas.map(p=>({direccion:p.direccion||"",horario:p.horario||"",descripcion:p.descripcion||"",contacto:undefined})) : l.paradas };
 }
 
+// ── MODELO DE ESTADOS v2 (mapeo de solo lectura; no modifica datos) ──
+// Traduce los estados/flags legacy al modelo limpio: en_revision | abierta | en_decision | adjudicada | cerrada
+// con un campo `razon` cuando está cerrada. NO escribe nada: se usa al leer.
+function fechaCargaFutura(l) {
+  if (!l.fechaCarga) return true; // sin fecha definida: se permite reactivar
+  const s = l.fechaCarga + "T" + ((l.horaCarga && /^\d{1,2}:\d{2}/.test(l.horaCarga)) ? l.horaCarga : "23:59") + ":00";
+  const ms = Date.parse(s); if (isNaN(ms)) return true;
+  return (ms + 4*3600000) > Date.now(); // Chile ~UTC-4
+}
+function estadoLicitacionV2(l) {
+  const e = l.estado;
+  let estado = e, razon = null;
+  if (e === "pendiente_admin") estado = "en_revision";
+  else if (e === "abierta") estado = "abierta";
+  else if (e === "cerrada") estado = "en_decision";
+  else if (e === "adjudicada" || e === "completada") estado = "adjudicada";
+  else if (e === "rechazada") { estado = "cerrada"; razon = "rechazada"; }
+  else if (e === "anulada") { estado = "cerrada"; razon = (l.anuladaPor === "admin" ? "cerrada_por_admin" : "cerrada_por_cliente"); }
+  else if (e === "expirada") {
+    estado = "cerrada";
+    razon = l.cerradaPorAdmin ? "cerrada_por_admin" : (l.cerradaPorVencimiento ? "fecha_de_carga" : "sin_cotizaciones");
+  }
+  const reactivable = (estado === "cerrada" && (razon === "sin_cotizaciones" || razon === "cerrada_por_cliente") && fechaCargaFutura(l));
+  const completado = (e === "completada" || !!l.valoracion);
+  return { estado, razon, reactivable, completado };
+}
+
 function anonimizarTransportista(c, revelar) {
   // El formulario contiene el detalle de la cotización (items, seguros, espera/estadía,
   // observaciones) SIN datos de empresa ni contacto del transportista, por lo que es
@@ -963,6 +990,23 @@ async function handleRequest(request, env) {
     return ok({ ok:true, token, link:`https://transmatch.cl/registro.html?acceso=${token}`, role, expiraEnDias:14 });
   }
 
+  // GET /api/admin/preview-estados — reporte de SOLO LECTURA: muestra cómo se mapearía cada licitación
+  // actual al modelo de estados v2. No modifica ningún dato.
+  if (path === "/api/admin/preview-estados" && method === "GET") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    const ids = JSON.parse(await env.LICITACIONES.get("all") || "[]");
+    const items = []; const resumen = {};
+    for (const id of ids) {
+      const raw = await env.LICITACIONES.get(id); if (!raw) continue;
+      const l = JSON.parse(raw);
+      const v2 = estadoLicitacionV2(l);
+      const key = v2.estado + (v2.razon ? " · " + v2.razon : "");
+      resumen[key] = (resumen[key] || 0) + 1;
+      items.push({ codigo: l.codigo || id, estadoActual: l.estado, estadoNuevo: v2.estado, razon: v2.razon, reactivable: v2.reactivable, completado: v2.completado });
+    }
+    return ok({ ok:true, total: items.length, resumen, items });
+  }
+
   // POST /api/admin/crear-usuario — el admin crea la cuenta directamente con una clave provisoria
   // y se le envía por correo al usuario. Alternativa al link de acceso.
   if (path === "/api/admin/crear-usuario" && method === "POST") {
@@ -1295,11 +1339,10 @@ async function handleRequest(request, env) {
   if (path.startsWith("/api/licitaciones/")&&path.endsWith("/anular")&&method==="POST") {
     const id=path.split("/")[3]; const user=await getUser(request,env); const d=deny(user,"cliente","admin"); if(d) return d;
     let body={}; try{body=await request.json();}catch(e){}
-    if(!body.motivo) return err("motivo requerido");
     const raw=await env.LICITACIONES.get(id); if(!raw) return err("No encontrada",404);
     const l=JSON.parse(raw);
     if(user.role==="cliente"){ const _eid=(user.esSubusuario?(user.empresaMadreId||user.id):user.id); if((l.empresaId||l.clienteId)!==_eid) return err("Sin acceso",403); }
-    if(!["abierta","cerrada"].includes(l.estado)) return err("Solo puedes anular licitaciones abiertas o en revision de cotizaciones");
+    if(!["abierta","cerrada"].includes(l.estado)) return err("Solo puedes cerrar licitaciones abiertas o en revision de cotizaciones");
     l.estado="anulada"; l.anuladaAt=new Date().toISOString(); l.motivoAnulacion=body.motivo; l.anuladaPor=user.role;
     await env.LICITACIONES.put(id, JSON.stringify(l));
     await crearNotificacion(env,"admin","licitacion_anulada",`Licitacion anulada por cliente: ${l.tipoEquipo} - ${l.origen} - ${l.destino}. Motivo: ${body.motivo}`,{ licitacionId:id });
@@ -1378,6 +1421,8 @@ async function handleRequest(request, env) {
     l.ampliadaAt=new Date().toISOString();
     l.vecesAmpliada=(l.vecesAmpliada||0)+1;
     delete l.expiradaAt;
+    // Al reactivar, limpiar marcas de cierre para que vuelva a verse como abierta normal.
+    delete l.cerradaPorVencimiento; delete l.cerradaPorAdmin; delete l.motivoCierre; delete l.cerradaAt;
     await env.LICITACIONES.put(id, JSON.stringify(l));
     await registrarActividad(env,"licitacion_ampliada",`Plazo ampliado por el cliente (${horas}h): ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id });
     return ok({ ok:true, cierreAt:l.cierreAt });
