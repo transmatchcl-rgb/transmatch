@@ -365,12 +365,37 @@ if(d<1440)return 'hace '+Math.floor(d/60)+'h';
 return 'hace '+Math.floor(d/1440)+'d';
 }
 
+// ── Modelo de estados v2 (mapeo de solo lectura, mismo criterio que el backend) ──
+function _fechaCargaFutura(l){
+  if(!l||!l.fechaCarga) return true;
+  var s=l.fechaCarga+'T'+((l.horaCarga&&/^\d{1,2}:\d{2}/.test(l.horaCarga))?l.horaCarga:'23:59')+':00';
+  var ms=Date.parse(s); if(isNaN(ms)) return true;
+  return (ms+4*3600000)>Date.now(); // Chile ~UTC-4
+}
+function licV2(l){
+  var e=l.estado, estado=e, razon=null;
+  if(e==='pendiente_admin') estado='en_revision';
+  else if(e==='abierta') estado='abierta';
+  else if(e==='cerrada') estado='en_decision';
+  else if(e==='adjudicada'||e==='completada') estado='adjudicada';
+  else if(e==='rechazada'){ estado='cerrada'; razon='rechazada'; }
+  else if(e==='anulada'){ estado='cerrada'; razon=(l.anuladaPor==='admin'?'cerrada_por_admin':'cerrada_por_cliente'); }
+  else if(e==='expirada'){ estado='cerrada'; razon=l.cerradaPorAdmin?'cerrada_por_admin':(l.cerradaPorVencimiento?'fecha_de_carga':'sin_cotizaciones'); }
+  var reactivable=(estado==='cerrada'&&(razon==='sin_cotizaciones'||razon==='cerrada_por_cliente')&&_fechaCargaFutura(l));
+  var completado=(e==='completada'||!!l.valoracion);
+  return {estado:estado,razon:razon,reactivable:reactivable,completado:completado};
+}
+function razonTexto(razon){
+  return ({sin_cotizaciones:'Se cerró sin cotizaciones',fecha_de_carga:'Se cerró: pasó la fecha de carga',cerrada_por_cliente:'La cerraste',cerrada_por_admin:'La cerró el administrador',rechazada:'Rechazada por el administrador'})[razon]||'';
+}
 function bdg(e, l){
-// Licitación cerrada por el admin sin cotizaciones: el cliente la ve como "Cerrada"
-if(e==='expirada' && l && (l.cerradaPorAdmin||l.cerradaPorVencimiento)){ return '<span class="badge badge-info">Cerrada</span>'; }
-var m={pendiente_admin:['badge-warn','En revision'],abierta:['badge-warn','Abierta'],cerrada:['badge-info','Con cotizaciones'],adjudicada:['badge-success','Adjudicada'],completada:['badge-success','Completada'],rechazada:['badge-error','Rechazada'],anulada:['badge-info','Cerrada'],expirada:['badge-neutral','Vencida sin cotizaciones']};
-var cl=m[e]||['badge-gray',e];
-return '<span class="badge '+cl[0]+'">'+cl[1]+'</span>';
+  var v=l?licV2(l):{estado:e,razon:null,completado:false};
+  if(v.estado==='en_revision') return '<span class="badge badge-warn">En revisión</span>';
+  if(v.estado==='abierta') return '<span class="badge badge-warn">Abierta</span>';
+  if(v.estado==='en_decision') return '<span class="badge badge-info">Con cotizaciones</span>';
+  if(v.estado==='adjudicada') return v.completado?'<span class="badge badge-success">Completada</span>':'<span class="badge badge-success">Adjudicada</span>';
+  if(v.estado==='cerrada') return v.razon==='rechazada'?'<span class="badge badge-error">Rechazada</span>':'<span class="badge badge-info">Cerrada</span>';
+  return '<span class="badge badge-gray">'+e+'</span>';
 }
 
 function togglePill(el,estado){
@@ -423,8 +448,9 @@ return;
 ll.innerHTML=lista.map(function(l){
 var cod=l.codigo?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:IBM Plex Mono,monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+l.codigo+'</span>':'';
 var nombre=l.tipoEquipo+(l.marca?' -- '+l.marca:'');
-var _expReactivable=(l.estado==='expirada'&&!l.cerradaPorAdmin&&!l.cerradaPorVencimiento);
-var tieneMenu=(l.estado==='pendiente_admin'||l.estado==='abierta'||l.estado==='cerrada'||_expReactivable);
+var _v2=licV2(l);
+var _expReactivable=(_v2.estado==='cerrada' && _v2.reactivable);
+var tieneMenu=(l.estado==='pendiente_admin'||l.estado==='abierta'||l.estado==='cerrada'||_v2.estado==='cerrada');
 var menuHtml='';
 if(tieneMenu){
 menuHtml='<div class="pmenu-wrap" onclick="event.stopPropagation()">'
@@ -433,8 +459,9 @@ menuHtml='<div class="pmenu-wrap" onclick="event.stopPropagation()">'
 if(l.estado==='pendiente_admin'){
 menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();editarLicitacionId(\''+l.id+'\')">Editar licitacion</button>';
 menuHtml+='<button class="pmenu-item danger" onclick="closePanelMenu();confirmarEliminarId(\''+l.id+'\')">Eliminar licitacion</button>';
-}else if(_expReactivable){
-menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();abrirModalAmpliar(\''+l.id+'\')">Ampliar plazo y volver a publicar</button>';
+}else if(_v2.estado==='cerrada'){
+if(_expReactivable){ menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();abrirModalAmpliar(\''+l.id+'\')">Ampliar plazo y volver a publicar</button>'; }
+menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();duplicarLicitacionId(\''+l.id+'\')">Duplicar licitación</button>';
 }else{
 menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();confirmarAnularId(\''+l.id+'\')">Cerrar licitación</button>';
 }
@@ -733,18 +760,22 @@ h+='</div></div>';
 }
 
 // Estado mensaje
+var _detV2=licV2(l);
 if(l.estado==='pendiente_admin'){
 h+='<div style="background:#eef1f8;border-radius:8px;padding:11px 14px;font-size:12px;color:#1e40af;margin-bottom:14px">Tu licitacion esta siendo revisada. Sera publicada pronto.</div>';
-}else if(l.estado==='anulada'){
-h+='<div style="background:#EEF1F6;border:0.5px solid #C7CEDB;border-radius:8px;padding:11px 14px;font-size:13px;color:#1e2d4e;margin-bottom:14px">Licitación cerrada'+(l.motivoAnulacion?' · Motivo: '+l.motivoAnulacion:'')+'</div>';
-}else if(l.estado==='expirada' && !l.cerradaPorAdmin && !l.cerradaPorVencimiento){
+}else if(_detV2.estado==='cerrada'){
+var _extra=(l.motivoCierre||l.motivoAnulacion||'');
+if(_detV2.reactivable){
 h+='<div style="background:#FFFBEB;border:0.5px solid #FDE68A;border-radius:8px;padding:14px;margin-bottom:14px">';
-h+='<div style="font-size:13px;font-weight:600;color:#92400E;margin-bottom:4px">Venció sin cotizaciones</div>';
-h+='<div style="font-size:12px;color:#92400E;margin-bottom:12px">Ningún transportista alcanzó a cotizar dentro del plazo. Puedes ampliar el plazo para volver a publicarla y recibir cotizaciones.</div>';
+h+='<div style="font-size:13px;font-weight:600;color:#92400E;margin-bottom:4px">Licitación cerrada</div>';
+h+='<div style="font-size:12px;color:#92400E;margin-bottom:12px">'+(razonTexto(_detV2.razon)||'Se cerró sin adjudicación')+(_extra?' · '+_extra:'')+'. Puedes ampliar el plazo para volver a publicarla.</div>';
 h+='<button onclick="abrirModalAmpliar(\''+l.id+'\')" style="width:100%;padding:10px;background:#FF8808;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Ampliar plazo y volver a publicar</button>';
 h+='</div>';
-}else if(l.estado==='expirada'){
-h+='<div style="background:#EEF1F6;border:0.5px solid #C7CEDB;border-radius:8px;padding:11px 14px;font-size:13px;color:#1e2d4e;margin-bottom:14px">Licitación cerrada'+(l.motivoCierre?' · '+l.motivoCierre:'')+'</div>';
+}else{
+var _titCer=(_detV2.razon==='rechazada'?'Rechazada':'Licitación cerrada');
+var _sub=(_detV2.razon==='rechazada'?(_extra||'El administrador rechazó la licitación.'):(razonTexto(_detV2.razon)+(_extra?' · '+_extra:'')+(_detV2.razon!=='cerrada_por_admin'?' · Puedes duplicarla para volver a publicar.':'')));
+h+='<div style="background:#EEF1F6;border:0.5px solid #C7CEDB;border-radius:8px;padding:12px 14px;font-size:13px;color:#1e2d4e;margin-bottom:14px"><strong>'+_titCer+'</strong>'+(_sub?' · '+_sub:'')+'</div>';
+}
 }
 
 // Cotizaciones
@@ -1096,6 +1127,7 @@ async function responderPregunta(licitacionId, preguntaId){
 }
 
 function duplicarLicitacion(){window.location.href='/cliente-nueva.html?duplicar='+_selectedId;}
+function duplicarLicitacionId(id){window.location.href='/cliente-nueva.html?duplicar='+id;}
 function editarLicitacion(){window.location.href='/cliente-nueva.html?editar='+_selectedId;}
 function editarLicitacionId(id){window.location.href='/cliente-nueva.html?editar='+id;}
 

@@ -275,21 +275,16 @@ function timeAgo(iso){
 }
 function fechaCorta(iso){ return iso ? new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}) : '--'; }
 
+function _fechaCargaFutura(l){ if(!l||!l.fechaCarga) return true; var s=l.fechaCarga+'T'+((l.horaCarga&&/^\d{1,2}:\d{2}/.test(l.horaCarga))?l.horaCarga:'23:59')+':00'; var ms=Date.parse(s); if(isNaN(ms)) return true; return (ms+4*3600000)>Date.now(); }
+function licV2(l){ var e=l.estado,estado=e,razon=null; if(e==='pendiente_admin')estado='en_revision'; else if(e==='abierta')estado='abierta'; else if(e==='cerrada')estado='en_decision'; else if(e==='adjudicada'||e==='completada')estado='adjudicada'; else if(e==='rechazada'){estado='cerrada';razon='rechazada';} else if(e==='anulada'){estado='cerrada';razon=(l.anuladaPor==='admin'?'cerrada_por_admin':'cerrada_por_cliente');} else if(e==='expirada'){estado='cerrada';razon=l.cerradaPorAdmin?'cerrada_por_admin':(l.cerradaPorVencimiento?'fecha_de_carga':'sin_cotizaciones');} return {estado:estado,razon:razon,reactivable:(estado==='cerrada'&&(razon==='sin_cotizaciones'||razon==='cerrada_por_cliente')&&_fechaCargaFutura(l)),completado:(e==='completada'||!!l.valoracion)}; }
 function estadoBadge(e, l){
-  // Licitación cerrada por el admin sin cotizaciones: se muestra como "Cerrada"
-  if(e==='expirada' && l && (l.cerradaPorAdmin||l.cerradaPorVencimiento)){ return '<span class="badge badge-info">Cerrada</span>'; }
-  const m={
-    pendiente_admin:['badge-warn','Pendiente aprobación'],
-    abierta:['badge-warn','Abierta'],
-    cerrada:['badge-info','En revisión cliente'],
-    adjudicada:['badge-success','Adjudicada'],
-    completada:['badge-success','Completada'],
-    rechazada:['badge-error','Rechazada'],
-    anulada:['badge-error','Anulada'],
-    expirada:['badge-gray','Vencida sin cotizaciones'],
-  };
-  const [cls,lbl]=m[e]||['badge-gray',e];
-  return '<span class="badge '+cls+'">'+lbl+'</span>';
+  var v=l?licV2(l):{estado:e,razon:null,completado:false};
+  if(v.estado==='en_revision') return '<span class="badge badge-warn">Pendiente aprobación</span>';
+  if(v.estado==='abierta') return '<span class="badge badge-warn">Abierta</span>';
+  if(v.estado==='en_decision') return '<span class="badge badge-info">En revisión cliente</span>';
+  if(v.estado==='adjudicada') return v.completado?'<span class="badge badge-success">Completada</span>':'<span class="badge badge-success">Adjudicada</span>';
+  if(v.estado==='cerrada') return v.razon==='rechazada'?'<span class="badge badge-error">Rechazada</span>':'<span class="badge badge-gray">Cerrada</span>';
+  return '<span class="badge badge-gray">'+e+'</span>';
 }
 
 async function api(path,method,body){
