@@ -236,13 +236,13 @@ document.dispatchEvent(new Event('_authReady'));
 <!-- Modal anular -->
 <div class="modal-bg" id="modal-anular">
 <div class="modal" style="max-width:400px">
-<div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:6px">Anular licitacion</div>
-<div style="font-size:13px;color:#6B7280;margin-bottom:14px">La licitacion quedara anulada. Quedara registro de la solicitud.</div>
-<label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Motivo <span style="color:#EF4444">*</span></label>
+<div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:6px">Cerrar licitación</div>
+<div style="font-size:13px;color:#6B7280;margin-bottom:14px">La licitación quedará cerrada y dejará de recibir cotizaciones. Quedará registro de la solicitud.</div>
+<label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Motivo (opcional)</label>
 <textarea id="motivo-anulacion" placeholder="Ej: Ya no se requiere el servicio..." style="width:100%;padding:9px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;min-height:72px;margin-bottom:14px"></textarea>
 <div class="modal-btns">
 <button class="btn btn-outline" onclick="document.getElementById('modal-anular').classList.remove('open')">Cancelar</button>
-<button class="btn" style="background:#DC2626;color:#fff" onclick="ejecutarAnular()">Anular</button>
+<button class="btn" style="background:#1e2d4e;color:#fff" onclick="ejecutarAnular()">Cerrar licitación</button>
 </div>
 </div>
 </div>
@@ -320,7 +320,7 @@ document.dispatchEvent(new Event('_authReady'));
 <button class="pmenu-item" id="det-btn-editar" onclick="closePanelMenu();editarLicitacion()">Editar licitacion</button>
 <button class="pmenu-item" id="det-btn-editar-contacto" onclick="closePanelMenu();abrirModalEditarContacto()">Editar datos de contacto</button>
 <button class="pmenu-item danger" id="det-btn-eliminar" onclick="closePanelMenu();confirmarEliminar()">Eliminar licitacion</button>
-<button class="pmenu-item danger" id="det-btn-anular" style="display:none" onclick="closePanelMenu();confirmarAnular()">Anular licitacion</button>
+<button class="pmenu-item" id="det-btn-anular" style="display:none" onclick="closePanelMenu();confirmarAnular()">Cerrar licitación</button>
 </div>
 </div>
 <button onclick="document.getElementById('modal-det').classList.remove('open')" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6B7280;line-height:1">&times;</button>
@@ -368,7 +368,7 @@ return 'hace '+Math.floor(d/1440)+'d';
 function bdg(e, l){
 // Licitación cerrada por el admin sin cotizaciones: el cliente la ve como "Cerrada"
 if(e==='expirada' && l && (l.cerradaPorAdmin||l.cerradaPorVencimiento)){ return '<span class="badge badge-info">Cerrada</span>'; }
-var m={pendiente_admin:['badge-warn','En revision'],abierta:['badge-warn','Abierta'],cerrada:['badge-info','Con cotizaciones'],adjudicada:['badge-success','Adjudicada'],completada:['badge-success','Completada'],rechazada:['badge-error','Rechazada'],anulada:['badge-error','Anulada'],expirada:['badge-neutral','Vencida sin cotizaciones']};
+var m={pendiente_admin:['badge-warn','En revision'],abierta:['badge-warn','Abierta'],cerrada:['badge-info','Con cotizaciones'],adjudicada:['badge-success','Adjudicada'],completada:['badge-success','Completada'],rechazada:['badge-error','Rechazada'],anulada:['badge-info','Cerrada'],expirada:['badge-neutral','Vencida sin cotizaciones']};
 var cl=m[e]||['badge-gray',e];
 return '<span class="badge '+cl[0]+'">'+cl[1]+'</span>';
 }
@@ -423,7 +423,8 @@ return;
 ll.innerHTML=lista.map(function(l){
 var cod=l.codigo?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:IBM Plex Mono,monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+l.codigo+'</span>':'';
 var nombre=l.tipoEquipo+(l.marca?' -- '+l.marca:'');
-var tieneMenu=(l.estado==='pendiente_admin'||l.estado==='abierta'||l.estado==='cerrada');
+var _expReactivable=(l.estado==='expirada'&&!l.cerradaPorAdmin&&!l.cerradaPorVencimiento);
+var tieneMenu=(l.estado==='pendiente_admin'||l.estado==='abierta'||l.estado==='cerrada'||_expReactivable);
 var menuHtml='';
 if(tieneMenu){
 menuHtml='<div class="pmenu-wrap" onclick="event.stopPropagation()">'
@@ -432,8 +433,10 @@ menuHtml='<div class="pmenu-wrap" onclick="event.stopPropagation()">'
 if(l.estado==='pendiente_admin'){
 menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();editarLicitacionId(\''+l.id+'\')">Editar licitacion</button>';
 menuHtml+='<button class="pmenu-item danger" onclick="closePanelMenu();confirmarEliminarId(\''+l.id+'\')">Eliminar licitacion</button>';
+}else if(_expReactivable){
+menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();abrirModalAmpliar(\''+l.id+'\')">Ampliar plazo y volver a publicar</button>';
 }else{
-menuHtml+='<button class="pmenu-item danger" onclick="closePanelMenu();confirmarAnularId(\''+l.id+'\')">Anular licitacion</button>';
+menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();confirmarAnularId(\''+l.id+'\')">Cerrar licitación</button>';
 }
 menuHtml+='</div></div>';
 }
@@ -733,13 +736,15 @@ h+='</div></div>';
 if(l.estado==='pendiente_admin'){
 h+='<div style="background:#eef1f8;border-radius:8px;padding:11px 14px;font-size:12px;color:#1e40af;margin-bottom:14px">Tu licitacion esta siendo revisada. Sera publicada pronto.</div>';
 }else if(l.estado==='anulada'){
-h+='<div style="background:#FEF2F2;border-radius:8px;padding:11px 14px;font-size:13px;color:#991B1B;margin-bottom:14px">'+(l.motivoAnulacion?'Motivo: '+l.motivoAnulacion:'Licitacion anulada')+'</div>';
-}else if(l.estado==='expirada'){
+h+='<div style="background:#EEF1F6;border:0.5px solid #C7CEDB;border-radius:8px;padding:11px 14px;font-size:13px;color:#1e2d4e;margin-bottom:14px">Licitación cerrada'+(l.motivoAnulacion?' · Motivo: '+l.motivoAnulacion:'')+'</div>';
+}else if(l.estado==='expirada' && !l.cerradaPorAdmin && !l.cerradaPorVencimiento){
 h+='<div style="background:#FFFBEB;border:0.5px solid #FDE68A;border-radius:8px;padding:14px;margin-bottom:14px">';
 h+='<div style="font-size:13px;font-weight:600;color:#92400E;margin-bottom:4px">Venció sin cotizaciones</div>';
 h+='<div style="font-size:12px;color:#92400E;margin-bottom:12px">Ningún transportista alcanzó a cotizar dentro del plazo. Puedes ampliar el plazo para volver a publicarla y recibir cotizaciones.</div>';
 h+='<button onclick="abrirModalAmpliar(\''+l.id+'\')" style="width:100%;padding:10px;background:#FF8808;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Ampliar plazo y volver a publicar</button>';
 h+='</div>';
+}else if(l.estado==='expirada'){
+h+='<div style="background:#EEF1F6;border:0.5px solid #C7CEDB;border-radius:8px;padding:11px 14px;font-size:13px;color:#1e2d4e;margin-bottom:14px">Licitación cerrada'+(l.motivoCierre?' · '+l.motivoCierre:'')+'</div>';
 }
 
 // Cotizaciones
@@ -1111,11 +1116,10 @@ function confirmarAnularId(id){_anularId=id;document.getElementById('modal-det')
 async function ejecutarAnular(){
 if(!_anularId)return;
 var motivo=document.getElementById('motivo-anulacion').value.trim();
-if(!motivo){document.getElementById('motivo-anulacion').style.borderColor='#EF4444';return;}
 document.getElementById('modal-anular').classList.remove('open');
 var r=await api('/api/licitaciones/'+_anularId+'/anular','POST',{motivo:motivo});
-if(r&&r.ok){toast('Licitacion anulada');_anularId=null;await cargarLicitaciones();}
-else toast((r&&r.data&&r.data.error)||'Error al anular','err');
+if(r&&r.ok){toast('Licitación cerrada');_anularId=null;await cargarLicitaciones();}
+else toast((r&&r.data&&r.data.error)||'Error al cerrar','err');
 }
 
 var _ampliarId=null;
