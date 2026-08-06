@@ -148,6 +148,11 @@
         <div class="stat-sub">Entregados con factura</div>
       </div>
     </div>
+    <div id="fil-usuario-wrap" style="display:none;margin-bottom:14px">
+      <select id="fil-usuario-trn" onchange="render()" style="padding:8px 12px;border:0.5px solid #E5E7EB;border-radius:8px;font-size:13px;background:#fff;color:#374151">
+        <option value="">Todos los usuarios</option>
+      </select>
+    </div>
     <div id="lista"><div class="spinner" style="margin:40px auto"></div></div>
   </main>
 </div>
@@ -196,6 +201,15 @@ async function cargar(){
     var completados = transportes.filter(function(t){ return t.factura; }).length;
     document.getElementById('st-curso').textContent      = enCurso;
     document.getElementById('st-completados').textContent = completados;
+    // Filtro por usuario (solo cuenta madre: aparece si hay 2+ creadores)
+    var creadores = {};
+    transportes.forEach(function(t){ if(t.creadoPorEmail) creadores[t.creadoPorEmail] = t.creadoPorNombre||t.creadoPorEmail; });
+    var keysU = Object.keys(creadores);
+    var wrap = document.getElementById('fil-usuario-wrap'), selU = document.getElementById('fil-usuario-trn');
+    if(wrap && selU){
+      if(keysU.length >= 2){ wrap.style.display=''; selU.innerHTML = '<option value="">Todos los usuarios</option>' + keysU.map(function(e){ return '<option value="'+e+'">'+creadores[e]+'</option>'; }).join(''); }
+      else { wrap.style.display='none'; }
+    }
     render();
   } catch(e) {
     document.getElementById('lista').innerHTML = '<div class="empty">Error al cargar</div>';
@@ -207,7 +221,14 @@ function render(){
     document.getElementById('lista').innerHTML = '<div class="empty">Sin transportes en curso. Aparecen aquí cuando adjudicas una licitacion.</div>';
     return;
   }
-  document.getElementById('lista').innerHTML = transportes.map(function(t){
+  var selU = document.getElementById('fil-usuario-trn');
+  var usuario = selU ? selU.value : '';
+  var lista = usuario ? transportes.filter(function(t){ return (t.creadoPorEmail||'')===usuario; }) : transportes;
+  if(lista.length === 0){
+    document.getElementById('lista').innerHTML = '<div class="empty">Sin transportes de este usuario.</div>';
+    return;
+  }
+  document.getElementById('lista').innerHTML = lista.map(function(t){
     return '<div class="trn-card" id="card-'+t.id+'">' +
       '<div class="trn-hdr" onclick="toggleCard(\''+t.id+'\')">' +
         '<span class="trn-código">'+(t.codigo||t.codigo||'')+'</span>' +

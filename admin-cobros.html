@@ -196,6 +196,7 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
     <div class="tabs-bar">
       <button class="tab-btn active" onclick="switchTab('ovs',this)">Ordenes de Venta</button>
       <button class="tab-btn" onclick="switchTab('facturas',this)">Facturas mensuales</button>
+      <button class="tab-btn" onclick="switchTab('clientes',this)">Facturas a clientes</button>
       <button class="tab-btn" onclick="switchTab('alertas',this)">Alertas</button>
     </div>
 
@@ -268,6 +269,31 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
         <div id="lista-alertas"><div class="spinner"></div></div>
       </div>
     </div>
+
+    <!-- TAB: Facturas a clientes (TransMatch → empresa) -->
+    <div id="tab-clientes" style="display:none">
+      <div class="card">
+        <div class="filter-bar" style="align-items:center">
+          <select class="sel" id="fc-empresa" onchange="cargarFacturasCliente()" style="min-width:260px"><option value="">Selecciona una empresa...</option></select>
+          <button class="btn btn-orange btn-sm" onclick="abrirSubirFactura()">Subir factura</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>N° factura</th>
+                <th>Periodo</th>
+                <th>Emision</th>
+                <th>Monto</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-fc"><tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:18px">Selecciona una empresa para ver sus facturas</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -322,6 +348,51 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
     <div style="display:flex;gap:8px">
       <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="cerrarModal('modal-batch')">Cancelar</button>
       <button class="btn btn-orange" style="flex:1;justify-content:center" id="btn-batch" onclick="ejecutarBatch()">Generar facturas</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Subir factura a cliente -->
+<div class="modal-bg" id="modal-subir-factura">
+  <div class="modal">
+    <div class="modal-title">Subir factura a cliente</div>
+    <div class="info-box">La factura quedará disponible en el portal del cliente (pestaña "Mi suscripción") y se le enviará un correo de aviso.</div>
+    <div class="fg">
+      <label>Empresa *</label>
+      <select id="sf-empresa"></select>
+    </div>
+    <div class="fg">
+      <label>N° factura *</label>
+      <input id="sf-numero" placeholder="Ej. 1247"/>
+    </div>
+    <div class="fg">
+      <label>Periodo</label>
+      <input id="sf-periodo" placeholder="Ej. Julio 2026"/>
+    </div>
+    <div style="display:flex;gap:10px">
+      <div class="fg" style="flex:1">
+        <label>Monto (CLP) *</label>
+        <input id="sf-monto" type="number" placeholder="580000"/>
+      </div>
+      <div class="fg" style="flex:1">
+        <label>Fecha emision</label>
+        <input id="sf-fecha" type="date"/>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Estado</label>
+      <select id="sf-estado">
+        <option value="pendiente">Pendiente</option>
+        <option value="pagada">Pagada</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Archivo PDF *</label>
+      <input id="sf-file" type="file" accept="application/pdf"/>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="cerrarModal('modal-subir-factura')">Cancelar</button>
+      <button class="btn btn-orange" style="flex:1;justify-content:center" id="btn-sf" onclick="confirmarSubirFactura()">Subir factura</button>
     </div>
   </div>
 </div>
@@ -398,8 +469,125 @@ function switchTab(id, btn){
   btn.classList.add('active');
   document.getElementById('tab-ovs').style.display     = id==='ovs'      ? 'block' : 'none';
   document.getElementById('tab-facturas').style.display= id==='facturas' ? 'block' : 'none';
+  document.getElementById('tab-clientes').style.display= id==='clientes' ? 'block' : 'none';
   document.getElementById('tab-alertas').style.display = id==='alertas'  ? 'block' : 'none';
   if(id==='alertas') renderAlertas();
+  if(id==='clientes') initClientesTab();
+}
+
+/* ── Facturas a clientes (TransMatch → empresa) ── */
+var _empresasCliente = null;
+async function initClientesTab(){
+  if(_empresasCliente) return;
+  var r = await apiFetch('/api/admin/usuarios');
+  if(!r || !r.ok){ _empresasCliente=null; return; }
+  _empresasCliente = (r.data.usuarios||[])
+    .filter(function(u){ return u.role==='cliente' && !u.esSubusuario; })
+    .sort(function(a,b){ return (a.empresa||a.nombre||'').localeCompare(b.empresa||b.nombre||''); });
+  var opts = '<option value="">Selecciona una empresa...</option>' + _empresasCliente.map(function(u){
+    return '<option value="'+u.email+'">'+(u.empresa||u.nombre||u.email)+'</option>';
+  }).join('');
+  document.getElementById('fc-empresa').innerHTML = opts;
+}
+function fileToBase64(file){
+  return new Promise(function(res,rej){ var fr=new FileReader(); fr.onload=function(){ res(String(fr.result).split(',')[1]); }; fr.onerror=rej; fr.readAsDataURL(file); });
+}
+async function cargarFacturasCliente(){
+  var email = document.getElementById('fc-empresa').value;
+  var tb = document.getElementById('tbody-fc');
+  if(!email){ tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:18px">Selecciona una empresa para ver sus facturas</td></tr>'; return; }
+  tb.innerHTML='<tr><td colspan="6"><div class="spinner"></div></td></tr>';
+  var r = await apiFetch('/api/admin/facturas-cliente?email='+encodeURIComponent(email));
+  if(!r || !r.ok){ tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:#EF4444;padding:18px">Error al cargar</td></tr>'; return; }
+  var fs = r.data.facturas||[];
+  if(!fs.length){ tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:18px">Esta empresa no tiene facturas aun</td></tr>'; return; }
+  tb.innerHTML = fs.map(function(f){
+    var badge = f.estado==='pagada' ? '<span class="badge b-facturada">Pagada</span>' : '<span class="badge b-condicional">Pendiente</span>';
+    var toggle = f.estado==='pagada'
+      ? '<button class="btn btn-outline btn-sm" onclick="toggleEstadoFactura(\''+email+'\',\''+f.id+'\',\'pendiente\')">Marcar pendiente</button>'
+      : '<button class="btn btn-outline btn-sm" onclick="toggleEstadoFactura(\''+email+'\',\''+f.id+'\',\'pagada\')">Marcar pagada</button>';
+    var ver = f.archivoId ? '<button class="btn btn-outline btn-sm" onclick="verFacturaAdmin(\''+f.archivoId+'\')">Ver PDF</button>' : '';
+    var del = '<button class="btn btn-red btn-sm" onclick="eliminarFacturaCliente(\''+email+'\',\''+f.id+'\')">Eliminar</button>';
+    return '<tr>'
+      +'<td style="font-family:IBM Plex Mono,monospace;font-size:12px">'+(f.numero||'--')+'</td>'
+      +'<td>'+(f.periodo||'--')+'</td>'
+      +'<td>'+fecha(f.fechaEmision)+'</td>'
+      +'<td style="font-weight:600">'+peso(f.monto)+'</td>'
+      +'<td>'+badge+'</td>'
+      +'<td><div style="display:flex;gap:6px;flex-wrap:wrap">'+ver+toggle+del+'</div></td>'
+      +'</tr>';
+  }).join('');
+}
+function abrirSubirFactura(){
+  if(!_empresasCliente){ toast('Cargando empresas, intenta de nuevo','warn'); initClientesTab(); return; }
+  var sel = document.getElementById('sf-empresa');
+  sel.innerHTML = _empresasCliente.map(function(u){ return '<option value="'+u.email+'">'+(u.empresa||u.nombre||u.email)+'</option>'; }).join('');
+  var actual = document.getElementById('fc-empresa').value;
+  if(actual) sel.value = actual;
+  document.getElementById('sf-numero').value='';
+  document.getElementById('sf-periodo').value='';
+  document.getElementById('sf-monto').value='';
+  document.getElementById('sf-fecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('sf-estado').value='pendiente';
+  document.getElementById('sf-file').value='';
+  document.getElementById('modal-subir-factura').classList.add('open');
+}
+async function confirmarSubirFactura(){
+  var email = document.getElementById('sf-empresa').value;
+  var numero = document.getElementById('sf-numero').value.trim();
+  var monto = document.getElementById('sf-monto').value;
+  var fileEl = document.getElementById('sf-file');
+  if(!email){ toast('Selecciona una empresa','err'); return; }
+  if(!numero){ toast('Ingresa el N° de factura','err'); return; }
+  if(!monto){ toast('Ingresa el monto','err'); return; }
+  if(!fileEl.files || !fileEl.files[0]){ toast('Adjunta el PDF','err'); return; }
+  var file = fileEl.files[0];
+  if(file.size > 8*1024*1024){ toast('El PDF supera los 8 MB','err'); return; }
+  var btn = document.getElementById('btn-sf'); btn.disabled=true; btn.textContent='Subiendo...';
+  try {
+    var base64 = await fileToBase64(file);
+    var r = await apiFetch('/api/admin/factura-cliente','POST',{
+      email: email,
+      numero: numero,
+      periodo: document.getElementById('sf-periodo').value.trim(),
+      monto: Number(monto),
+      fechaEmision: document.getElementById('sf-fecha').value,
+      estado: document.getElementById('sf-estado').value,
+      base64: base64,
+      archivoNombre: file.name
+    });
+    btn.disabled=false; btn.textContent='Subir factura';
+    if(r && r.ok){
+      toast('Factura subida y enviada al cliente');
+      cerrarModal('modal-subir-factura');
+      document.getElementById('fc-empresa').value = email;
+      cargarFacturasCliente();
+    } else {
+      toast((r&&r.data&&r.data.error)||'Error al subir la factura','err');
+    }
+  } catch(e){ btn.disabled=false; btn.textContent='Subir factura'; toast('Error al leer el archivo','err'); }
+}
+async function toggleEstadoFactura(email, id, nuevoEstado){
+  var r = await apiFetch('/api/admin/factura-cliente/estado','POST',{email:email, facturaId:id, estado:nuevoEstado});
+  if(r && r.ok){ toast('Estado actualizado'); cargarFacturasCliente(); }
+  else toast('Error al actualizar','err');
+}
+async function eliminarFacturaCliente(email, id){
+  if(!confirm('¿Eliminar esta factura? El cliente dejará de verla.')) return;
+  var r = await apiFetch('/api/admin/factura-cliente/eliminar','POST',{email:email, facturaId:id});
+  if(r && r.ok){ toast('Factura eliminada'); cargarFacturasCliente(); }
+  else toast('Error al eliminar','err');
+}
+async function verFacturaAdmin(id){
+  try{
+    var r = await fetch(API+'/api/archivos/'+id,{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    var d = await r.json();
+    var arr = new Uint8Array(atob(d.base64).split('').map(function(ch){ return ch.charCodeAt(0); }));
+    var blob = new Blob([arr], {type:d.tipo||'application/pdf'});
+    var url = URL.createObjectURL(blob);
+    window.open(url,'_blank');
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+  }catch(e){ toast('Error al abrir la factura','err'); }
 }
 
 function cerrarModal(id){ document.getElementById(id).classList.remove('open'); }

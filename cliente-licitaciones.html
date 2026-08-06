@@ -215,6 +215,7 @@ document.dispatchEvent(new Event('_authReady'));
 <span class="pill pill-rech" onclick="togglePill(this,'anulada')">Anuladas</span>
 <span class="pill pill-rech" onclick="togglePill(this,'expirada')">Vencidas</span>
 <select class="sel-mes" id="fil-mes" onchange="aplicarFiltros()"><option value="">Todos los meses</option></select>
+<select class="sel-mes" id="fil-usuario-lic" style="display:none" onchange="aplicarFiltros()"><option value="">Todos los usuarios</option></select>
 </div>
 <div id="lista-licitaciones" style="max-width:820px;width:100%;margin:0 auto"><div style="padding:40px;text-align:center"><div class="spinner" style="margin:0 auto"></div></div></div>
 </div>
@@ -415,10 +416,25 @@ aplicarFiltros();
 
 function aplicarFiltros(){
 var mes=document.getElementById('fil-mes').value;
+var selU=document.getElementById('fil-usuario-lic');
+var usuario=selU?selU.value:'';
 var lista=allLicitaciones;
 if(estadosFiltro.size>0)lista=lista.filter(function(l){return estadosFiltro.has(l.estado)});
 if(mes)lista=lista.filter(function(l){return l.createdAt&&l.createdAt.substring(0,7)===mes});
+if(usuario)lista=lista.filter(function(l){return (l.creadoPorEmail||'')===usuario});
 renderLista(lista);
+}
+
+function poblarFiltroUsuario(){
+var creadores={};
+allLicitaciones.forEach(function(l){ if(l.creadoPorEmail) creadores[l.creadoPorEmail]=l.creadoPorNombre||l.creadoPorEmail; });
+var keysU=Object.keys(creadores);
+var selU=document.getElementById('fil-usuario-lic');
+if(!selU)return;
+if(keysU.length>=2){
+selU.style.display='';
+selU.innerHTML='<option value="">Todos los usuarios</option>'+keysU.map(function(e){return '<option value="'+e+'">'+creadores[e]+'</option>';}).join('');
+} else { selU.style.display='none'; }
 }
 
 function poblarFiltroMes(){
@@ -1197,6 +1213,7 @@ document.getElementById('st-adjudicadas').textContent=allLicitaciones.filter(fun
 document.getElementById('st-completadas').textContent=allLicitaciones.filter(function(l){return l.estado==='completada'}).length;
 document.getElementById('st-total').textContent=allLicitaciones.length;
 poblarFiltroMes();
+poblarFiltroUsuario();
 aplicarFiltros();
 }
 

@@ -178,11 +178,18 @@
     <div class="page-hdr">
       <div>
         <div class="page-title">Facturación</div>
-        <div class="page-sub">Resumen de gastos y documentos por transporte</div>
+        <div class="page-sub" id="page-sub">Resumen de gastos y documentos por transporte</div>
       </div>
       
     </div>
 
+    <!-- Sub-pestañas de facturación -->
+    <div class="fact-tabs" style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+      <button id="ftab-btn-transportes" onclick="switchFacturaTab('transportes')" style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#1e2d4e;color:#fff;border:1px solid #1e2d4e">De mis transportes</button>
+      <button id="ftab-btn-suscripcion" onclick="switchFacturaTab('suscripcion')" style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#fff;color:#1e2d4e;border:1px solid #d7dbe6">Mi suscripción</button>
+    </div>
+
+    <div id="tab-transportes">
     <!-- Stats -->
     <div class="grid-3">
       <div class="stat">
@@ -227,6 +234,9 @@
         <option value="adjudicada">En curso</option>
         <option value="completada">Completado</option>
       </select>
+      <select class="sel" id="fil-usuario" style="display:none" onchange="filtrar()">
+        <option value="">Todos los usuarios</option>
+      </select>
     </div>
 
     <!-- Tabla transportes -->
@@ -236,6 +246,38 @@
         <span id="tabla-count" style="font-size:12px;color:#9CA3AF"></span>
       </div>
       <div id="tabla-transportes"><div class="empty"><div class="spinner" style="width:22px;height:22px;border-width:2px;margin:0 auto 8px"></div>Cargando...</div></div>
+    </div>
+    </div><!-- /tab-transportes -->
+
+    <!-- TAB: Mi suscripción (facturas que emite TransMatch) -->
+    <div id="tab-suscripcion" style="display:none">
+      <div id="sus-restringido" style="display:none" class="card"><div class="empty">Solo la cuenta principal puede ver la facturación de la suscripción.</div></div>
+      <div id="sus-contenido">
+        <div class="grid-3">
+          <div class="stat">
+            <div class="stat-label">Total emitido</div>
+            <div class="stat-val" id="st-sus-emitido" style="color:#1e2d4e;font-size:22px">—</div>
+            <div class="stat-sub">Facturas de TransMatch</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Pagado</div>
+            <div class="stat-val" id="st-sus-pagado" style="color:#14532D;font-size:22px">—</div>
+            <div class="stat-sub">Facturas saldadas</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Pendiente</div>
+            <div class="stat-val" id="st-sus-pend" style="color:#92400E;font-size:22px">—</div>
+            <div class="stat-sub">Por pagar</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">
+            <span class="card-title">Facturas de TransMatch</span>
+            <span id="sus-count" style="font-size:12px;color:#9CA3AF"></span>
+          </div>
+          <div id="tabla-suscripcion"><div class="empty"><div class="spinner" style="width:22px;height:22px;border-width:2px;margin:0 auto 8px"></div>Cargando...</div></div>
+        </div>
+      </div>
     </div>
   </main>
 </div>
@@ -387,6 +429,18 @@ async function cargar(){
       var o = document.createElement('option'); o.value=k; o.textContent=mesLabel(k); sel.appendChild(o);
     });
 
+    // Filtro por usuario (solo para la cuenta madre: aparece si hay 2+ creadores)
+    var creadores = {};
+    todosTransportes.forEach(function(t){ if(t.creadoPorEmail) creadores[t.creadoPorEmail] = t.creadoPorNombre||t.creadoPorEmail; });
+    var selU = document.getElementById('fil-usuario');
+    var keysU = Object.keys(creadores);
+    if(selU){
+      if(keysU.length >= 2){
+        selU.style.display = '';
+        selU.innerHTML = '<option value="">Todos los usuarios</option>' + keysU.map(function(e){ return '<option value="'+e+'">'+creadores[e]+'</option>'; }).join('');
+      } else { selU.style.display = 'none'; }
+    }
+
     // Stats
     var adjudicado = todosTransportes.reduce(function(s,t){ return s+(t.precio||0); }, 0);
     var gasto = todosTransportes.filter(function(t){ return t.factura; }).reduce(function(s,t){ return s+(t.precio||0); }, 0);
@@ -405,8 +459,11 @@ async function cargar(){
 function filtrar(){
   var mes    = document.getElementById('fil-mes').value;
   var estado = document.getElementById('fil-estado').value;
+  var selU2  = document.getElementById('fil-usuario');
+  var usuario = selU2 ? selU2.value : '';
   var lista  = todosTransportes;
   if(mes)    lista = lista.filter(function(t){ return mesKey(t.adjudicadoAt)===mes; });
+  if(usuario) lista = lista.filter(function(t){ return (t.creadoPorEmail||'')===usuario; });
   if(estado==='adjudicada') lista = lista.filter(function(t){ return t.estado!=='entregado'; });
   if(estado==='completada') lista = lista.filter(function(t){ return t.factura; });
 
@@ -454,6 +511,67 @@ async function descargar(id, nombre){
   } catch(e){ toast('Error al descargar','err'); }
 }
 
+/* ── Sub-pestañas / Mi suscripción ── */
+function setFacturaTabStyle(id, active){
+  var b = document.getElementById(id); if(!b) return;
+  if(active){ b.style.background='#1e2d4e'; b.style.color='#fff'; b.style.border='1px solid #1e2d4e'; }
+  else { b.style.background='#fff'; b.style.color='#1e2d4e'; b.style.border='1px solid #d7dbe6'; }
+}
+function switchFacturaTab(which){
+  var t = which==='transportes';
+  document.getElementById('tab-transportes').style.display = t ? 'block' : 'none';
+  document.getElementById('tab-suscripcion').style.display = t ? 'none' : 'block';
+  setFacturaTabStyle('ftab-btn-transportes', t);
+  setFacturaTabStyle('ftab-btn-suscripcion', !t);
+  document.getElementById('page-sub') && (document.getElementById('page-sub').textContent = t ? 'Resumen de gastos y documentos por transporte' : 'Facturas emitidas por TransMatch');
+}
+async function cargarSuscripcion(){
+  try{
+    var r = await fetch(API+'/api/facturas-suscripcion',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    if(r.status===403){
+      document.getElementById('ftab-btn-suscripcion').style.display='none';
+      document.getElementById('sus-restringido').style.display='block';
+      document.getElementById('sus-contenido').style.display='none';
+      return;
+    }
+    var d = await r.json(); var fs = d.facturas||[];
+    var emitido = fs.reduce(function(s,f){ return s+(f.monto||0); }, 0);
+    var pagado  = fs.filter(function(f){ return f.estado==='pagada'; }).reduce(function(s,f){ return s+(f.monto||0); }, 0);
+    document.getElementById('st-sus-emitido').textContent = peso(emitido);
+    document.getElementById('st-sus-pagado').textContent  = peso(pagado);
+    document.getElementById('st-sus-pend').textContent    = peso(emitido-pagado);
+    document.getElementById('sus-count').textContent = fs.length+' factura'+(fs.length!==1?'s':'');
+    if(!fs.length){ document.getElementById('tabla-suscripcion').innerHTML='<div class="empty">Aún no tienes facturas de TransMatch.</div>'; return; }
+    var html='<div style="overflow-x:auto"><table class="tabla"><thead><tr><th>N° factura</th><th>Período</th><th>Emisión</th><th>Monto</th><th>Estado</th><th></th></tr></thead><tbody>';
+    html += fs.map(function(f){
+      var badge = f.estado==='pagada'
+        ? '<span style="background:#E1F5EE;color:#0F6E56;font-size:11px;padding:2px 10px;border-radius:20px;font-weight:600">Pagada</span>'
+        : '<span style="background:#FAEEDA;color:#854F0B;font-size:11px;padding:2px 10px;border-radius:20px;font-weight:600">Pendiente</span>';
+      return '<tr>'
+        +'<td style="font-family:IBM Plex Mono,monospace;font-size:12px;color:#1e2d4e">'+(f.numero||'--')+'</td>'
+        +'<td>'+(f.periodo||'--')+'</td>'
+        +'<td>'+fechaCorta(f.fechaEmision)+'</td>'
+        +'<td style="font-weight:700">'+peso(f.monto)+'</td>'
+        +'<td>'+badge+'</td>'
+        +'<td style="text-align:right">'+(f.archivoId?'<button class="btn btn-outline btn-sm" onclick="verFactura(\''+f.archivoId+'\')">Ver PDF</button>':'')+'</td>'
+        +'</tr>';
+    }).join('');
+    html += '</tbody></table></div>';
+    document.getElementById('tabla-suscripcion').innerHTML = html;
+  }catch(e){ document.getElementById('tabla-suscripcion').innerHTML='<div class="empty">Error al cargar</div>'; }
+}
+async function verFactura(id){
+  try{
+    var r = await fetch(API+'/api/archivos/'+id,{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    var d = await r.json();
+    var arr = new Uint8Array(atob(d.base64).split('').map(function(ch){ return ch.charCodeAt(0); }));
+    var blob = new Blob([arr], {type:d.tipo||'application/pdf'});
+    var url = URL.createObjectURL(blob);
+    window.open(url,'_blank');
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+  }catch(e){ toast('Error al abrir la factura','err'); }
+}
+
 (function(){
   var token = localStorage.getItem('tm_token');
   var role  = localStorage.getItem('tm_role');
@@ -468,6 +586,7 @@ async function descargar(id, nombre){
   document.getElementById('auth-guard').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   cargar();
+  cargarSuscripcion();
 cargarNotificaciones();
 })();
 
