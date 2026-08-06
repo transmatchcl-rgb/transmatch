@@ -553,7 +553,7 @@ async function cargarSuscripcion(){
         +'<td>'+fechaCorta(f.fechaEmision)+'</td>'
         +'<td style="font-weight:700">'+peso(f.monto)+'</td>'
         +'<td>'+badge+'</td>'
-        +'<td style="text-align:right">'+(f.archivoId?'<button class="btn btn-outline btn-sm" onclick="verFactura(\''+f.archivoId+'\')">Ver PDF</button>':'')+'</td>'
+        +'<td style="text-align:right;white-space:nowrap">'+(f.archivoId?'<button class="btn btn-outline btn-sm" onclick="verFactura(\''+f.archivoId+'\')">Ver</button> <button class="btn btn-outline btn-sm" onclick="descargar(\''+f.archivoId+'\',\''+(f.archivoNombre||'factura.pdf')+'\')">Descargar</button>':'')+'</td>'
         +'</tr>';
     }).join('');
     html += '</tbody></table></div>';

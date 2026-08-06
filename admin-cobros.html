@@ -168,6 +168,13 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
       </div>
     </div>
 
+    <!-- Toggle de flujo de cobro -->
+    <div style="display:inline-flex;background:#EEF1F6;border-radius:10px;padding:4px;gap:4px;margin-bottom:18px">
+      <button id="flbtn-transportistas" onclick="switchFlujo('transportistas')" style="border:none;cursor:pointer;font-size:13px;font-weight:600;padding:8px 16px;border-radius:8px;background:#1e2d4e;color:#fff">Comisiones a transportistas</button>
+      <button id="flbtn-clientes" onclick="switchFlujo('clientes')" style="border:none;cursor:pointer;font-size:13px;font-weight:600;padding:8px 16px;border-radius:8px;background:transparent;color:#374151">Facturas a clientes</button>
+    </div>
+
+    <div id="flujo-transportistas">
     <!-- Stats -->
     <div class="grid-4">
       <div class="stat">
@@ -196,7 +203,6 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
     <div class="tabs-bar">
       <button class="tab-btn active" onclick="switchTab('ovs',this)">Ordenes de Venta</button>
       <button class="tab-btn" onclick="switchTab('facturas',this)">Facturas mensuales</button>
-      <button class="tab-btn" onclick="switchTab('clientes',this)">Facturas a clientes</button>
       <button class="tab-btn" onclick="switchTab('alertas',this)">Alertas</button>
     </div>
 
@@ -220,8 +226,8 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
                 <th>OV</th>
                 <th>Transportista</th>
                 <th>Licitacion</th>
-                <th>Comision estimada</th>
-                <th>Comision final</th>
+                <th style="text-align:right">Comision estimada</th>
+                <th style="text-align:right">Comision final</th>
                 <th>Estado</th>
                 <th>Fecha</th>
                 <th>Acciones</th>
@@ -269,27 +275,39 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
         <div id="lista-alertas"><div class="spinner"></div></div>
       </div>
     </div>
+    </div><!-- /flujo-transportistas -->
 
-    <!-- TAB: Facturas a clientes (TransMatch → empresa) -->
-    <div id="tab-clientes" style="display:none">
+    <!-- FLUJO: Facturas a clientes (TransMatch → empresa) -->
+    <div id="flujo-clientes" style="display:none">
+      <div class="grid-4" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+        <div class="stat"><div class="stat-label">Total emitido</div><div class="stat-val" id="st-fc-emitido" style="color:#1e2d4e;font-size:18px">—</div><div class="stat-sub" id="st-fc-scope">Todas las empresas</div></div>
+        <div class="stat"><div class="stat-label">Pagado</div><div class="stat-val" id="st-fc-pagado" style="color:#14532D;font-size:18px">—</div><div class="stat-sub">Facturas saldadas</div></div>
+        <div class="stat"><div class="stat-label">Pendiente</div><div class="stat-val" id="st-fc-pend" style="color:#92400E;font-size:18px">—</div><div class="stat-sub">Por cobrar</div></div>
+      </div>
       <div class="card">
-        <div class="filter-bar" style="align-items:center">
-          <select class="sel" id="fc-empresa" onchange="cargarFacturasCliente()" style="min-width:260px"><option value="">Selecciona una empresa...</option></select>
-          <button class="btn btn-orange btn-sm" onclick="abrirSubirFactura()">Subir factura</button>
+        <div class="filter-bar" style="align-items:center;flex-wrap:wrap">
+          <select class="sel" id="fc-empresa" onchange="cargarFacturasCliente()" style="min-width:240px"><option value="">Todas las empresas</option></select>
+          <select class="sel" id="fc-estado" onchange="renderFacturasClientes()">
+            <option value="">Todos los estados</option>
+            <option value="pendiente">Pendientes</option>
+            <option value="pagada">Pagadas</option>
+          </select>
+          <button class="btn btn-orange btn-sm" onclick="abrirSubirFactura()" style="margin-left:auto">Subir factura</button>
         </div>
         <div style="overflow-x:auto">
           <table class="tbl">
             <thead>
               <tr>
+                <th>Empresa</th>
                 <th>N° factura</th>
                 <th>Periodo</th>
                 <th>Emision</th>
-                <th>Monto</th>
-                <th>Estado</th>
-                <th>Acciones</th>
+                <th style="text-align:right">Monto</th>
+                <th style="text-align:center">Estado</th>
+                <th></th>
               </tr>
             </thead>
-            <tbody id="tbody-fc"><tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:18px">Selecciona una empresa para ver sus facturas</td></tr></tbody>
+            <tbody id="tbody-fc"><tr><td colspan="7"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
       </div>
@@ -424,10 +442,11 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
 </div>
 
 <div id="toast"></div>
+<div id="fc-menu" style="display:none;position:fixed;z-index:600;background:#fff;border:0.5px solid #E5E7EB;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:160px;overflow:hidden"></div>
 
 <script>
 var API = 'https://transmatch.transmatchcl.workers.dev';
-var allOVs = [], allFacturas = [], ovActual = null;
+var allOVs = [], allFacturas = [], ovActual = null, _licCodigo = {};
 
 // ── Helpers ──
 function peso(n){ return n!=null&&n!=='' ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '—'; }
@@ -469,25 +488,39 @@ function switchTab(id, btn){
   btn.classList.add('active');
   document.getElementById('tab-ovs').style.display     = id==='ovs'      ? 'block' : 'none';
   document.getElementById('tab-facturas').style.display= id==='facturas' ? 'block' : 'none';
-  document.getElementById('tab-clientes').style.display= id==='clientes' ? 'block' : 'none';
   document.getElementById('tab-alertas').style.display = id==='alertas'  ? 'block' : 'none';
   if(id==='alertas') renderAlertas();
-  if(id==='clientes') initClientesTab();
+}
+
+// ── Toggle de flujo (transportistas vs clientes) ──
+var _clientesCargado = false;
+function switchFlujo(flujo){
+  var t = flujo==='transportistas';
+  document.getElementById('flujo-transportistas').style.display = t ? 'block' : 'none';
+  document.getElementById('flujo-clientes').style.display = t ? 'none' : 'block';
+  var bt=document.getElementById('flbtn-transportistas'), bc=document.getElementById('flbtn-clientes');
+  bt.style.background = t?'#1e2d4e':'transparent'; bt.style.color = t?'#fff':'#374151';
+  bc.style.background = t?'transparent':'#1e2d4e'; bc.style.color = t?'#374151':'#fff';
+  if(!t && !_clientesCargado){ _clientesCargado=true; initClientesTab(); }
 }
 
 /* ── Facturas a clientes (TransMatch → empresa) ── */
 var _empresasCliente = null;
+var allFacturasClientes = [];
 async function initClientesTab(){
-  if(_empresasCliente) return;
-  var r = await apiFetch('/api/admin/usuarios');
-  if(!r || !r.ok){ _empresasCliente=null; return; }
-  _empresasCliente = (r.data.usuarios||[])
-    .filter(function(u){ return u.role==='cliente' && !u.esSubusuario; })
-    .sort(function(a,b){ return (a.empresa||a.nombre||'').localeCompare(b.empresa||b.nombre||''); });
-  var opts = '<option value="">Selecciona una empresa...</option>' + _empresasCliente.map(function(u){
-    return '<option value="'+u.email+'">'+(u.empresa||u.nombre||u.email)+'</option>';
-  }).join('');
-  document.getElementById('fc-empresa').innerHTML = opts;
+  // Cargar empresas (para el filtro y el modal de subir), solo una vez
+  if(!_empresasCliente){
+    var r = await apiFetch('/api/admin/usuarios');
+    if(r && r.ok){
+      _empresasCliente = (r.data.usuarios||[])
+        .filter(function(u){ return u.role==='cliente' && !u.esSubusuario; })
+        .sort(function(a,b){ return (a.empresa||a.nombre||'').localeCompare(b.empresa||b.nombre||''); });
+      document.getElementById('fc-empresa').innerHTML = '<option value="">Todas las empresas</option>' + _empresasCliente.map(function(u){
+        return '<option value="'+u.email+'">'+(u.empresa||u.nombre||u.email)+'</option>';
+      }).join('');
+    }
+  }
+  cargarFacturasCliente();
 }
 function fileToBase64(file){
   return new Promise(function(res,rej){ var fr=new FileReader(); fr.onload=function(){ res(String(fr.result).split(',')[1]); }; fr.onerror=rej; fr.readAsDataURL(file); });
@@ -495,29 +528,56 @@ function fileToBase64(file){
 async function cargarFacturasCliente(){
   var email = document.getElementById('fc-empresa').value;
   var tb = document.getElementById('tbody-fc');
-  if(!email){ tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:18px">Selecciona una empresa para ver sus facturas</td></tr>'; return; }
-  tb.innerHTML='<tr><td colspan="6"><div class="spinner"></div></td></tr>';
-  var r = await apiFetch('/api/admin/facturas-cliente?email='+encodeURIComponent(email));
-  if(!r || !r.ok){ tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:#EF4444;padding:18px">Error al cargar</td></tr>'; return; }
-  var fs = r.data.facturas||[];
-  if(!fs.length){ tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:18px">Esta empresa no tiene facturas aun</td></tr>'; return; }
-  tb.innerHTML = fs.map(function(f){
+  tb.innerHTML='<tr><td colspan="7"><div class="spinner"></div></td></tr>';
+  var r = await apiFetch('/api/admin/facturas-cliente'+(email?('?email='+encodeURIComponent(email)):''));
+  if(!r || !r.ok){ allFacturasClientes=[]; tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#EF4444;padding:18px">Error al cargar</td></tr>'; return; }
+  allFacturasClientes = r.data.facturas||[];
+  renderFacturasClientes();
+}
+function renderFacturasClientes(){
+  var estadoFil = document.getElementById('fc-estado').value;
+  var hayEmpresa = !!document.getElementById('fc-empresa').value;
+  // Indicadores sobre el scope de empresa (sin aplicar el filtro de estado)
+  var emitido = allFacturasClientes.reduce(function(s,f){ return s+(f.monto||0); }, 0);
+  var pagado  = allFacturasClientes.filter(function(f){ return f.estado==='pagada'; }).reduce(function(s,f){ return s+(f.monto||0); }, 0);
+  document.getElementById('st-fc-emitido').textContent = peso(emitido);
+  document.getElementById('st-fc-pagado').textContent  = peso(pagado);
+  document.getElementById('st-fc-pend').textContent    = peso(emitido-pagado);
+  document.getElementById('st-fc-scope').textContent   = hayEmpresa ? 'Empresa seleccionada' : 'Todas las empresas';
+  var lista = allFacturasClientes;
+  if(estadoFil) lista = lista.filter(function(f){ return f.estado===estadoFil; });
+  var tb = document.getElementById('tbody-fc');
+  if(!lista.length){ tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#9CA3AF;padding:18px">Sin facturas'+(estadoFil?(estadoFil==='pagada'?' pagadas':' pendientes'):'')+'</td></tr>'; return; }
+  tb.innerHTML = lista.map(function(f){
     var badge = f.estado==='pagada' ? '<span class="badge b-facturada">Pagada</span>' : '<span class="badge b-condicional">Pendiente</span>';
-    var toggle = f.estado==='pagada'
-      ? '<button class="btn btn-outline btn-sm" onclick="toggleEstadoFactura(\''+email+'\',\''+f.id+'\',\'pendiente\')">Marcar pendiente</button>'
-      : '<button class="btn btn-outline btn-sm" onclick="toggleEstadoFactura(\''+email+'\',\''+f.id+'\',\'pagada\')">Marcar pagada</button>';
     var ver = f.archivoId ? '<button class="btn btn-outline btn-sm" onclick="verFacturaAdmin(\''+f.archivoId+'\')">Ver PDF</button>' : '';
-    var del = '<button class="btn btn-red btn-sm" onclick="eliminarFacturaCliente(\''+email+'\',\''+f.id+'\')">Eliminar</button>';
+    var menu = '<button class="btn btn-outline btn-sm" style="padding:5px 11px" onclick="abrirMenuFactura(event,\''+f.empresaEmail+'\',\''+f.id+'\',\''+f.estado+'\')">•••</button>';
     return '<tr>'
+      +'<td style="font-weight:500;color:#1e2d4e">'+(f.empresaNombre||'—')+'</td>'
       +'<td style="font-family:IBM Plex Mono,monospace;font-size:12px">'+(f.numero||'--')+'</td>'
       +'<td>'+(f.periodo||'--')+'</td>'
       +'<td>'+fecha(f.fechaEmision)+'</td>'
-      +'<td style="font-weight:600">'+peso(f.monto)+'</td>'
-      +'<td>'+badge+'</td>'
-      +'<td><div style="display:flex;gap:6px;flex-wrap:wrap">'+ver+toggle+del+'</div></td>'
+      +'<td style="text-align:right;font-weight:600">'+peso(f.monto)+'</td>'
+      +'<td style="text-align:center">'+badge+'</td>'
+      +'<td style="text-align:right;white-space:nowrap"><div style="display:inline-flex;gap:6px">'+ver+menu+'</div></td>'
       +'</tr>';
   }).join('');
 }
+function abrirMenuFactura(ev, email, id, estado){
+  ev.stopPropagation();
+  cerrarMenuFactura();
+  var m = document.getElementById('fc-menu');
+  var toggleEstado = estado==='pagada' ? 'pendiente' : 'pagada';
+  var toggleLabel  = estado==='pagada' ? 'Marcar pendiente' : 'Marcar pagada';
+  m.innerHTML = '<button onclick="cerrarMenuFactura();toggleEstadoFactura(\''+email+'\',\''+id+'\',\''+toggleEstado+'\')" style="display:block;width:100%;text-align:left;padding:10px 14px;font-size:13px;background:none;border:none;cursor:pointer;color:#374151">'+toggleLabel+'</button>'
+    + '<button onclick="cerrarMenuFactura();eliminarFacturaCliente(\''+email+'\',\''+id+'\')" style="display:block;width:100%;text-align:left;padding:10px 14px;font-size:13px;background:none;border:none;cursor:pointer;color:#EF4444;border-top:0.5px solid #F3F4F6">Eliminar</button>';
+  var r = ev.currentTarget.getBoundingClientRect();
+  m.style.display='block';
+  m.style.top = (r.bottom+4)+'px';
+  m.style.left = Math.max(8,(r.right-170))+'px';
+}
+function cerrarMenuFactura(){ var m=document.getElementById('fc-menu'); if(m) m.style.display='none'; }
+document.addEventListener('click', function(e){ var m=document.getElementById('fc-menu'); if(m && m.style.display==='block' && !m.contains(e.target)) cerrarMenuFactura(); });
 function abrirSubirFactura(){
   if(!_empresasCliente){ toast('Cargando empresas, intenta de nuevo','warn'); initClientesTab(); return; }
   var sel = document.getElementById('sf-empresa');
@@ -597,13 +657,16 @@ async function initPage(){
   document.getElementById('tbody-ovs').innerHTML = '<tr><td colspan="8"><div class="spinner"></div></td></tr>';
   document.getElementById('tbody-facturas').innerHTML = '<tr><td colspan="7"><div class="spinner"></div></td></tr>';
 
-  var [ovsR, factR] = await Promise.all([
+  var [ovsR, factR, licR] = await Promise.all([
     apiFetch('/api/admin/ordenes-venta'),
-    apiFetch('/api/admin/facturas-mensuales')
+    apiFetch('/api/admin/facturas-mensuales'),
+    apiFetch('/api/licitaciones')
   ]);
 
   allOVs = ovsR?.ok ? (ovsR.data.ordenes || ovsR.data.ovs || []) : [];
   allFacturas = factR?.ok ? (factR.data.facturas || []) : [];
+  _licCodigo = {};
+  if(licR && licR.ok){ (licR.data.licitaciones||[]).forEach(function(l){ if(l.id) _licCodigo[l.id]=l.codigo||''; }); }
 
   // Stats
   var cond = allOVs.filter(function(o){ return o.estado==='CONDICIONAL'; });
@@ -646,9 +709,9 @@ function filtrarOVs(){
     return '<tr>'
       +'<td><span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:#9CA3AF">'+ov.id_ov+'</span></td>'
       +'<td><div style="font-weight:500;color:#1e2d4e">'+(ov.transportistaEmpresa||ov.id_transportista)+'</div><div style="font-size:11px;color:#9CA3AF">'+(ov.transportistaNombre||'')+'</div></td>'
-      +'<td style="font-size:11px;font-family:IBM Plex Mono,monospace;color:#9CA3AF">'+(ov.id_licitacion||'—')+'</td>'
-      +'<td>'+comEst+'</td>'
-      +'<td>'+comFin+'</td>'
+      +'<td style="font-family:IBM Plex Mono,monospace;font-size:12px;color:#185FA5">'+(_licCodigo[ov.id_licitacion]||'—')+'</td>'
+      +'<td style="text-align:right">'+comEst+'</td>'
+      +'<td style="text-align:right">'+comFin+'</td>'
       +'<td>'+badgeOV(ov.estado)+'</td>'
       +'<td style="font-size:12px">'+fecha(ov.fecha_adjudicacion)+'</td>'
       +'<td>'+acciones+'</td>'
@@ -664,7 +727,7 @@ function verOV(id){
     +'<div class="detail-item"><div class="detail-label">ID OV</div><div class="detail-val" style="font-size:12px;font-family:IBM Plex Mono,monospace">'+ov.id_ov+'</div></div>'
     +'<div class="detail-item"><div class="detail-label">Estado</div><div class="detail-val">'+badgeOV(ov.estado)+'</div></div>'
     +'<div class="detail-item"><div class="detail-label">Transportista</div><div class="detail-val">'+(ov.transportistaEmpresa||ov.id_transportista)+'</div></div>'
-    +'<div class="detail-item"><div class="detail-label">Licitacion</div><div class="detail-val" style="font-size:12px;font-family:IBM Plex Mono,monospace">'+(ov.id_licitacion||'—')+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Licitacion</div><div class="detail-val" style="font-size:12px;font-family:IBM Plex Mono,monospace">'+(_licCodigo[ov.id_licitacion]||ov.id_licitacion||'—')+'</div></div>'
     +'<div class="detail-item"><div class="detail-label">Monto cotizado</div><div class="detail-val">'+peso(ov.monto_cotizado)+'</div></div>'
     +'<div class="detail-item"><div class="detail-label">Monto facturado</div><div class="detail-val">'+peso(ov.monto_facturado)+'</div></div>'
     +'<div class="detail-item"><div class="detail-label">Comision estimada</div><div class="detail-val">'+peso(ov.comision_estimada)+'</div></div>'
