@@ -79,8 +79,16 @@ async function getUser(request, env) {
     user.desactivadoManual = desactivadoManual;
     if (ef.bloqueado) return null;
   }
+  // Rol de empresa (dueno / gestor / miembro / visor). Fallback para tokens antiguos: dueño si no es sub-usuario, miembro si lo es.
+  if (user.role==="cliente" || user.role==="transportista") {
+    user.rol = user.rol || (user.esSubusuario ? "miembro" : "dueno");
+    user.empresaId = user.empresaId || (user.esSubusuario ? (user.empresaMadreId||user.id) : user.id);
+  }
   return user;
 }
+
+// Un usuario "ve toda la empresa" si es dueño, gestor o visor. El miembro solo ve lo suyo.
+function veTodaLaEmpresa(user){ return ["dueno","gestor","visor"].includes(user.rol); }
 
 function deny(user, ...roles) {
   if (!user)                      return err("No autenticado", 401);
@@ -835,7 +843,11 @@ async function puedeVerTransporte(env, user, t) {
   if (user.role === "admin") return true;
   if (user.role === "cliente") {
     const eid = user.esSubusuario ? (user.empresaMadreId || user.id) : user.id;
-    return (t.empresaId || t.clienteId) === eid;
+    if ((t.empresaId || t.clienteId) !== eid) return false;
+    // Dueño / gestor / visor ven todo. El miembro solo ve lo que él originó.
+    if (veTodaLaEmpresa(user)) return true;
+    const creador = (t.creadoPorEmail || t.clienteEmail || "").toLowerCase();
+    return creador === user.email.toLowerCase();
   }
   if (user.role === "transportista") {
     if (!t.transportistaEmail) return false;
@@ -894,6 +906,15 @@ async function handleRequest(request, env) {
   const method = request.method;
 
   if (method === "OPTIONS") return new Response(null, { status:204, headers:CORS_HEADERS });
+
+  // Rol Visor = solo lectura: bloquear cualquier escritura, salvo autenticación básica y acciones inocuas.
+  if (["POST","PUT","DELETE","PATCH"].includes(method)) {
+    const _writeWhitelist = ["/api/auth/login","/api/auth/register","/api/auth/cambiar-password","/api/auth/me/prefs","/api/notificaciones/leer","/api/contacto"];
+    if (!_writeWhitelist.includes(path)) {
+      const _vu = await getUser(request, env);
+      if (_vu && _vu.rol === "visor") return err("Tu perfil es de solo lectura", 403);
+    }
+  }
 
   if (path === "/api/test" && method === "GET") {
     try {
@@ -1007,6 +1028,133 @@ async function handleRequest(request, env) {
     return ok({ ok:true, total: items.length, resumen, items });
   }
 
+  // GET /api/admin/preview-empresas — reporte de SOLO LECTURA: cómo se mapearían los usuarios
+  // actuales al modelo Empresa + roles. No modifica ningún dato.
+  if (path === "/api/admin/preview-empresas" && method === "GET") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    const lista = await env.USERS.list();
+    const users = [];
+    for (const key of lista.keys) {
+      if (key.name.startsWith("id:")) continue;
+      const raw = await env.USERS.get(key.name); if (!raw) continue;
+      try { users.push(JSON.parse(raw)); } catch(e){}
+    }
+    const porId = {};
+    for (const u of users) if (u.id) porId[u.id] = u;
+    const empresas = {};
+    const anomalias = [];
+    // Una empresa por cada cuenta madre (cliente o transportista, no sub-usuario)
+    for (const u of users) {
+      if (u.role !== "cliente" && u.role !== "transportista") continue;
+      if (u.esSubusuario) continue;
+      empresas[u.id] = {
+        empresaId: u.id,
+        tipo: u.role,
+        razonSocial: u.empresa || u.nombre || "(sin nombre)",
+        rut: u.rutEmpresa || u.rut || "",
+        plan: u.plan || null,
+        estado: u.estado || "",
+        miembros: [{ email: u.email, nombre: u.nombre || "", rolActual: "cuenta madre", rolPropuesto: "Dueño", estado: u.estado || "" }]
+      };
+    }
+    // Adjuntar sub-usuarios a su empresa
+    let subusuarios = 0, huerfanos = 0;
+    for (const u of users) {
+      if (!u.esSubusuario) continue;
+      subusuarios++;
+      const madreId = u.empresaMadreId;
+      if (!madreId || !empresas[madreId]) {
+        huerfanos++;
+        anomalias.push({ tipo: "subusuario_sin_cuenta_madre", email: u.email, empresaMadreId: madreId || null });
+        continue;
+      }
+      empresas[madreId].miembros.push({ email: u.email, nombre: u.nombre || "", rolActual: "sub-usuario", rolPropuesto: "Miembro", estado: u.estado || "" });
+    }
+    const listaEmp = Object.values(empresas);
+    const resumen = {
+      totalUsuarios: users.length,
+      totalEmpresas: listaEmp.length,
+      empresasCliente: listaEmp.filter(e=>e.tipo==="cliente").length,
+      empresasTransportista: listaEmp.filter(e=>e.tipo==="transportista").length,
+      empresasConEquipo: listaEmp.filter(e=>e.miembros.length>1).length,
+      subusuarios,
+      subusuariosHuerfanos: huerfanos
+    };
+    return ok({ ok:true, resumen, empresas: listaEmp, anomalias });
+  }
+
+  // POST /api/admin/migrar-empresas — FASE 1 del modelo Empresa. Aditivo: crea registros empresa:<id>
+  // y etiqueta a cada usuario con empresaId + rol. NO borra nada. Con {dryRun:true} (por defecto) solo reporta.
+  if (path === "/api/admin/migrar-empresas" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    let body={}; try{ body=await request.json(); }catch(e){}
+    const dryRun = body.dryRun !== false; // por defecto, dry-run
+    if (!env.EMPRESAS) return err("Falta crear el binding KV 'EMPRESAS' en el dashboard de Cloudflare antes de migrar.");
+    const lista = await env.USERS.list();
+    const users = [];
+    for (const key of lista.keys) { if (key.name.startsWith("id:")) continue; const raw=await env.USERS.get(key.name); if(!raw) continue; try{ users.push(JSON.parse(raw)); }catch(e){} }
+    const madres = {};
+    for (const u of users) { if ((u.role==="cliente"||u.role==="transportista") && !u.esSubusuario && u.id) madres[u.id]=u; }
+    // Miembros (sub-usuarios) por empresa madre
+    const miembrosPorMadre = {};
+    for (const u of users) { if (u.esSubusuario && u.empresaMadreId) { (miembrosPorMadre[u.empresaMadreId]=miembrosPorMadre[u.empresaMadreId]||[]).push(u.email); } }
+    let empresasCreadas=0, empresasExistentes=0, usuariosActualizados=0, usuariosYaListos=0;
+    const anomalias=[]; const idsEmpresa=[];
+    // 1) Crear una empresa por cada cuenta madre
+    for (const id of Object.keys(madres)) {
+      const u = madres[id]; idsEmpresa.push(id);
+      const existe = await env.EMPRESAS.get("empresa:"+id);
+      if (existe) { empresasExistentes++; continue; }
+      empresasCreadas++;
+      if (!dryRun) {
+        const empresa = {
+          id, tipo:u.role,
+          razonSocial:u.empresa||u.nombre||"",
+          rut:u.rutEmpresa||u.rut||"",
+          giro:u.giro||"", direccion:u.direccion||"", telEmpresa:u.telEmpresa||"", ciudadEmpresa:u.ciudadEmpresa||"", web:u.web||"", descripcion:u.descripcion||"",
+          facturacion:u.facturacion||null, datosBancarios:u.datosBancarios||null,
+          contactos:u.contactos||[], contactoOperaciones:u.contactoOperaciones||null, contactoComercial:u.contactoComercial||null, contactoFacturacion:u.contactoFacturacion||null,
+          equipos:u.equipos||[], tiposEquipo:u.tiposEquipo||[], zonas:u.zonas||[], industrias:u.industrias||[],
+          plan:u.plan||null, estado:u.estado||"", maxUsuarios:u.max_usuarios||0,
+          duenoId:id, duenoEmail:u.email,
+          miembros:[u.email, ...((miembrosPorMadre[id]||[]))],
+          createdAt:u.createdAt||new Date().toISOString(), migradoAt:new Date().toISOString()
+        };
+        await env.EMPRESAS.put("empresa:"+id, JSON.stringify(empresa));
+      }
+    }
+    // 2) Etiquetar cada usuario con empresaId + rol (aditivo, no borra campos)
+    for (const u of users) {
+      let empresaId=null, rol=null;
+      if (u.esSubusuario) {
+        if (u.empresaMadreId && madres[u.empresaMadreId]) { empresaId=u.empresaMadreId; rol="miembro"; }
+        else { anomalias.push({ tipo:"subusuario_sin_cuenta_madre", email:u.email, empresaMadreId:u.empresaMadreId||null }); continue; }
+      } else if (u.role==="cliente"||u.role==="transportista") { empresaId=u.id; rol="dueno"; }
+      else { continue; } // admin u otros
+      if (u.empresaId===empresaId && u.rol===rol) { usuariosYaListos++; continue; }
+      usuariosActualizados++;
+      if (!dryRun) { u.empresaId=empresaId; u.rol=rol; u.migradoAt=new Date().toISOString(); await env.USERS.put(u.email, JSON.stringify(u)); }
+    }
+    // 3) Índice de empresas
+    if (!dryRun) await env.EMPRESAS.put("empresas:all", JSON.stringify(idsEmpresa));
+    return ok({ ok:true, dryRun, totalUsuarios:users.length, empresasCreadas, empresasExistentes, usuariosActualizados, usuariosYaListos, anomalias });
+  }
+
+  // POST /api/admin/asignar-rol — el admin cambia el rol de empresa de un usuario (dueno/gestor/miembro/visor)
+  if (path === "/api/admin/asignar-rol" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
+    const email=(body.email||"").toLowerCase(); const rol=body.rol;
+    if(!email||!rol) return err("email y rol requeridos");
+    if(!["dueno","gestor","miembro","visor"].includes(rol)) return err("Rol inválido");
+    const raw=await env.USERS.get(email); if(!raw) return err("Usuario no encontrado",404);
+    const u=JSON.parse(raw);
+    if(u.role!=="cliente" && u.role!=="transportista") return err("Solo aplica a usuarios de empresa",400);
+    u.rol=rol; u.actualizadoAt=new Date().toISOString();
+    await env.USERS.put(email, JSON.stringify(u));
+    return ok({ ok:true, rol, aviso:"El cambio toma efecto cuando la persona vuelva a iniciar sesión." });
+  }
+
   // POST /api/admin/crear-usuario — el admin crea la cuenta directamente con una clave provisoria
   // y se le envía por correo al usuario. Alternativa al link de acceso.
   if (path === "/api/admin/crear-usuario" && method === "POST") {
@@ -1093,7 +1241,7 @@ async function handleRequest(request, env) {
     if (ef.estado==="pendiente")  return err("Cuenta pendiente de aprobacion",403);
     if (ef.estado==="rechazado")  return err("Registro rechazado. Contacta al administrador",403);
     if (ef.estado==="suspendido") return err(user.esSubusuario && user.desactivadoManual ? "Tu acceso fue desactivado por tu empresa" : "Cuenta suspendida",403);
-    const token = await signToken({ id:user.id, email:emailLower, role:user.role, nombre:user.nombre, empresa:user.empresa, plan:ef.plan, esSubusuario:user.esSubusuario||false, empresaMadreId:user.empresaMadreId||null }, env.JWT_SECRET);
+    const token = await signToken({ id:user.id, email:emailLower, role:user.role, nombre:user.nombre, empresa:user.empresa, plan:ef.plan, esSubusuario:user.esSubusuario||false, empresaMadreId:user.empresaMadreId||null, rol:(user.rol || (user.esSubusuario?"miembro":"dueno")), empresaId:(user.empresaId || (user.esSubusuario?(user.empresaMadreId||user.id):user.id)) }, env.JWT_SECRET);
     return ok({ token, role:user.role, nombre:user.nombre, empresa:user.empresa, plan:ef.plan, email:user.email||emailLower, telefono:user.telefono||"" });
   }
 
@@ -1142,28 +1290,28 @@ async function handleRequest(request, env) {
     let ids = [];
     if (user.role==="admin") ids = JSON.parse(await env.LICITACIONES.get("all")||"[]");
     else if (user.role==="cliente") {
-      // Leer índice propio
+      // Índice propio (licitaciones creadas por este usuario)
       const idsPropios = JSON.parse(await env.LICITACIONES.get("cliente:"+user.id)||"[]");
-      // Si es sub-usuario, también leer licitaciones de la cuenta madre y de otros sub-usuarios
-      let idsMadre = [];
-      if (user.esSubusuario && user.empresaMadreId) {
-        idsMadre = JSON.parse(await env.LICITACIONES.get("cliente:"+user.empresaMadreId)||"[]");
-      }
-      // Si es cuenta madre, leer licitaciones de todos los sub-usuarios
-      let idsSubusuarios = [];
-      if (!user.esSubusuario && user.empresaMiembros && user.empresaMiembros.length > 0) {
-        const emailsMiembros = user.empresaMiembros;
-        // Buscar IDs de cada miembro
-        for (const emailMiembro of emailsMiembros) {
+      if (user.rol === "miembro") {
+        // Miembro: SOLO sus propias licitaciones
+        ids = [...new Set(idsPropios)];
+      } else {
+        // Dueño / gestor / visor: todas las de la empresa (madre + todos los miembros)
+        let madre = user;
+        if (user.esSubusuario && user.empresaMadreId) {
+          const mEmail = await env.USERS.get("id:"+user.empresaMadreId);
+          if (mEmail) { const rawM = await env.USERS.get(mEmail); if (rawM) madre = JSON.parse(rawM); }
+        }
+        let todos = [...JSON.parse(await env.LICITACIONES.get("cliente:"+madre.id)||"[]")];
+        for (const emailMiembro of (madre.empresaMiembros || [])) {
           const rawMiembro = await env.USERS.get(emailMiembro);
           if (!rawMiembro) continue;
           const miembro = JSON.parse(rawMiembro);
-          const idsMiembro = JSON.parse(await env.LICITACIONES.get("cliente:"+miembro.id)||"[]");
-          idsSubusuarios.push(...idsMiembro);
+          todos.push(...JSON.parse(await env.LICITACIONES.get("cliente:"+miembro.id)||"[]"));
         }
+        todos.push(...idsPropios);
+        ids = [...new Set(todos)];
       }
-      // Combinar y deduplicar
-      ids = [...new Set([...idsPropios, ...idsMadre, ...idsSubusuarios])];
     }
     else if (user.role==="transportista") ids = JSON.parse(await env.LICITACIONES.get("all")||"[]");
     let equiposTransportista = [];
@@ -1194,7 +1342,7 @@ async function handleRequest(request, env) {
     const id = path.split("/")[3]; const user = await getUser(request,env); if(!user) return err("No autenticado",401);
     const raw = await env.LICITACIONES.get(id); if(!raw) return err("No encontrada",404);
     const l = JSON.parse(raw);
-    if(user.role==="cliente"){ const _eid=(user.esSubusuario?(user.empresaMadreId||user.id):user.id); if((l.empresaId||l.clienteId)!==_eid) return err("Sin acceso",403); }
+    if(user.role==="cliente"){ const _eid=(user.esSubusuario?(user.empresaMadreId||user.id):user.id); if((l.empresaId||l.clienteId)!==_eid) return err("Sin acceso",403); if(user.rol==="miembro"){ const _cr=(l.creadoPorEmail||l.clienteEmail||"").toLowerCase(); if(_cr!==user.email.toLowerCase()) return err("Sin acceso",403); } }
     if (user.role==="transportista") { if(!["abierta","cerrada"].includes(l.estado)) return err("Sin acceso",403); const _anonG=anonimizarCliente(l); _anonG.preguntas=anonimizarPreguntas(l.preguntas,user.id,'transportista'); return ok({ licitacion:_anonG }); }
     if (user.role==="cliente") { const lCopy={...l}; const adjId=l.adjudicadaA?.cotizacionId; lCopy.cotizaciones=(l.cotizacionesEnviadas||[]).map(c=>anonimizarTransportista(c, l.estado==="adjudicada" && c.id===adjId)); lCopy.totalCotizaciones=(l.cotizaciones||[]).length; lCopy.preguntas=anonimizarPreguntas(l.preguntas,user.id,'cliente'); return ok({ licitacion:lCopy }); }
     return ok({ licitacion:l });
@@ -1971,6 +2119,104 @@ async function handleRequest(request, env) {
     return ok({ id:archivo.id, nombre:archivo.nombre, tipo:archivo.tipo, base64:archivo.base64 });
   }
 
+  // ── FACTURAS DE SUSCRIPCIÓN (TransMatch → empresa cliente) ──
+  // La metadata vive en el registro de la cuenta madre (campo facturasSuscripcion); el PDF en ARCHIVOS.
+
+  // Cliente (cuenta madre) lista sus facturas de TransMatch
+  if (path === "/api/facturas-suscripcion" && method === "GET") {
+    const user = await getUser(request, env); const d = deny(user, "cliente"); if (d) return d;
+    if (user.esSubusuario) return err("Solo la cuenta principal puede ver la facturación", 403);
+    const raw = await env.USERS.get(user.email); if (!raw) return err("Usuario no encontrado", 404);
+    const u = JSON.parse(raw);
+    const facturas = (u.facturasSuscripcion || []).map(f => ({ id:f.id, numero:f.numero, periodo:f.periodo, monto:f.monto, fechaEmision:f.fechaEmision, estado:f.estado, archivoId:f.archivoId, archivoNombre:f.archivoNombre, creadoAt:f.creadoAt, pagadaAt:f.pagadaAt||null }));
+    facturas.sort((a,b)=> (b.fechaEmision||b.creadoAt||"").localeCompare(a.fechaEmision||a.creadoAt||""));
+    return ok({ facturas });
+  }
+
+  // Admin: listar facturas de una empresa
+  if (path === "/api/admin/facturas-cliente" && method === "GET") {
+    const user = await getUser(request, env); const d = deny(user, "admin"); if (d) return d;
+    const email = (url.searchParams.get("email")||"").toLowerCase();
+    const out = [];
+    if (email) {
+      const raw = await env.USERS.get(email); if (!raw) return err("Empresa no encontrada", 404);
+      const u = JSON.parse(raw);
+      for (const f of (u.facturasSuscripcion||[])) out.push({ ...f, empresaEmail:u.email, empresaNombre:u.empresa||u.nombre||u.email });
+    } else {
+      const listaU = await env.USERS.list();
+      for (const key of listaU.keys) {
+        if (key.name.startsWith("id:")) continue;
+        const raw = await env.USERS.get(key.name); if (!raw) continue;
+        let u; try { u = JSON.parse(raw); } catch(e){ continue; }
+        for (const f of (u.facturasSuscripcion||[])) out.push({ ...f, empresaEmail:u.email, empresaNombre:u.empresa||u.nombre||u.email });
+      }
+    }
+    out.sort((a,b)=> (b.fechaEmision||b.creadoAt||"").localeCompare(a.fechaEmision||a.creadoAt||""));
+    return ok({ facturas: out });
+  }
+
+  // Admin: subir una factura para una empresa
+  if (path === "/api/admin/factura-cliente" && method === "POST") {
+    const user = await getUser(request, env); const d = deny(user, "admin"); if (d) return d;
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
+    const email=(body.email||"").toLowerCase();
+    if(!email) return err("email de empresa requerido");
+    if(!body.numero) return err("Número de factura requerido");
+    if(!body.base64) return err("PDF de la factura requerido");
+    if(body.base64.length>12000000) return err("Archivo demasiado grande. Máximo 8 MB");
+    const raw=await env.USERS.get(email); if(!raw) return err("Empresa no encontrada",404);
+    const u=JSON.parse(raw);
+    if(u.role!=="cliente"||u.esSubusuario) return err("Debe ser una cuenta principal de cliente",400);
+    const nombreArch=body.archivoNombre||("factura_"+body.numero+".pdf");
+    const archivoId=uid();
+    await env.ARCHIVOS.put(archivoId, JSON.stringify({ id:archivoId, nombre:nombreArch, tipo:"application/pdf", base64:body.base64, subidoPor:"admin", createdAt:new Date().toISOString() }));
+    const pagada=(body.estado==="pagada");
+    const factura={ id:uid(), numero:String(body.numero), periodo:body.periodo||"", monto:Number(body.monto)||0, fechaEmision:body.fechaEmision||new Date().toISOString().slice(0,10), estado:(pagada?"pagada":"pendiente"), archivoId, archivoNombre:nombreArch, creadoAt:new Date().toISOString(), creadoPor:user.email, pagadaAt:(pagada?new Date().toISOString():null) };
+    u.facturasSuscripcion=u.facturasSuscripcion||[]; u.facturasSuscripcion.push(factura);
+    await env.USERS.put(email, JSON.stringify(u));
+    try {
+      if(u.email){
+        const cont = `
+          <h1 style="margin:0 0 10px;font-size:20px;color:#1e2d4e">Nueva factura disponible</h1>
+          <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.6">Hola ${u.nombre||u.empresa||""}, TransMatch emitió una nueva factura para <strong>${u.empresa||""}</strong>. Puedes revisarla y descargarla desde tu portal.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border:1px solid #EEF1F6;border-radius:12px;padding:6px 18px;margin-bottom:22px;font-size:14px;color:#374151">
+            <tr><td style="padding:8px 0;color:#6B7280">N° factura</td><td style="padding:8px 0;text-align:right;font-weight:600;color:#1e2d4e">${factura.numero}</td></tr>
+            <tr><td style="padding:8px 0;color:#6B7280">Período</td><td style="padding:8px 0;text-align:right">${factura.periodo||"—"}</td></tr>
+            <tr><td style="padding:8px 0;color:#6B7280">Monto</td><td style="padding:8px 0;text-align:right;font-weight:600;color:#1e2d4e">${formatCLP(factura.monto)}</td></tr>
+          </table>
+          ${btnEmail("https://transmatch.cl/cliente-facturacion.html","Ver mis facturas")}
+        `;
+        await enviarEmail(env,{ to:u.email, subject:"Nueva factura TransMatch — "+factura.numero, html:emailBase(cont,"Nueva factura TransMatch") });
+      }
+    } catch(e){}
+    return ok({ ok:true, factura });
+  }
+
+  // Admin: cambiar estado de pago (pagada / pendiente)
+  if (path === "/api/admin/factura-cliente/estado" && method === "POST") {
+    const user = await getUser(request, env); const d = deny(user, "admin"); if (d) return d;
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
+    const email=(body.email||"").toLowerCase(); if(!email||!body.facturaId) return err("email y facturaId requeridos");
+    const raw=await env.USERS.get(email); if(!raw) return err("Empresa no encontrada",404);
+    const u=JSON.parse(raw); const f=(u.facturasSuscripcion||[]).find(x=>x.id===body.facturaId); if(!f) return err("Factura no encontrada",404);
+    const pagada=(body.estado==="pagada"); f.estado=(pagada?"pagada":"pendiente"); f.pagadaAt=(pagada?new Date().toISOString():null);
+    await env.USERS.put(email, JSON.stringify(u));
+    return ok({ ok:true });
+  }
+
+  // Admin: eliminar una factura
+  if (path === "/api/admin/factura-cliente/eliminar" && method === "POST") {
+    const user = await getUser(request, env); const d = deny(user, "admin"); if (d) return d;
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
+    const email=(body.email||"").toLowerCase(); if(!email||!body.facturaId) return err("email y facturaId requeridos");
+    const raw=await env.USERS.get(email); if(!raw) return err("Empresa no encontrada",404);
+    const u=JSON.parse(raw); const arr=(u.facturasSuscripcion||[]); const idx=arr.findIndex(x=>x.id===body.facturaId); if(idx<0) return err("Factura no encontrada",404);
+    const rm=arr.splice(idx,1)[0];
+    u.facturasSuscripcion=arr; await env.USERS.put(email, JSON.stringify(u));
+    if(rm&&rm.archivoId){ try{ await env.ARCHIVOS.delete(rm.archivoId); }catch(e){} }
+    return ok({ ok:true });
+  }
+
   // GET /api/admin/actividad — feed de actividad de toda la plataforma
   if (path === "/api/admin/actividad" && method === "GET") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
@@ -2435,7 +2681,7 @@ async function handleRequest(request, env) {
           descripcionOut=m.descripcion||descripcionOut;
         }
       }
-      usuarios.push({ id:u.id,email:u.email,nombre:u.nombre,empresa:u.empresa,role:u.role,estado:u.estado,plan:u.plan,createdAt:u.createdAt,rating:u.rating,totalTransportes:u.totalTransportes,telefono:u.telefono||'',rut:u.rut||'',cargo:u.cargo||'',rutEmpresa:rutEmpresaOut,giro:giroOut,direccion:direccionOut,telEmpresa:telEmpresaOut,ciudadEmpresa:ciudadEmpresaOut,web:webOut,descripcion:descripcionOut,max_usuarios:u.max_usuarios||0,empresaMiembros:u.empresaMiembros||[],esSubusuario:u.esSubusuario||false,empresaMadreId:u.empresaMadreId||null,desactivadoManual:u.desactivadoManual||false,notasAdmin:u.notasAdmin||'',equipos:u.equipos||[],tiposEquipo:u.tiposEquipo||[],zonas:u.zonas||[],rutRepresentante:u.rutRepresentante||'',ciudad:u.ciudad||'',whatsapp:u.whatsapp||'',industrias:u.industrias||[],anosExperiencia:u.anosExperiencia||'',perfilCompletitud:u.perfilCompletitud||0,totalCotizaciones:u.totalCotizaciones||0,facturacion:u.facturacion||null,contactoOperaciones:u.contactoOperaciones||null,contactoComercial:u.contactoComercial||null,contactoFacturacion:u.contactoFacturacion||null,contactos:u.contactos||[],datosBancarios:u.datosBancarios||null,notifEmail:u.notifEmail||false,notifWhatsapp:u.notifWhatsapp||false });
+      usuarios.push({ id:u.id,email:u.email,nombre:u.nombre,empresa:u.empresa,role:u.role,estado:u.estado,plan:u.plan,createdAt:u.createdAt,rating:u.rating,totalTransportes:u.totalTransportes,telefono:u.telefono||'',rut:u.rut||'',cargo:u.cargo||'',rutEmpresa:rutEmpresaOut,giro:giroOut,direccion:direccionOut,telEmpresa:telEmpresaOut,ciudadEmpresa:ciudadEmpresaOut,web:webOut,descripcion:descripcionOut,max_usuarios:u.max_usuarios||0,empresaMiembros:u.empresaMiembros||[],esSubusuario:u.esSubusuario||false,empresaMadreId:u.empresaMadreId||null,rol:u.rol||(u.esSubusuario?'miembro':'dueno'),empresaId:u.empresaId||null,desactivadoManual:u.desactivadoManual||false,notasAdmin:u.notasAdmin||'',equipos:u.equipos||[],tiposEquipo:u.tiposEquipo||[],zonas:u.zonas||[],rutRepresentante:u.rutRepresentante||'',ciudad:u.ciudad||'',whatsapp:u.whatsapp||'',industrias:u.industrias||[],anosExperiencia:u.anosExperiencia||'',perfilCompletitud:u.perfilCompletitud||0,totalCotizaciones:u.totalCotizaciones||0,facturacion:u.facturacion||null,contactoOperaciones:u.contactoOperaciones||null,contactoComercial:u.contactoComercial||null,contactoFacturacion:u.contactoFacturacion||null,contactos:u.contactos||[],datosBancarios:u.datosBancarios||null,notifEmail:u.notifEmail||false,notifWhatsapp:u.notifWhatsapp||false });
     }
     return ok({ usuarios });
   }
@@ -2509,7 +2755,7 @@ async function handleRequest(request, env) {
     const user=await getUser(request,env); if(!user) return err("No autenticado",401);
     const emailsT = user.role==="transportista" ? await emailsEmpresa(env, user) : null;
     const allIds=JSON.parse(await env.RETORNOS.get("transportes:all")||"[]"); const transportes=[];
-    for(const id of allIds){ const raw=await env.RETORNOS.get("transporte:"+id); if(!raw) continue; const t=JSON.parse(raw); if(user.role==="admin"){ transportes.push(t); continue; } if(user.role==="cliente"){ const miEmpId=user.esSubusuario?(user.empresaMadreId||user.id):user.id; if((t.empresaId||t.clienteId)===miEmpId) transportes.push(filtrarIncidenciasPorRol(t,user.role)); } if(user.role==="transportista"&&t.transportistaEmail&&emailsT.has(t.transportistaEmail.toLowerCase())){ const asignado=asignadoDeTransporte(t); t.asignadoNombre=t.asignadoNombre||t.transportistaNombre||""; t.puedoGestionar=(asignado===user.email.toLowerCase())||(!user.esSubusuario); transportes.push(filtrarIncidenciasPorRol(t,user.role)); } }
+    for(const id of allIds){ const raw=await env.RETORNOS.get("transporte:"+id); if(!raw) continue; const t=JSON.parse(raw); if(user.role==="admin"){ transportes.push(t); continue; } if(user.role==="cliente"){ const miEmpId=user.esSubusuario?(user.empresaMadreId||user.id):user.id; if((t.empresaId||t.clienteId)===miEmpId){ const _esMio=veTodaLaEmpresa(user) || ((t.creadoPorEmail||t.clienteEmail||"").toLowerCase()===user.email.toLowerCase()); if(_esMio) transportes.push(filtrarIncidenciasPorRol(t,user.role)); } } if(user.role==="transportista"&&t.transportistaEmail&&emailsT.has(t.transportistaEmail.toLowerCase())){ const asignado=asignadoDeTransporte(t); t.asignadoNombre=t.asignadoNombre||t.transportistaNombre||""; t.puedoGestionar=(asignado===user.email.toLowerCase())||(!user.esSubusuario); transportes.push(filtrarIncidenciasPorRol(t,user.role)); } }
     return ok({ transportes });
   }
 

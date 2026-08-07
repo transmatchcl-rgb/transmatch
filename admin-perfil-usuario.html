@@ -335,6 +335,11 @@
                 '<div style="font-size:12px;color:#6B7280">' + s.email + '</div>' +
               '</div>' +
               '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">' +
+                '<select onchange="asignarRol(\'' + s.email + '\',this.value)" title="Rol en la empresa" style="font-size:12px;padding:5px 8px;border:1px solid #e8eaf0;border-radius:7px;font-family:inherit;color:#374151;cursor:pointer">' +
+                  '<option value="miembro"' + ((s.rol||'miembro')==='miembro'?' selected':'') + '>Miembro</option>' +
+                  '<option value="gestor"' + (s.rol==='gestor'?' selected':'') + '>Gestor</option>' +
+                  '<option value="visor"' + (s.rol==='visor'?' selected':'') + '>Visor</option>' +
+                '</select>' +
                 '<span style="background:' + estBg + ';color:' + estColor + ';font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px">' + estLabel + '</span>' +
                 btn +
               '</div>' +
@@ -549,6 +554,12 @@
     } else {
       toast('Error al actualizar', 'err');
     }
+  }
+
+  async function asignarRol(email, rol) {
+    var r = await api('/api/admin/asignar-rol', 'POST', { email: email, rol: rol });
+    if (r && r.ok) { toast('Rol actualizado. Toma efecto cuando la persona reinicie sesión.'); }
+    else { toast((r && r.data && r.data.error) || 'Error al asignar rol', 'err'); }
   }
 
   async function guardarMaxUsuarios() {
