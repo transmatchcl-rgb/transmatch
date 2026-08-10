@@ -2214,15 +2214,21 @@ async function handleRequest(request, env) {
     if (email) {
       const raw = await env.USERS.get(email); if (!raw) return err("Empresa no encontrada", 404);
       const u = JSON.parse(raw);
-      for (const f of (u.facturasSuscripcion||[])) out.push({ ...f, empresaEmail:u.email, empresaNombre:u.empresa||u.nombre||u.email });
-    } else {
-      const listaU = await env.USERS.list();
-      for (const key of listaU.keys) {
-        if (key.name.startsWith("id:")) continue;
-        const raw = await env.USERS.get(key.name); if (!raw) continue;
-        let u; try { u = JSON.parse(raw); } catch(e){ continue; }
-        for (const f of (u.facturasSuscripcion||[])) out.push({ ...f, empresaEmail:u.email, empresaNombre:u.empresa||u.nombre||u.email });
-      }
+      const emp = await empresaDe(env, u) || {};
+      const facts = (emp.facturasSuscripcion || u.facturasSuscripcion || []);
+      for (const f of facts) out.push({ ...f, empresaEmail:u.email, empresaNombre:(emp.razonSocial||u.empresa||u.nombre||u.email) });
+    } else if (env.EMPRESAS) {
+      let cursor;
+      do {
+        const list = await env.EMPRESAS.list({ cursor });
+        for (const k of list.keys) {
+          if (!k.name.startsWith("empresa:")) continue;
+          const raw = await env.EMPRESAS.get(k.name); if(!raw) continue;
+          let emp; try{ emp=JSON.parse(raw); }catch(e){ continue; }
+          for (const f of (emp.facturasSuscripcion||[])) out.push({ ...f, empresaEmail:emp.duenoEmail||"", empresaNombre:emp.razonSocial||emp.duenoEmail||"" });
+        }
+        cursor = list.list_complete ? undefined : list.cursor;
+      } while (cursor);
     }
     out.sort((a,b)=> (b.fechaEmision||b.creadoAt||"").localeCompare(a.fechaEmision||a.creadoAt||""));
     return ok({ facturas: out });
@@ -2750,7 +2756,7 @@ async function handleRequest(request, env) {
   if (path === "/api/admin/usuarios" && method === "GET") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     const lista=await env.USERS.list(); const usuarios=[];
-    const madreCache={};
+    const madreCache={}, empresaCache={};
     for(const key of lista.keys){
       if(key.name.startsWith("id:")) continue;
       const raw=await env.USERS.get(key.name); if(!raw) continue;
@@ -2774,7 +2780,31 @@ async function handleRequest(request, env) {
           descripcionOut=m.descripcion||descripcionOut;
         }
       }
-      usuarios.push({ id:u.id,email:u.email,nombre:u.nombre,empresa:u.empresa,role:u.role,estado:u.estado,plan:u.plan,createdAt:u.createdAt,rating:u.rating,totalTransportes:u.totalTransportes,telefono:u.telefono||'',rut:u.rut||'',cargo:u.cargo||'',rutEmpresa:rutEmpresaOut,giro:giroOut,direccion:direccionOut,telEmpresa:telEmpresaOut,ciudadEmpresa:ciudadEmpresaOut,web:webOut,descripcion:descripcionOut,max_usuarios:u.max_usuarios||0,empresaMiembros:u.empresaMiembros||[],esSubusuario:u.esSubusuario||false,empresaMadreId:u.empresaMadreId||null,rol:u.rol||(u.esSubusuario?'miembro':'dueno'),empresaId:u.empresaId||null,desactivadoManual:u.desactivadoManual||false,notasAdmin:u.notasAdmin||'',equipos:u.equipos||[],tiposEquipo:u.tiposEquipo||[],zonas:u.zonas||[],rutRepresentante:u.rutRepresentante||'',ciudad:u.ciudad||'',whatsapp:u.whatsapp||'',industrias:u.industrias||[],anosExperiencia:u.anosExperiencia||'',perfilCompletitud:u.perfilCompletitud||0,totalCotizaciones:u.totalCotizaciones||0,facturacion:u.facturacion||null,contactoOperaciones:u.contactoOperaciones||null,contactoComercial:u.contactoComercial||null,contactoFacturacion:u.contactoFacturacion||null,contactos:u.contactos||[],datosBancarios:u.datosBancarios||null,notifEmail:u.notifEmail||false,notifWhatsapp:u.notifWhatsapp||false });
+      // Fuente de verdad: entidad Empresa sobre-escribe el perfil de compañía
+      let empresaOut=u.empresa, facturacionOut=u.facturacion||null, contactosOut=u.contactos||[], industriasOut=u.industrias||[], datosBancariosOut=u.datosBancarios||null, contactoOperacionesOut=u.contactoOperaciones||null, contactoComercialOut=u.contactoComercial||null, contactoFacturacionOut=u.contactoFacturacion||null;
+      const _eidU = u.empresaId || (u.esSubusuario ? u.empresaMadreId : u.id);
+      if(env.EMPRESAS && _eidU){
+        let _empU = empresaCache[_eidU];
+        if(_empU===undefined){ const _r=await env.EMPRESAS.get("empresa:"+_eidU); _empU=_r?JSON.parse(_r):null; empresaCache[_eidU]=_empU; }
+        if(_empU){
+          if(_empU.razonSocial!==undefined) empresaOut=_empU.razonSocial;
+          if(_empU.rut!==undefined) rutEmpresaOut=_empU.rut;
+          if(_empU.giro!==undefined) giroOut=_empU.giro;
+          if(_empU.direccion!==undefined) direccionOut=_empU.direccion;
+          if(_empU.telEmpresa!==undefined) telEmpresaOut=_empU.telEmpresa;
+          if(_empU.ciudadEmpresa!==undefined) ciudadEmpresaOut=_empU.ciudadEmpresa;
+          if(_empU.web!==undefined) webOut=_empU.web;
+          if(_empU.descripcion!==undefined) descripcionOut=_empU.descripcion;
+          if(_empU.facturacion!==undefined) facturacionOut=_empU.facturacion;
+          if(_empU.contactos!==undefined) contactosOut=_empU.contactos;
+          if(_empU.industrias!==undefined) industriasOut=_empU.industrias;
+          if(_empU.datosBancarios!==undefined) datosBancariosOut=_empU.datosBancarios;
+          if(_empU.contactoOperaciones!==undefined) contactoOperacionesOut=_empU.contactoOperaciones;
+          if(_empU.contactoComercial!==undefined) contactoComercialOut=_empU.contactoComercial;
+          if(_empU.contactoFacturacion!==undefined) contactoFacturacionOut=_empU.contactoFacturacion;
+        }
+      }
+      usuarios.push({ id:u.id,email:u.email,nombre:u.nombre,empresa:empresaOut,role:u.role,estado:u.estado,plan:u.plan,createdAt:u.createdAt,rating:u.rating,totalTransportes:u.totalTransportes,telefono:u.telefono||'',rut:u.rut||'',cargo:u.cargo||'',rutEmpresa:rutEmpresaOut,giro:giroOut,direccion:direccionOut,telEmpresa:telEmpresaOut,ciudadEmpresa:ciudadEmpresaOut,web:webOut,descripcion:descripcionOut,max_usuarios:u.max_usuarios||0,empresaMiembros:u.empresaMiembros||[],esSubusuario:u.esSubusuario||false,empresaMadreId:u.empresaMadreId||null,rol:u.rol||(u.esSubusuario?'miembro':'dueno'),empresaId:u.empresaId||null,desactivadoManual:u.desactivadoManual||false,notasAdmin:u.notasAdmin||'',equipos:u.equipos||[],tiposEquipo:u.tiposEquipo||[],zonas:u.zonas||[],rutRepresentante:u.rutRepresentante||'',ciudad:u.ciudad||'',whatsapp:u.whatsapp||'',industrias:industriasOut,anosExperiencia:u.anosExperiencia||'',perfilCompletitud:u.perfilCompletitud||0,totalCotizaciones:u.totalCotizaciones||0,facturacion:facturacionOut,contactoOperaciones:contactoOperacionesOut,contactoComercial:contactoComercialOut,contactoFacturacion:contactoFacturacionOut,contactos:contactosOut,datosBancarios:datosBancariosOut,notifEmail:u.notifEmail||false,notifWhatsapp:u.notifWhatsapp||false });
     }
     return ok({ usuarios });
   }
@@ -3311,24 +3341,23 @@ async function handleRequest(request, env) {
     const uAdmin = JSON.parse(rawAdmin);
     // Solo el admin de empresa puede ver el listado
     if(uAdmin.empresaAdminEmail && uAdmin.empresaAdminEmail !== user.email) return err("Solo el admin de empresa puede ver usuarios", 403);
-    const miembrosIds = uAdmin.empresaMiembros || [];
+    // Fuente de verdad: la entidad Empresa
+    const _empMe2 = await empresaDe(env, uAdmin) || {};
+    const miembrosIds = (Array.isArray(_empMe2.miembros) ? _empMe2.miembros.filter(e => e !== user.email) : (uAdmin.empresaMiembros || []));
     const miembros = [];
     for(const email of miembrosIds) {
       const raw = await env.USERS.get(email); if(!raw) continue;
       const m = JSON.parse(raw);
       miembros.push({ id:m.id, email:m.email, nombre:m.nombre, permisos:m.permisos||{}, rol:m.rol||'miembro', estado:m.estado, createdAt:m.createdAt });
     }
-    // Incluir invitaciones pendientes/vencidas
+    // Invitaciones pendientes/vencidas (desde la empresa)
     const ahora = Date.now();
-    const invitacionesPendientes = (uAdmin.invitacionesPendientes || []).map(inv => {
+    const _invsMe = (_empMe2.invitacionesPendientes || uAdmin.invitacionesPendientes || []);
+    const invitacionesPendientes = _invsMe.map(inv => {
       const expira = new Date(inv.expiresAt).getTime();
       return { emailInvitado: inv.emailInvitado, createdAt: inv.createdAt, expiresAt: inv.expiresAt, vencida: ahora > expira };
     }).filter(inv => (ahora - new Date(inv.expiresAt).getTime()) < 7*24*3600000);
-    uAdmin.invitacionesPendientes = (uAdmin.invitacionesPendientes || []).filter(inv =>
-      (ahora - new Date(inv.expiresAt).getTime()) < 7*24*3600000
-    );
-    await env.USERS.put(user.email, JSON.stringify(uAdmin));
-    return ok({ miembros, max_usuarios: uAdmin.max_usuarios||0, invitacionesPendientes });
+    return ok({ miembros, max_usuarios: (_empMe2.maxUsuarios!==undefined ? _empMe2.maxUsuarios : (uAdmin.max_usuarios||0)), invitacionesPendientes });
   }
 
   // POST /api/mi-empresa/invitar — admin empresa invita a un usuario
