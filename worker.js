@@ -131,6 +131,15 @@ async function syncEmpresaMiembros(env, madre){
   emp.updatedAt = new Date().toISOString();
   await env.EMPRESAS.put("empresa:"+eid, JSON.stringify(emp));
 }
+// Sincroniza las facturas de suscripción en el registro de empresa desde la cuenta madre.
+async function syncEmpresaFacturas(env, madre){
+  if(!env.EMPRESAS || !madre || !madre.id) return;
+  const raw = await env.EMPRESAS.get("empresa:"+madre.id); if(!raw) return;
+  const emp = JSON.parse(raw);
+  emp.facturasSuscripcion = madre.facturasSuscripcion||[];
+  emp.updatedAt = new Date().toISOString();
+  await env.EMPRESAS.put("empresa:"+madre.id, JSON.stringify(emp));
+}
 
 function deny(user, ...roles) {
   if (!user)                      return err("No autenticado", 401);
@@ -1161,6 +1170,7 @@ async function handleRequest(request, env) {
         base.duenoId=id; base.duenoEmail=u.email;
         base.miembros=[u.email, ...((miembrosPorMadre[id]||[]))];
         base.invitacionesPendientes=u.invitacionesPendientes||base.invitacionesPendientes||[];
+        base.facturasSuscripcion=u.facturasSuscripcion||base.facturasSuscripcion||[];
         base.migradoAt=new Date().toISOString();
         await env.EMPRESAS.put("empresa:"+id, JSON.stringify(base));
       }
@@ -2189,7 +2199,9 @@ async function handleRequest(request, env) {
     if (user.esSubusuario) return err("Solo la cuenta principal puede ver la facturación", 403);
     const raw = await env.USERS.get(user.email); if (!raw) return err("Usuario no encontrado", 404);
     const u = JSON.parse(raw);
-    const facturas = (u.facturasSuscripcion || []).map(f => ({ id:f.id, numero:f.numero, periodo:f.periodo, monto:f.monto, fechaEmision:f.fechaEmision, estado:f.estado, archivoId:f.archivoId, archivoNombre:f.archivoNombre, creadoAt:f.creadoAt, pagadaAt:f.pagadaAt||null }));
+    const _empF = await empresaDe(env, user);
+    const _srcF = (_empF && _empF.facturasSuscripcion) ? _empF.facturasSuscripcion : (u.facturasSuscripcion || []);
+    const facturas = _srcF.map(f => ({ id:f.id, numero:f.numero, periodo:f.periodo, monto:f.monto, fechaEmision:f.fechaEmision, estado:f.estado, archivoId:f.archivoId, archivoNombre:f.archivoNombre, creadoAt:f.creadoAt, pagadaAt:f.pagadaAt||null }));
     facturas.sort((a,b)=> (b.fechaEmision||b.creadoAt||"").localeCompare(a.fechaEmision||a.creadoAt||""));
     return ok({ facturas });
   }
@@ -2235,6 +2247,7 @@ async function handleRequest(request, env) {
     const factura={ id:uid(), numero:String(body.numero), periodo:body.periodo||"", monto:Number(body.monto)||0, fechaEmision:body.fechaEmision||new Date().toISOString().slice(0,10), estado:(pagada?"pagada":"pendiente"), archivoId, archivoNombre:nombreArch, creadoAt:new Date().toISOString(), creadoPor:user.email, pagadaAt:(pagada?new Date().toISOString():null) };
     u.facturasSuscripcion=u.facturasSuscripcion||[]; u.facturasSuscripcion.push(factura);
     await env.USERS.put(email, JSON.stringify(u));
+    try{ await syncEmpresaFacturas(env, u); }catch(e){}
     try {
       if(u.email){
         const cont = `
@@ -2262,6 +2275,7 @@ async function handleRequest(request, env) {
     const u=JSON.parse(raw); const f=(u.facturasSuscripcion||[]).find(x=>x.id===body.facturaId); if(!f) return err("Factura no encontrada",404);
     const pagada=(body.estado==="pagada"); f.estado=(pagada?"pagada":"pendiente"); f.pagadaAt=(pagada?new Date().toISOString():null);
     await env.USERS.put(email, JSON.stringify(u));
+    try{ await syncEmpresaFacturas(env, u); }catch(e){}
     return ok({ ok:true });
   }
 
@@ -2274,6 +2288,7 @@ async function handleRequest(request, env) {
     const u=JSON.parse(raw); const arr=(u.facturasSuscripcion||[]); const idx=arr.findIndex(x=>x.id===body.facturaId); if(idx<0) return err("Factura no encontrada",404);
     const rm=arr.splice(idx,1)[0];
     u.facturasSuscripcion=arr; await env.USERS.put(email, JSON.stringify(u));
+    try{ await syncEmpresaFacturas(env, u); }catch(e){}
     if(rm&&rm.archivoId){ try{ await env.ARCHIVOS.delete(rm.archivoId); }catch(e){} }
     return ok({ ok:true });
   }
