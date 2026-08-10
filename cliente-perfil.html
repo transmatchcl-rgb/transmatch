@@ -647,14 +647,26 @@ var _usuariosData = [];
 
 // Roles de empresa que la cuenta madre puede asignar a sus usuarios
 var ROLES_CLIENTE = [
-  {key:'miembro', label:'Miembro', desc:'Ve y gestiona solo lo que él crea.'},
-  {key:'gestor',  label:'Gestor',  desc:'Ve y gestiona todo el equipo. Sin facturación ni gestión de usuarios.'},
-  {key:'visor',   label:'Visor',   desc:'Solo lectura: puede ver, no puede modificar nada.'},
+  {key:'miembro', label:'Miembro', desc:'Ve y gestiona únicamente las licitaciones y transportes que él mismo crea. No ve lo del resto del equipo, ni la facturación de la empresa.'},
+  {key:'gestor',  label:'Gestor',  desc:'Ve y gestiona las licitaciones y transportes de toda la empresa (los suyos y los de los demás usuarios). No accede a la facturación ni puede invitar o administrar usuarios.'},
+  {key:'visor',   label:'Visor',   desc:'Puede ver toda la información de la empresa, pero en modo solo lectura: no puede crear, editar, adjudicar ni eliminar nada. Ideal para finanzas o control.'},
 ];
 function rolLabelCli(r){ return ({miembro:'Miembro',gestor:'Gestor',visor:'Visor',dueno:'Dueño'})[r]||'Miembro'; }
 function rolBadgeCli(r){ var c=({miembro:['#FAEEDA','#854F0B'],gestor:['#E1F5EE','#0F6E56'],visor:['#F1EFE8','#444441'],dueno:['#EEEDFE','#3C3489']})[r]||['#FAEEDA','#854F0B']; return '<span style="background:'+c[0]+';color:'+c[1]+';font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px">'+rolLabelCli(r)+'</span>'; }
-function rolSelectHtml(id, current){ return '<select id="'+id+'" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px">'+ROLES_CLIENTE.map(function(r){ return '<option value="'+r.key+'"'+((current||'miembro')===r.key?' selected':'')+'>'+r.label+'</option>'; }).join('')+'</select>'; }
-function rolDescHtml(){ return '<div style="margin-top:8px;font-size:11px;color:#9CA3AF;line-height:1.5">'+ROLES_CLIENTE.map(function(r){ return '<div><strong style="color:#6B7280">'+r.label+':</strong> '+r.desc+'</div>'; }).join('')+'</div>'; }
+function rolPickerHtml(current){
+  return '<div id="rol-picker" style="display:flex;flex-direction:column;gap:8px">'+ROLES_CLIENTE.map(function(r){
+    var on=(current||'miembro')===r.key;
+    return '<label class="rol-card" data-rol="'+r.key+'" onclick="_selRol(this)" style="display:flex;align-items:flex-start;gap:12px;border:1.5px solid '+(on?'#FF8808':'#e8eaf0')+';border-radius:10px;padding:12px 14px;cursor:pointer">'
+      +'<div style="flex:1"><div style="font-size:13px;font-weight:700;color:#1e2d4e">'+r.label+'</div><div style="font-size:12px;color:#6B7280;margin-top:3px;line-height:1.5">'+r.desc+'</div></div>'
+      +'<input type="checkbox" class="rol-chk" data-rol="'+r.key+'" '+(on?'checked':'')+' style="width:18px;height:18px;accent-color:#FF8808;pointer-events:none;margin-top:2px;flex-shrink:0"/>'
+      +'</label>';
+  }).join('')+'</div>';
+}
+function _selRol(card){
+  var picker=document.getElementById('rol-picker'); if(!picker) return;
+  picker.querySelectorAll('.rol-card').forEach(function(c){ var on=(c===card); c.style.border='1.5px solid '+(on?'#FF8808':'#e8eaf0'); var chk=c.querySelector('.rol-chk'); if(chk) chk.checked=on; });
+}
+function rolPickerValue(){ var chk=document.querySelector('#rol-picker .rol-chk:checked'); return chk?chk.getAttribute('data-rol'):'miembro'; }
 
 async function cargarUsuarios(){
   var el = document.getElementById('usuarios-contenido');
@@ -749,8 +761,7 @@ function abrirModalInvitar(){
     +'<div style="margin-bottom:16px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Email del usuario *</label>'
     +'<input type="email" id="inv-email" placeholder="correo@empresa.cl" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
     +'<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Rol</div>'
-    +rolSelectHtml('inv-rol','miembro')
-    +rolDescHtml()
+    +rolPickerHtml('miembro')
     +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">'
     +'<button id="inv-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
     +'<button id="inv-save" style="padding:9px 18px;border-radius:8px;background:#FF8808;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Enviar invitación</button>'
@@ -764,7 +775,7 @@ function abrirModalInvitar(){
 async function enviarInvitacion(modal){
   var email = (document.getElementById('inv-email').value||'').trim();
   if(!email){ alert('Ingresa el email'); return; }
-  var rol = (document.getElementById('inv-rol')||{}).value || 'miembro';
+  var rol = rolPickerValue();
   var btn = document.getElementById('inv-save');
   btn.disabled=true; btn.textContent='Enviando...';
   try{
@@ -786,8 +797,7 @@ function abrirModalRol(emailTarget, nombreTarget, rolActual){
   inner.style.cssText = 'background:#fff;border-radius:16px;padding:28px;width:100%;max-width:440px';
   inner.innerHTML = '<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Rol de '+nombreTarget+'</div>'
     +'<div style="font-size:12px;color:#9CA3AF;margin-bottom:16px">'+emailTarget+'</div>'
-    +rolSelectHtml('rol-edit', rolActual||'miembro')
-    +rolDescHtml()
+    +rolPickerHtml(rolActual||'miembro')
     +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">'
     +'<button id="rol-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
     +'<button id="rol-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar rol</button>'
@@ -799,7 +809,7 @@ function abrirModalRol(emailTarget, nombreTarget, rolActual){
 }
 
 async function guardarRol(emailTarget, modal){
-  var rol = (document.getElementById('rol-edit')||{}).value || 'miembro';
+  var rol = rolPickerValue();
   try{
     var res = await fetch(API+'/api/mi-empresa/usuario/'+encodeURIComponent(emailTarget)+'/rol',{
       method:'POST',
