@@ -359,10 +359,11 @@
         '</div></div>';
     }
 
-    // Sección plan solo para clientes (los transportistas no tienen plan)
-    var planHtml = '';
+    // Bloque de plan (se une a la card de Estado). Solo clientes.
+    var planInner = '';
     if (!isTransportista) {
-      planHtml = '<div class="card"><div class="card-hdr">Plan activo</div><div class="card-body">' +
+      planInner = '<div class="sep"></div>' +
+        '<div style="font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Plan activo</div>' +
         '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
           '<select id="sel-plan" class="plan-select">' +
             '<option value="basico"' + (u.plan === 'basico' ? ' selected' : '') + '>Básico (1 UF/mes)</option>' +
@@ -371,12 +372,11 @@
           '</select>' +
           '<button onclick="cambiarPlan()" style="background:#1e2d4e;color:#fff;padding:9px 18px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Guardar plan</button>' +
         '</div>' +
-        '<div style="font-size:12px;color:#9CA3AF;margin-top:8px">Plan actual: <strong>' + (u.plan || 'Sin plan') + '</strong></div>' +
-      '</div></div>';
+        '<div style="font-size:12px;color:#9CA3AF;margin-top:8px">Plan actual: <strong>' + (u.plan || 'Sin plan') + '</strong></div>';
     }
 
     var html =
-      // ── Header ──
+      // ── Identidad ──
       '<div class="card"><div class="card-body">' +
         '<div class="perfil-hdr">' +
           '<div class="perfil-avatar">' + initials + '</div>' +
@@ -393,13 +393,12 @@
             '</div>' +
           '</div>' +
         '</div>' +
+      '</div></div>' +
 
-        '<div class="sep"></div>' +
-
-        // ── Empresa ──
-        '<div style="font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Empresa' +
-          (u.esSubusuario ? ' <span style="font-size:11px;font-weight:500;color:#9CA3AF;text-transform:none;letter-spacing:0">(heredado de la cuenta madre)</span>' : '') +
-        '</div>' +
+      // ── 1. Empresa ──
+      '<div class="card"><div class="card-hdr">Empresa' +
+        (u.esSubusuario ? ' <span style="font-size:11px;font-weight:400;color:#9CA3AF;text-transform:none;letter-spacing:0">(heredado de la cuenta madre)</span>' : '') +
+      '</div><div class="card-body">' +
         '<div class="info-grid" style="margin-top:0">' +
           '<div class="info-item"><div class="info-label">Razón social</div><div class="info-val">' + (u.empresa || '--') + '</div></div>' +
           '<div class="info-item"><div class="info-label">RUT empresa</div><div class="info-val">' + (u.rutEmpresa || '--') + '</div></div>' +
@@ -411,11 +410,10 @@
           (Array.isArray(u.industrias) && u.industrias.length ? '<div class="info-item"><div class="info-label">Industrias</div><div class="info-val">' + u.industrias.join(', ') + '</div></div>' : '') +
           '<div class="info-item"><div class="info-label">Registro</div><div class="info-val">' + (u.createdAt ? new Date(u.createdAt).toLocaleDateString('es-CL') : '--') + '</div></div>' +
         '</div>' +
+      '</div></div>' +
 
-        '<div class="sep"></div>' +
-
-        // ── Representante / Contacto ──
-        '<div style="font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Contacto principal</div>' +
+      // ── 2. Contacto principal ──
+      '<div class="card"><div class="card-hdr">Contacto principal</div><div class="card-body">' +
         '<div class="info-grid" style="margin-top:0">' +
           '<div class="info-item"><div class="info-label">Nombre</div><div class="info-val">' + (u.nombre || '--') + '</div></div>' +
           '<div class="info-item"><div class="info-label">Cargo</div><div class="info-val">' + (u.cargo || '--') + '</div></div>' +
@@ -426,29 +424,22 @@
         '</div>' +
       '</div></div>' +
 
-      // ── Plan (solo clientes) ──
-      planHtml +
-
-      // ── Operación / Descripción ──
-      operacionHtml +
-
-      // ── Datos de facturación ──
-      facturacionHtml +
-
-      // ── Contactos de la empresa ──
-      contactosHtml +
-
-      // ── Usuarios adicionales / Equipos ──
+      // ── 3. Usuarios adicionales ──
       usuariosHtml +
-      equiposHtml +
 
-      // ── Métricas de cuenta ──
+      // ── 4. Métricas de la cuenta ──
       metricasHtml +
 
-      // ── Historial ──
+      // Detalle de empresa (solo si hay datos)
+      facturacionHtml +
+      contactosHtml +
+      operacionHtml +
+      equiposHtml +
+
+      // Actividad
       '<div class="card"><div class="card-hdr">Actividad en la plataforma</div><div class="card-body" id="historial-body"><div class="spinner"></div></div></div>' +
 
-      // ── Notas internas ──
+      // ── 5. Notas internas ──
       '<div class="card"><div class="card-hdr">Notas internas</div><div class="card-body">' +
         '<textarea id="notas-admin" placeholder="Notas sobre esta cuenta...">' + (u.notasAdmin || '') + '</textarea>' +
         '<div style="display:flex;justify-content:flex-end;margin-top:12px">' +
@@ -456,10 +447,11 @@
         '</div>' +
       '</div></div>' +
 
-      // ── Estado de cuenta ──
-      '<div class="card"><div class="card-hdr">Estado de cuenta</div><div class="card-body">' +
+      // ── 6. Estado de la cuenta + Plan (unidos) ──
+      '<div class="card"><div class="card-hdr">Estado de la cuenta</div><div class="card-body">' +
         '<div id="estado-banner" style="padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:16px"></div>' +
         '<div id="estado-botones" style="display:flex;gap:8px;flex-wrap:wrap"></div>' +
+        planInner +
       '</div></div>';
 
     document.getElementById('contenido').innerHTML = html;
