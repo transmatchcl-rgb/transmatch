@@ -645,14 +645,16 @@ async function guardarFacturacion(){
 // ── GESTIÓN DE USUARIOS ────────────────────────────────────────
 var _usuariosData = [];
 
-// Solo trazabilidad como permiso adicional
-var PERMISOS_CLIENTE = [
-  {
-    key:'trazabilidad',
-    label:'Ver trazabilidad de acciones',
-    tooltip:'Permite ver quién realizó cada acción en la empresa: quién creó una licitación, quién adjudicó, quién subió documentos, etc.'
-  },
+// Roles de empresa que la cuenta madre puede asignar a sus usuarios
+var ROLES_CLIENTE = [
+  {key:'miembro', label:'Miembro', desc:'Ve y gestiona solo lo que él crea.'},
+  {key:'gestor',  label:'Gestor',  desc:'Ve y gestiona todo el equipo. Sin facturación ni gestión de usuarios.'},
+  {key:'visor',   label:'Visor',   desc:'Solo lectura: puede ver, no puede modificar nada.'},
 ];
+function rolLabelCli(r){ return ({miembro:'Miembro',gestor:'Gestor',visor:'Visor',dueno:'Dueño'})[r]||'Miembro'; }
+function rolBadgeCli(r){ var c=({miembro:['#FAEEDA','#854F0B'],gestor:['#E1F5EE','#0F6E56'],visor:['#F1EFE8','#444441'],dueno:['#EEEDFE','#3C3489']})[r]||['#FAEEDA','#854F0B']; return '<span style="background:'+c[0]+';color:'+c[1]+';font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px">'+rolLabelCli(r)+'</span>'; }
+function rolSelectHtml(id, current){ return '<select id="'+id+'" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px">'+ROLES_CLIENTE.map(function(r){ return '<option value="'+r.key+'"'+((current||'miembro')===r.key?' selected':'')+'>'+r.label+'</option>'; }).join('')+'</select>'; }
+function rolDescHtml(){ return '<div style="margin-top:8px;font-size:11px;color:#9CA3AF;line-height:1.5">'+ROLES_CLIENTE.map(function(r){ return '<div><strong style="color:#6B7280">'+r.label+':</strong> '+r.desc+'</div>'; }).join('')+'</div>'; }
 
 async function cargarUsuarios(){
   var el = document.getElementById('usuarios-contenido');
@@ -679,26 +681,22 @@ function renderUsuarios(miembros, max, invitaciones){
   if(miembros.length === 0 && invitaciones.length === 0){
     html += '<div style="text-align:center;padding:32px;background:#f8f9fc;border-radius:10px;border:0.5px solid #e8eaf0">'
       +'<div style="font-size:14px;font-weight:600;color:#374151;margin-bottom:6px">Sin usuarios extra aún</div>'
-      +'<div style="font-size:13px;color:#9CA3AF">Invita a personas de tu empresa para que puedan acceder a la plataforma con los permisos que definas.</div>'
+      +'<div style="font-size:13px;color:#9CA3AF">Invita a personas de tu empresa para que puedan acceder a la plataforma con el rol que definas.</div>'
       +'</div>';
   } else {
     html += miembros.map(function(m){
-      var perms = m.permisos||{};
-      var permLabels = PERMISOS_CLIENTE.filter(function(p){ return perms[p.key]; }).map(function(p){ return p.label; });
       return '<div style="border:0.5px solid #e8eaf0;border-radius:10px;padding:14px 16px;margin-bottom:10px;background:#fff">'
-        +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px">'
+        +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
         +'<div>'
         +'<div style="font-size:13px;font-weight:600;color:#1e2d4e">'+m.nombre+' <span style="display:inline-block;margin-left:6px;background:#F0FDF4;color:#14532D;font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;vertical-align:middle">Activo</span></div>'
         +'<div style="font-size:12px;color:#6B7280;margin-top:2px">'+m.email+'</div>'
+        +'<div style="margin-top:6px">'+rolBadgeCli(m.rol||'miembro')+'</div>'
         +'</div>'
         +'<div style="display:flex;gap:6px;flex-shrink:0">'
-        +'<button class="btn btn-outline btn-sm" onclick="abrirModalPermisos(\''+m.email+'\',\''+m.nombre+'\')">Editar permisos</button>'
+        +'<button class="btn btn-outline btn-sm" onclick="abrirModalRol(\''+m.email+'\',\''+m.nombre+'\',\''+(m.rol||'miembro')+'\')">Editar rol</button>'
         +'<button onclick="eliminarUsuario(\''+m.email+'\',\''+m.nombre+'\')" style="padding:5px 10px;font-size:12px;border-radius:6px;border:1px solid #FECACA;background:#FEF2F2;color:#DC2626;cursor:pointer">Eliminar</button>'
         +'</div>'
         +'</div>'
-        +(permLabels.length
-          ? '<div style="display:flex;flex-wrap:wrap;gap:5px">'+permLabels.map(function(l){ return '<span style="background:#eef1f8;color:#1e2d4e;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px">'+l+'</span>'; }).join('')+'</div>'
-          : '<div style="font-size:12px;color:#9CA3AF">Sin permisos asignados aún</div>')
         +'</div>';
     }).join('');
     html += invitaciones.map(function(inv){
@@ -746,21 +744,13 @@ function abrirModalInvitar(){
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   var inner = document.createElement('div');
   inner.style.cssText = 'background:#fff;border-radius:16px;padding:28px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto';
-  var permsHtml = PERMISOS_CLIENTE.map(function(p){
-    return '<label style="display:flex;align-items:flex-start;gap:10px;padding:12px 0;border-bottom:0.5px solid #f3f4f6;cursor:pointer">'
-      +'<input type="checkbox" data-key="'+p.key+'" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer;margin-top:2px;flex-shrink:0"/>'
-      +'<div><span style="font-size:13px;color:#374151;font-weight:500">'+p.label+'</span>'
-      +(p.tooltip?'<span title="'+p.tooltip+'" style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#e8eaf0;color:#6B7280;font-size:10px;font-weight:700;cursor:help;margin-left:6px;flex-shrink:0">?</span>':'')
-      +(p.tooltip?'<div style="font-size:11px;color:#9CA3AF;margin-top:3px;line-height:1.4">'+p.tooltip+'</div>':'')
-      +'</div>'
-      +'</label>';
-  }).join('');
   inner.innerHTML = '<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Invitar usuario</div>'
     +'<div style="font-size:12px;color:#9CA3AF;margin-bottom:20px">El usuario recibirá un email para crear su contraseña y acceder a la plataforma.</div>'
     +'<div style="margin-bottom:16px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Email del usuario *</label>'
     +'<input type="email" id="inv-email" placeholder="correo@empresa.cl" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
-    +'<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Permisos</div>'
-    +permsHtml
+    +'<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Rol</div>'
+    +rolSelectHtml('inv-rol','miembro')
+    +rolDescHtml()
     +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">'
     +'<button id="inv-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
     +'<button id="inv-save" style="padding:9px 18px;border-radius:8px;background:#FF8808;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Enviar invitación</button>'
@@ -774,15 +764,14 @@ function abrirModalInvitar(){
 async function enviarInvitacion(modal){
   var email = (document.getElementById('inv-email').value||'').trim();
   if(!email){ alert('Ingresa el email'); return; }
-  var permisos = {};
-  modal.querySelectorAll('input[type=checkbox][data-key]').forEach(function(cb){ permisos[cb.dataset.key] = cb.checked; });
+  var rol = (document.getElementById('inv-rol')||{}).value || 'miembro';
   var btn = document.getElementById('inv-save');
   btn.disabled=true; btn.textContent='Enviando...';
   try{
     var res = await fetch(API+'/api/mi-empresa/invitar',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
-      body:JSON.stringify({emailInvitado:email, permisos:permisos})
+      body:JSON.stringify({emailInvitado:email, rol:rol})
     });
     var d = await res.json();
     if(res.ok){ modal.remove(); alert('Invitación enviada a '+email+'. El link expira en 48 horas.'); cargarUsuarios(); }
@@ -790,42 +779,32 @@ async function enviarInvitacion(modal){
   }catch(e){ alert('Error de conexión'); btn.disabled=false; btn.textContent='Enviar invitación'; }
 }
 
-function abrirModalPermisos(emailTarget, nombreTarget){
-  var usuario = _usuariosData.find(function(m){ return m.email===emailTarget; });
-  var permsActuales = usuario ? (usuario.permisos||{}) : {};
+function abrirModalRol(emailTarget, nombreTarget, rolActual){
   var modal = document.createElement('div');
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
   var inner = document.createElement('div');
   inner.style.cssText = 'background:#fff;border-radius:16px;padding:28px;width:100%;max-width:440px';
-  var permsHtml = PERMISOS_CLIENTE.map(function(p){
-    return '<label style="display:flex;align-items:flex-start;gap:10px;padding:12px 0;border-bottom:0.5px solid #f3f4f6;cursor:pointer">'
-      +'<input type="checkbox" data-key="'+p.key+'" '+(permsActuales[p.key]?'checked':'')+' style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer;margin-top:2px;flex-shrink:0"/>'
-      +'<div><span style="font-size:13px;color:#374151;font-weight:500">'+p.label+'</span>'
-      +(p.tooltip?'<div style="font-size:11px;color:#9CA3AF;margin-top:3px;line-height:1.4">'+p.tooltip+'</div>':'')
-      +'</div>'
-      +'</label>';
-  }).join('');
-  inner.innerHTML = '<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Permisos de '+nombreTarget+'</div>'
+  inner.innerHTML = '<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Rol de '+nombreTarget+'</div>'
     +'<div style="font-size:12px;color:#9CA3AF;margin-bottom:16px">'+emailTarget+'</div>'
-    +permsHtml
+    +rolSelectHtml('rol-edit', rolActual||'miembro')
+    +rolDescHtml()
     +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">'
-    +'<button id="perm-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
-    +'<button id="perm-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar permisos</button>'
+    +'<button id="rol-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
+    +'<button id="rol-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar rol</button>'
     +'</div>';
   modal.appendChild(inner); document.body.appendChild(modal);
-  document.getElementById('perm-cancel').onclick = function(){ modal.remove(); };
-  document.getElementById('perm-save').onclick = function(){ guardarPermisos(emailTarget, modal); };
+  document.getElementById('rol-cancel').onclick = function(){ modal.remove(); };
+  document.getElementById('rol-save').onclick = function(){ guardarRol(emailTarget, modal); };
   modal.onclick = function(e){ if(e.target===modal) modal.remove(); };
 }
 
-async function guardarPermisos(emailTarget, modal){
-  var permisos = {};
-  modal.querySelectorAll('input[type=checkbox][data-key]').forEach(function(cb){ permisos[cb.dataset.key] = cb.checked; });
+async function guardarRol(emailTarget, modal){
+  var rol = (document.getElementById('rol-edit')||{}).value || 'miembro';
   try{
-    var res = await fetch(API+'/api/mi-empresa/usuario/'+encodeURIComponent(emailTarget)+'/permisos',{
-      method:'PUT',
+    var res = await fetch(API+'/api/mi-empresa/usuario/'+encodeURIComponent(emailTarget)+'/rol',{
+      method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
-      body:JSON.stringify({permisos:permisos})
+      body:JSON.stringify({rol:rol})
     });
     if(res.ok){ modal.remove(); cargarUsuarios(); }
     else{ var d=await res.json(); alert(d.error||'Error'); }

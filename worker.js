@@ -2479,6 +2479,23 @@ async function handleRequest(request, env) {
     return ok({ ok: true, usuario: { nombre: u.nombre, empresa: u.empresa, telefono: u.telefono, rut: u.rut } });
   }
 
+  // POST /api/mi-empresa/usuario/:email/rol — la cuenta madre cambia el rol de un miembro
+  if (path.match(/^\/api\/mi-empresa\/usuario\/[^/]+\/rol$/) && method === "POST") {
+    const user = await getUser(request, env); if(!user) return err("No autenticado",401);
+    if(!["cliente","transportista"].includes(user.role)) return err("Sin permisos",403);
+    if(user.esSubusuario) return err("Solo la cuenta principal puede cambiar roles",403);
+    const emailTarget = decodeURIComponent(path.split("/")[4]).toLowerCase();
+    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    const rol=body.rol;
+    if(!["miembro","gestor","visor"].includes(rol)) return err("Rol inválido",400);
+    const raw=await env.USERS.get(emailTarget); if(!raw) return err("Usuario no encontrado",404);
+    const target=JSON.parse(raw);
+    if(target.empresaMadreId !== user.id) return err("Sin acceso",403);
+    target.rol=rol; target.updatedAt=new Date().toISOString();
+    await env.USERS.put(emailTarget, JSON.stringify(target));
+    return ok({ ok:true, rol });
+  }
+
   // ── RESET: borrar todos los datos excepto cuenta admin ──
   if (path === "/api/admin/reset-datos" && method === "POST") {
     const user = await getUser(request, env);
@@ -2726,7 +2743,7 @@ async function handleRequest(request, env) {
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
     const raw=await env.USERS.get(user.email); if(!raw) return err("No encontrado",404);
     const u=JSON.parse(raw);
-    for(const k of ["nombre","empresa","telefono","rut","direccion","whatsapp","ciudad","giro","web","descripcion","anosExperiencia","zonas","equipos","tiposEquipo","genera_oc_propia","rutEmpresa","cargo","industrias","telEmpresa","ciudadEmpresa","facturacion","contactoOperaciones","contactoComercial","contactoFacturacion","contactos","datosBancarios"]){ if(body[k]!==undefined) u[k]=body[k]; }
+    for(const k of ["nombre","empresa","telefono","rut","direccion","whatsapp","ciudad","comuna","giro","web","descripcion","anosExperiencia","zonas","equipos","tiposEquipo","genera_oc_propia","rutEmpresa","cargo","industrias","telEmpresa","ciudadEmpresa","facturacion","contactoOperaciones","contactoComercial","contactoFacturacion","contactos","datosBancarios"]){ if(body[k]!==undefined) u[k]=body[k]; }
     // Recalcular completitud automáticamente
     if(u.role==='cliente'){
       let pts=0;
@@ -3220,7 +3237,7 @@ async function handleRequest(request, env) {
     for(const email of miembrosIds) {
       const raw = await env.USERS.get(email); if(!raw) continue;
       const m = JSON.parse(raw);
-      miembros.push({ id:m.id, email:m.email, nombre:m.nombre, permisos:m.permisos||{}, estado:m.estado, createdAt:m.createdAt });
+      miembros.push({ id:m.id, email:m.email, nombre:m.nombre, permisos:m.permisos||{}, rol:m.rol||'miembro', estado:m.estado, createdAt:m.createdAt });
     }
     // Incluir invitaciones pendientes/vencidas
     const ahora = Date.now();
@@ -3248,7 +3265,7 @@ async function handleRequest(request, env) {
     const miembros = uAdmin.empresaMiembros || [];
     if(miembros.length >= maxU) return err(`Límite de ${maxU} usuarios extra alcanzado`, 403);
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
-    const { emailInvitado, permisos } = body;
+    const { emailInvitado, permisos, rol } = body;
     if(!emailInvitado) return err("emailInvitado requerido");
     // Verificar que no está ya registrado
     const existe = await env.USERS.get(emailInvitado.toLowerCase());
@@ -3259,6 +3276,7 @@ async function handleRequest(request, env) {
       token, emailInvitado: emailInvitado.toLowerCase(),
       empresaAdminEmail: user.email, empresa: uAdmin.empresa||"",
       role: uAdmin.role, permisos: permisos||{},
+      rol: (["miembro","gestor","visor"].includes(rol) ? rol : "miembro"),
       createdAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 48*3600000).toISOString()
     };
@@ -3348,6 +3366,8 @@ async function handleRequest(request, env) {
       permisos: inv.permisos || {},
       esSubusuario: true,
       empresaMadreId: uAdmin.id,
+      rol: (["miembro","gestor","visor"].includes(inv.rol) ? inv.rol : "miembro"),
+      empresaId: uAdmin.id,
       createdAt: new Date().toISOString(),
     };
     await env.USERS.put(inv.emailInvitado, JSON.stringify(nuevoUser));
@@ -3360,7 +3380,7 @@ async function handleRequest(request, env) {
     await env.USERS.put(inv.empresaAdminEmail, JSON.stringify(uAdmin));
     // Invalidar token
     await env.SESSIONS.delete("invitacion:"+token);
-    const jwtToken = await signToken({ id:nuevoUser.id, email:inv.emailInvitado, role:inv.role, nombre, empresa:inv.empresa, plan:null, esSubusuario:true, empresaMadreId:uAdmin.id }, env.JWT_SECRET);
+    const jwtToken = await signToken({ id:nuevoUser.id, email:inv.emailInvitado, role:inv.role, nombre, empresa:inv.empresa, plan:null, esSubusuario:true, empresaMadreId:uAdmin.id, rol:nuevoUser.rol, empresaId:uAdmin.id }, env.JWT_SECRET);
     return ok({ token:jwtToken, user:{ id:nuevoUser.id, email:inv.emailInvitado, role:inv.role, nombre, empresa:inv.empresa, plan:null, permisos:nuevoUser.permisos, esSubusuario:true } });
   }
 
