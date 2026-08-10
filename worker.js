@@ -117,6 +117,20 @@ async function guardarPerfilEnEmpresa(env, user, body){
   ["giro","direccion","comuna","ciudadEmpresa","telEmpresa","web","descripcion","industrias","facturacion","contactos","contactoOperaciones","contactoComercial","contactoFacturacion","datosBancarios"].forEach(function(k){ if(body[k]!==undefined){ emp[k]=body[k]; changed=true; } });
   if(changed){ emp.updatedAt=new Date().toISOString(); await env.EMPRESAS.put("empresa:"+eid, JSON.stringify(emp)); }
 }
+// Sincroniza miembros, cupo e invitaciones de la empresa desde el registro de la cuenta madre.
+async function syncEmpresaMiembros(env, madre){
+  if(!env.EMPRESAS || !madre || !madre.id) return;
+  const eid = madre.id;
+  const raw = await env.EMPRESAS.get("empresa:"+eid); if(!raw) return;
+  const emp = JSON.parse(raw);
+  emp.miembros = [madre.email, ...((madre.empresaMiembros)||[])];
+  emp.maxUsuarios = madre.max_usuarios||0;
+  emp.invitacionesPendientes = madre.invitacionesPendientes||[];
+  if(madre.plan!==undefined) emp.plan = madre.plan;
+  if(madre.estado!==undefined) emp.estado = madre.estado;
+  emp.updatedAt = new Date().toISOString();
+  await env.EMPRESAS.put("empresa:"+eid, JSON.stringify(emp));
+}
 
 function deny(user, ...roles) {
   if (!user)                      return err("No autenticado", 401);
@@ -1146,6 +1160,7 @@ async function handleRequest(request, env) {
         base.plan=u.plan||base.plan||null; base.estado=u.estado||base.estado||""; base.maxUsuarios=u.max_usuarios||base.maxUsuarios||0;
         base.duenoId=id; base.duenoEmail=u.email;
         base.miembros=[u.email, ...((miembrosPorMadre[id]||[]))];
+        base.invitacionesPendientes=u.invitacionesPendientes||base.invitacionesPendientes||[];
         base.migradoAt=new Date().toISOString();
         await env.EMPRESAS.put("empresa:"+id, JSON.stringify(base));
       }
@@ -2760,6 +2775,7 @@ async function handleRequest(request, env) {
     if(plan&&["basico","pro","enterprise"].includes(plan)) u.plan=plan;
     if(body.max_usuarios!==undefined) u.max_usuarios=parseInt(body.max_usuarios)||0;
     await env.USERS.put(email.toLowerCase(), JSON.stringify(u));
+    if((u.role==="cliente"||u.role==="transportista") && !u.esSubusuario){ try{ await syncEmpresaMiembros(env, u); }catch(e){} }
     return ok({ ok:true });
   }
 
@@ -3334,6 +3350,7 @@ async function handleRequest(request, env) {
     uAdmin.invitacionesPendientes = uAdmin.invitacionesPendientes.filter(i => i.emailInvitado !== emailInvitado.toLowerCase());
     uAdmin.invitacionesPendientes.push({ token, emailInvitado: emailInvitado.toLowerCase(), createdAt: invitacion.createdAt, expiresAt: invitacion.expiresAt });
     await env.USERS.put(user.email, JSON.stringify(uAdmin));
+    try{ await syncEmpresaMiembros(env, uAdmin); }catch(e){}
     // Enviar email de invitación
     const linkInvitacion = `https://transmatch.cl/registro.html?invitacion=${token}`;
     const envio = await enviarEmail(env, {
@@ -3371,6 +3388,7 @@ async function handleRequest(request, env) {
     if(inv && inv.token) await env.SESSIONS.delete("invitacion:"+inv.token);
     uAdmin.invitacionesPendientes = lista.filter(i => i.emailInvitado !== emailCancelar);
     await env.USERS.put(user.email, JSON.stringify(uAdmin));
+    try{ await syncEmpresaMiembros(env, uAdmin); }catch(e){}
     return ok({ ok:true });
   }
 
@@ -3426,6 +3444,7 @@ async function handleRequest(request, env) {
     // Quitar la invitación de la lista de pendientes ya que fue aceptada
     if(Array.isArray(uAdmin.invitacionesPendientes)) uAdmin.invitacionesPendientes = uAdmin.invitacionesPendientes.filter(i => i.emailInvitado !== inv.emailInvitado);
     await env.USERS.put(inv.empresaAdminEmail, JSON.stringify(uAdmin));
+    try{ await syncEmpresaMiembros(env, uAdmin); }catch(e){}
     // Invalidar token
     await env.SESSIONS.delete("invitacion:"+token);
     const jwtToken = await signToken({ id:nuevoUser.id, email:inv.emailInvitado, role:inv.role, nombre, empresa:inv.empresa, plan:null, esSubusuario:true, empresaMadreId:uAdmin.id, rol:nuevoUser.rol, empresaId:uAdmin.id }, env.JWT_SECRET);
@@ -3464,6 +3483,7 @@ async function handleRequest(request, env) {
     uAdmin.empresaMiembros = (uAdmin.empresaMiembros||[]).filter(e => e !== emailTarget);
     await env.USERS.put(user.email, JSON.stringify(uAdmin));
     await env.USERS.delete(emailTarget);
+    try{ await syncEmpresaMiembros(env, uAdmin); }catch(e){}
     return ok({ ok:true });
   }
 
