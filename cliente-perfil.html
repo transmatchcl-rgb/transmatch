@@ -210,8 +210,6 @@ document.dispatchEvent(new Event('_authReady'));
 <div class="fg"><label>Nombre completo</label><input type="text" id="inp-nombre" placeholder="Tu nombre completo"/></div>
 <div class="fg"><label>Correo electronico</label><input type="email" id="inp-email" disabled/></div>
 <div class="fg"><label>Telefono / WhatsApp</label><input type="tel" id="inp-telefono" placeholder="+56 9 XXXX XXXX"/></div>
-<div class="fg"><label>Ciudad</label><input type="text" id="inp-ciudad" placeholder="Santiago"/></div>
-<div class="fg"><label>RUT personal</label><input type="text" id="inp-rut" placeholder="12.345.678-9" oninput="formatRut(this)"/></div>
 <div class="fg"><label>Cargo en la empresa</label><input type="text" id="inp-cargo" placeholder="Gerente de operaciones"/></div>
 </div>
 <div id="alok-perfil" class="alert-ok">Perfil actualizado correctamente</div>
@@ -225,8 +223,9 @@ document.dispatchEvent(new Event('_authReady'));
 <div class="fg"><label>RUT empresa</label><input type="text" id="inp-rut-empresa" placeholder="76.123.456-7" oninput="formatRut(this)"/></div>
 <div class="fg"><label>Giro / Industria</label><input type="text" id="inp-giro" placeholder="Mineria, Construccion..."/></div>
 <div class="fg"><label>Telefono empresa</label><input type="tel" id="inp-tel-empresa" placeholder="+56 2 XXXX XXXX"/></div>
-<div class="fg"><label>Ciudad</label><input type="text" id="inp-ciudad-empresa" placeholder="Santiago"/></div>
 <div class="fg"><label>Direccion</label><input type="text" id="inp-direccion" placeholder="Av. Apoquindo 1234, Of. 501"/></div>
+<div class="fg"><label>Comuna</label><input type="text" id="inp-comuna-empresa" placeholder="Las Condes"/></div>
+<div class="fg"><label>Ciudad</label><input type="text" id="inp-ciudad-empresa" placeholder="Santiago"/></div>
 <div class="fg full"><label>Sitio web</label><input type="text" id="inp-web" placeholder="www.miempresa.cl"/></div>
 <div class="fg full"><label>Descripcion del negocio</label><textarea id="inp-desc" placeholder="Breve descripcion de tu empresa y sus actividades..."></textarea></div>
 </div>
@@ -328,14 +327,13 @@ var ue=document.getElementById('um-empresa');if(ue)ue.textContent=empresa;
 document.getElementById('inp-nombre').value=U.nombre||'';
 document.getElementById('inp-email').value=U.email||'';
 document.getElementById('inp-telefono').value=U.telefono||U.tel||'';
-document.getElementById('inp-ciudad').value=U.ciudad||'';
-document.getElementById('inp-rut').value=U.rut||'';
 document.getElementById('inp-cargo').value=U.cargo||'';
 document.getElementById('inp-empresa').value=U.empresa||'';
 document.getElementById('inp-rut-empresa').value=U.rutEmpresa||'';
 document.getElementById('inp-giro').value=U.giro||'';
 document.getElementById('inp-tel-empresa').value=U.telEmpresa||'';
 document.getElementById('inp-ciudad-empresa').value=U.ciudadEmpresa||'';
+document.getElementById('inp-comuna-empresa').value=U.comuna||'';
 document.getElementById('inp-direccion').value=U.direccion||'';
 document.getElementById('inp-web').value=U.web||'';
 document.getElementById('inp-desc').value=U.descripcion||'';
@@ -355,17 +353,16 @@ renderContactos();
 
 // Facturación
 var fact = U.facturacion||{};
-document.getElementById('inp-rs-fact').value=fact.razonSocial||U.empresa||'';
-document.getElementById('inp-rut-fact').value=fact.rut||U.rutEmpresa||'';
-document.getElementById('inp-giro-fact').value=fact.giro||U.giro||'';
+document.getElementById('inp-rs-fact').value=fact.razonSocial||'';
+document.getElementById('inp-rut-fact').value=fact.rut||'';
+document.getElementById('inp-giro-fact').value=fact.giro||'';
 document.getElementById('inp-dir-fact').value=fact.direccion||'';
 document.getElementById('inp-email-fact').value=fact.email||'';
 document.getElementById('inp-tel-fact').value=fact.telefono||'';
 document.getElementById('inp-contacto-fact').value=fact.contactoNombre||'';
 document.getElementById('inp-cargo-fact').value=fact.contactoCargo||'';
-// ¿Los datos de facturación son iguales a los de Empresa (o no se han cargado)? -> usar el toggle
-var _mismosF = !fact.razonSocial && !fact.rut && !fact.giro && !fact.direccion;
-if(!_mismosF && fact.razonSocial===U.empresa && fact.rut===U.rutEmpresa && fact.giro===U.giro && fact.direccion===U.direccion) _mismosF=true;
+// Marca el check según el flag guardado; para registros viejos, infiere por ausencia de datos propios
+var _mismosF = (fact.mismosDatos!==undefined) ? !!fact.mismosDatos : !(fact.razonSocial||fact.rut||fact.giro||fact.direccion);
 document.getElementById('chk-fact-mismos-datos').checked=_mismosF;
 toggleFactMismosDatos();
 
@@ -423,7 +420,7 @@ function renderProgreso(u){
 async function guardarPerfil(){
 var btn=document.getElementById('btn-guardar-perfil');
 btn.disabled=true;btn.textContent='Guardando...';
-var body={nombre:document.getElementById('inp-nombre').value.trim(),telefono:document.getElementById('inp-telefono').value.trim(),ciudad:document.getElementById('inp-ciudad').value.trim(),rut:document.getElementById('inp-rut').value.trim(),cargo:document.getElementById('inp-cargo').value.trim()};
+var body={nombre:document.getElementById('inp-nombre').value.trim(),telefono:document.getElementById('inp-telefono').value.trim(),cargo:document.getElementById('inp-cargo').value.trim()};
 var res=await fetch(API+'/api/perfil',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(body)});
 if(res.ok){Object.assign(U,body);localStorage.setItem('tm_nombre',body.nombre);renderProgreso(U);render();var el=document.getElementById('alok-perfil');el.style.display='block';setTimeout(function(){el.style.display='none'},3000);}
 btn.disabled=false;btn.textContent='Guardar perfil';
@@ -437,6 +434,7 @@ giro:document.getElementById('inp-giro').value.trim(),
 telEmpresa:document.getElementById('inp-tel-empresa').value.trim(),
 ciudadEmpresa:document.getElementById('inp-ciudad-empresa').value.trim(),
 ciudad:document.getElementById('inp-ciudad-empresa').value.trim(),
+comuna:document.getElementById('inp-comuna-empresa').value.trim(),
 direccion:document.getElementById('inp-direccion').value.trim(),
 web:document.getElementById('inp-web').value.trim(),
 descripcion:document.getElementById('inp-desc').value.trim()};
@@ -612,22 +610,20 @@ try{var token=localStorage.getItem('tm_token');await fetch(API+'/api/notificacio
 }
 
 function toggleFactMismosDatos(){
+  // Los campos siempre quedan visibles. Al marcar el check, se autorellenan con los datos de Empresa (y quedan editables).
   var on=document.getElementById('chk-fact-mismos-datos').checked;
-  document.getElementById('fact-datos-wrap').style.display=on?'none':'grid';
+  if(on){
+    document.getElementById('inp-rs-fact').value  = document.getElementById('inp-empresa').value.trim();
+    document.getElementById('inp-rut-fact').value = document.getElementById('inp-rut-empresa').value.trim();
+    document.getElementById('inp-giro-fact').value= document.getElementById('inp-giro').value.trim();
+    document.getElementById('inp-dir-fact').value = document.getElementById('inp-direccion').value.trim();
+  }
 }
 
 async function guardarFacturacion(){
   var usarMismos=document.getElementById('chk-fact-mismos-datos').checked;
-  var body={facturacion: usarMismos ? {
-    razonSocial:document.getElementById('inp-empresa').value.trim(),
-    rut:document.getElementById('inp-rut-empresa').value.trim(),
-    giro:document.getElementById('inp-giro').value.trim(),
-    direccion:document.getElementById('inp-direccion').value.trim(),
-    email:document.getElementById('inp-email-fact').value.trim(),
-    telefono:document.getElementById('inp-tel-fact').value.trim(),
-    contactoNombre:document.getElementById('inp-contacto-fact').value.trim(),
-    contactoCargo:document.getElementById('inp-cargo-fact').value.trim(),
-  } : {
+  var body={facturacion:{
+    mismosDatos:usarMismos,
     razonSocial:document.getElementById('inp-rs-fact').value.trim(),
     rut:document.getElementById('inp-rut-fact').value.trim(),
     giro:document.getElementById('inp-giro-fact').value.trim(),
