@@ -90,6 +90,34 @@ async function getUser(request, env) {
 // Un usuario "ve toda la empresa" si es dueño, gestor o visor. El miembro solo ve lo suyo.
 function veTodaLaEmpresa(user){ return ["dueno","gestor","visor"].includes(user.rol); }
 
+// ── Entidad Empresa como fuente de verdad de los datos de compañía ──
+function empresaIdDe(user){ return user.empresaId || (user.esSubusuario ? (user.empresaMadreId||user.id) : user.id); }
+async function empresaDe(env, user){
+  if(!env || !env.EMPRESAS || !user) return null;
+  const eid = empresaIdDe(user); if(!eid) return null;
+  const raw = await env.EMPRESAS.get("empresa:"+eid);
+  return raw ? JSON.parse(raw) : null;
+}
+// Superpone los datos de perfil de la empresa sobre el objeto de usuario que se devuelve al frontend.
+function overlayPerfilEmpresa(u, emp){
+  if(!emp) return u;
+  if(emp.razonSocial!==undefined) u.empresa=emp.razonSocial;
+  if(emp.rut!==undefined) u.rutEmpresa=emp.rut;
+  ["giro","direccion","comuna","ciudadEmpresa","telEmpresa","web","descripcion","industrias","facturacion","contactos","contactoOperaciones","contactoComercial","contactoFacturacion","datosBancarios"].forEach(function(k){ if(emp[k]!==undefined) u[k]=emp[k]; });
+  return u;
+}
+// Escribe en el registro de empresa los campos de perfil que vengan en el body (fuente de verdad).
+async function guardarPerfilEnEmpresa(env, user, body){
+  if(!env.EMPRESAS) return;
+  const eid = empresaIdDe(user); if(!eid) return;
+  const raw = await env.EMPRESAS.get("empresa:"+eid); if(!raw) return;
+  const emp = JSON.parse(raw); let changed=false;
+  if(body.empresa!==undefined){ emp.razonSocial=body.empresa; changed=true; }
+  if(body.rutEmpresa!==undefined){ emp.rut=body.rutEmpresa; changed=true; }
+  ["giro","direccion","comuna","ciudadEmpresa","telEmpresa","web","descripcion","industrias","facturacion","contactos","contactoOperaciones","contactoComercial","contactoFacturacion","datosBancarios"].forEach(function(k){ if(body[k]!==undefined){ emp[k]=body[k]; changed=true; } });
+  if(changed){ emp.updatedAt=new Date().toISOString(); await env.EMPRESAS.put("empresa:"+eid, JSON.stringify(emp)); }
+}
+
 function deny(user, ...roles) {
   if (!user)                      return err("No autenticado", 401);
   if (!roles.includes(user.role)) return err("Sin permisos", 403);
@@ -1100,27 +1128,26 @@ async function handleRequest(request, env) {
     for (const u of users) { if (u.esSubusuario && u.empresaMadreId) { (miembrosPorMadre[u.empresaMadreId]=miembrosPorMadre[u.empresaMadreId]||[]).push(u.email); } }
     let empresasCreadas=0, empresasExistentes=0, usuariosActualizados=0, usuariosYaListos=0;
     const anomalias=[]; const idsEmpresa=[];
-    // 1) Crear una empresa por cada cuenta madre
+    // 1) Crear o REFRESCAR una empresa por cada cuenta madre (re-ejecutable: actualiza el perfil desde la madre)
     for (const id of Object.keys(madres)) {
       const u = madres[id]; idsEmpresa.push(id);
-      const existe = await env.EMPRESAS.get("empresa:"+id);
-      if (existe) { empresasExistentes++; continue; }
-      empresasCreadas++;
+      const rawExist = await env.EMPRESAS.get("empresa:"+id);
+      const existe = !!rawExist;
+      if (existe) empresasExistentes++; else empresasCreadas++;
       if (!dryRun) {
-        const empresa = {
-          id, tipo:u.role,
-          razonSocial:u.empresa||u.nombre||"",
-          rut:u.rutEmpresa||u.rut||"",
-          giro:u.giro||"", direccion:u.direccion||"", telEmpresa:u.telEmpresa||"", ciudadEmpresa:u.ciudadEmpresa||"", web:u.web||"", descripcion:u.descripcion||"",
-          facturacion:u.facturacion||null, datosBancarios:u.datosBancarios||null,
-          contactos:u.contactos||[], contactoOperaciones:u.contactoOperaciones||null, contactoComercial:u.contactoComercial||null, contactoFacturacion:u.contactoFacturacion||null,
-          equipos:u.equipos||[], tiposEquipo:u.tiposEquipo||[], zonas:u.zonas||[], industrias:u.industrias||[],
-          plan:u.plan||null, estado:u.estado||"", maxUsuarios:u.max_usuarios||0,
-          duenoId:id, duenoEmail:u.email,
-          miembros:[u.email, ...((miembrosPorMadre[id]||[]))],
-          createdAt:u.createdAt||new Date().toISOString(), migradoAt:new Date().toISOString()
-        };
-        await env.EMPRESAS.put("empresa:"+id, JSON.stringify(empresa));
+        const base = existe ? JSON.parse(rawExist) : { id, createdAt:u.createdAt||new Date().toISOString() };
+        base.id=id; base.tipo=u.role;
+        base.razonSocial=u.empresa||u.nombre||"";
+        base.rut=u.rutEmpresa||u.rut||"";
+        base.giro=u.giro||""; base.direccion=u.direccion||""; base.comuna=u.comuna||""; base.telEmpresa=u.telEmpresa||""; base.ciudadEmpresa=u.ciudadEmpresa||u.ciudad||""; base.web=u.web||""; base.descripcion=u.descripcion||"";
+        base.facturacion=u.facturacion||base.facturacion||null; base.datosBancarios=u.datosBancarios||base.datosBancarios||null;
+        base.contactos=u.contactos||base.contactos||[]; base.contactoOperaciones=u.contactoOperaciones||base.contactoOperaciones||null; base.contactoComercial=u.contactoComercial||base.contactoComercial||null; base.contactoFacturacion=u.contactoFacturacion||base.contactoFacturacion||null;
+        base.equipos=u.equipos||base.equipos||[]; base.tiposEquipo=u.tiposEquipo||base.tiposEquipo||[]; base.zonas=u.zonas||base.zonas||[]; base.industrias=u.industrias||base.industrias||[];
+        base.plan=u.plan||base.plan||null; base.estado=u.estado||base.estado||""; base.maxUsuarios=u.max_usuarios||base.maxUsuarios||0;
+        base.duenoId=id; base.duenoEmail=u.email;
+        base.miembros=[u.email, ...((miembrosPorMadre[id]||[]))];
+        base.migradoAt=new Date().toISOString();
+        await env.EMPRESAS.put("empresa:"+id, JSON.stringify(base));
       }
     }
     // 2) Etiquetar cada usuario con empresaId + rol (aditivo, no borra campos)
@@ -1279,7 +1306,8 @@ async function handleRequest(request, env) {
         u.empresa=m.empresa; u.rutEmpresa=m.rutEmpresa; u.giro=m.giro; u.telEmpresa=m.telEmpresa; u.ciudadEmpresa=m.ciudadEmpresa; u.direccion=m.direccion; u.web=m.web; u.descripcion=m.descripcion; u.anosExperiencia=m.anosExperiencia; u.zonas=m.zonas; u.equipos=m.equipos; u.tiposEquipo=m.tiposEquipo; u.facturacion=m.facturacion; u.contactoOperaciones=m.contactoOperaciones; u.contactoComercial=m.contactoComercial; u.contactoFacturacion=m.contactoFacturacion; u.contactos=m.contactos; u.datosBancarios=m.datosBancarios; u.industrias=m.industrias; u.rating=m.rating; u.totalTransportes=m.totalTransportes; u.totalCotizaciones=m.totalCotizaciones;
       } }
     }
-    return ok({ user:{ id:u.id, email:u.email, role:u.role, nombre:u.nombre, empresa:u.empresa, plan:planOut, rating:u.rating, totalTransportes:u.totalTransportes, estado:estadoOut, desactivadoManual:u.desactivadoManual||false, notifEmail:u.notifEmail, notifWhatsapp:u.notifWhatsapp, whatsapp:u.whatsapp, telefono:u.telefono, ciudad:u.ciudad, rut:u.rut, rutEmpresa:u.rutEmpresa, cargo:u.cargo, giro:u.giro, telEmpresa:u.telEmpresa, ciudadEmpresa:u.ciudadEmpresa, direccion:u.direccion, web:u.web, descripcion:u.descripcion, anosExperiencia:u.anosExperiencia, zonas:u.zonas||[], equipos:u.equipos||[], tiposEquipo:u.tiposEquipo||[], facturacion:u.facturacion||{}, contactoOperaciones:u.contactoOperaciones, contactoComercial:u.contactoComercial, contactoFacturacion:u.contactoFacturacion, contactos:u.contactos||[], datosBancarios:u.datosBancarios||{}, industrias:u.industrias||[], max_usuarios:u.max_usuarios||0, esSubusuario:u.esSubusuario||false, empresaMadreId:u.empresaMadreId||null, empresaMiembros:u.empresaMiembros||[], permisos:u.permisos||{}, perfilCompletitud:u.perfilCompletitud||0, totalCotizaciones:u.totalCotizaciones||0, notifPrefs:u.notifPrefs||{} } });
+    const _empMe = await empresaDe(env, u); if(_empMe) overlayPerfilEmpresa(u, _empMe);
+    return ok({ user:{ id:u.id, email:u.email, role:u.role, nombre:u.nombre, empresa:u.empresa, comuna:u.comuna||'', plan:planOut, rating:u.rating, totalTransportes:u.totalTransportes, estado:estadoOut, desactivadoManual:u.desactivadoManual||false, notifEmail:u.notifEmail, notifWhatsapp:u.notifWhatsapp, whatsapp:u.whatsapp, telefono:u.telefono, ciudad:u.ciudad, rut:u.rut, rutEmpresa:u.rutEmpresa, cargo:u.cargo, giro:u.giro, telEmpresa:u.telEmpresa, ciudadEmpresa:u.ciudadEmpresa, direccion:u.direccion, web:u.web, descripcion:u.descripcion, anosExperiencia:u.anosExperiencia, zonas:u.zonas||[], equipos:u.equipos||[], tiposEquipo:u.tiposEquipo||[], facturacion:u.facturacion||{}, contactoOperaciones:u.contactoOperaciones, contactoComercial:u.contactoComercial, contactoFacturacion:u.contactoFacturacion, contactos:u.contactos||[], datosBancarios:u.datosBancarios||{}, industrias:u.industrias||[], max_usuarios:u.max_usuarios||0, esSubusuario:u.esSubusuario||false, empresaMadreId:u.empresaMadreId||null, empresaMiembros:u.empresaMiembros||[], permisos:u.permisos||{}, perfilCompletitud:u.perfilCompletitud||0, totalCotizaciones:u.totalCotizaciones||0, notifPrefs:u.notifPrefs||{} } });
   }
 
   if (path === "/api/licitaciones" && method === "POST") {
@@ -2783,6 +2811,8 @@ async function handleRequest(request, env) {
     }
     u.updatedAt=new Date().toISOString();
     await env.USERS.put(user.email, JSON.stringify(u));
+    // Fuente de verdad de la empresa: el dueño también escribe los datos de compañía en el registro empresa:<id>
+    if((user.role==="cliente"||user.role==="transportista") && !user.esSubusuario){ try{ await guardarPerfilEnEmpresa(env, user, body); }catch(e){} }
     return ok({ ok:true });
   }
 
