@@ -173,7 +173,30 @@
 
 <script>
   const API = 'https://transmatch.transmatchcl.workers.dev';
-  let allT = [], selEmail = '';
+  let allT = [], grupos = [], selEmail = '';
+
+  function rolBadge(rol){ var m={dueno:'<span class="badge" style="background:#EEEDFE;color:#3C3489">Dueño</span>',gestor:'<span class="badge" style="background:#E1F5EE;color:#0F6E56">Gestor</span>',miembro:'<span class="badge" style="background:#FAEEDA;color:#854F0B">Miembro</span>',visor:'<span class="badge" style="background:#F1EFE8;color:#444441">Visor</span>'}; return m[rol]||m.miembro; }
+  async function asignarRol(email,rol){ var r=await apiFetch('/api/admin/asignar-rol','POST',{email:email,rol:rol}); if(r&&r.ok) toast('Rol actualizado. Aplica cuando la persona reinicie sesión.'); else toast((r&&r.data&&r.data.error)||'Error al asignar rol','err'); }
+  function detalleEmpresa(g){
+    var html='<div class="card-detalle" style="display:none;width:100%;margin-top:12px;padding-top:14px;border-top:0.5px solid #E5E7EB" onclick="event.stopPropagation()">';
+    html+='<div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Usuarios de la empresa</div>';
+    var filas=[]; if(g.madre) filas.push(g.madre); filas=filas.concat(g.miembros||[]);
+    html+=filas.map(function(u){
+      var control = !u.esSubusuario
+        ? rolBadge('dueno')+' <span style="font-size:11px;color:#9CA3AF">(cuenta principal)</span>'
+        : '<select onchange="asignarRol(\''+u.email+'\',this.value)" style="font-size:12px;padding:5px 8px;border:1px solid #e8eaf0;border-radius:7px;font-family:inherit;color:#374151;cursor:pointer">' +
+            '<option value="miembro"'+((u.rol||'miembro')==='miembro'?' selected':'')+'>Miembro</option>' +
+            '<option value="gestor"'+(u.rol==='gestor'?' selected':'')+'>Gestor</option>' +
+            '<option value="visor"'+(u.rol==='visor'?' selected':'')+'>Visor</option>' +
+          '</select>';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:0.5px solid #f3f4f6;flex-wrap:wrap">' +
+        '<div style="min-width:0"><div style="font-size:13px;font-weight:500;color:#1e2d4e">'+(u.nombre||'--')+'</div><div style="font-size:12px;color:#6B7280">'+u.email+'</div></div>' +
+        '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'+control+'<a href="/admin-perfil-usuario.html?email='+encodeURIComponent(u.email)+'" class="btn btn-outline btn-sm">Ver perfil</a></div>' +
+      '</div>';
+    }).join('');
+    html+='</div></div>';
+    return html;
+  }
 
   function toast(msg, type) {
     const el = document.getElementById('toast');
@@ -193,19 +216,16 @@
 
   async function initPage() {
     document.getElementById('lista-transportistas').innerHTML = '<div class="spinner"></div>';
-    try {
-      const r = await apiFetch('/api/admin/usuarios');
-      if (!r || !r.ok) { document.getElementById('lista-transportistas').innerHTML = '<div class="empty">Error al cargar</div>'; return; }
-      allT = r.data.usuarios.filter(u => u.role === 'transportista');
-      const activos    = allT.filter(u => u.estado === 'activo').length;
-      const pendientes = allT.filter(u => u.estado === 'pendiente').length;
-      document.getElementById('st-total').textContent     = allT.length;
-      document.getElementById('st-activos').textContent   = activos;
-      document.getElementById('st-pendientes').textContent= pendientes;
-      filtrar();
-    } catch(e) {
-      document.getElementById('lista-transportistas').innerHTML = '<div class="empty">Error de conexión</div>';
-    }
+    const r = await apiFetch('/api/admin/usuarios');
+    if (!r || !r.ok) { document.getElementById('lista-transportistas').innerHTML = '<div class="empty">Error al cargar</div>'; return; }
+    allT = (r.data.usuarios||[]).filter(function(u){ return u.role === 'transportista'; });
+    var map={};
+    allT.forEach(function(u){ var eid=u.esSubusuario?(u.empresaMadreId||u.id):u.id; if(!map[eid])map[eid]={id:eid,madre:null,miembros:[]}; if(u.esSubusuario)map[eid].miembros.push(u); else map[eid].madre=u; });
+    grupos=Object.keys(map).map(function(k){ var g=map[k]; var ref=g.madre||g.miembros[0]||{}; g.nombre=ref.empresa||ref.nombre||'(sin nombre)'; g.estado=(g.madre&&g.madre.estado)||ref.estado||''; g.email=ref.email||''; g.rating=ref.rating; g.totalTransportes=ref.totalTransportes||0; g.totalUsuarios=(g.madre?1:0)+g.miembros.length; g.madreEmail=(g.madre&&g.madre.email)||ref.email; return g; }).sort(function(a,b){return (a.nombre||'').localeCompare(b.nombre||'');});
+    document.getElementById('st-total').textContent = grupos.length;
+    document.getElementById('st-activos').textContent = grupos.filter(function(g){return g.estado==='activo';}).length;
+    document.getElementById('st-pendientes').textContent = grupos.filter(function(g){return g.estado==='pendiente';}).length;
+    filtrar();
   }
 
   const avColors = ['#1e2d4e', '#1d4ed8', '#FF8808', '#1ED24E', '#7C3AED'];
@@ -217,34 +237,32 @@
   }
 
   function filtrar() {
-    const estado = document.getElementById('fil-estado').value;
-    const q      = (document.getElementById('fil-buscar').value || '').toLowerCase();
-    let lista    = allT;
-    if (estado) lista = lista.filter(t => t.estado === estado);
-    if (q)      lista = lista.filter(t => (t.nombre + t.empresa + t.email).toLowerCase().includes(q));
+    var estado = document.getElementById('fil-estado').value;
+    var q      = (document.getElementById('fil-buscar').value || '').toLowerCase();
+    var lista  = grupos;
+    if (estado) lista = lista.filter(function(g){ return g.estado === estado; });
+    if (q)      lista = lista.filter(function(g){ return (g.nombre+' '+g.email+' '+(g.miembros||[]).map(function(m){return m.email;}).join(' ')).toLowerCase().includes(q); });
 
     document.getElementById('lista-transportistas').innerHTML = lista.length === 0
       ? '<div class="empty">Sin resultados</div>'
-      : lista.map((t, i) =>
-          '<div class="row" style="cursor:pointer;flex-wrap:wrap" onclick="toggleCard(this)">' +
-          '<div class="av" style="background:' + avColors[i % avColors.length] + '">' + (t.nombre[0] || 'T').toUpperCase() + '</div>' +
+      : lista.map(function(g, i){
+          return '<div class="row" style="cursor:pointer;flex-wrap:wrap" onclick="toggleCard(this)">' +
+          '<div class="av" style="background:' + avColors[i % avColors.length] + '">' + ((g.nombre[0]) || 'T').toUpperCase() + '</div>' +
           '<div class="row-body">' +
-            '<div class="row-name">' + t.nombre + '</div>' +
-            '<div class="row-meta">' + (t.empresa || '--') + ' · ' + t.email + '</div>' +
+            '<div class="row-name">' + g.nombre + '</div>' +
+            '<div class="row-meta">' + g.totalUsuarios + ' usuario' + (g.totalUsuarios!==1?'s':'') + ' · ★ ' + (g.rating || 5) + ' · ' + (g.totalTransportes || 0) + ' transp.</div>' +
           '</div>' +
           '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">' +
-            '<span style="font-size:12px;color:#FF8808;font-weight:600">★ ' + (t.rating || 5) + '</span>' +
-            '<span style="font-size:11px;color:#9CA3AF">' + (t.totalTransportes || 0) + ' transp.</span>' +
-            estadoBadge(t.estado) +
-            (t.estado === 'pendiente' ?
-              '<button class="btn btn-green btn-sm" onclick="event.stopPropagation();aprobar(\'' + t.email + '\',\'aprobar\')">Aprobar</button>' +
-              '<button class="btn btn-red btn-sm" onclick="event.stopPropagation();aprobar(\'' + t.email + '\',\'rechazar\')">Rechazar</button>'
+            estadoBadge(g.estado) +
+            (g.estado === 'pendiente' ?
+              '<button class="btn btn-green btn-sm" onclick="event.stopPropagation();aprobar(\'' + g.madreEmail + '\',\'aprobar\')">Aprobar</button>' +
+              '<button class="btn btn-red btn-sm" onclick="event.stopPropagation();aprobar(\'' + g.madreEmail + '\',\'rechazar\')">Rechazar</button>'
             : '') +
-            '<a href="/admin-perfil-usuario.html?email=' + encodeURIComponent(t.email) + '" class="btn btn-outline btn-sm" onclick="event.stopPropagation()">Ver perfil</a>' +
+            '<span style="font-size:16px;color:#9CA3AF">›</span>' +
           '</div>' +
-          detalleTransportista(t) +
-          '</div>'
-        ).join('');
+          detalleEmpresa(g) +
+          '</div>';
+        }).join('');
   }
 
   function dato(label,val){ if(val==null||val===''||(Array.isArray(val)&&val.length===0)) return ''; var v=Array.isArray(val)?val.join(', '):val; return '<div style="margin-bottom:7px"><div style="font-size:10px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:.04em">'+label+'</div><div style="font-size:13px;color:#1e2d4e">'+v+'</div></div>'; }

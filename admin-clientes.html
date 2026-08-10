@@ -132,6 +132,15 @@
       <div class="stat"><div class="stat-label">Plan Pro</div><div id="st-pro" class="stat-val" style="color:#1d4ed8">--</div></div>
       <div class="stat"><div class="stat-label">Enterprise</div><div id="st-ent" class="stat-val" style="color:#92400E">--</div></div>
     </div>
+    <div style="background:#F8FAFC;border:0.5px solid #e8eaf0;border-radius:12px;padding:14px 18px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Qué puede hacer cada rol</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px">
+        <div><span class="badge" style="background:#EEEDFE;color:#3C3489">Dueño</span><div style="font-size:12px;color:#374151;margin-top:4px">Acceso total: ve todo, gestiona usuarios y facturación.</div></div>
+        <div><span class="badge" style="background:#E1F5EE;color:#0F6E56">Gestor</span><div style="font-size:12px;color:#374151;margin-top:4px">Ve y gestiona todo el equipo. Sin facturación ni gestión de usuarios.</div></div>
+        <div><span class="badge" style="background:#FAEEDA;color:#854F0B">Miembro</span><div style="font-size:12px;color:#374151;margin-top:4px">Ve y gestiona solo lo que él crea.</div></div>
+        <div><span class="badge" style="background:#F1EFE8;color:#444441">Visor</span><div style="font-size:12px;color:#374151;margin-top:4px">Solo lectura: puede ver, no puede modificar nada.</div></div>
+      </div>
+    </div>
     <div class="card">
       <div class="filter-bar">
         <select class="sel" id="fil-plan" onchange="filtrar()">
@@ -149,7 +158,31 @@
 
 <script>
   const API = 'https://transmatch.transmatchcl.workers.dev';
-  let allC = [];
+  let allC = [], grupos = [];
+
+  function toast(msg,type){ var el=document.getElementById('toast'); if(!el){el=document.createElement('div');el.id='toast';el.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transition:opacity .2s';document.body.appendChild(el);} el.textContent=msg; el.style.background=type==='err'?'#EF4444':'#1ED24E'; el.style.opacity='1'; clearTimeout(el._t); el._t=setTimeout(function(){el.style.opacity='0';},3200); }
+  function rolBadge(rol){ var m={dueno:'<span class="badge" style="background:#EEEDFE;color:#3C3489">Dueño</span>',gestor:'<span class="badge" style="background:#E1F5EE;color:#0F6E56">Gestor</span>',miembro:'<span class="badge" style="background:#FAEEDA;color:#854F0B">Miembro</span>',visor:'<span class="badge" style="background:#F1EFE8;color:#444441">Visor</span>'}; return m[rol]||m.miembro; }
+  async function asignarRol(email,rol){ var r=await apiFetch('/api/admin/asignar-rol','POST',{email:email,rol:rol}); if(r&&r.ok) toast('Rol actualizado. Aplica cuando la persona reinicie sesión.'); else toast((r&&r.data&&r.data.error)||'Error al asignar rol','err'); }
+  function detalleEmpresa(g){
+    var html='<div class="card-detalle" style="display:none;width:100%;margin-top:12px;padding-top:14px;border-top:0.5px solid #E5E7EB" onclick="event.stopPropagation()">';
+    html+='<div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Usuarios de la empresa</div>';
+    var filas=[]; if(g.madre) filas.push(g.madre); filas=filas.concat(g.miembros||[]);
+    html+=filas.map(function(u){
+      var control = !u.esSubusuario
+        ? rolBadge('dueno')+' <span style="font-size:11px;color:#9CA3AF">(cuenta principal)</span>'
+        : '<select onchange="asignarRol(\''+u.email+'\',this.value)" style="font-size:12px;padding:5px 8px;border:1px solid #e8eaf0;border-radius:7px;font-family:inherit;color:#374151;cursor:pointer">' +
+            '<option value="miembro"'+((u.rol||'miembro')==='miembro'?' selected':'')+'>Miembro</option>' +
+            '<option value="gestor"'+(u.rol==='gestor'?' selected':'')+'>Gestor</option>' +
+            '<option value="visor"'+(u.rol==='visor'?' selected':'')+'>Visor</option>' +
+          '</select>';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:0.5px solid #f3f4f6;flex-wrap:wrap">' +
+        '<div style="min-width:0"><div style="font-size:13px;font-weight:500;color:#1e2d4e">'+(u.nombre||'--')+'</div><div style="font-size:12px;color:#6B7280">'+u.email+'</div></div>' +
+        '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'+control+'<a href="/admin-perfil-usuario.html?email='+encodeURIComponent(u.email)+'" class="btn btn-outline" style="font-size:12px;padding:5px 10px">Ver perfil</a></div>' +
+      '</div>';
+    }).join('');
+    html+='</div></div>';
+    return html;
+  }
 
   async function apiFetch(path,method,body){
     const o={method:method||'GET',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}};
@@ -171,43 +204,42 @@
 
   async function initPage(){
     document.getElementById('lista-clientes').innerHTML='<div class="spinner"></div>';
-    try{
-      const r=await apiFetch('/api/admin/usuarios');
-      if(!r||!r.ok){document.getElementById('lista-clientes').innerHTML='<div class="empty">Error al cargar. <button onclick="initPage()" style="color:#1d4ed8;background:none;border:none;cursor:pointer">Reintentar</button></div>';return;}
-      allC=r.data.usuarios.filter(u=>u.role==='cliente');
-      document.getElementById('st-total').textContent=allC.length;
-      document.getElementById('st-basico').textContent=allC.filter(c=>c.plan==='basico').length;
-      document.getElementById('st-pro').textContent=allC.filter(c=>c.plan==='pro').length;
-      document.getElementById('st-ent').textContent=allC.filter(c=>c.plan==='enterprise').length;
-      filtrar();
-    }catch(e){document.getElementById('lista-clientes').innerHTML='<div class="empty">Error de conexión.</div>';}
+    const r=await apiFetch('/api/admin/usuarios');
+    if(!r||!r.ok){document.getElementById('lista-clientes').innerHTML='<div class="empty">Error al cargar. <button onclick="initPage()" style="color:#1d4ed8;background:none;border:none;cursor:pointer">Reintentar</button></div>';return;}
+    var us=(r.data.usuarios||[]).filter(function(u){return u.role==='cliente';});
+    var map={};
+    us.forEach(function(u){ var eid=u.esSubusuario?(u.empresaMadreId||u.id):u.id; if(!map[eid])map[eid]={id:eid,madre:null,miembros:[]}; if(u.esSubusuario)map[eid].miembros.push(u); else map[eid].madre=u; });
+    grupos=Object.keys(map).map(function(k){ var g=map[k]; var ref=g.madre||g.miembros[0]||{}; g.nombre=ref.empresa||ref.nombre||'(sin nombre)'; g.plan=(g.madre&&g.madre.plan)||ref.plan||null; g.estado=(g.madre&&g.madre.estado)||ref.estado||''; g.email=ref.email||''; g.totalUsuarios=(g.madre?1:0)+g.miembros.length; return g; }).sort(function(a,b){return (a.nombre||'').localeCompare(b.nombre||'');});
+    document.getElementById('st-total').textContent=grupos.length;
+    document.getElementById('st-basico').textContent=grupos.filter(function(g){return g.plan==='basico';}).length;
+    document.getElementById('st-pro').textContent=grupos.filter(function(g){return g.plan==='pro';}).length;
+    document.getElementById('st-ent').textContent=grupos.filter(function(g){return g.plan==='enterprise';}).length;
+    filtrar();
   }
 
   function filtrar(){
-    const plan=document.getElementById('fil-plan').value;
-    const q=(document.getElementById('fil-buscar').value||'').toLowerCase();
-    let lista=allC;
-    if(plan) lista=lista.filter(c=>c.plan===plan);
-    if(q) lista=lista.filter(c=>(c.empresa+c.nombre+c.email).toLowerCase().includes(q));
-
-    const avColors=['#1ED24E','#1e2d4e','#FF8808','#7C3AED'];
+    var plan=document.getElementById('fil-plan').value;
+    var q=(document.getElementById('fil-buscar').value||'').toLowerCase();
+    var lista=grupos;
+    if(plan) lista=lista.filter(function(g){return g.plan===plan;});
+    if(q) lista=lista.filter(function(g){ return (g.nombre+' '+g.email+' '+(g.miembros||[]).map(function(m){return m.email;}).join(' ')).toLowerCase().includes(q); });
+    var avColors=['#1ED24E','#1e2d4e','#FF8808','#7C3AED'];
     document.getElementById('lista-clientes').innerHTML = lista.length===0
       ? '<div class="empty">Sin resultados</div>'
-      : lista.map((c,i) =>
-          '<div class="row" style="cursor:pointer;flex-wrap:wrap" onclick="toggleCard(this)">' +
-            '<div class="avatar" style="background:'+avColors[i%avColors.length]+';border-radius:10px">'+(c.empresa||c.nombre||'?')[0].toUpperCase()+'</div>' +
+      : lista.map(function(g,i){
+          return '<div class="row" style="cursor:pointer;flex-wrap:wrap" onclick="toggleCard(this)">' +
+            '<div class="avatar" style="background:'+avColors[i%avColors.length]+';border-radius:10px">'+(g.nombre||'?')[0].toUpperCase()+'</div>' +
             '<div class="row-body">' +
-              '<div class="row-name">'+(c.empresa||c.nombre)+'</div>' +
-              '<div class="row-meta">'+c.nombre+' · '+c.email+' · Desde '+new Date(c.createdAt).toLocaleDateString('es-CL')+'</div>' +
+              '<div class="row-name">'+g.nombre+'</div>' +
+              '<div class="row-meta">'+g.totalUsuarios+' usuario'+(g.totalUsuarios!==1?'s':'')+'</div>' +
             '</div>' +
             '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">' +
-              estadoBadge(c.estado) +
-              planBadge(c.plan) +
-              '<a href="/admin-perfil-usuario.html?email='+encodeURIComponent(c.email)+'" class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="event.stopPropagation()">Ver perfil</a>' +
+              estadoBadge(g.estado) + planBadge(g.plan) +
+              '<span style="font-size:16px;color:#9CA3AF">›</span>' +
             '</div>' +
-            detalleCliente(c) +
-          '</div>'
-        ).join('');
+            detalleEmpresa(g) +
+          '</div>';
+        }).join('');
   }
 
   function dato(label,val){ if(val==null||val===''||(Array.isArray(val)&&val.length===0)) return ''; var v=Array.isArray(val)?val.join(', '):val; return '<div style="margin-bottom:7px"><div style="font-size:10px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:.04em">'+label+'</div><div style="font-size:13px;color:#1e2d4e">'+v+'</div></div>'; }
