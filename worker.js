@@ -1155,6 +1155,24 @@ async function handleRequest(request, env) {
     return ok({ ok:true, rol, aviso:"El cambio toma efecto cuando la persona vuelva a iniciar sesión." });
   }
 
+  // GET /api/admin/backup — respaldo completo de solo lectura (USERS, LICITACIONES, RETORNOS, OVS, EMPRESAS)
+  if (path === "/api/admin/backup" && method === "GET") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    const dump={ _meta:{ generadoAt:new Date().toISOString() } };
+    const namespaces={ USERS:env.USERS, LICITACIONES:env.LICITACIONES, RETORNOS:env.RETORNOS, OVS:env.OVS, EMPRESAS:env.EMPRESAS };
+    for (const name of Object.keys(namespaces)) {
+      const ns=namespaces[name]; if(!ns) continue;
+      dump[name]={};
+      let cursor;
+      do {
+        const list=await ns.list({ cursor });
+        for (const k of list.keys) { dump[name][k.name]=await ns.get(k.name); }
+        cursor = list.list_complete ? undefined : list.cursor;
+      } while (cursor);
+    }
+    return ok(dump);
+  }
+
   // POST /api/admin/crear-usuario — el admin crea la cuenta directamente con una clave provisoria
   // y se le envía por correo al usuario. Alternativa al link de acceso.
   if (path === "/api/admin/crear-usuario" && method === "POST") {
