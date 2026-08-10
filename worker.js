@@ -3456,7 +3456,7 @@ async function handleRequest(request, env) {
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
     const { nombre, password, cargo, telefono, rut } = body;
     if(!nombre||!password) return err("nombre y password requeridos");
-    if(!cargo||!telefono||!rut) return err("cargo, telefono y rut requeridos");
+    if(!telefono) return err("Teléfono requerido");
     if(password.length < 8) return err("Contraseña mínimo 8 caracteres");
     // Verificar que no existe aún
     const existe = await env.USERS.get(inv.emailInvitado);
