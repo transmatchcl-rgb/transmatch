@@ -1696,7 +1696,8 @@ async function handleRequest(request, env) {
     // Reactivable si: (a) cerrada por vencimiento / por el propio cliente, o (b) en revisión con
     // cotizaciones ("cerrada") y el cliente quiere más tiempo para recibir más ofertas.
     // Siempre: NO cerrada por el admin, y con la fecha de carga aún en el futuro.
-    const _reactivable = (["expirada","anulada","cerrada"].includes(l.estado)) && !l.cerradaPorAdmin && fechaCargaFutura(l);
+    const _estadosOk = (user.role==="admin") ? ["expirada","anulada","cerrada","abierta"] : ["expirada","anulada","cerrada"];
+    const _reactivable = _estadosOk.includes(l.estado) && !l.cerradaPorAdmin && fechaCargaFutura(l);
     if(!_reactivable) return err("Esta licitación no se puede ampliar (ya pasó la fecha de carga o fue cerrada por el administrador)");
     l.estado="abierta";
     l.plazo=String(horas);
