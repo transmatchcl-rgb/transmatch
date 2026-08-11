@@ -194,6 +194,7 @@
     <!-- Tabs -->
     <div class="tabs-bar">
       <button class="tab-btn active" onclick="switchTab('ovs',this)">Mis OV</button>
+      <button class="tab-btn" onclick="switchTab('cobranza',this)">Cobranza a clientes</button>
       <button class="tab-btn" onclick="switchTab('facturas',this)">Facturas TransMatch</button>
     </div>
 
@@ -215,6 +216,18 @@
       </div>
       <div id="lista-ovs"><div style="padding:32px;text-align:center"><div class="spinner" style="margin:0 auto;width:24px;height:24px;border-width:2px"></div></div></div>
       <div style="font-size:11px;color:#9CA3AF;margin-top:8px;line-height:1.5">Las comisiones se generan automáticamente al adjudicar un transporte dentro de TransMatch, conforme a los términos aceptados al registrarse.</div>
+    </div>
+
+    <!-- TAB Cobranza a clientes -->
+    <div id="tab-cobranza" style="display:none">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px">
+        <div style="background:#fff;border:0.5px solid #e8eaf0;border-radius:10px;padding:14px 16px"><div style="font-size:12px;color:#9CA3AF">Cobrado a clientes</div><div id="cb-cobrado" style="font-size:22px;font-weight:700;color:#0F6E56">—</div></div>
+        <div style="background:#fff;border:0.5px solid #e8eaf0;border-radius:10px;padding:14px 16px"><div style="font-size:12px;color:#9CA3AF">Por cobrar</div><div id="cb-porcobrar" style="font-size:22px;font-weight:700;color:#854F0B">—</div></div>
+        <div style="background:#fff;border:0.5px solid #e8eaf0;border-radius:10px;padding:14px 16px"><div style="font-size:12px;color:#9CA3AF">Transportes facturados</div><div id="cb-count" style="font-size:22px;font-weight:700;color:#1e2d4e">—</div></div>
+      </div>
+      <div class="fil-bar"><select class="sel" id="fil-cobranza" onchange="renderCobranza()"><option value="">Todos</option><option value="pendiente">Por cobrar</option><option value="pagado">Pagados</option></select></div>
+      <div id="lista-cobranza"><div style="padding:32px;text-align:center"><div class="spinner" style="margin:0 auto;width:24px;height:24px;border-width:2px"></div></div></div>
+      <div style="font-size:11px;color:#9CA3AF;margin-top:8px;line-height:1.5">Registro de tu cobranza. El pago del flete se coordina directamente con el cliente, fuera de la plataforma.</div>
     </div>
 
     <!-- TAB Facturas -->
@@ -255,6 +268,8 @@ function switchTab(id,btn){
   btn.classList.add('active');
   document.getElementById('tab-ovs').style.display=id==='ovs'?'block':'none';
   document.getElementById('tab-facturas').style.display=id==='facturas'?'block':'none';
+  document.getElementById('tab-cobranza').style.display=id==='cobranza'?'block':'none';
+  if(id==='cobranza') renderCobranza();
 }
 
 function actualizarKPIs(){
@@ -528,6 +543,45 @@ function exportarCSV(){
   a.href=url; a.download='transmatch-ov-'+sufijo+'.csv'; a.click();
   URL.revokeObjectURL(url);
   toast('CSV exportado');
+}
+
+function renderCobranza(){
+  var facturados=allTransportes.filter(function(t){ return t.factura; });
+  var cobrado=facturados.filter(function(t){ return (t.pagoCliente&&t.pagoCliente.estado)==='pagado'; }).reduce(function(s,t){ return s+(t.precio||0); },0);
+  var porcobrar=facturados.filter(function(t){ return (t.pagoCliente&&t.pagoCliente.estado)!=='pagado'; }).reduce(function(s,t){ return s+(t.precio||0); },0);
+  var eC=document.getElementById('cb-cobrado'); if(eC) eC.textContent=peso(cobrado);
+  var eP=document.getElementById('cb-porcobrar'); if(eP) eP.textContent=peso(porcobrar);
+  var eN=document.getElementById('cb-count'); if(eN) eN.textContent=facturados.length;
+  var fil=(document.getElementById('fil-cobranza')||{}).value||'';
+  var lista=facturados;
+  if(fil==='pagado') lista=lista.filter(function(t){ return (t.pagoCliente&&t.pagoCliente.estado)==='pagado'; });
+  else if(fil==='pendiente') lista=lista.filter(function(t){ return (t.pagoCliente&&t.pagoCliente.estado)!=='pagado'; });
+  var el=document.getElementById('lista-cobranza'); if(!el) return;
+  if(!lista.length){ el.innerHTML='<div style="padding:24px;text-align:center;color:#9CA3AF;font-size:13px">Sin transportes'+(fil?(fil==='pagado'?' pagados':' por cobrar'):' facturados')+' aún.</div>'; return; }
+  el.innerHTML='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:#9CA3AF;text-align:left"><th style="font-weight:400;padding:8px 10px">Transporte</th><th style="font-weight:400;padding:8px 10px">Cliente</th><th style="font-weight:400;padding:8px 10px;text-align:right">Monto</th><th style="font-weight:400;padding:8px 10px;text-align:center">Estado</th><th style="font-weight:400;padding:8px 10px"></th></tr></thead><tbody>'+
+  lista.map(function(t){
+    var pagado=(t.pagoCliente&&t.pagoCliente.estado)==='pagado';
+    var badge=pagado?'<span style="background:#E1F5EE;color:#0F6E56;font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px">Pagado</span>':'<span style="background:#FAEEDA;color:#854F0B;font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px">Por cobrar</span>';
+    var descBtn=t.factura?'<button class="btn btn-outline btn-sm" onclick="descargar(\''+t.factura.archivoId+'\',\''+(t.factura.nombre||'factura.pdf')+'\')">Descargar factura</button>':'';
+    var accion=pagado
+      ? descBtn+' <button class="btn btn-outline btn-sm" onclick="marcarPagoCliente(\''+t.id+'\',\'pendiente\')">Marcar pendiente</button>'
+      : '<button class="btn btn-sm" style="background:#1e2d4e;color:#fff" onclick="marcarPagoCliente(\''+t.id+'\',\'pagado\')">Marcar pagado</button>';
+    return '<tr style="border-top:0.5px solid #eef1f6">'+
+      '<td style="padding:10px"><div style="font-family:IBM Plex Mono,monospace;font-size:12px;color:#6B7280">'+(t.codigo||'--')+'</div><div style="font-size:12px;color:#9CA3AF">'+(t.origen||'')+' → '+(t.destino||'')+'</div></td>'+
+      '<td style="padding:10px">'+(t.clienteEmpresa||'--')+'</td>'+
+      '<td style="padding:10px;text-align:right;font-weight:600">'+peso(t.precio)+'</td>'+
+      '<td style="padding:10px;text-align:center">'+badge+'</td>'+
+      '<td style="padding:10px;text-align:right;white-space:nowrap">'+accion+'</td>'+
+      '</tr>';
+  }).join('')+'</tbody></table></div>';
+}
+
+async function marcarPagoCliente(transporteId, estado){
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/pago-cliente',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({estado:estado})});
+    if(res.ok){ toast(estado==='pagado'?'Marcado como pagado':'Marcado como pendiente'); await cargar(); renderCobranza(); }
+    else{ var d=await res.json().catch(function(){return{};}); toast(d.error||'Error','err'); }
+  }catch(e){ toast('Error de conexión','err'); }
 }
 
 async function descargar(id,nombre){
