@@ -2850,7 +2850,15 @@ async function handleRequest(request, env) {
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
     const raw=await env.USERS.get(user.email); if(!raw) return err("No encontrado",404);
     const u=JSON.parse(raw);
-    for(const k of ["nombre","empresa","telefono","rut","direccion","whatsapp","ciudad","comuna","giro","web","descripcion","anosExperiencia","zonas","equipos","tiposEquipo","genera_oc_propia","rutEmpresa","cargo","industrias","telEmpresa","ciudadEmpresa","facturacion","contactoOperaciones","contactoComercial","contactoFacturacion","contactos","datosBancarios"]){ if(body[k]!==undefined) u[k]=body[k]; }
+    // Permisos por rol: personales (todos), perfil de empresa (dueño+gestor), y dueño-only (razón social, RUT, facturación, bancarios).
+    const _personales=["nombre","telefono","whatsapp","rut","cargo","ciudad","genera_oc_propia"];
+    const _empresaProfile=["direccion","comuna","giro","web","descripcion","anosExperiencia","zonas","equipos","tiposEquipo","industrias","telEmpresa","ciudadEmpresa","contactos","contactoOperaciones","contactoComercial"];
+    const _empresaDueno=["empresa","rutEmpresa","facturacion","datosBancarios","contactoFacturacion"];
+    let _wl;
+    if(!user.esSubusuario) _wl = _personales.concat(_empresaProfile, _empresaDueno);
+    else if(user.rol==="gestor") _wl = _personales.concat(_empresaProfile);
+    else _wl = _personales;
+    for(const k of _wl){ if(body[k]!==undefined) u[k]=body[k]; }
     // Recalcular completitud automáticamente
     if(u.role==='cliente'){
       let pts=0;
@@ -2872,8 +2880,12 @@ async function handleRequest(request, env) {
     }
     u.updatedAt=new Date().toISOString();
     await env.USERS.put(user.email, JSON.stringify(u));
-    // Fuente de verdad de la empresa: el dueño también escribe los datos de compañía en el registro empresa:<id>
-    if((user.role==="cliente"||user.role==="transportista") && !user.esSubusuario){ try{ await guardarPerfilEnEmpresa(env, user, body); }catch(e){} }
+    // Fuente de verdad de la empresa: escribir en empresa:<id> solo los campos de compañía que el rol puede editar.
+    if((user.role==="cliente"||user.role==="transportista") && (!user.esSubusuario || user.rol==="gestor")){
+      const _empKeys=_wl.filter(k=>_empresaProfile.includes(k)||_empresaDueno.includes(k));
+      const _empBody={}; for(const k of _empKeys){ if(body[k]!==undefined) _empBody[k]=body[k]; }
+      try{ await guardarPerfilEnEmpresa(env, user, _empBody); }catch(e){}
+    }
     return ok({ ok:true });
   }
 

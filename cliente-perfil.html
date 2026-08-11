@@ -381,6 +381,24 @@ var esAdminEmpresa = !U.esSubusuario;
 var maxU = U.max_usuarios||0;
 var tabU = document.getElementById('tab-usuarios');
 if(tabU && esAdminEmpresa && maxU > 0) { tabU.style.display=''; cargarUsuarios(); }
+
+// Datos de empresa por rol: dueño edita todo; gestor edita el perfil (menos razón social/RUT); miembro solo lectura.
+if(U.esSubusuario){
+  var _bloquearPane=function(pid, nota){
+    var pane=document.getElementById(pid); if(!pane) return;
+    var n=document.createElement('div'); n.style.cssText='font-size:12px;color:#92400E;background:#FFFBEB;border:0.5px solid #FDE68A;border-radius:8px;padding:9px 12px;margin-bottom:14px'; n.textContent=nota; pane.insertBefore(n, pane.firstChild);
+    pane.querySelectorAll('input,textarea,select').forEach(function(el){ el.disabled=true; el.style.background='#f8f9fc'; el.style.cursor='not-allowed'; });
+    pane.querySelectorAll('button').forEach(function(b){ b.style.display='none'; });
+  };
+  _bloquearPane('pane-facturacion','Solo el dueño de la empresa puede editar la facturación.');
+  if(U.rol==='gestor'){
+    ['inp-empresa','inp-rut-empresa'].forEach(function(id){ var el=document.getElementById(id); if(el){ el.disabled=true; el.style.background='#f8f9fc'; el.style.cursor='not-allowed'; } });
+    var _pe=document.getElementById('pane-empresa');
+    if(_pe){ var _n2=document.createElement('div'); _n2.style.cssText='font-size:12px;color:#6B7280;background:#F8FAFC;border:0.5px solid #e8eaf0;border-radius:8px;padding:9px 12px;margin-bottom:14px'; _n2.textContent='La razón social y el RUT solo los edita el dueño.'; _pe.insertBefore(_n2, _pe.firstChild); }
+  } else {
+    _bloquearPane('pane-empresa','Solo el dueño de la empresa puede editar estos datos.');
+  }
+}
 }
 
 function calcularCompletitudCliente(u){
