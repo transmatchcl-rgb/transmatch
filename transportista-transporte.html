@@ -623,6 +623,10 @@ function renderDetalle(t){
   h+='<div class="doc-card" style="margin-top:10px"><div class="doc-title">Tu factura de cobro</div>';
   if(t.factura){
     h+='<div class="doc-ok"><span>Subida el '+fechaHora(t.factura.subidoAt)+'</span><button class="btn btn-outline btn-sm" onclick="descargar(\''+t.factura.archivoId+'\',\''+t.factura.nombre+'\')">Descargar</button></div>';
+    var _pc=(t.pagoCliente&&t.pagoCliente.estado)||'pendiente';
+    var _pcBadge=_pc==='pagado'?'<span style="background:#E1F5EE;color:#0F6E56;font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px">Pagado por el cliente</span>':'<span style="background:#FAEEDA;color:#854F0B;font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px">Pago pendiente</span>';
+    var _pcBtn=_pc==='pagado'?'<button class="btn btn-outline btn-sm" onclick="marcarPagoCliente(\''+t.id+'\',\'pendiente\')">Marcar pendiente</button>':'<button class="btn btn-sm" style="background:#1e2d4e;color:#fff" onclick="marcarPagoCliente(\''+t.id+'\',\'pagado\')">Marcar pagado</button>';
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding-top:10px;border-top:0.5px solid #eef1f6;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:#6B7280">Pago del cliente:</span>'+_pcBadge+'</div>'+_pcBtn+'</div>';
   } else {
     h+='<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Sube tu factura para registrar el cobro en el sistema.</div>'+
       '<label style="display:block;border:1px dashed #cbd2de;border-radius:8px;padding:10px 14px;font-size:13px;color:#6B7280;cursor:pointer;text-align:center">Seleccionar factura (PDF/Word)<input type="file" id="fac-file-'+t.id+'" accept=".pdf,.doc,.docx" style="display:none" onchange="subirFactura(\''+t.id+'\')"/></label>'+
@@ -1194,6 +1198,14 @@ async function subirFactura(transporteId){
     } catch(e){ if(statusEl) statusEl.textContent=''; toast('Error de conexion','err'); }
   };
   reader.readAsDataURL(file);
+}
+
+async function marcarPagoCliente(transporteId, estado){
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/pago-cliente',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({estado:estado})});
+    if(res.ok){ toast(estado==='pagado'?'Marcado como pagado por el cliente':'Marcado como pendiente'); await cargar(); setTimeout(function(){toggleCard(transporteId);},200); }
+    else{ var d=await res.json().catch(function(){return{};}); toast(d.error||'Error','err'); }
+  }catch(e){ toast('Error de conexión','err'); }
 }
 
 function abrirModalDocumentoExtra(transporteId){

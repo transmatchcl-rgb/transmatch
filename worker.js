@@ -3067,6 +3067,19 @@ async function handleRequest(request, env) {
     return ok({ ok:true, archivoId });
   }
 
+  // El transportista marca si el cliente ya le pagó el flete (control de cobranza; el pago es externo)
+  if (path.match(/^\/api\/transportes\/[^/]+\/pago-cliente$/)&&method==="POST") {
+    const user=await getUser(request,env); if(!user) return err("No autenticado",401);
+    if(user.role!=="transportista") return err("Solo transportistas",403);
+    const id=path.split("/")[3]; const raw=await env.RETORNOS.get("transporte:"+id); if(!raw) return err("No encontrado",404);
+    const t=JSON.parse(raw); if(!(await puedeGestionarTransporte(env,user,t))) return err("Sin acceso",403);
+    let body={}; try{body=await request.json();}catch(e){}
+    const estado=(body.estado==="pagado")?"pagado":"pendiente";
+    t.pagoCliente={ estado, marcadoAt:new Date().toISOString(), marcadoPor:user.email };
+    await env.RETORNOS.put("transporte:"+id, JSON.stringify(t));
+    return ok({ ok:true, estado });
+  }
+
   if (path.match(/^\/api\/admin\/cliente\/[^/]+\/oc-config$/)&&method==="POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     const clienteId=path.split("/")[4];
