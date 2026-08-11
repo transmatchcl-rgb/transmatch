@@ -423,7 +423,7 @@ function descargarCotizacionAdminPDF(licId, cotId){
 
   if(Array.isArray(f.items)&&f.items.length){
     seccion('Detalle del servicio'); pdf.setFontSize(9.5);
-    f.items.forEach(function(it){ pdf.setFont('helvetica','normal'); pdf.setTextColor(55,65,81); var t=(it.eq||it.descripcion||'-')+(it.tarifa?' - $'+Number(it.tarifa).toLocaleString('es-CL'):'')+(it.cant?' x'+it.cant:'')+(it.unidad?' '+it.unidad:''); var ls=pdf.splitTextToSize(t,contentW); pdf.text(ls,mL,y); nl(ls.length*5); });
+    f.items.forEach(function(it){ pdf.setFont('helvetica','normal'); pdf.setTextColor(55,65,81); var _cant=(it.cant?String(it.cant):'1'); var _tar=(it.tarifa?'$'+Number(it.tarifa).toLocaleString('es-CL'):''); var _uni=(it.unidad?' / '+it.unidad:''); var _meta=[_cant,_tar].filter(Boolean).join(' x ')+_uni; var t=(it.eq||it.descripcion||'-')+(_meta.trim()?' - '+_meta:''); var ls=pdf.splitTextToSize(t,contentW); pdf.text(ls,mL,y); nl(ls.length*5); });
   }
   if(Array.isArray(f.seguros)&&f.seguros.length){
     seccion('Seguros'); pdf.setFontSize(9.5);
@@ -665,7 +665,7 @@ function renderDetalle(l){
       }
       if(Array.isArray(f.items)&&f.items.length){
         detalle+='<div style="margin-top:6px;font-size:11px;color:#9CA3AF;text-transform:uppercase">Detalle del servicio</div>'+
-          f.items.map(function(it){return '<div style="font-size:12px;color:#374151;padding:2px 0">'+(it.eq||it.descripcion||'—')+(it.tarifa?' — $'+Number(it.tarifa).toLocaleString('es-CL'):'')+(it.cant?' x'+it.cant:'')+(it.unidad?' '+it.unidad:'')+'</div>';}).join('');
+          f.items.map(function(it){var eq=(it.eq||it.descripcion||'—');var cant=(it.cant?String(it.cant):'1');var tar=(it.tarifa?'$'+Number(it.tarifa).toLocaleString('es-CL'):'');var uni=(it.unidad?' / '+it.unidad:'');var meta=[cant,tar].filter(Boolean).join(' × ')+uni;return '<div style="font-size:12px;color:#374151;padding:2px 0"><span style="font-weight:500;color:#1e2d4e">'+eq+'</span>'+(meta.trim()?' <span style="color:#9CA3AF">— '+meta+'</span>':'')+'</div>';}).join('');
       }
       if(Array.isArray(f.seguros)&&f.seguros.length){
         detalle+='<div style="margin-top:6px;font-size:11px;color:#9CA3AF;text-transform:uppercase">Seguros</div>'+
