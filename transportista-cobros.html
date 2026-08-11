@@ -485,6 +485,9 @@ function renderFacturas(){
           badgeFact+
         '</div>'+
       '</div>'+
+      (f.facturaSiiArchivoId
+        ? '<div style="padding:0 18px 14px"><button class="btn btn-outline btn-sm" onclick="descargar(\''+f.facturaSiiArchivoId+'\',\''+(f.facturaSiiNombre||('factura_'+f.periodo+'.pdf'))+'\')">Descargar factura</button></div>'
+        : '<div style="padding:0 18px 14px"><span style="font-size:12px;color:#9CA3AF">Factura en emisión — pronto disponible</span></div>')+
       (!pagada?'<div style="padding:0 18px 14px"><div style="font-size:12px;color:#6B7280">Transfiere a <strong>TransMatch SpA</strong> y envía el comprobante a <strong>pagos@transmatch.cl</strong></div></div>':'')+
     '</div>';
   }).join('');

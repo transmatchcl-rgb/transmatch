@@ -163,7 +163,7 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
         <div class="page-sub">Comisiones por transporte y suscripciones de clientes</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-orange" onclick="abrirBatch()">Facturacion mensual</button>
+        <button class="btn btn-orange" onclick="abrirBatch()">Consolidar OV del mes</button>
         
       </div>
     </div>
@@ -202,7 +202,7 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
     <!-- Tabs -->
     <div class="tabs-bar">
       <button class="tab-btn active" onclick="switchTab('ovs',this)">Ordenes de Venta</button>
-      <button class="tab-btn" onclick="switchTab('facturas',this)">Facturas mensuales</button>
+      <button class="tab-btn" onclick="switchTab('facturas',this)">Consolidados mensuales</button>
       <button class="tab-btn" onclick="switchTab('alertas',this)">Alertas</button>
     </div>
 
@@ -243,8 +243,8 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
     <div id="tab-facturas" style="display:none">
       <div class="card">
         <div class="card-hdr">
-          <span class="card-title">Facturas consolidadas emitidas</span>
-          <button class="btn btn-orange btn-sm" onclick="abrirBatch()">Generar nueva facturacion</button>
+          <span class="card-title">Consolidados de OV emitidos</span>
+          <button class="btn btn-orange btn-sm" onclick="abrirBatch()">Consolidar OV del mes</button>
         </div>
         <div style="overflow-x:auto">
           <table class="tbl">
@@ -356,8 +356,8 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
 <!-- Modal: Facturacion batch -->
 <div class="modal-bg" id="modal-batch">
   <div class="modal">
-    <div class="modal-title">Facturacion mensual consolidada</div>
-    <div class="info-box">Este proceso agrupa todas las OV en estado CONFIRMADA del mes y genera una factura por transportista. Las OV pasaran a estado FACTURADA y no se podran modificar.</div>
+    <div class="modal-title">Consolidar órdenes de venta</div>
+    <div class="info-box">Este proceso agrupa todas las OV en estado CONFIRMADA del mes en un consolidado por transportista. Las OV pasarán a estado FACTURADA y no se podrán modificar. La factura tributaria se emite en el SII y se sube aparte.</div>
     <div class="fg">
       <label>Periodo a facturar</label>
       <select id="batch-periodo"></select>
@@ -365,7 +365,7 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
     <div id="batch-preview" style="margin-bottom:14px"></div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="cerrarModal('modal-batch')">Cancelar</button>
-      <button class="btn btn-orange" style="flex:1;justify-content:center" id="btn-batch" onclick="ejecutarBatch()">Generar facturas</button>
+      <button class="btn btn-orange" style="flex:1;justify-content:center" id="btn-batch" onclick="ejecutarBatch()">Consolidar OV</button>
     </div>
   </div>
 </div>
@@ -787,7 +787,13 @@ function renderFacturas(){
   document.getElementById('tbody-facturas').innerHTML = lista.map(function(f){
     var estadoBadge = f.estado_pago==='pagado'
       ? '<span class="badge b-facturada">Pagado</span>'
-      : '<span class="badge b-condicional">Pendiente</span>';
+      : '<span class="badge b-condicional">Pago pendiente</span>';
+    var facturaBadge = f.estado_factura==='facturado'
+      ? '<span class="badge b-facturada">Facturado</span>'
+      : '<span class="badge b-condicional">Sin factura SII</span>';
+    var facturaBtn = f.estado_factura==='facturado'
+      ? '<button class="btn btn-outline btn-sm" onclick="verFacturaAdmin(\''+f.facturaSiiArchivoId+'\')">Ver factura</button>'
+      : '<button class="btn btn-orange btn-sm" onclick="subirFacturaSii(\''+f.id+'\')">Subir factura SII</button>';
     var accion = f.estado_pago!=='pagado'
       ? '<button class="btn btn-outline btn-sm" onclick="abrirPago(\''+f.id+'\',\''+f.transportistaEmpresa+'\','+f.total_comision+')">Marcar pagado</button>'
       : '<span style="font-size:11px;color:#9CA3AF">'+fecha(f.fecha_pago)+'</span>';
@@ -796,11 +802,27 @@ function renderFacturas(){
       +'<td><div style="font-weight:500;color:#1e2d4e">'+f.transportistaEmpresa+'</div></td>'
       +'<td style="text-align:center">'+f.total_ovs+'</td>'
       +'<td style="font-weight:700;color:#1e2d4e">'+peso(f.total_comision)+'</td>'
-      +'<td>'+estadoBadge+'</td>'
+      +'<td><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">'+facturaBadge+estadoBadge+'</div></td>'
       +'<td style="font-size:12px">'+fecha(f.fecha_emision)+'</td>'
-      +'<td>'+accion+'</td>'
+      +'<td><div style="display:flex;gap:6px;flex-wrap:wrap">'+facturaBtn+accion+'</div></td>'
       +'</tr>';
   }).join('');
+}
+
+async function subirFacturaSii(facturaId){
+  var inp=document.createElement('input'); inp.type='file'; inp.accept='application/pdf';
+  inp.onchange=async function(){
+    var file=inp.files && inp.files[0]; if(!file) return;
+    if(file.size>8*1024*1024){ toast('El PDF supera los 8 MB','err'); return; }
+    toast('Subiendo factura...','warn');
+    try{
+      var base64=await fileToBase64(file);
+      var r=await apiFetch('/api/admin/facturas-mensuales/'+facturaId+'/factura-sii','POST',{base64:base64, archivoNombre:file.name});
+      if(r&&r.ok){ toast('Factura subida y enviada al transportista'); initPage(); }
+      else toast((r&&r.data&&r.data.error)||'Error al subir la factura','err');
+    }catch(e){ toast('Error al leer el archivo','err'); }
+  };
+  inp.click();
 }
 
 function abrirPago(id, empresa, monto){
@@ -891,11 +913,11 @@ document.addEventListener('DOMContentLoaded', function(){
 async function ejecutarBatch(){
   var periodo = document.getElementById('batch-periodo').value;
   var btn = document.getElementById('btn-batch');
-  btn.disabled=true; btn.textContent='Generando facturas...';
+  btn.disabled=true; btn.textContent='Consolidando...';
   var r = await apiFetch('/api/admin/facturacion-batch','POST',{periodo:periodo});
-  btn.disabled=false; btn.textContent='Generar facturas';
+  btn.disabled=false; btn.textContent='Consolidar OV';
   if(r && r.ok){
-    toast('Facturas generadas correctamente');
+    toast('OV consolidadas correctamente');
     cerrarModal('modal-batch');
     initPage();
   } else {

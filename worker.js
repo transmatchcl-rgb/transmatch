@@ -3146,7 +3146,7 @@ async function handleRequest(request, env) {
     const facturaIds=[];
     for(const [tid, grupo] of Object.entries(porTransportista)){
       const facturaId=uid(); const totalComision=grupo.ovs.reduce((s,o)=>s+(o.comision_final||0),0);
-      const factura={ id:facturaId, periodo, transportistaId:tid, transportistaEmail:grupo.transportistaEmail, transportistaEmpresa:grupo.transportistaEmpresa, total_ovs:grupo.ovs.length, total_comision:totalComision, ovs_ids:grupo.ovs.map(o=>o.id_ov), estado_pago:"pendiente", fecha_emision:new Date().toISOString(), fecha_pago:null, metodo_pago:null, notas:null };
+      const factura={ id:facturaId, periodo, transportistaId:tid, transportistaEmail:grupo.transportistaEmail, transportistaEmpresa:grupo.transportistaEmpresa, total_ovs:grupo.ovs.length, total_comision:totalComision, ovs_ids:grupo.ovs.map(o=>o.id_ov), estado_factura:"pendiente", facturaSiiArchivoId:null, facturaSiiNombre:null, fechaFacturaSii:null, estado_pago:"pendiente", fecha_emision:new Date().toISOString(), fecha_pago:null, metodo_pago:null, notas:null };
       await env.OVS.put("factura:"+facturaId, JSON.stringify(factura));
       for(const ov of grupo.ovs){ ov.estado="FACTURADA"; ov.id_factura_transmatch=facturaId; ov.fecha_facturacion=new Date().toISOString(); ov.fecha_vencimiento=new Date(Date.now()+30*24*60*60*1000).toISOString(); ov.historial=ov.historial||[]; ov.historial.push({ estado:"FACTURADA", fecha:new Date().toISOString(), actor:"admin", nota:"Incluida en factura mensual "+periodo }); await env.OVS.put("ov:"+ov.id_ov, JSON.stringify(ov)); }
       const idxT=JSON.parse(await env.OVS.get("facturas:transportista:"+tid)||"[]"); idxT.unshift(facturaId); await env.OVS.put("facturas:transportista:"+tid, JSON.stringify(idxT));
@@ -3167,6 +3167,24 @@ async function handleRequest(request, env) {
     for(const ovId of (factura.ovs_ids||[])){ const rawOV=await env.OVS.get("ov:"+ovId); if(!rawOV) continue; const ov=JSON.parse(rawOV); ov.estado="PAGADA"; ov.fecha_pago_confirmado=new Date().toISOString(); ov.metodo_pago=factura.metodo_pago; ov.historial=ov.historial||[]; ov.historial.push({ estado:"PAGADA", fecha:new Date().toISOString(), actor:"admin", nota:"Pago confirmado en factura mensual "+factura.periodo }); await env.OVS.put("ov:"+ovId, JSON.stringify(ov)); }
     await crearNotificacion(env,factura.transportistaId,"pago_confirmado",`Pago confirmado: ${formatCLP(factura.total_comision)} - Periodo ${factura.periodo}`,{ facturaId });
     return ok({ ok:true });
+  }
+
+  // Admin sube el PDF de la factura del SII a un consolidado → pasa a "facturado"
+  if (path.match(/^\/api\/admin\/facturas-mensuales\/[^/]+\/factura-sii$/) && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    const facturaId=path.split("/")[4]; const raw=await env.OVS.get("factura:"+facturaId); if(!raw) return err("Consolidado no encontrado",404);
+    const factura=JSON.parse(raw);
+    let body={}; try{body=await request.json();}catch(e){ return err("Formato invalido"); }
+    if(!body.base64) return err("PDF de la factura requerido");
+    if(body.base64.length>12000000) return err("Archivo demasiado grande. Máximo 8 MB");
+    const nombre=body.archivoNombre||("factura_"+(factura.periodo||"")+".pdf");
+    const archivoId=uid();
+    await env.ARCHIVOS.put(archivoId, JSON.stringify({ id:archivoId, nombre, tipo:"application/pdf", base64:body.base64, subidoPor:"admin", createdAt:new Date().toISOString() }));
+    factura.estado_factura="facturado"; factura.facturaSiiArchivoId=archivoId; factura.facturaSiiNombre=nombre; factura.fechaFacturaSii=new Date().toISOString();
+    await env.OVS.put("factura:"+facturaId, JSON.stringify(factura));
+    await crearNotificacion(env,factura.transportistaId,"factura_sii",`Factura de comisión disponible — Periodo ${factura.periodo}`,{ facturaId });
+    try{ await enviarEmail(env,{ to:factura.transportistaEmail, subject:`Factura de comisión ${factura.periodo} - TransMatch`, html:emailBase('<h1 style="margin:0 0 10px;font-size:20px;color:#1e2d4e">Factura de comisión disponible</h1><p style="font-size:15px;color:#374151;line-height:1.6">Ya está disponible tu factura de comisión del período <strong>'+factura.periodo+'</strong> por '+formatCLP(factura.total_comision)+'. Puedes verla y descargarla desde tu portal.</p>'+btnEmail("https://transmatch.cl/transportista-cobros.html","Ver mi factura"),"Factura de comisión TransMatch") }); }catch(e){}
+    return ok({ ok:true, archivoId });
   }
 
   if (path === "/api/mis-facturas-transmatch" && method === "GET") {
