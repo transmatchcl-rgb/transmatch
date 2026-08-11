@@ -1225,6 +1225,43 @@ async function handleRequest(request, env) {
     return ok(dump);
   }
 
+  // GET /api/admin/vencimientos — vigencias de las empresas CLIENTE (prueba/contrato)
+  if (path === "/api/admin/vencimientos" && method === "GET") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    const out=[];
+    if(env.EMPRESAS){
+      let cursor;
+      do {
+        const list=await env.EMPRESAS.list({ cursor });
+        for(const k of list.keys){
+          if(!k.name.startsWith("empresa:")) continue;
+          const raw=await env.EMPRESAS.get(k.name); if(!raw) continue;
+          let e; try{ e=JSON.parse(raw); }catch(err){ continue; }
+          if(e.tipo!=="cliente") continue;
+          out.push({ empresaId:e.id, razonSocial:e.razonSocial||e.duenoEmail||"", duenoEmail:e.duenoEmail||"", plan:e.plan||null, estado:e.estado||"", vigencia:e.vigencia||null });
+        }
+        cursor=list.list_complete?undefined:list.cursor;
+      } while(cursor);
+    }
+    out.sort((a,b)=> ((a.vigencia&&a.vigencia.fin)||"9999").localeCompare((b.vigencia&&b.vigencia.fin)||"9999"));
+    return ok({ empresas: out });
+  }
+
+  // POST /api/admin/empresa/:empresaId/vigencia — setear o renovar la vigencia de una empresa cliente
+  if (path.match(/^\/api\/admin\/empresa\/[^/]+\/vigencia$/) && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    if(!env.EMPRESAS) return err("Falta el binding EMPRESAS");
+    const eid=path.split("/")[4];
+    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    const raw=await env.EMPRESAS.get("empresa:"+eid); if(!raw) return err("Empresa no encontrada",404);
+    const e=JSON.parse(raw);
+    const tipo=(body.tipo==="prueba")?"prueba":"contrato";
+    const periodicidad=["mensual","trimestral","semestral","anual","personalizado"].includes(body.periodicidad)?body.periodicidad:"personalizado";
+    e.vigencia={ tipo, inicio:body.inicio||new Date().toISOString().slice(0,10), fin:body.fin||"", periodicidad, notaGestion:String(body.notaGestion||"").slice(0,300), actualizadoAt:new Date().toISOString(), avisadoPre:null, avisadoVenc:null };
+    await env.EMPRESAS.put("empresa:"+eid, JSON.stringify(e));
+    return ok({ ok:true, vigencia:e.vigencia });
+  }
+
   // POST /api/admin/crear-usuario — el admin crea la cuenta directamente con una clave provisoria
   // y se le envía por correo al usuario. Alternativa al link de acceso.
   if (path === "/api/admin/crear-usuario" && method === "POST") {
@@ -3735,6 +3772,47 @@ async function handleRequest(request, env) {
   return corsResponse(JSON.stringify({ error:"Ruta no encontrada" }), 404);
 }
 
+// Barrido diario: avisar al admin de empresas cliente con vigencia por vencer (15 días) o vencida. Solo avisa, no suspende.
+async function procesarVencimientosEmpresas(env){
+  try{
+    if(!env.EMPRESAS) return;
+    const hoyStr=new Date().toISOString().slice(0,10);
+    const last=await env.SESSIONS.get("cron:vencemp:lastrun");
+    if(last===hoyStr) return;
+    await env.SESSIONS.put("cron:vencemp:lastrun", hoyStr);
+    const hoy=new Date(hoyStr+"T00:00:00Z").getTime();
+    const porVencer=[]; const vencidas=[];
+    let cursor;
+    do {
+      const list=await env.EMPRESAS.list({ cursor });
+      for(const k of list.keys){
+        if(!k.name.startsWith("empresa:")) continue;
+        const raw=await env.EMPRESAS.get(k.name); if(!raw) continue;
+        let e; try{ e=JSON.parse(raw); }catch(err){ continue; }
+        if(e.tipo!=="cliente" || !e.vigencia || !e.vigencia.fin) continue;
+        const v=e.vigencia;
+        const fin=new Date(v.fin+"T00:00:00Z").getTime();
+        const dias=Math.round((fin-hoy)/86400000);
+        let changed=false;
+        if(dias<=15 && dias>=0 && v.avisadoPre!==v.fin){ porVencer.push({e,v,dias}); v.avisadoPre=v.fin; changed=true; }
+        if(dias<0 && v.avisadoVenc!==v.fin){ vencidas.push({e,v,dias}); v.avisadoVenc=v.fin; changed=true; }
+        if(changed) await env.EMPRESAS.put(k.name, JSON.stringify(e));
+      }
+      cursor=list.list_complete?undefined:list.cursor;
+    } while(cursor);
+    if(porVencer.length+vencidas.length===0) return;
+    let msg="";
+    if(vencidas.length) msg+=vencidas.length+" empresa(s) con vigencia vencida. ";
+    if(porVencer.length) msg+=porVencer.length+" empresa(s) por vencer (15 días).";
+    await crearNotificacion(env,"admin","vencimiento_empresa",msg.trim(),{});
+    if(env.ADMIN_EMAIL){
+      const filas=[...vencidas.map(x=>({n:x.e.razonSocial,t:x.v.tipo,f:x.v.fin,st:"Vencida"})), ...porVencer.map(x=>({n:x.e.razonSocial,t:x.v.tipo,f:x.v.fin,st:"En "+x.dias+" día(s)"}))];
+      const cont='<h1 style="margin:0 0 10px;font-size:20px;color:#1e2d4e">Vencimientos de empresas</h1><p style="font-size:15px;color:#374151">'+msg.trim()+'</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin-top:12px">'+filas.map(r=>'<tr><td style="padding:6px 0;color:#1e2d4e;font-weight:600">'+r.n+'</td><td style="padding:6px 0;color:#6B7280">'+r.t+'</td><td style="padding:6px 0;text-align:right;color:#374151">'+r.f+'</td><td style="padding:6px 0;text-align:right;color:#854F0B">'+r.st+'</td></tr>').join('')+'</table>'+btnEmail("https://transmatch.cl/admin-clientes.html","Ver vencimientos");
+      try{ await enviarEmail(env,{ to:env.ADMIN_EMAIL, subject:"Vencimientos de empresas - TransMatch", html:emailBase(cont,"Vencimientos de empresas") }); }catch(e){}
+    }
+  }catch(e){}
+}
+
 export default {
   fetch: handleRequest,
   async scheduled(event, env, ctx) {
@@ -3742,5 +3820,7 @@ export default {
     ctx.waitUntil(procesarLicitacionesVencidas(env));
     // Barrido de vencimientos de documentos (se auto-limita a 1 vez al día)
     ctx.waitUntil(procesarVencimientosDocumentos(env));
+    // Barrido de vigencias de empresas cliente (1 vez al día)
+    ctx.waitUntil(procesarVencimientosEmpresas(env));
   }
 };

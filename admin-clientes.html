@@ -126,6 +126,11 @@
       <div><div class="hdr-title">Clientes</div><div class="hdr-sub">Empresas registradas en la plataforma</div></div>
       
     </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      <button id="ctab-empresas" onclick="switchClientesTab('empresas')" style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#1e2d4e;color:#fff;border:1px solid #1e2d4e">Empresas</button>
+      <button id="ctab-vencimientos" onclick="switchClientesTab('vencimientos')" style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#fff;color:#1e2d4e;border:1px solid #d7dbe6">Vencimientos</button>
+    </div>
+    <div id="tab-empresas">
     <div class="grid-4">
       <div class="stat"><div class="stat-label">Total clientes</div><div id="st-total" class="stat-val" style="color:#1e2d4e">--</div></div>
       <div class="stat"><div class="stat-label">Plan Básico</div><div id="st-basico" class="stat-val" style="color:#6B7280">--</div></div>
@@ -152,6 +157,29 @@
         <input class="srch" id="fil-buscar" placeholder="Buscar empresa o email..." oninput="filtrar()"/>
       </div>
       <div id="lista-clientes"><div class="spinner"></div></div>
+    </div>
+    </div><!-- /tab-empresas -->
+
+    <div id="tab-vencimientos" style="display:none">
+      <div class="grid-4">
+        <div class="stat"><div class="stat-label">Vencidas</div><div id="v-vencidas" class="stat-val" style="color:#A32D2D">--</div></div>
+        <div class="stat"><div class="stat-label">Por vencer (15 días)</div><div id="v-porvencer" class="stat-val" style="color:#854F0B">--</div></div>
+        <div class="stat"><div class="stat-label">Vigentes</div><div id="v-vigentes" class="stat-val" style="color:#15803D">--</div></div>
+        <div class="stat"><div class="stat-label">Sin configurar</div><div id="v-sinconfig" class="stat-val" style="color:#6B7280">--</div></div>
+      </div>
+      <div class="card">
+        <div class="filter-bar">
+          <select class="sel" id="fil-venc" onchange="renderVencimientos()">
+            <option value="">Todas</option>
+            <option value="vencida">Vencidas</option>
+            <option value="porvencer">Por vencer</option>
+            <option value="vigente">Vigentes</option>
+            <option value="sinconfig">Sin configurar</option>
+          </select>
+          <input class="srch" id="fil-venc-buscar" placeholder="Buscar empresa..." oninput="renderVencimientos()"/>
+        </div>
+        <div id="lista-vencimientos"><div class="spinner"></div></div>
+      </div>
     </div>
   </main>
 </div>
@@ -270,6 +298,116 @@
     var d = row.querySelector('.card-detalle');
     if(!d) return;
     d.style.display = d.style.display==='none' ? 'block' : 'none';
+  }
+
+  // ── Vencimientos (empresas cliente) ──
+  var _vencimientos=[], _vencCargado=false;
+  function switchClientesTab(which){
+    var t=which==='empresas';
+    document.getElementById('tab-empresas').style.display=t?'block':'none';
+    document.getElementById('tab-vencimientos').style.display=t?'none':'block';
+    var be=document.getElementById('ctab-empresas'), bv=document.getElementById('ctab-vencimientos');
+    be.style.background=t?'#1e2d4e':'#fff'; be.style.color=t?'#fff':'#1e2d4e'; be.style.border='1px solid '+(t?'#1e2d4e':'#d7dbe6');
+    bv.style.background=t?'#fff':'#1e2d4e'; bv.style.color=t?'#1e2d4e':'#fff'; bv.style.border='1px solid '+(t?'#d7dbe6':'#1e2d4e');
+    if(!t && !_vencCargado){ _vencCargado=true; cargarVencimientos(); }
+  }
+  function _estadoVig(vig){
+    if(!vig||!vig.fin) return {estado:'sinconfig', dias:null};
+    var hoy=new Date(); hoy.setHours(0,0,0,0);
+    var fin=new Date(vig.fin+'T00:00:00');
+    var dias=Math.round((fin-hoy)/86400000);
+    if(dias<0) return {estado:'vencida', dias:dias};
+    if(dias<=15) return {estado:'porvencer', dias:dias};
+    return {estado:'vigente', dias:dias};
+  }
+  async function cargarVencimientos(){
+    document.getElementById('lista-vencimientos').innerHTML='<div class="spinner"></div>';
+    var r=await apiFetch('/api/admin/vencimientos');
+    if(!r||!r.ok){ document.getElementById('lista-vencimientos').innerHTML='<div class="empty">Error al cargar. <button onclick="cargarVencimientos()" style="color:#1d4ed8;background:none;border:none;cursor:pointer">Reintentar</button></div>'; return; }
+    _vencimientos=r.data.empresas||[];
+    renderVencimientos();
+  }
+  var _tipoLbl={prueba:'Prueba',contrato:'Contrato'};
+  var _perLbl={mensual:'mensual',trimestral:'trimestral',semestral:'semestral',anual:'anual',personalizado:'a medida'};
+  function _fechaFmt(iso){ if(!iso) return '--'; try{ return new Date(iso+'T00:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return iso; } }
+  function renderVencimientos(){
+    var fil=(document.getElementById('fil-venc')||{}).value||'';
+    var q=((document.getElementById('fil-venc-buscar')||{}).value||'').toLowerCase();
+    var enrich=_vencimientos.map(function(e){ return {e:e, s:_estadoVig(e.vigencia)}; });
+    document.getElementById('v-vencidas').textContent=enrich.filter(function(x){return x.s.estado==='vencida';}).length;
+    document.getElementById('v-porvencer').textContent=enrich.filter(function(x){return x.s.estado==='porvencer';}).length;
+    document.getElementById('v-vigentes').textContent=enrich.filter(function(x){return x.s.estado==='vigente';}).length;
+    document.getElementById('v-sinconfig').textContent=enrich.filter(function(x){return x.s.estado==='sinconfig';}).length;
+    var lista=enrich;
+    if(fil) lista=lista.filter(function(x){return x.s.estado===fil;});
+    if(q) lista=lista.filter(function(x){return (x.e.razonSocial||'').toLowerCase().indexOf(q)>=0;});
+    var ord={vencida:0,porvencer:1,vigente:2,sinconfig:3};
+    lista.sort(function(a,b){ if(ord[a.s.estado]!==ord[b.s.estado]) return ord[a.s.estado]-ord[b.s.estado]; return (a.s.dias==null?99999:a.s.dias)-(b.s.dias==null?99999:b.s.dias); });
+    var el=document.getElementById('lista-vencimientos');
+    if(!lista.length){ el.innerHTML='<div class="empty">Sin resultados</div>'; return; }
+    el.innerHTML='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:#9CA3AF;text-align:left"><th style="font-weight:400;padding:10px 14px">Empresa</th><th style="font-weight:400;padding:10px 14px">Plan</th><th style="font-weight:400;padding:10px 14px">Tipo</th><th style="font-weight:400;padding:10px 14px">Vence</th><th style="font-weight:400;padding:10px 14px;text-align:center">Estado</th><th style="font-weight:400;padding:10px 14px">Nota</th><th style="font-weight:400;padding:10px 14px"></th></tr></thead><tbody>'+
+    lista.map(function(x){
+      var e=x.e, s=x.s, v=e.vigencia;
+      var estBadge, diasTxt='';
+      if(s.estado==='vencida'){ estBadge='<span style="background:#FCEBEB;color:#A32D2D;font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px">Vencida</span>'; diasTxt='<span style="color:#A32D2D;font-size:12px"> · venció hace '+Math.abs(s.dias)+'d</span>'; }
+      else if(s.estado==='porvencer'){ estBadge='<span style="background:#FAEEDA;color:#854F0B;font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px">Por vencer</span>'; diasTxt='<span style="color:#854F0B;font-size:12px"> · en '+s.dias+'d</span>'; }
+      else if(s.estado==='vigente'){ estBadge='<span style="background:#E1F5EE;color:#0F6E56;font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px">Vigente</span>'; diasTxt='<span style="color:#9CA3AF;font-size:12px"> · en '+s.dias+'d</span>'; }
+      else { estBadge='<span style="background:#F1EFE8;color:#444441;font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px">Sin configurar</span>'; }
+      var tipoTxt=v?(_tipoLbl[v.tipo]||'Contrato')+(v.tipo==='contrato'&&v.periodicidad?(' · '+(_perLbl[v.periodicidad]||v.periodicidad)):''):'—';
+      var venceTxt=v&&v.fin?(_fechaFmt(v.fin)+diasTxt):'—';
+      var nota=(v&&v.notaGestion)?('<span style="font-size:12px;color:#6B7280">'+v.notaGestion.replace(/</g,'&lt;')+'</span>'):'<span style="font-size:12px;color:#cbd2de">—</span>';
+      var btn='<button class="btn btn-primary" style="font-size:12px;padding:5px 12px" onclick="abrirModalVigencia(\''+e.empresaId+'\')">'+(v?'Renovar':'Configurar')+'</button>';
+      return '<tr style="border-top:0.5px solid #eef1f6">'+
+        '<td style="padding:11px 14px;font-weight:500;color:#1e2d4e">'+(e.razonSocial||'--')+'</td>'+
+        '<td style="padding:11px 14px">'+planBadge(e.plan)+'</td>'+
+        '<td style="padding:11px 14px">'+tipoTxt+'</td>'+
+        '<td style="padding:11px 14px">'+venceTxt+'</td>'+
+        '<td style="padding:11px 14px;text-align:center">'+estBadge+'</td>'+
+        '<td style="padding:11px 14px">'+nota+'</td>'+
+        '<td style="padding:11px 14px;text-align:right">'+btn+'</td>'+
+        '</tr>';
+    }).join('')+'</tbody></table></div>';
+  }
+  function _addMonths(dateStr, n){
+    if(!dateStr) return '';
+    var d=new Date(dateStr+'T00:00:00'); var day=d.getDate();
+    d.setMonth(d.getMonth()+n);
+    if(d.getDate()<day) d.setDate(0);
+    return d.toISOString().slice(0,10);
+  }
+  function _recalcVigFin(){
+    var per=(document.getElementById('vg-per')||{}).value;
+    var inicio=(document.getElementById('vg-inicio')||{}).value;
+    if(per==='personalizado'||!inicio) return;
+    var meses={mensual:1,trimestral:3,semestral:6,anual:12}[per]||1;
+    var finEl=document.getElementById('vg-fin'); if(finEl) finEl.value=_addMonths(inicio, meses);
+  }
+  function abrirModalVigencia(empresaId){
+    var emp=_vencimientos.find(function(x){return x.empresaId===empresaId;}); if(!emp) return;
+    var v=emp.vigencia||{ tipo:'contrato', inicio:new Date().toISOString().slice(0,10), fin:'', periodicidad:'mensual', notaGestion:'' };
+    var modal=document.createElement('div');
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+    var inner=document.createElement('div');
+    inner.style.cssText='background:#fff;border-radius:16px;padding:26px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto';
+    inner.innerHTML='<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Vigencia — '+(emp.razonSocial||'')+'</div>'+
+      '<div style="font-size:12px;color:#9CA3AF;margin-bottom:18px">Prueba o contrato, con su fecha de vencimiento.</div>'+
+      '<div style="margin-bottom:12px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Tipo</label><select id="vg-tipo" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"><option value="contrato"'+(v.tipo==='contrato'?' selected':'')+'>Contrato</option><option value="prueba"'+(v.tipo==='prueba'?' selected':'')+'>Prueba gratuita</option></select></div>'+
+      '<div style="margin-bottom:12px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Periodicidad</label><select id="vg-per" onchange="_recalcVigFin()" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"><option value="mensual"'+(v.periodicidad==='mensual'?' selected':'')+'>Mensual (1 mes)</option><option value="trimestral"'+(v.periodicidad==='trimestral'?' selected':'')+'>Trimestral (3 meses)</option><option value="semestral"'+(v.periodicidad==='semestral'?' selected':'')+'>Semestral (6 meses)</option><option value="anual"'+(v.periodicidad==='anual'?' selected':'')+'>Anual (12 meses)</option><option value="personalizado"'+(v.periodicidad==='personalizado'?' selected':'')+'>A medida</option></select></div>'+
+      '<div style="display:flex;gap:10px;margin-bottom:12px"><div style="flex:1"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Inicio</label><input type="date" id="vg-inicio" value="'+(v.inicio||'')+'" onchange="_recalcVigFin()" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div><div style="flex:1"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Vence</label><input type="date" id="vg-fin" value="'+(v.fin||'')+'" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div></div>'+
+      '<div style="margin-bottom:16px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Nota de gestión (opcional)</label><textarea id="vg-nota" placeholder="Ej: cliente confirmó renovación, en negociación..." style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px;min-height:60px;resize:vertical;font-family:inherit">'+((v.notaGestion||'').replace(/</g,'&lt;'))+'</textarea></div>'+
+      '<div style="display:flex;gap:10px;justify-content:flex-end"><button id="vg-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button><button id="vg-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar</button></div>';
+    modal.appendChild(inner); document.body.appendChild(modal);
+    document.getElementById('vg-cancel').onclick=function(){ modal.remove(); };
+    document.getElementById('vg-save').onclick=function(){ guardarVigencia(empresaId, modal); };
+    modal.onclick=function(ev){ if(ev.target===modal) modal.remove(); };
+    if(!v.fin) _recalcVigFin();
+  }
+  async function guardarVigencia(empresaId, modal){
+    var body={ tipo:document.getElementById('vg-tipo').value, periodicidad:document.getElementById('vg-per').value, inicio:document.getElementById('vg-inicio').value, fin:document.getElementById('vg-fin').value, notaGestion:document.getElementById('vg-nota').value };
+    if(!body.fin){ toast('Ingresa la fecha de vencimiento','err'); return; }
+    var r=await apiFetch('/api/admin/empresa/'+empresaId+'/vigencia','POST',body);
+    if(r&&r.ok){ toast('Vigencia guardada'); modal.remove(); cargarVencimientos(); }
+    else toast((r&&r.data&&r.data.error)||'Error al guardar','err');
   }
 
   (function(){
