@@ -1000,7 +1000,7 @@ async function handleRequest(request, env) {
       nombre, empresa:empresa||"", telefono:telefono||"", rut:rut||"",
       rutEmpresa: rutEmpresa||"", cargo: cargo||"",
       notifEmail:roleNorm==="transportista", notifWhatsapp:false, whatsapp:whatsapp||"",
-      role:roleNorm, estado:roleNorm==="transportista"?"pendiente":"activo",
+      role:roleNorm, estado:"activo",
       plan:roleNorm==="cliente"?"basico":null,
       rating:5.0, totalTransportes:0,
       zonas:zonas||[],
@@ -1028,12 +1028,28 @@ async function handleRequest(request, env) {
       pendientes.unshift({ id:uid(), texto:otroEquipoPendiente, empresa:empresa||"", email:emailLower, createdAt:new Date().toISOString(), estado:"pendiente" });
       await env.SESSIONS.put("equipos:pendientes", JSON.stringify(pendientes.slice(0,100)));
     }
-    // Notificar al admin del nuevo transportista registrado
-    if(roleNorm === "transportista"){
-      await crearNotificacion(env, "admin", "nuevo_transportista",
-        `Nuevo transportista: ${empresa||nombre} — pendiente de aprobación`,
-        { emailTransportista: emailLower, nombreEmpresa: empresa||nombre });
-    }
+    // Avisar al admin que se creó una cuenta nueva vía link de invitación (ya queda activa)
+    const _tipoCuenta = roleNorm==="transportista" ? "transportista" : "cliente";
+    await crearNotificacion(env, "admin", "cuenta_creada",
+      `Nueva cuenta ${_tipoCuenta}: ${empresa||nombre} (${emailLower})`,
+      { email: emailLower, role: roleNorm, nombreEmpresa: empresa||nombre });
+    try {
+      await enviarEmail(env, {
+        to: env.ADMIN_EMAIL,
+        subject: `Nueva cuenta creada — ${empresa||nombre}`,
+        html: emailBase(
+          `<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Nueva cuenta creada</h2>`+
+          `<p style="font-size:14px;color:#6B7280;margin:0 0 18px">Alguien completó su registro con un link de invitación. La cuenta ya está <strong>activa</strong>.</p>`+
+          `<table style="width:100%;border-collapse:collapse;font-size:14px;color:#374151">`+
+          `<tr><td style="padding:6px 0;color:#9CA3AF">Tipo</td><td style="padding:6px 0;text-align:right;font-weight:600;text-transform:capitalize">${_tipoCuenta}</td></tr>`+
+          `<tr><td style="padding:6px 0;color:#9CA3AF">Empresa</td><td style="padding:6px 0;text-align:right;font-weight:600">${empresa||'—'}</td></tr>`+
+          `<tr><td style="padding:6px 0;color:#9CA3AF">Contacto</td><td style="padding:6px 0;text-align:right">${nombre||'—'}</td></tr>`+
+          `<tr><td style="padding:6px 0;color:#9CA3AF">Email</td><td style="padding:6px 0;text-align:right">${emailLower}</td></tr>`+
+          `<tr><td style="padding:6px 0;color:#9CA3AF">Teléfono</td><td style="padding:6px 0;text-align:right">${telefono||'—'}</td></tr>`+
+          `</table>`,
+          "Nueva cuenta creada - TransMatch")
+      });
+    } catch(e){}
 
     const token = await signToken({ id:user.id, email:emailLower, role:user.role, nombre:user.nombre, empresa:user.empresa, plan:user.plan }, env.JWT_SECRET);
     if(user.role==="transportista") await registrarActividad(env,"transportista_registrado",`Nuevo transportista registrado (pendiente de aprobación): ${user.empresa||user.nombre}`,{ transportistaId:user.id });
