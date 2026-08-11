@@ -405,12 +405,12 @@ function renderDetalle(t){
   h += '<div class="tl-title" style="margin-bottom:10px">Documentos</div>';
 
   // OC — el cliente sube su propia OC (opcional, la automática la genera TransMatch al adjudicar)
-  var ocReal = t.oc && t.oc.tipo !== 'oc_automatica';
-  h += '<div class="doc-section"><div class="doc-title" style="color:#1e2d4e">Orden de compra <span style="font-size:10px;font-weight:400;color:#9CA3AF;margin-left:4px">— sube tu OC al inicio del transporte</span></div>';
+  var ocReal = !!(t.oc && t.oc.archivoId);
+  h += '<div class="doc-section"><div class="doc-title" style="color:#1e2d4e">Orden de compra <span style="font-size:10px;font-weight:400;color:#9CA3AF;margin-left:4px">— opcional, súbela si tu empresa la emite</span></div>';
   if(ocReal){
     h += '<div class="doc-done">OC disponible desde '+fechaHora(t.oc.subidoAt)+' <button class="btn btn-outline btn-sm" onclick="descargar(\''+t.oc.archivoId+'\',\''+t.oc.nombre+'\')">Descargar OC</button></div>';
   } else {
-    h += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Sube tu Orden de Compra para que el transportista pueda descargarla.</div>'
+    h += '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Si tu empresa emite orden de compra, súbela para que el transportista pueda descargarla. Es opcional.</div>'
       + '<label style="display:block;border:1px dashed #cbd2de;border-radius:8px;padding:10px 14px;font-size:13px;color:#6B7280;cursor:pointer;text-align:center">Seleccionar OC (PDF)<input type="file" id="oc-file-'+t.id+'" accept=".pdf" style="display:none" onchange="subirOC(\''+t.id+'\')"/></label>'
       + '<div id="oc-status-'+t.id+'" style="font-size:12px;color:#6B7280;margin-top:6px"></div>';
   }
@@ -460,8 +460,8 @@ function renderDetalle(t){
     h += '</div></div>';
   }
 
-  // Valoración del transportista (solo cuando el transporte está completado: entregado + facturado)
-  if(t.estado === 'entregado' && t.factura){
+  // Valoración del transportista (solo cuando el transporte está completado: entregado/completado + facturado)
+  if(t.factura && (t.estado === 'entregado' || t.estado === 'completado')){
     if(t.valoracion){
       h += '<div style="margin-top:14px;padding:12px;background:#EEF1F6;border-radius:8px;font-size:13px;font-weight:500;color:#1E2D4E">Valoración enviada — Promedio: '+t.valoracion.promedio+' / 5</div>';
       if(t.valoracion.respuestaTransportista){

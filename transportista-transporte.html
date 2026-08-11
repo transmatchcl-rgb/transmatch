@@ -266,8 +266,8 @@ var transportes = [];
 
 var ESTADOS = [
   {id:'preparacion',    label:'En preparacion', icon:'·'},
-  {id:'en_ruta',        label:'En ruta',         icon:'·'},
   {id:'carga_recogida', label:'Carga recogida',  icon:'·'},
+  {id:'en_ruta',        label:'En ruta',         icon:'·'},
   {id:'en_destino',     label:'En destino',      icon:'·'},
   {id:'entregado',      label:'Entregado',       icon:'·'},
 ];
@@ -612,11 +612,11 @@ function renderDetalle(t){
   h+='<div style="font-size:12px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Documentos del transporte</div>';
   // OC del cliente
   h+='<div class="doc-card"><div class="doc-title">Orden de compra (cliente)</div>';
-  var ocReal = t.oc && t.oc.tipo !== 'oc_automatica';
+  var ocReal = !!(t.oc && t.oc.archivoId);
   if(ocReal){
     h+='<div class="doc-ok"><span>Subida el '+fechaHora(t.oc.subidoAt)+'</span><button class="btn btn-outline btn-sm" onclick="descargar(\''+t.oc.archivoId+'\',\''+t.oc.nombre+'\')">Descargar</button></div>';
   } else {
-    h+='<div class="doc-wait">Pendiente — el cliente aún no ha subido la orden de compra</div>';
+    h+='<div class="doc-wait">El cliente no ha adjuntado una orden de compra (documento opcional).</div>';
   }
   h+='</div>';
   // Factura

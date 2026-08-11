@@ -481,7 +481,7 @@ function renderDetalle(t){
   // Documentos
   html+='<div class="det-section-title">Documentos</div>';
   html+='<div class="docs-row">';
-  if(t.oc && t.oc.archivoId && t.oc.tipo !== 'oc_automatica'){
+  if(t.oc && t.oc.archivoId){
     html+='<span class="doc-pill" onclick="descargar(\''+t.oc.archivoId+'\',\''+(t.oc.nombre||'orden_de_compra')+'\')">OC — '+(t.oc.nombre||'orden_de_compra.pdf')+'</span>';
   } else {
     html+='<span class="doc-pill no-doc">OC — Sin subir</span>';
@@ -497,7 +497,7 @@ function renderDetalle(t){
   html+='</div>';
 
   // Timeline
-  var ESTADOS=['preparacion','en_ruta','carga_recogida','en_destino','entregado'];
+  var ESTADOS=['preparacion','carga_recogida','en_ruta','en_destino','entregado'];
   var LABELS={'preparacion':'En preparación','en_ruta':'En ruta','carga_recogida':'Carga recogida','en_destino':'En destino','entregado':'Entregado'};
   var historial=t.historial||[];
   var idxActual=ESTADOS.indexOf(t.estado);

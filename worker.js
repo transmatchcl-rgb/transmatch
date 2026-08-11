@@ -1809,7 +1809,7 @@ async function handleRequest(request, env) {
       transporte=JSON.parse(rawT);
       const miEmpId=user.esSubusuario?(user.empresaMadreId||user.id):user.id;
       if((transporte.empresaId||transporte.clienteId)!==miEmpId) return err("Sin acceso",403);
-      if(transporte.estado!=="entregado" || !transporte.factura) return err("Solo puedes valorar transportes completados");
+      if(!transporte.factura || !["entregado","completado"].includes(transporte.estado)) return err("Solo puedes valorar transportes completados");
       if(transporte.valoracion) return err("Ya valoraste este transporte");
       licitacionId=transporte.licitacionId;
     }
@@ -2937,7 +2937,7 @@ async function handleRequest(request, env) {
     const raw=await env.USERS.get(user.email); if(!raw) return err("No encontrado",404);
     const u=JSON.parse(raw);
     // Permisos por rol: personales (todos), perfil de empresa (dueño+gestor), y dueño-only (razón social, RUT, facturación, bancarios).
-    const _personales=["nombre","telefono","whatsapp","rut","cargo","ciudad","genera_oc_propia"];
+    const _personales=["nombre","telefono","whatsapp","rut","cargo","ciudad"];
     const _empresaProfile=["direccion","comuna","giro","web","descripcion","anosExperiencia","zonas","equipos","tiposEquipo","industrias","telEmpresa","ciudadEmpresa","contactos","contactoOperaciones","contactoComercial"];
     const _empresaDueno=["empresa","rutEmpresa","facturacion","datosBancarios","contactoFacturacion"];
     let _wl;
@@ -3167,16 +3167,6 @@ async function handleRequest(request, env) {
     return ok({ ok:true, estado });
   }
 
-  if (path.match(/^\/api\/admin\/cliente\/[^/]+\/oc-config$/)&&method==="POST") {
-    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
-    const clienteId=path.split("/")[4];
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
-    const emailKey=await env.USERS.get("id:"+clienteId); if(!emailKey) return err("Cliente no encontrado",404);
-    const rawU=await env.USERS.get(emailKey); if(!rawU) return err("Cliente no encontrado",404);
-    const u=JSON.parse(rawU); u.genera_oc_propia=!!body.genera_oc_propia; u.updatedAt=new Date().toISOString();
-    await env.USERS.put(emailKey, JSON.stringify(u));
-    return ok({ ok:true, genera_oc_propia:u.genera_oc_propia });
-  }
 
   if (path === "/api/admin/ordenes-venta" && method === "GET") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;

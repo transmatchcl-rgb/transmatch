@@ -476,7 +476,7 @@ function filtrar(){
 
   var html = '<div style="overflow-x:auto"><table class="tabla"><thead><tr><th>Codigo</th><th>Equipo</th><th>Ruta</th><th>Precio</th><th>Fecha</th><th>Estado</th><th>Documentos</th></tr></thead><tbody>';
   html += lista.map(function(t){
-    var ocReal = t.oc && t.oc.tipo !== 'oc_automatica';
+    var ocReal = !!(t.oc && t.oc.archivoId);
     var estadoTxt, estadoCls;
     if(t.factura){                    estadoTxt='Facturado';   estadoCls='b-pagado'; }
     else if(ocReal){                  estadoTxt='OC subida';   estadoCls='b-oc'; }

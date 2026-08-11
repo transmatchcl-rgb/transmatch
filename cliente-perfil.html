@@ -371,7 +371,6 @@ var _mismosF = (fact.mismosDatos!==undefined) ? !!fact.mismosDatos : !(fact.razo
 document.getElementById('chk-fact-mismos-datos').checked=_mismosF;
 toggleFactMismosDatos();
 
-localStorage.setItem('tm_genera_oc_propia','true');
 
 // Barra de progreso
 renderProgreso(U);
@@ -521,13 +520,6 @@ var eel2=document.getElementById('alerr-empresa-contactos');eel2.textContent='Er
 }
 }
 
-async function guardarOcConfig(){
-var checked=document.getElementById('toggle-oc').checked;
-var dot=document.getElementById('toggle-oc-dot');var span=document.getElementById('toggle-oc-span');
-dot.style.transform=checked?'translateX(20px)':'';span.style.background=checked?'#1e2d4e':'#E5E7EB';
-var res=await fetch(API+'/api/perfil',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({genera_oc_propia:checked})});
-if(res.ok){localStorage.setItem('tm_genera_oc_propia',checked?'true':'false');var el=document.getElementById('alok-oc');el.style.display='block';setTimeout(function(){el.style.display='none'},3000);}
-}
 
 function initApp(){
 U=window._U||{};
