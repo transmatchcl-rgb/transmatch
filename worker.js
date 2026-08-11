@@ -1693,10 +1693,11 @@ async function handleRequest(request, env) {
     const raw=await env.LICITACIONES.get(id); if(!raw) return err("No encontrada",404);
     const l=JSON.parse(raw);
     if(user.role==="cliente"){ const _eid=(user.esSubusuario?(user.empresaMadreId||user.id):user.id); if((l.empresaId||l.clienteId)!==_eid) return err("Sin acceso",403); }
-    // Reactivable solo si: cerrada por vencimiento sin cotizaciones o por el propio cliente,
-    // NO cerrada por el admin, y con la fecha de carga aún en el futuro.
-    const _reactivable = (["expirada","anulada"].includes(l.estado)) && !l.cerradaPorAdmin && fechaCargaFutura(l);
-    if(!_reactivable) return err("Esta licitación no se puede reactivar (revisa la fecha de carga o fue cerrada por el administrador)");
+    // Reactivable si: (a) cerrada por vencimiento / por el propio cliente, o (b) en revisión con
+    // cotizaciones ("cerrada") y el cliente quiere más tiempo para recibir más ofertas.
+    // Siempre: NO cerrada por el admin, y con la fecha de carga aún en el futuro.
+    const _reactivable = (["expirada","anulada","cerrada"].includes(l.estado)) && !l.cerradaPorAdmin && fechaCargaFutura(l);
+    if(!_reactivable) return err("Esta licitación no se puede ampliar (ya pasó la fecha de carga o fue cerrada por el administrador)");
     l.estado="abierta";
     l.plazo=String(horas);
     l.cierreAt=new Date(Date.now()+horas*3600000).toISOString();
@@ -1705,7 +1706,7 @@ async function handleRequest(request, env) {
     delete l.expiradaAt;
     // Al reactivar, limpiar marcas de cierre para que vuelva a verse como abierta normal.
     delete l.cerradaPorVencimiento; delete l.cerradaPorAdmin; delete l.motivoCierre; delete l.cerradaAt;
-    delete l.motivoAnulacion; delete l.anuladaPor; delete l.anuladaAt;
+    delete l.motivoAnulacion; delete l.anuladaPor; delete l.anuladaAt; delete l.recordatorioCerradaEnviado;
     await env.LICITACIONES.put(id, JSON.stringify(l));
     await registrarActividad(env,"licitacion_ampliada",`Plazo ampliado por el cliente (${horas}h): ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id });
     return ok({ ok:true, cierreAt:l.cierreAt });

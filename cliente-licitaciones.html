@@ -383,8 +383,9 @@ function licV2(l){
   else if(e==='anulada'){ estado='cerrada'; razon=(l.anuladaPor==='admin'?'cerrada_por_admin':'cerrada_por_cliente'); }
   else if(e==='expirada'){ estado='cerrada'; razon=l.cerradaPorAdmin?'cerrada_por_admin':(l.cerradaPorVencimiento?'fecha_de_carga':'sin_cotizaciones'); }
   var reactivable=(estado==='cerrada'&&(razon==='sin_cotizaciones'||razon==='cerrada_por_cliente')&&_fechaCargaFutura(l));
+  var puedeExtender=(estado==='en_decision'&&_fechaCargaFutura(l));
   var completado=(e==='completada'||!!l.valoracion);
-  return {estado:estado,razon:razon,reactivable:reactivable,completado:completado};
+  return {estado:estado,razon:razon,reactivable:reactivable,puedeExtender:puedeExtender,completado:completado};
 }
 function razonTexto(razon){
   return ({sin_cotizaciones:'Se cerró sin cotizaciones',fecha_de_carga:'Se cerró: pasó la fecha de carga',cerrada_por_cliente:'La cerraste',cerrada_por_admin:'La cerró el administrador',rechazada:'Rechazada por el administrador'})[razon]||'';
@@ -479,6 +480,7 @@ menuHtml+='<button class="pmenu-item danger" onclick="closePanelMenu();confirmar
 if(_expReactivable){ menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();abrirModalAmpliar(\''+l.id+'\')">Ampliar plazo y volver a publicar</button>'; }
 menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();duplicarLicitacionId(\''+l.id+'\')">Duplicar licitación</button>';
 }else{
+if(_v2.puedeExtender){ menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();abrirModalAmpliar(\''+l.id+'\')">Ampliar plazo de cotización</button>'; }
 menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();confirmarAnularId(\''+l.id+'\')">Cerrar licitación</button>';
 }
 menuHtml+='</div></div>';
@@ -792,6 +794,12 @@ var _titCer=(_detV2.razon==='rechazada'?'Rechazada':'Licitación cerrada');
 var _sub=(_detV2.razon==='rechazada'?(_extra||'El administrador rechazó la licitación.'):(razonTexto(_detV2.razon)+(_extra?' · '+_extra:'')+(_detV2.razon!=='cerrada_por_admin'?' · Puedes duplicarla para volver a publicar.':'')));
 h+='<div style="background:#EEF1F6;border:0.5px solid #C7CEDB;border-radius:8px;padding:12px 14px;font-size:13px;color:#1e2d4e;margin-bottom:14px"><strong>'+_titCer+'</strong>'+(_sub?' · '+_sub:'')+'</div>';
 }
+}
+if(_detV2.estado==='en_decision' && _detV2.puedeExtender){
+h+='<div style="background:#FFFBEB;border:0.5px solid #FDE68A;border-radius:8px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">';
+h+='<div style="font-size:12px;color:#92400E;flex:1;min-width:180px">¿Quieres recibir más cotizaciones? Puedes ampliar el plazo mientras no llegue la fecha de carga.</div>';
+h+='<button onclick="abrirModalAmpliar(\''+l.id+'\')" style="flex-shrink:0;padding:8px 14px;background:#FF8808;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Ampliar plazo</button>';
+h+='</div>';
 }
 
 // Cotizaciones
