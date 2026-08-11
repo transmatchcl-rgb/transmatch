@@ -303,9 +303,14 @@
 
  const empty = (id, msg) => { document.getElementById(id).innerHTML = `<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:14px;">${msg}</div>`; };
 
+ // Lanzar todas las cargas en paralelo (evita esperas encadenadas)
+ const _pStats = api('/api/admin/stats');
+ const _pLicit = api('/api/licitaciones');
+ loadActividad();
+
  // Stats
  try {
- const s = await api('/api/admin/stats');
+ const s = await _pStats;
  if (s && s.ok) {
  const d = s.data;
  document.getElementById('dash-stats').innerHTML = `
@@ -332,7 +337,7 @@
 
  // Licitaciones pendientes de aprobacion
  try {
-   const lp = await api('/api/licitaciones');
+   const lp = await _pLicit;
    if (lp && lp.ok) {
      const pendL = (lp.data.licitaciones||[]).filter(x => x.estado === 'pendiente_admin');
      document.getElementById('dash-pendientes').innerHTML = pendL.length === 0
@@ -357,7 +362,7 @@
 
  // Licitaciones abiertas
  try {
- const l = await api('/api/licitaciones');
+ const l = await _pLicit;
  if (l && l.ok) {
  const abiertas = (l.data.licitaciones||[]).filter(x=>x.estado==='abierta');
  document.getElementById('dash-licitaciones').innerHTML = abiertas.length === 0
@@ -372,7 +377,6 @@
  } catch(e) {
  empty('dash-licitaciones', 'Sin licitaciones abiertas ');
  }
- loadActividad();
  }
 
  // FEED DE ACTIVIDAD

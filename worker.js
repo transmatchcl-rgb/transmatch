@@ -2399,12 +2399,12 @@ async function handleRequest(request, env) {
       else if(ov.estado==="FACTURADA"){  ovFacturadas++;  comisionFacturada+=(ov.comision_final||0); }
     }
 
-    // Alertas: transportistas pendientes de aprobación
+    // Alertas: transportistas pendientes de aprobación (lecturas en paralelo)
     const alertas = [];
     const usersLista = await env.USERS.list();
-    for(const key of usersLista.keys){
-      if(key.name.startsWith("id:")) continue;
-      const raw = await env.USERS.get(key.name);
+    const _aKeys = usersLista.keys.filter(k=>!k.name.startsWith("id:"));
+    const _aRaws = await Promise.all(_aKeys.map(k=>env.USERS.get(k.name)));
+    for(const raw of _aRaws){
       if(!raw) continue;
       const u = JSON.parse(raw);
       if(u.role==="transportista" && u.estado==="pendiente"){
@@ -2815,9 +2815,10 @@ async function handleRequest(request, env) {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     const lista=await env.USERS.list(); const usuarios=[];
     const madreCache={}, empresaCache={};
-    for(const key of lista.keys){
-      if(key.name.startsWith("id:")) continue;
-      const raw=await env.USERS.get(key.name); if(!raw) continue;
+    const _uKeys=lista.keys.filter(k=>!k.name.startsWith("id:"));
+    const _uRaws=await Promise.all(_uKeys.map(k=>env.USERS.get(k.name)));
+    for(const raw of _uRaws){
+      if(!raw) continue;
       const u=JSON.parse(raw);
       let rutEmpresaOut=u.rutEmpresa||'', giroOut=u.giro||'', direccionOut=u.direccion||'', telEmpresaOut=u.telEmpresa||'', ciudadEmpresaOut=u.ciudadEmpresa||'', webOut=u.web||'', descripcionOut=u.descripcion||'';
       if(u.esSubusuario && u.empresaMadreId){
