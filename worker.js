@@ -1283,7 +1283,11 @@ async function handleRequest(request, env) {
       rutEmpresa:(body.rutEmpresa||"").trim(), cargo:(body.cargo||"").trim(),
       notifEmail: role==="transportista", notifWhatsapp:false, whatsapp:"",
       role, estado:"activo", plan: role==="cliente"?"basico":null,
-      rating:5.0, totalTransportes:0, zonas:[], industrias:[], equipos:[], tiposEquipo:[],
+      rating:5.0, totalTransportes:0,
+      zonas: Array.isArray(body.zonas)?body.zonas:[],
+      industrias: Array.isArray(body.industrias)?body.industrias:[],
+      equipos:[],
+      tiposEquipo: Array.isArray(body.tiposEquipo)?body.tiposEquipo:[],
       perfilCompletitud: role==="cliente"?40:30,
       passwordProvisorio:true, creadoPorAdmin:true, createdAt:new Date().toISOString(),
     };
