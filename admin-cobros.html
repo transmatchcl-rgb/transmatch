@@ -415,6 +415,44 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
   </div>
 </div>
 
+<!-- Modal: Editar factura a cliente -->
+<div class="modal-bg" id="modal-editar-factura">
+  <div class="modal">
+    <div class="modal-title">Editar factura</div>
+    <div class="info-box">Corrige los datos de la factura. El PDF ya subido no cambia.</div>
+    <div id="ef-empresa-nom" style="font-weight:600;color:#1E2D4E;margin-bottom:10px"></div>
+    <div class="fg">
+      <label>N° factura</label>
+      <input id="ef-numero"/>
+    </div>
+    <div class="fg">
+      <label>Periodo</label>
+      <input id="ef-periodo" placeholder="Ej. Julio 2026"/>
+    </div>
+    <div style="display:flex;gap:10px">
+      <div class="fg" style="flex:1">
+        <label>Monto total (CLP)</label>
+        <input id="ef-monto" type="number"/>
+      </div>
+      <div class="fg" style="flex:1">
+        <label>Fecha emision</label>
+        <input id="ef-fecha" type="date"/>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Estado</label>
+      <select id="ef-estado">
+        <option value="pendiente">Pendiente</option>
+        <option value="pagada">Pagada</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="cerrarModal('modal-editar-factura')">Cancelar</button>
+      <button class="btn btn-orange" style="flex:1;justify-content:center" id="btn-ef" onclick="guardarEdicionFactura()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Marcar factura pagada -->
 <div class="modal-bg" id="modal-pago">
   <div class="modal">
@@ -569,7 +607,8 @@ function abrirMenuFactura(ev, email, id, estado){
   var m = document.getElementById('fc-menu');
   var toggleEstado = estado==='pagada' ? 'pendiente' : 'pagada';
   var toggleLabel  = estado==='pagada' ? 'Marcar pendiente' : 'Marcar pagada';
-  m.innerHTML = '<button onclick="cerrarMenuFactura();toggleEstadoFactura(\''+email+'\',\''+id+'\',\''+toggleEstado+'\')" style="display:block;width:100%;text-align:left;padding:10px 14px;font-size:13px;background:none;border:none;cursor:pointer;color:#374151">'+toggleLabel+'</button>'
+  m.innerHTML = '<button onclick="cerrarMenuFactura();editarFacturaCliente(\''+email+'\',\''+id+'\')" style="display:block;width:100%;text-align:left;padding:10px 14px;font-size:13px;background:none;border:none;cursor:pointer;color:#374151">Editar</button>'
+    + '<button onclick="cerrarMenuFactura();toggleEstadoFactura(\''+email+'\',\''+id+'\',\''+toggleEstado+'\')" style="display:block;width:100%;text-align:left;padding:10px 14px;font-size:13px;background:none;border:none;cursor:pointer;color:#374151;border-top:0.5px solid #F3F4F6">'+toggleLabel+'</button>'
     + '<button onclick="cerrarMenuFactura();eliminarFacturaCliente(\''+email+'\',\''+id+'\')" style="display:block;width:100%;text-align:left;padding:10px 14px;font-size:13px;background:none;border:none;cursor:pointer;color:#EF4444;border-top:0.5px solid #F3F4F6">Eliminar</button>';
   var r = ev.currentTarget.getBoundingClientRect();
   m.style.display='block';
@@ -637,6 +676,34 @@ async function eliminarFacturaCliente(email, id){
   var r = await apiFetch('/api/admin/factura-cliente/eliminar','POST',{email:email, facturaId:id});
   if(r && r.ok){ toast('Factura eliminada'); cargarFacturasCliente(); }
   else toast('Error al eliminar','err');
+}
+function editarFacturaCliente(email, id){
+  var f = allFacturasClientes.filter(function(x){ return x.id===id && x.empresaEmail===email; })[0];
+  if(!f){ toast('Factura no encontrada','err'); return; }
+  document.getElementById('modal-editar-factura').dataset.email = email;
+  document.getElementById('modal-editar-factura').dataset.id = id;
+  document.getElementById('ef-empresa-nom').textContent = f.empresaNombre||'';
+  document.getElementById('ef-numero').value = f.numero||'';
+  document.getElementById('ef-periodo').value = f.periodo||'';
+  document.getElementById('ef-monto').value = f.monto||'';
+  document.getElementById('ef-fecha').value = (f.fechaEmision||'').slice(0,10);
+  document.getElementById('ef-estado').value = f.estado==='pagada'?'pagada':'pendiente';
+  document.getElementById('modal-editar-factura').classList.add('open');
+}
+async function guardarEdicionFactura(){
+  var mod = document.getElementById('modal-editar-factura');
+  var btn = document.getElementById('btn-ef'); btn.disabled=true; btn.textContent='Guardando...';
+  var r = await apiFetch('/api/admin/factura-cliente/editar','POST',{
+    email: mod.dataset.email, facturaId: mod.dataset.id,
+    numero: document.getElementById('ef-numero').value.trim(),
+    periodo: document.getElementById('ef-periodo').value.trim(),
+    monto: Number(document.getElementById('ef-monto').value)||0,
+    fechaEmision: document.getElementById('ef-fecha').value,
+    estado: document.getElementById('ef-estado').value
+  });
+  btn.disabled=false; btn.textContent='Guardar cambios';
+  if(r && r.ok){ toast('Factura actualizada'); cerrarModal('modal-editar-factura'); cargarFacturasCliente(); }
+  else toast((r&&r.data&&r.data.error)||'Error al guardar','err');
 }
 async function verFacturaAdmin(id){
   try{

@@ -2322,6 +2322,23 @@ async function handleRequest(request, env) {
     return ok({ ok:true });
   }
 
+  // Admin: editar datos de una factura (corregir N°, periodo, monto, fecha, estado)
+  if (path === "/api/admin/factura-cliente/editar" && method === "POST") {
+    const user = await getUser(request, env); const d = deny(user, "admin"); if (d) return d;
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
+    const email=(body.email||"").toLowerCase(); if(!email||!body.facturaId) return err("email y facturaId requeridos");
+    const raw=await env.USERS.get(email); if(!raw) return err("Empresa no encontrada",404);
+    const u=JSON.parse(raw); const f=(u.facturasSuscripcion||[]).find(x=>x.id===body.facturaId); if(!f) return err("Factura no encontrada",404);
+    if(body.numero!==undefined) f.numero=String(body.numero);
+    if(body.periodo!==undefined) f.periodo=body.periodo;
+    if(body.monto!==undefined) f.monto=Number(body.monto)||0;
+    if(body.fechaEmision!==undefined) f.fechaEmision=body.fechaEmision;
+    if(body.estado!==undefined){ const pag=(body.estado==="pagada"); f.estado=(pag?"pagada":"pendiente"); f.pagadaAt=(pag?(f.pagadaAt||new Date().toISOString()):null); }
+    await env.USERS.put(email, JSON.stringify(u));
+    try{ await syncEmpresaFacturas(env, u); }catch(e){}
+    return ok({ ok:true });
+  }
+
   // Admin: eliminar una factura
   if (path === "/api/admin/factura-cliente/eliminar" && method === "POST") {
     const user = await getUser(request, env); const d = deny(user, "admin"); if (d) return d;
