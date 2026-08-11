@@ -2403,20 +2403,25 @@ async function handleRequest(request, env) {
       else if(ov.estado==="FACTURADA"){  ovFacturadas++;  comisionFacturada+=(ov.comision_final||0); }
     }
 
-    // Alertas: transportistas pendientes de aprobación (lecturas en paralelo)
+    // Alertas + conteos de usuarios (lecturas en paralelo)
     const alertas = [];
+    let transportistasPendientes=0, clientesActivos=0, transportistasActivos=0;
     const usersLista = await env.USERS.list();
     const _aKeys = usersLista.keys.filter(k=>!k.name.startsWith("id:"));
     const _aRaws = await Promise.all(_aKeys.map(k=>env.USERS.get(k.name)));
     for(const raw of _aRaws){
       if(!raw) continue;
       const u = JSON.parse(raw);
-      if(u.role==="transportista" && u.estado==="pendiente"){
-        alertas.push({ tipo:"transportista_pendiente", nombre:u.nombre, empresa:u.empresa, email:u.email, createdAt:u.createdAt });
+      if(u.esSubusuario) continue; // contar solo cuentas madre/empresa
+      if(u.role==="transportista"){
+        if(u.estado==="pendiente"){ transportistasPendientes++; alertas.push({ tipo:"transportista_pendiente", nombre:u.nombre, empresa:u.empresa, email:u.email, createdAt:u.createdAt }); }
+        else if(u.estado==="activo") transportistasActivos++;
+      } else if(u.role==="cliente"){
+        if(u.estado==="activo" || !u.estado) clientesActivos++;
       }
     }
 
-    return ok({ total:ids.length, pendiente_admin, abiertas, cerradas, adjudicadas, completadas, ovCondicionales, ovConfirmadas, ovFacturadas, comisionPendiente, comisionFacturada, alertas });
+    return ok({ total:ids.length, pendiente_admin, abiertas, cerradas, adjudicadas, completadas, ovCondicionales, ovConfirmadas, ovFacturadas, comisionPendiente, comisionFacturada, alertas, transportistasPendientes, clientesActivos, transportistasActivos });
   }
 
   // POST /api/admin/equipos-pendientes — aprobar o rechazar equipo tipo "Otro"

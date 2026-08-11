@@ -417,6 +417,7 @@
     document.getElementById('auth-guard').style.display='none';
     document.getElementById('app').style.display='block';
     initPage();
+    if(location.hash==='#vencimientos'){ try{ switchClientesTab('vencimientos'); }catch(e){} }
   })();
 
   function irPerfil(email){
