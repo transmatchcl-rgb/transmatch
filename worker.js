@@ -1430,8 +1430,11 @@ async function handleRequest(request, env) {
     let emailsEmpresaT = null;
     if (user.role==="transportista") { const emEmp=await emailEmpresaTransportista(env,user); const rawT = await env.USERS.get(emEmp); if (rawT) equiposTransportista = JSON.parse(rawT).tiposEquipo||[]; emailsEmpresaT = await emailsEmpresa(env, user); }
     const licitaciones = [];
-    for (const id of ids.slice(0,100)) {
-      const raw = await env.LICITACIONES.get(id); if (!raw) continue;
+    const _licIds = ids.slice(0,100);
+    const _licRaws = await Promise.all(_licIds.map(id => env.LICITACIONES.get(id)));
+    for (let _i=0; _i<_licRaws.length; _i++) {
+      const raw = _licRaws[_i]; if (!raw) continue;
+      const id = _licIds[_i];
       let l = JSON.parse(raw);
       if (!l.codigo) { l.codigo = await generarCodigo(env,'LIC'); await env.LICITACIONES.put(id, JSON.stringify(l)); }
       if (user.role==="transportista") {
@@ -1838,8 +1841,9 @@ async function handleRequest(request, env) {
       scopeEmails = user.esSubusuario ? new Set([user.email.toLowerCase()]) : await emailsEmpresa(env,user);
     }
     const retornos=[];
-    for (const id of ids.slice(0,50)) {
-      const raw=await env.RETORNOS.get(id); if(!raw) continue;
+    const _rRaws=await Promise.all(ids.slice(0,50).map(id=>env.RETORNOS.get(id)));
+    for (const raw of _rRaws) {
+      if(!raw) continue;
       const r=JSON.parse(raw);
       if(user.role==="cliente"){ if(r.estado!=="disponible") continue; delete r.transportistaEmail; retornos.push(r); }
       else if(user.role==="transportista"){ if(!r.transportistaEmail||!scopeEmails.has(r.transportistaEmail.toLowerCase())) continue; retornos.push(r); }
@@ -2952,7 +2956,8 @@ async function handleRequest(request, env) {
     const user=await getUser(request,env); if(!user) return err("No autenticado",401);
     const emailsT = user.role==="transportista" ? await emailsEmpresa(env, user) : null;
     const allIds=JSON.parse(await env.RETORNOS.get("transportes:all")||"[]"); const transportes=[];
-    for(const id of allIds){ const raw=await env.RETORNOS.get("transporte:"+id); if(!raw) continue; const t=JSON.parse(raw); if(user.role==="admin"){ transportes.push(t); continue; } if(user.role==="cliente"){ const miEmpId=user.esSubusuario?(user.empresaMadreId||user.id):user.id; if((t.empresaId||t.clienteId)===miEmpId){ const _esMio=veTodaLaEmpresa(user) || ((t.creadoPorEmail||t.clienteEmail||"").toLowerCase()===user.email.toLowerCase()); if(_esMio) transportes.push(filtrarIncidenciasPorRol(t,user.role)); } } if(user.role==="transportista"&&t.transportistaEmail&&emailsT.has(t.transportistaEmail.toLowerCase())){ const asignado=asignadoDeTransporte(t); t.asignadoNombre=t.asignadoNombre||t.transportistaNombre||""; t.puedoGestionar=(asignado===user.email.toLowerCase())||(!user.esSubusuario); transportes.push(filtrarIncidenciasPorRol(t,user.role)); } }
+    const _tRaws=await Promise.all(allIds.map(id=>env.RETORNOS.get("transporte:"+id)));
+    for(const raw of _tRaws){ if(!raw) continue; const t=JSON.parse(raw); if(user.role==="admin"){ transportes.push(t); continue; } if(user.role==="cliente"){ const miEmpId=user.esSubusuario?(user.empresaMadreId||user.id):user.id; if((t.empresaId||t.clienteId)===miEmpId){ const _esMio=veTodaLaEmpresa(user) || ((t.creadoPorEmail||t.clienteEmail||"").toLowerCase()===user.email.toLowerCase()); if(_esMio) transportes.push(filtrarIncidenciasPorRol(t,user.role)); } } if(user.role==="transportista"&&t.transportistaEmail&&emailsT.has(t.transportistaEmail.toLowerCase())){ const asignado=asignadoDeTransporte(t); t.asignadoNombre=t.asignadoNombre||t.transportistaNombre||""; t.puedoGestionar=(asignado===user.email.toLowerCase())||(!user.esSubusuario); transportes.push(filtrarIncidenciasPorRol(t,user.role)); } }
     return ok({ transportes });
   }
 
@@ -3182,7 +3187,8 @@ async function handleRequest(request, env) {
       for(const em of emails){ const r=await env.USERS.get(em); if(!r) continue; const mu=JSON.parse(r); const list=JSON.parse(await env.OVS.get("ovs:transportista:"+mu.id)||"[]"); for(const x of list){ if(!seen.has(x)){ seen.add(x); ovIds.push(x); } } }
     }
     const ordenes=[];
-    for(const id of ovIds.slice(0,200)){ const raw=await env.OVS.get("ov:"+id); if(raw){ let ov=JSON.parse(raw); ov=await verificarVencimiento(env,ov); ordenes.push(ov); } }
+    const _ovRaws=await Promise.all(ovIds.slice(0,200).map(id=>env.OVS.get("ov:"+id)));
+    for(const raw of _ovRaws){ if(!raw) continue; let ov=JSON.parse(raw); ov=await verificarVencimiento(env,ov); ordenes.push(ov); }
     return ok({ ordenes });
   }
 
@@ -3262,7 +3268,8 @@ async function handleRequest(request, env) {
   if (path === "/api/mis-facturas-transmatch" && method === "GET") {
     const user=await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
     const ids=JSON.parse(await env.OVS.get("facturas:transportista:"+user.id)||"[]"); const facturas=[];
-    for(const id of ids.slice(0,50)){ const raw=await env.OVS.get("factura:"+id); if(raw) facturas.push(JSON.parse(raw)); }
+    const _fRaws=await Promise.all(ids.slice(0,50).map(id=>env.OVS.get("factura:"+id)));
+    for(const raw of _fRaws){ if(raw) facturas.push(JSON.parse(raw)); }
     return ok({ facturas });
   }
 
@@ -3271,7 +3278,8 @@ async function handleRequest(request, env) {
     if(user.role!=="transportista") return err("Solo transportistas",403);
     const emailsT = await emailsEmpresa(env, user);
     const ids=JSON.parse(await env.LICITACIONES.get("all")||"[]"); const resultado=[];
-    for(const id of ids.slice(0,200)){ const raw=await env.LICITACIONES.get(id); if(!raw) continue; const l=JSON.parse(raw); const miCotiz=(l.cotizaciones||[]).find(c=>c.transportistaEmail&&emailsT.has(c.transportistaEmail.toLowerCase())); const laGane=l.adjudicadaA&&l.adjudicadaA.transportistaEmail&&emailsT.has(l.adjudicadaA.transportistaEmail.toLowerCase()); if(!miCotiz&&!laGane) continue;
+    const _hRaws=await Promise.all(ids.slice(0,200).map(id=>env.LICITACIONES.get(id)));
+    for(const raw of _hRaws){ if(!raw) continue; const l=JSON.parse(raw); const miCotiz=(l.cotizaciones||[]).find(c=>c.transportistaEmail&&emailsT.has(c.transportistaEmail.toLowerCase())); const laGane=l.adjudicadaA&&l.adjudicadaA.transportistaEmail&&emailsT.has(l.adjudicadaA.transportistaEmail.toLowerCase()); if(!miCotiz&&!laGane) continue;
       // Si cotizamos y NO ganamos (y ya se adjudicó), calculamos nuestra posición vs. el resto —
       // esto es lo que se le muestra al transportista como feedback de por qué no lo adjudicaron.
       let posPrecio=null, posEntrega=null, posValoracion=null, totalCotizaciones=null;

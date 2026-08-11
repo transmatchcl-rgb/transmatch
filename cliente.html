@@ -285,7 +285,10 @@
   }
 
   async function cargarDashboard(){
-    var data = await apiCall('/api/licitaciones');
+    // Disparar ambas cargas en paralelo (son independientes)
+    var _pLic = apiCall('/api/licitaciones');
+    var _pTra = apiCall('/api/transportes');
+    var data = await _pLic;
     if(!data){
       var els = ['lista-acciones','lista-licitaciones','lista-notifs'];
       els.forEach(function(id){
@@ -303,7 +306,7 @@
     // Estado real de cada transporte (para distinguir "en curso" de ya entregado/completado)
     var transPorLic = {};
     try {
-      var dataT = await apiCall('/api/transportes');
+      var dataT = await _pTra;
       (((dataT && dataT.transportes) || [])).forEach(function(t){ if(t.licitacionId) transPorLic[t.licitacionId] = t; });
     } catch(e){}
     function transporteEnCurso(l){

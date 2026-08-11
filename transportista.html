@@ -343,9 +343,15 @@
     var misCotizadas = new Set();   // ids de licitaciones donde ya cotizé
     var misGanadas = new Set();     // ids adjudicadas a mí
 
+    // Disparar las cargas principales en paralelo (evita esperas encadenadas)
+    let _meResp = null;
+    const _pMe    = api('/api/auth/me');
+    const _pLicit = api('/api/licitaciones');
+    const _pHist  = api('/api/transportista/historial');
+
     // ── 1. Datos del usuario ─────────────────────────────────
     try {
-      const me = await api('/api/auth/me');
+      const me = await _pMe; _meResp = me;
       if(me && me.ok){
         const u = me.data.user;
         miUserId = u.id;
@@ -391,8 +397,7 @@
     } catch(e){}
 
     // ── 2. Verificar equipos en Mis Operaciones (tiposEquipo) ──
-    const meRes2  = await api('/api/auth/me');
-    const tiposEquipo = (meRes2 && meRes2.ok) ? (meRes2.data.user.tiposEquipo || []) : [];
+    const tiposEquipo = (_meResp && _meResp.ok) ? (_meResp.data.user.tiposEquipo || []) : [];
     const elDisp  = document.getElementById('lista-disponibles');
     const elKpi   = document.getElementById('kpi-disponibles');
 
@@ -402,7 +407,7 @@
     // aviso suave (no bloqueante) sobre la lista.
 
     // ── 3. Licitaciones disponibles + transportes activos ────
-    const r = await api('/api/licitaciones');
+    const r = await _pLicit;
     const todas       = (r && r.ok) ? (r.data.licitaciones || []) : [];
 
     // Detectar en qué licitaciones ya cotizé (por ID o email, lo que esté disponible)
@@ -415,7 +420,7 @@
     });
     // Confirmar con el historial (fuente confiable, incluye cotizaciones ya cerradas)
     try {
-      const hist = await api('/api/transportista/historial');
+      const hist = await _pHist;
       if(hist && hist.ok){
         (hist.data.licitaciones||[]).forEach(function(lh){
           if(lh.miCotizacion) misCotizadas.add(lh.id);
