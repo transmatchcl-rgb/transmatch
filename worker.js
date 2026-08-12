@@ -1615,6 +1615,49 @@ async function handleRequest(request, env) {
     return ok({ ok:true, id });
   }
 
+  // PUT /api/licitaciones/:id/fechas — el cliente (o admin) edita solo las fechas/horas de carga y entrega.
+  // Permitido mientras la licitación no esté adjudicada ni cerrada de forma terminal. Si ya hay
+  // cotizaciones, se avisa a los transportistas que cotizaron para que revisen las nuevas fechas.
+  if (path.startsWith("/api/licitaciones/")&&path.endsWith("/fechas")&&method==="PUT") {
+    const id=path.split("/")[3]; const user=await getUser(request,env); const d=deny(user,"cliente","admin"); if(d) return d;
+    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    const raw=await env.LICITACIONES.get(id); if(!raw) return err("No encontrada",404);
+    const l=JSON.parse(raw);
+    if(user.role==="cliente"){ const _eid=(user.esSubusuario?(user.empresaMadreId||user.id):user.id); if((l.empresaId||l.clienteId)!==_eid) return err("Sin acceso",403); }
+    if(!["pendiente_admin","abierta","cerrada"].includes(l.estado)) return err("Esta licitación ya no admite cambiar fechas (está adjudicada o cerrada)");
+    if(!body.fechaCarga) return err("La fecha de carga es obligatoria");
+    l.fechaCarga=body.fechaCarga;
+    if(body.horaCarga!==undefined) l.horaCarga=body.horaCarga;
+    if(body.fechaEntrega!==undefined) l.fechaEntrega=body.fechaEntrega;
+    if(body.horaDescarga!==undefined) l.horaDescarga=body.horaDescarga;
+    l.updatedAt=new Date().toISOString();
+    await env.LICITACIONES.put(id, JSON.stringify(l));
+    // Avisar a los transportistas que ya cotizaron (una sola vez por transportista): notificación + correo
+    const _avisados=new Set();
+    const _fCargaTxt=(l.fechaCarga||"—")+(l.horaCarga?(" "+l.horaCarga):"");
+    const _fEntregaTxt=l.fechaEntrega?(l.fechaEntrega+(l.horaDescarga?(" "+l.horaDescarga):"")):"—";
+    for(const c of (l.cotizaciones||[])){
+      const tid=c.transportistaId; if(!tid||_avisados.has(tid)) continue; _avisados.add(tid);
+      try{ await crearNotificacion(env, tid, "licitacion_fechas_actualizadas", `El cliente actualizó las fechas de la licitación ${l.codigo||''} (${l.origen} → ${l.destino}). Revisa tu cotización.`, { licitacionId:id }); }catch(e){}
+      try{
+        if(c.transportistaEmail) await enviarEmail(env, {
+          to: c.transportistaEmail,
+          subject: `Cambio de fechas en la licitación ${l.codigo||''} - TransMatch`,
+          html: emailBase(
+            `<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">El cliente cambió las fechas</h2>`+
+            `<p style="font-size:14px;color:#6B7280;margin:0 0 18px">La licitación <strong>${l.codigo||''}</strong> (${l.origen} → ${l.destino}), en la que ya cotizaste, tiene nuevas fechas. Revisa que tu cotización siga vigente con estas condiciones.</p>`+
+            `<table style="width:100%;border-collapse:collapse;font-size:14px;color:#374151">`+
+            `<tr><td style="padding:6px 0;color:#9CA3AF">Nueva fecha de carga</td><td style="padding:6px 0;text-align:right;font-weight:600">${_fCargaTxt}</td></tr>`+
+            `<tr><td style="padding:6px 0;color:#9CA3AF">Nueva fecha de entrega</td><td style="padding:6px 0;text-align:right;font-weight:600">${_fEntregaTxt}</td></tr>`+
+            `</table>`,
+            "Cambio de fechas - TransMatch")
+        });
+      }catch(e){}
+    }
+    await registrarActividad(env,"licitacion_fechas_editadas",`Fechas actualizadas en licitación ${l.codigo||''} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo });
+    return ok({ ok:true, id, avisados:_avisados.size });
+  }
+
   if (path.startsWith("/api/licitaciones/")&&path.endsWith("/anular")&&method==="POST") {
     const id=path.split("/")[3]; const user=await getUser(request,env); const d=deny(user,"cliente","admin"); if(d) return d;
     let body={}; try{body=await request.json();}catch(e){}

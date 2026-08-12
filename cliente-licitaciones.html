@@ -481,6 +481,7 @@ if(_expReactivable){ menuHtml+='<button class="pmenu-item" onclick="closePanelMe
 menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();duplicarLicitacionId(\''+l.id+'\')">Duplicar licitación</button>';
 }else{
 if(_v2.puedeExtender){ menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();abrirModalAmpliar(\''+l.id+'\')">Ampliar plazo de cotización</button>'; }
+menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();abrirEditarFechas(\''+l.id+'\')">Editar fechas</button>';
 menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();confirmarAnularId(\''+l.id+'\')">Cerrar licitación</button>';
 }
 menuHtml+='</div></div>';
@@ -1212,6 +1213,42 @@ if(r&&r.ok){toast('Licitacion publicada nuevamente');_ampliarId=null;await carga
 else toast((r&&r.data&&r.data.error)||'Error al ampliar el plazo','err');
 }
 
+var _fechasId=null;
+function abrirEditarFechas(id){
+_fechasId=id;
+var l=(allLicitaciones||[]).filter(function(x){return x.id===id;})[0]||{};
+var prev=document.getElementById('modal-fechas'); if(prev) prev.remove();
+var wrap=document.createElement('div');
+wrap.id='modal-fechas';
+wrap.style.cssText='position:fixed;inset:0;background:rgba(17,24,39,.5);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px';
+wrap.innerHTML='<div style="background:#fff;border-radius:12px;padding:22px;max-width:440px;width:100%">'
++'<div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:4px">Editar fechas</div>'
++'<div style="font-size:12px;color:#6B7280;margin-bottom:16px">Si ya hay cotizaciones, se avisará a los transportistas que cotizaron para que revisen las nuevas fechas.</div>'
++'<div style="display:flex;gap:10px;margin-bottom:12px">'
++'<div style="flex:1"><label style="font-size:12px;color:#374151;display:block;margin-bottom:4px">Fecha de carga *</label><input type="date" id="ef-fcarga" value="'+(l.fechaCarga||'')+'" style="width:100%;padding:9px;border:1px solid #E5E7EB;border-radius:8px;box-sizing:border-box"/></div>'
++'<div style="width:120px"><label style="font-size:12px;color:#374151;display:block;margin-bottom:4px">Hora</label><input type="time" id="ef-hcarga" value="'+(l.horaCarga||'')+'" style="width:100%;padding:9px;border:1px solid #E5E7EB;border-radius:8px;box-sizing:border-box"/></div>'
++'</div>'
++'<div style="display:flex;gap:10px;margin-bottom:18px">'
++'<div style="flex:1"><label style="font-size:12px;color:#374151;display:block;margin-bottom:4px">Fecha de entrega</label><input type="date" id="ef-fentrega" value="'+(l.fechaEntrega||'')+'" style="width:100%;padding:9px;border:1px solid #E5E7EB;border-radius:8px;box-sizing:border-box"/></div>'
++'<div style="width:120px"><label style="font-size:12px;color:#374151;display:block;margin-bottom:4px">Hora</label><input type="time" id="ef-hdescarga" value="'+(l.horaDescarga||'')+'" style="width:100%;padding:9px;border:1px solid #E5E7EB;border-radius:8px;box-sizing:border-box"/></div>'
++'</div>'
++'<div style="display:flex;gap:8px">'
++'<button onclick="document.getElementById(\'modal-fechas\').remove()" style="flex:1;padding:10px;border-radius:8px;border:1px solid #E5E7EB;background:#fff;cursor:pointer">Cancelar</button>'
++'<button onclick="guardarFechas()" style="flex:1;padding:10px;border-radius:8px;border:none;background:#FF8808;color:#fff;font-weight:600;cursor:pointer">Guardar</button>'
++'</div></div>';
+wrap.addEventListener('click',function(e){ if(e.target===wrap) wrap.remove(); });
+document.body.appendChild(wrap);
+}
+async function guardarFechas(){
+if(!_fechasId) return;
+var fcarga=document.getElementById('ef-fcarga').value;
+if(!fcarga){ toast('La fecha de carga es obligatoria','err'); return; }
+var payload={ fechaCarga:fcarga, horaCarga:document.getElementById('ef-hcarga').value, fechaEntrega:document.getElementById('ef-fentrega').value, horaDescarga:document.getElementById('ef-hdescarga').value };
+var r=await api('/api/licitaciones/'+_fechasId+'/fechas','PUT',payload);
+var m=document.getElementById('modal-fechas'); if(m) m.remove();
+if(r&&r.ok){ toast(r.data.avisados?('Fechas actualizadas · '+r.data.avisados+' transportista(s) avisado(s)'):'Fechas actualizadas'); _fechasId=null; await cargarLicitaciones(); }
+else toast((r&&r.data&&r.data.error)||'Error al guardar','err');
+}
 async function cargarLicitaciones(){
 var r=await api('/api/licitaciones');
 allLicitaciones=(r&&r.ok)?(r.data.licitaciones||[]):[];
