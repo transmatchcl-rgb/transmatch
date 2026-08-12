@@ -618,6 +618,15 @@ function renderDetalle(l){
     '</div>';
   }
 
+  // Control de visibilidad de archivos (para licitaciones ya publicadas)
+  if((l.archivoId||l.estandarArchivoId) && ['abierta','cerrada','adjudicada','completada'].includes(l.estado)){
+    html+='<div style="background:#f8f9fc;border:0.5px solid #e8eaf0;border-radius:8px;padding:12px 14px;margin:8px 18px"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px">Visibilidad de archivos para transportistas</div>';
+    if(l.archivoId){ html+='<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;margin-bottom:8px"><input type="checkbox" id="gv-arch-'+l.id+'" '+(l.archivoVisibleTransportista?'checked':'')+' style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"><span>'+(l.archivoNombre||'Archivo de especificaciones')+'</span></label>'; }
+    if(l.estandarArchivoId){ html+='<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;margin-bottom:8px"><input type="checkbox" id="gv-est-'+l.id+'" '+(l.estandarArchivoVisibleTransportista?'checked':'')+' style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"><span>'+(l.estandarArchivoNombre||'Documento del estándar')+'</span></label>'; }
+    html+='<div style="font-size:11px;color:#9CA3AF;margin-bottom:10px">Marcado = lo ven los transportistas que cotizan. Sin marcar = solo el adjudicado.</div>';
+    html+='<button onclick="event.stopPropagation();guardarVisibilidadArchivos(\''+l.id+'\')" style="padding:8px 14px;border-radius:7px;border:1px solid #1e2d4e;background:#1e2d4e;color:#fff;cursor:pointer;font-size:13px;font-weight:500">Guardar visibilidad</button></div>';
+  }
+
   // Transportistas invitados a cotizar
   var cotizaciones=l.cotizaciones||[];
   if(cotizaciones.length>0){
@@ -765,6 +774,16 @@ async function aprobar(id){
   const r=await api('/api/admin/licitacion/'+id+'/aprobar','POST',payload);
   if(r&&r.ok){toast('Licitación aprobada y publicada');cargar();}
   else toast(r&&r.data&&r.data.error||'Error al aprobar','err');
+}
+
+async function guardarVisibilidadArchivos(id){
+  var ga=document.getElementById('gv-arch-'+id); var ge=document.getElementById('gv-est-'+id);
+  var payload={};
+  if(ga) payload.archivoVisible=ga.checked;
+  if(ge) payload.estandarArchivoVisible=ge.checked;
+  const r=await api('/api/admin/licitacion/'+id+'/archivos-visibilidad','POST',payload);
+  if(r&&r.ok){toast('Visibilidad de archivos actualizada');cargar();}
+  else toast(r&&r.data&&r.data.error||'Error al guardar','err');
 }
 
 async function rechazar(id){

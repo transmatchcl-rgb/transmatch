@@ -1541,6 +1541,26 @@ async function handleRequest(request, env) {
     return ok({ ok:true });
   }
 
+  // POST /api/admin/licitacion/:id/archivos-visibilidad — cambiar la visibilidad de los archivos
+  // en cualquier momento (no solo al aprobar). "bidders" = lo ven los que cotizan; si no, solo el adjudicado.
+  if (path.startsWith("/api/admin/licitacion/")&&path.endsWith("/archivos-visibilidad")&&method==="POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    const id=path.split("/")[4]; const raw=await env.LICITACIONES.get(id); if(!raw) return err("No encontrada",404);
+    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    const l=JSON.parse(raw);
+    const _archVis = body.archivoVisible === true;
+    const _estVis  = body.estandarArchivoVisible === true;
+    l.archivoVisibleTransportista = _archVis;
+    l.estandarArchivoVisibleTransportista = _estVis;
+    for(const [aid,vis] of [[l.archivoId,_archVis],[l.estandarArchivoId,_estVis]]){
+      if(!aid) continue;
+      try{ const _r=await env.ARCHIVOS.get(aid); if(_r){ const _a=JSON.parse(_r); _a.licitacionId=id; _a.visibilidad=(vis?"bidders":"adjudicado"); await env.ARCHIVOS.put(aid, JSON.stringify(_a)); } }catch(e){}
+    }
+    l.updatedAt=new Date().toISOString();
+    await env.LICITACIONES.put(id, JSON.stringify(l));
+    return ok({ ok:true, archivoVisible:_archVis, estandarArchivoVisible:_estVis });
+  }
+
   if (path.startsWith("/api/admin/licitacion/")&&path.endsWith("/rechazar")&&method==="POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     const id=path.split("/")[4]; let body={}; try{body=await request.json();}catch(e){}
