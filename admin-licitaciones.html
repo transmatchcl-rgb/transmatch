@@ -701,6 +701,16 @@ function renderDetalle(l){
   // Acciones
   var acc=[];
   if(l.estado==='pendiente_admin'){
+    if(l.archivoId||l.estandarArchivoId){
+      html+='<div style="margin-top:14px;background:#f8f9fc;border:0.5px solid #e8eaf0;border-radius:8px;padding:12px 14px"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px">Archivos — ¿mostrarlos a los transportistas que cotizan?</div>';
+      if(l.archivoId){
+        html+='<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;margin-bottom:8px"><input type="checkbox" id="vis-arch-'+l.id+'" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"><span style="flex:1">'+(l.archivoNombre||'Archivo de especificaciones')+'</span><button onclick="event.stopPropagation();descargarArchivo(\''+l.archivoId+'\',\''+(l.archivoNombre||'archivo').replace(/\x27/g,"\\x27")+'\')" style="font-size:12px;color:#1e2d4e;background:none;border:none;cursor:pointer;text-decoration:underline;flex-shrink:0">Ver</button></label>';
+      }
+      if(l.estandarArchivoId){
+        html+='<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;margin-bottom:8px"><input type="checkbox" id="vis-est-'+l.id+'" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"><span style="flex:1">'+(l.estandarArchivoNombre||'Documento del estándar')+'</span><button onclick="event.stopPropagation();descargarArchivo(\''+l.estandarArchivoId+'\',\''+(l.estandarArchivoNombre||'documento').replace(/\x27/g,"\\x27")+'\')" style="font-size:12px;color:#1e2d4e;background:none;border:none;cursor:pointer;text-decoration:underline;flex-shrink:0">Ver</button></label>';
+      }
+      html+='<div style="font-size:11px;color:#9CA3AF">Marca un archivo para que los transportistas lo vean al cotizar. Si lo dejas sin marcar, solo lo verá quien se adjudique el transporte.</div></div>';
+    }
     html+='<div style="margin-top:14px"><label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:6px">Comentario para el transportista (opcional)</label>'
       +'<textarea id="coment-admin-'+l.id+'" rows="2" placeholder="Ej: Revisar especificaciones técnicas adjuntas — la carga requiere amarre especial." style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>'
       +'<div style="font-size:11px;color:#9CA3AF;margin-top:4px">Este comentario será visible para los transportistas en el detalle de la licitación.</div></div>';
@@ -749,7 +759,10 @@ function renderDetalle(l){
 async function aprobar(id){
   var ta=document.getElementById('coment-admin-'+id);
   var comentarioAdmin=ta?ta.value.trim():'';
-  const r=await api('/api/admin/licitacion/'+id+'/aprobar','POST',{comentarioAdmin:comentarioAdmin});
+  var payload={comentarioAdmin:comentarioAdmin};
+  var va=document.getElementById('vis-arch-'+id); if(va) payload.archivoVisible=va.checked;
+  var ve=document.getElementById('vis-est-'+id); if(ve) payload.estandarArchivoVisible=ve.checked;
+  const r=await api('/api/admin/licitacion/'+id+'/aprobar','POST',payload);
   if(r&&r.ok){toast('Licitación aprobada y publicada');cargar();}
   else toast(r&&r.data&&r.data.error||'Error al aprobar','err');
 }

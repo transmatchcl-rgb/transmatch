@@ -523,6 +523,8 @@ function anonimizarPreguntas(preguntas, viewerId, viewerRole) {
 }
 
 function anonimizarCliente(l) {
+  // Se mantienen archivoId/estandarArchivoId y las banderas de visibilidad; el control de acceso real
+  // (bidders vs. solo adjudicado) se aplica en el endpoint de descarga y en la UI del transportista.
   return { ...l, clienteEmail:undefined, clienteNombre:undefined, clienteEmpresa: l.clienteEmpresa ? "Empresa verificada TransMatch" : "Empresa verificada", contactoOrigenNombre:undefined, contactoOrigenTelefono:undefined, contactoOrigenEmail:undefined, contactoDestinoNombre:undefined, contactoDestinoTelefono:undefined, contactoDestinoEmail:undefined, paradas: Array.isArray(l.paradas) ? l.paradas.map(p=>({direccion:p.direccion||"",horario:p.horario||"",descripcion:p.descripcion||"",contacto:undefined})) : l.paradas };
 }
 
@@ -1519,6 +1521,17 @@ async function handleRequest(request, env) {
     const l=JSON.parse(raw); if(l.estado!=="pendiente_admin") return err("No esta pendiente");
     l.estado="abierta"; l.aprobadaAt=new Date().toISOString();
     l.comentarioAdmin=(_body.comentarioAdmin||"").toString().trim();
+    // Visibilidad de archivos: aprobado por admin = lo ven los que cotizan; si no, solo el adjudicado.
+    // Default (sin marcar) = solo el adjudicado, para no exponer nada por accidente.
+    const _archVis = _body.archivoVisible === true;
+    const _estVis  = _body.estandarArchivoVisible === true;
+    l.archivoVisibleTransportista = _archVis;
+    l.estandarArchivoVisibleTransportista = _estVis;
+    // Etiquetar cada archivo con su licitación y nivel de visibilidad (control real en la descarga)
+    for(const [aid,vis] of [[l.archivoId,_archVis],[l.estandarArchivoId,_estVis]]){
+      if(!aid) continue;
+      try{ const _r=await env.ARCHIVOS.get(aid); if(_r){ const _a=JSON.parse(_r); _a.licitacionId=id; _a.visibilidad=(vis?"bidders":"adjudicado"); await env.ARCHIVOS.put(aid, JSON.stringify(_a)); } }catch(e){}
+    }
     await env.LICITACIONES.put(id, JSON.stringify(l));
     await crearNotificacion(env,l.clienteId,"licitacion_aprobada",`Tu licitacion fue aprobada: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`,{ licitacionId:id });
     // Al aprobar NO se envía correo al cliente (solo notificación interna). El cliente solo recibe correo si es rechazada.
@@ -2292,6 +2305,16 @@ async function handleRequest(request, env) {
     const id=path.split("/")[3]; const user=await getUser(request,env); if(!user) return err("No autenticado",401);
     const raw=await env.ARCHIVOS.get(id); if(!raw) return err("No encontrado",404);
     const archivo=JSON.parse(raw);
+    // Control de acceso de archivos de licitación para transportistas:
+    // "bidders" = cualquier transportista (aprobado por admin); "adjudicado" = solo quien ganó.
+    if(user.role==="transportista" && archivo.licitacionId && archivo.visibilidad==="adjudicado"){
+      let _ok=false;
+      try{
+        const _rl=await env.LICITACIONES.get(archivo.licitacionId);
+        if(_rl){ const _l=JSON.parse(_rl); const _adj=_l.adjudicadaA&&_l.adjudicadaA.transportistaEmail; if(_adj){ const _emails=await emailsEmpresa(env,user); _ok=_emails.has(_adj.toLowerCase()); } }
+      }catch(e){}
+      if(!_ok) return err("Este archivo solo está disponible para el transportista adjudicado",403);
+    }
     if(url.searchParams.get("info")==="1") return ok({ id:archivo.id, nombre:archivo.nombre, tipo:archivo.tipo, createdAt:archivo.createdAt });
     return ok({ id:archivo.id, nombre:archivo.nombre, tipo:archivo.tipo, base64:archivo.base64 });
   }
