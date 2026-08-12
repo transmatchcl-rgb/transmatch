@@ -450,7 +450,7 @@ function abrirModal(id){
     ['Ruta',         (l.origen||'--')+' &rarr; '+(l.destino||'--')],
     ['Fecha',        fechaStr(l.createdAt)],
     ['Fecha requerida', l.fechaRequerida ? fechaStr(l.fechaRequerida) : '--'],
-    ['Carga',        l.toneladas ? l.toneladas+' ton' : '--'],
+    ['Carga',        l.peso ? l.peso+' '+(l.pesoUnidad||'ton') : (l.toneladas?l.toneladas+' ton':'--')],
   ];
 
   if(l.estado==='adjudicada'||l.estado==='completada'){

@@ -785,7 +785,7 @@
       ['Destino', l.destino||'--'],
       ['Fecha de carga', l.fechaCarga ? new Date(l.fechaCarga).toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'}) : '--'],
       ['Fecha entrega', l.fechaEntrega ? new Date(l.fechaEntrega).toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'}) : '--'],
-      ['Peso', l.peso ? l.peso+' ton' : '--'],
+      ['Peso', l.peso ? l.peso+' '+(l.pesoUnidad||'ton') : '--'],
       ['Dimensiones', l.dimensiones||'--'],
       ['Plazo cotizaciones', (l.plazo||'24')+' horas'],
       ['Cotizaciones', (l.cotizaciones||[]).length+' recibidas'],

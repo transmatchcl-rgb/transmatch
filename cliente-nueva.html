@@ -293,7 +293,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <label style="font-size:15px;font-weight:700;color:#1e2d4e;margin-bottom:8px">Tipo de maquinaria <span class="required">*</span></label>
 <input type="text" id="tipoEquipo" placeholder="Ej: Excavadora, Cargador frontal, Motoniveladora..." autocomplete="off"/>
 </div>
-<div class="form-group"><label>Peso aprox. (toneladas) <span class="required">*</span></label><input type="number" id="pesoMaq" placeholder="Ej: 92" min="0" autocomplete="off"/></div>
+<div class="form-group"><label>Peso aprox. <span class="required">*</span></label><div style="display:flex;gap:8px"><input type="number" id="pesoMaq" placeholder="Ej: 92" min="0" step="0.1" autocomplete="off" style="flex:1"/><select id="pesoMaqUnidad" style="width:120px;flex-shrink:0"><option value="ton">toneladas</option><option value="kg">kilos</option></select></div></div>
 <div class="grid-2">
 <div class="form-group"><label>Marca <span class="required">*</span></label><input type="text" id="marca" placeholder="Ej: Caterpillar" autocomplete="off"/></div>
 <div class="form-group"><label>Modelo <span class="required">*</span></label><input type="text" id="modeloMaq" placeholder="Ej: 390F" autocomplete="off"/></div>
@@ -340,7 +340,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <label style="font-size:15px;font-weight:700;color:#1e2d4e;margin:24px 0 12px;display:block">Detalle de la carga</label>
 <div class="form-group"><label>Tipo de carga</label><input type="text" id="tipoCarga" placeholder="Ej: Maxi sacos de cemento, tambores de lubricante..." autocomplete="off"/></div>
 <div class="grid-2">
-<div class="form-group"><label>Peso total aprox. (ton)</label><input type="number" id="pesoCarga" placeholder="Ej: 18" min="0" step="0.1" autocomplete="off"/></div>
+<div class="form-group"><label>Peso total aprox.</label><div style="display:flex;gap:8px"><input type="number" id="pesoCarga" placeholder="Ej: 18" min="0" step="0.1" autocomplete="off" style="flex:1"/><select id="pesoCargaUnidad" style="width:120px;flex-shrink:0"><option value="ton">toneladas</option><option value="kg">kilos</option></select></div></div>
 <div class="form-group"><label>Volumen aprox. (m&sup3;)</label><input type="number" id="volumenCarga" placeholder="Ej: 12" min="0" step="0.1" autocomplete="off"/></div>
 </div>
 <div class="grid-2">
@@ -1009,7 +1009,7 @@ rows.push(['Maquinaria',getTipoEquipo()]);
 rows.push(['Equipo requerido',getEqRequerido()||'--']);
 var marca=gv('marca').trim();var modelo=gv('modeloMaq').trim();
 if(marca||modelo)rows.push(['Marca / modelo',(marca+' '+modelo).trim()]);
-var peso=gv('pesoMaq');if(peso)rows.push(['Peso',peso+' ton']);
+var peso=gv('pesoMaq');if(peso)rows.push(['Peso',peso+' '+(gv('pesoMaqUnidad')||'ton')]);
 var dimM=gv('dimensionesMaq').trim();if(dimM)rows.push(['Dimensiones',dimM]);
 }else if(tipoLicitacion==='contenedor'){
 var _tCont=gv('tipoContenedor');
@@ -1025,7 +1025,7 @@ if(document.getElementById('contSobredimensionado').checked)rows.push(['Sobredim
 }else{
 var eq=gv('tipoEquipoCarga');if(eq)rows.push(['Camion requerido',eq]);
 var tc=document.getElementById('tipoCarga').value.trim();if(tc)rows.push(['Tipo de carga',tc]);
-var pc=document.getElementById('pesoCarga').value;if(pc)rows.push(['Peso total',pc+' ton']);
+var pc=document.getElementById('pesoCarga').value;if(pc)rows.push(['Peso total',pc+' '+(document.getElementById('pesoCargaUnidad').value||'ton')]);
 var vol=document.getElementById('volumenCarga').value;if(vol)rows.push(['Volumen',vol+' m³']);
 var nb=document.getElementById('cantidadBultos').value;if(nb)rows.push(['N° de bultos',nb]);
 }
@@ -1111,6 +1111,7 @@ payload.tipoEquipoRequerido=getEqRequerido();
 payload.marca=document.getElementById('marca').value.trim();
 payload.modelo=document.getElementById('modeloMaq').value.trim();
 payload.peso=document.getElementById('pesoMaq').value||'';
+payload.pesoUnidad=document.getElementById('pesoMaqUnidad').value||'ton';
 payload.dimensiones=document.getElementById('dimensionesMaq').value.trim();
 payload.descripcion=document.getElementById('descripcionMaq').value.trim();
 payload.tipoEntregaDestino=document.getElementById('tipoEntregaDestino').value||'no_aplica';
@@ -1152,6 +1153,7 @@ payload.tipoEntregaDestino='no_aplica';
 payload.tipoEquipoRequerido=getEqRequeridoCarga();
 payload.tipoCarga=document.getElementById('tipoCarga').value.trim();
 payload.peso=document.getElementById('pesoCarga').value||'';
+payload.pesoUnidad=document.getElementById('pesoCargaUnidad').value||'ton';
 payload.volumen=document.getElementById('volumenCarga').value||'';
 payload.cantidadBultos=document.getElementById('cantidadBultos').value||'';
 payload.pesoPorBulto=document.getElementById('pesoPorBulto').value||'';
@@ -1256,6 +1258,7 @@ if(_custom.length){var _oc=document.querySelector('.eq-req-cb[value="Otro"]');if
 if(l.marca)document.getElementById('marca').value=l.marca;
 if(l.modelo)document.getElementById('modeloMaq').value=l.modelo;
 if(l.peso)document.getElementById('pesoMaq').value=l.peso;
+if(l.pesoUnidad)document.getElementById('pesoMaqUnidad').value=l.pesoUnidad;
 if(l.dimensiones)document.getElementById('dimensionesMaq').value=l.dimensiones;
 if(l.descripcion)document.getElementById('descripcionMaq').value=l.descripcion;
 // Mostrar archivo previo maquinaria (no aplica al duplicar: hay que adjuntar uno nuevo)
@@ -1319,6 +1322,7 @@ if(_customC.length){var _ocC=document.querySelector('.eq-carga-cb[value="Otro"]'
 }
 if(l.tipoCarga)document.getElementById('tipoCarga').value=l.tipoCarga;
 if(l.peso)document.getElementById('pesoCarga').value=l.peso;
+if(l.pesoUnidad)document.getElementById('pesoCargaUnidad').value=l.pesoUnidad;
 if(l.volumen)document.getElementById('volumenCarga').value=l.volumen;
 if(l.cantidadBultos)document.getElementById('cantidadBultos').value=l.cantidadBultos;
 if(l.pesoPorBulto)document.getElementById('pesoPorBulto').value=l.pesoPorBulto;

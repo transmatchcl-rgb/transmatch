@@ -339,12 +339,12 @@ function descargarLicitacionAdminPDF(licId){
     if(l.marca)rows.push(['Marca',l.marca]);
     if(l.modelo)rows.push(['Modelo',l.modelo]);
     if(l.cantidadEquipos)rows.push(['Cantidad de equipos',String(l.cantidadEquipos)]);
-    if(l.peso)rows.push(['Peso aprox.',l.peso+' ton']);
+    if(l.peso)rows.push(['Peso aprox.',l.peso+' '+(l.pesoUnidad||'ton')]);
     if(l.dimensiones)rows.push(['Dimensiones',l.dimensiones]);
   }else{
     if(l.tipoCarga)rows.push(['Tipo de carga',l.tipoCarga]);
     if(l.cantidadEquipos)rows.push(['Cantidad de equipos',String(l.cantidadEquipos)]);
-    if(l.peso)rows.push(['Peso total',l.peso+' ton']);
+    if(l.peso)rows.push(['Peso total',l.peso+' '+(l.pesoUnidad||'ton')]);
     if(l.volumen)rows.push(['Volumen',l.volumen+' m3']);
     if(l.cantidadBultos)rows.push(['N de bultos',String(l.cantidadBultos)]);
     if(l.pesoPorBulto)rows.push(['Peso por bulto',l.pesoPorBulto+' kg']);
@@ -574,7 +574,7 @@ function renderDetalle(l){
   if(l.contactoDestinoNombre||l.contactoDestinoTelefono||l.contactoDestinoEmail){
     items.push(['Contacto en destino',[l.contactoDestinoNombre,l.contactoDestinoTelefono,l.contactoDestinoEmail].filter(Boolean).join(' · ')||'—']);
   }
-  items.push(['Peso',l.peso?l.peso+' ton':'—']);
+  items.push(['Peso',l.peso?l.peso+' '+(l.pesoUnidad||'ton'):'—']);
   items.push(['Dimensiones',l.dimensiones||'—']);
   items.push(['Plazo cotiz.',l.plazo?l.plazo+'h':'—']);
   items.push(['Valor seguro aprox.',l.valorSeguro?'$'+Number(l.valorSeguro).toLocaleString('es-CL'):'—']);

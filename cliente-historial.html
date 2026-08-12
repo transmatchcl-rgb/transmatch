@@ -240,7 +240,7 @@ function filtrar(){
  ['Destino',l.destino],
  ['Fecha de carga',fecha(l.fechaCarga)],
  ['Fecha de entrega',fecha(l.fechaEntrega)],
- ['Peso',l.peso?l.peso+' ton':'—'],
+ ['Peso',l.peso?l.peso+' '+(l.pesoUnidad||'ton'):'—'],
  ['Publicada',new Date(l.createdAt).toLocaleString('es-CL')],
  ...(l.adjudicadaA?[
  ['Transportista',l.adjudicadaA.transportistaEmpresa],
