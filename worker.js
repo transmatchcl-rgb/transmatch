@@ -1502,7 +1502,8 @@ async function handleRequest(request, env) {
     const l = JSON.parse(raw);
     if (l.estado!=="abierta") return err("Esta licitacion no esta abierta");
     const emailsT = await emailsEmpresa(env, user);
-    if ((l.cotizaciones||[]).find(c=>c.transportistaId===user.id || (c.transportistaEmail&&emailsT.has(c.transportistaEmail.toLowerCase())))) return err("Tu empresa ya envió una cotización para esta licitación");
+    const _misCotiz=(l.cotizaciones||[]).filter(c=>c.transportistaId===user.id || (c.transportistaEmail&&emailsT.has(c.transportistaEmail.toLowerCase())));
+    if(_misCotiz.length>=2) return err("Ya enviaste el máximo de 2 cotizaciones para esta licitación");
     const rawUser = await env.USERS.get(user.email); const userData = rawUser ? JSON.parse(rawUser) : {};
     const cotizacion = { id:uid(), codigo:await generarCodigo(env,'COT'), licitacionId, transportistaId:user.id, transportistaNombre:user.nombre, transportistaEmpresa:user.empresa, transportistaEmail:user.email, transportistaTelefono:userData.telefono||"", transportistaRating:userData.rating||5.0, transportistaTransportes:userData.totalTransportes||0, precio:parseFloat(precio), tiempoEntrega:tiempoEntrega||"", fechaCargaISO:fechaCargaISO||null, fechaEntregaISO:fechaEntregaISO||null, descripcion:descripcion||"", incluye:incluye||[], archivoId:archivoId||null, archivoNombre:archivoNombre||null, archivoPropioId:archivoPdfId||null, archivoPropioNombre:archivoPdfNombre||null, formulario:formulario||null, tiempoRespuesta:Math.floor((Date.now()-new Date(l.createdAt).getTime())/60000), score:0, createdAt:new Date().toISOString() };
     l.cotizaciones = [...(l.cotizaciones||[]), cotizacion];
@@ -3428,7 +3429,11 @@ async function handleRequest(request, env) {
     if(!licitacionId||!precio) return err("licitacionId y precio requeridos");
     const raw=await env.LICITACIONES.get(licitacionId); if(!raw) return err("No encontrada",404);
     const l=JSON.parse(raw); if(l.estado!=="abierta") return err("Solo puedes editar cotizaciones de licitaciones abiertas");
-    const idx=(l.cotizaciones||[]).findIndex(c=>c.transportistaId===user.id);
+    const _emailsE=await emailsEmpresa(env,user);
+    const _mine=c=>c.transportistaId===user.id || (c.transportistaEmail&&_emailsE.has(c.transportistaEmail.toLowerCase()));
+    const idx = body.cotizacionId
+      ? (l.cotizaciones||[]).findIndex(c=>c.id===body.cotizacionId && _mine(c))
+      : (l.cotizaciones||[]).findIndex(_mine);
     if(idx===-1) return err("No tienes una cotización en esta licitación");
     l.cotizaciones[idx].precio=parseFloat(precio); l.cotizaciones[idx].tiempoEntrega=tiempoEntrega||l.cotizaciones[idx].tiempoEntrega;
     if(fechaCargaISO!==undefined) l.cotizaciones[idx].fechaCargaISO=fechaCargaISO;
@@ -3451,7 +3456,9 @@ async function handleRequest(request, env) {
     const raw=await env.LICITACIONES.get(licitacionId); if(!raw) return err("No encontrada",404);
     const l=JSON.parse(raw);
     const emails=await emailsEmpresa(env,user);
-    const mc=(l.cotizaciones||[]).find(c=>c.transportistaId===user.id || (c.transportistaEmail&&emails.has(c.transportistaEmail.toLowerCase())));
+    const _mineMia=c=>c.transportistaId===user.id || (c.transportistaEmail&&emails.has(c.transportistaEmail.toLowerCase()));
+    const _cidMia=url.searchParams.get("cotizId");
+    const mc=_cidMia ? (l.cotizaciones||[]).find(c=>c.id===_cidMia && _mineMia(c)) : (l.cotizaciones||[]).find(_mineMia);
     if(!mc) return err("No tienes una cotización en esta licitación",404);
     const out=Object.assign({}, mc);
     if(user.esSubusuario) out.transportistaNombre=''; // solo la madre ve quién la hizo
@@ -3464,7 +3471,8 @@ async function handleRequest(request, env) {
     const { licitacionId } = body; if(!licitacionId) return err("licitacionId requerido");
     const raw=await env.LICITACIONES.get(licitacionId); if(!raw) return err("No encontrada",404);
     const l=JSON.parse(raw); if(l.estado!=="abierta") return err("Solo puedes eliminar cotizaciones de licitaciones abiertas");
-    l.cotizaciones=(l.cotizaciones||[]).filter(c=>c.transportistaId!==user.id);
+    if(body.cotizacionId){ l.cotizaciones=(l.cotizaciones||[]).filter(c=>!(c.id===body.cotizacionId && c.transportistaId===user.id)); }
+    else { l.cotizaciones=(l.cotizaciones||[]).filter(c=>c.transportistaId!==user.id); }
     await env.LICITACIONES.put(licitacionId, JSON.stringify(l));
     return ok({ ok:true, mensaje:"Cotización eliminada" });
   }

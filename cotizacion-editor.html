@@ -507,7 +507,7 @@ function init(){
 // Trae la cotización ya enviada y la carga en el formulario para editar
 async function cargarCotizacionExistente(){
   try{
-    const res = await fetch(API+'/api/cotizaciones/mia/'+encodeURIComponent(licitacionId),{
+    const res = await fetch(API+'/api/cotizaciones/mia/'+encodeURIComponent(licitacionId)+(cotizIdEditar?('?cotizId='+encodeURIComponent(cotizIdEditar)):''),{
       headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}
     });
     const data = await res.json();
