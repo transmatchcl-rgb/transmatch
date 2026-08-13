@@ -409,7 +409,8 @@ function descargarCotizacionAdminPDF(licId, cotId){
   fila('Transportista', (c.transportistaNombre||'-')+' / '+(c.transportistaEmpresa||'-'));
   if(c.transportistaEmail)fila('Email', c.transportistaEmail);
   fila('Precio ofertado', peso(c.precio));
-  if(c.tiempoEntrega)fila('Tiempo de entrega', c.tiempoEntrega);
+  var _fCargaCot=c.fechaCargaISO||(f&&f.fechaCarga)||l.fechaCarga||''; if(_fCargaCot)fila('Fecha de carga', _fCargaCot);
+  var _fEntCot=c.fechaEntregaISO||(f&&f.fechaEntrega)||c.tiempoEntrega||''; if(_fEntCot)fila('Fecha de entrega', _fEntCot);
   fila('Rating', String(c.transportistaRating||5));
   fila('Score', Math.round((c.score||0)*100)+'%');
   if(f.equipoUtilizado)fila('Equipo a utilizar', f.equipoUtilizado);
@@ -693,7 +694,8 @@ function renderDetalle(l){
           '<div class="cotiz-precio">'+peso(c.precio)+'</div>'+
         '</div>'+
         '<div style="font-size:12px;color:#6B7280">'+
-          'Entrega: '+(c.tiempoEntrega||'—')+
+          'Carga: '+((c.fechaCargaISO||(c.formulario&&c.formulario.fechaCarga)||l.fechaCarga)||'—')+
+          ' · Entrega: '+((c.fechaEntregaISO||(c.formulario&&c.formulario.fechaEntrega))||c.tiempoEntrega||'—')+
           ' · Rating: '+(c.transportistaRating||5)+
           (c.transportistaEmail?' · '+c.transportistaEmail:'')+
         '</div>'+
