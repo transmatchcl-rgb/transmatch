@@ -687,6 +687,7 @@ function renderDetalle(l){
           '<div>'+
             '<span style="font-size:10px;font-family:IBM Plex Mono,monospace;color:#9CA3AF;margin-right:5px">'+cotCodigo+'</span>'+
             '<span class="cotiz-empresa">'+(c.transportistaNombre||'—')+' — '+(c.transportistaEmpresa||'—')+'</span>'+
+            (c.modalidad?' <span style="background:#FFF0E0;color:#9A4B00;font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;margin-left:6px">'+c.modalidad+'</span>':'')+
             (esGan?' <span class="badge badge-green" style="margin-left:6px">Adjudicado</span>':'')+
           '</div>'+
           '<div class="cotiz-precio">'+peso(c.precio)+'</div>'+

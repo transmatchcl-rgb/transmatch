@@ -561,7 +561,7 @@ function anonimizarTransportista(c, revelar) {
   // seguro mostrarlo al cliente desde la comparación, antes de adjudicar.
   const formularioSeguro = sanitizarFormularioCotiz(c.formulario);
   const base = {
-    id:c.id, licitacionId:c.licitacionId, precio:c.precio, tiempoEntrega:c.tiempoEntrega,
+    id:c.id, licitacionId:c.licitacionId, precio:c.precio, modalidad:c.modalidad||"", tiempoEntrega:c.tiempoEntrega,
     descripcion:c.descripcion, incluye:c.incluye, tiempoRespuesta:c.tiempoRespuesta,
     transportistaRating:c.transportistaRating, transportistaTransportes:c.transportistaTransportes,
     archivoId:c.archivoId, archivoNombre:c.archivoNombre, score:c.score, createdAt:c.createdAt,
@@ -1505,7 +1505,9 @@ async function handleRequest(request, env) {
     const _misCotiz=(l.cotizaciones||[]).filter(c=>c.transportistaId===user.id || (c.transportistaEmail&&emailsT.has(c.transportistaEmail.toLowerCase())));
     if(_misCotiz.length>=2) return err("Ya enviaste el máximo de 2 cotizaciones para esta licitación");
     const rawUser = await env.USERS.get(user.email); const userData = rawUser ? JSON.parse(rawUser) : {};
-    const cotizacion = { id:uid(), codigo:await generarCodigo(env,'COT'), licitacionId, transportistaId:user.id, transportistaNombre:user.nombre, transportistaEmpresa:user.empresa, transportistaEmail:user.email, transportistaTelefono:userData.telefono||"", transportistaRating:userData.rating||5.0, transportistaTransportes:userData.totalTransportes||0, precio:parseFloat(precio), tiempoEntrega:tiempoEntrega||"", fechaCargaISO:fechaCargaISO||null, fechaEntregaISO:fechaEntregaISO||null, descripcion:descripcion||"", incluye:incluye||[], archivoId:archivoId||null, archivoNombre:archivoNombre||null, archivoPropioId:archivoPdfId||null, archivoPropioNombre:archivoPdfNombre||null, formulario:formulario||null, tiempoRespuesta:Math.floor((Date.now()-new Date(l.createdAt).getTime())/60000), score:0, createdAt:new Date().toISOString() };
+    const _MODALIDADES=["Consolidada","No consolidada"];
+    const _modalidad = _MODALIDADES.includes(body.modalidad) ? body.modalidad : "";
+    const cotizacion = { id:uid(), codigo:await generarCodigo(env,'COT'), licitacionId, transportistaId:user.id, transportistaNombre:user.nombre, transportistaEmpresa:user.empresa, transportistaEmail:user.email, transportistaTelefono:userData.telefono||"", transportistaRating:userData.rating||5.0, transportistaTransportes:userData.totalTransportes||0, precio:parseFloat(precio), modalidad:_modalidad, tiempoEntrega:tiempoEntrega||"", fechaCargaISO:fechaCargaISO||null, fechaEntregaISO:fechaEntregaISO||null, descripcion:descripcion||"", incluye:incluye||[], archivoId:archivoId||null, archivoNombre:archivoNombre||null, archivoPropioId:archivoPdfId||null, archivoPropioNombre:archivoPdfNombre||null, formulario:formulario||null, tiempoRespuesta:Math.floor((Date.now()-new Date(l.createdAt).getTime())/60000), score:0, createdAt:new Date().toISOString() };
     l.cotizaciones = [...(l.cotizaciones||[]), cotizacion];
     const todosPrecios = l.cotizaciones.map(c=>c.precio);
     l.cotizaciones = l.cotizaciones.map(c=>({...c,_allPrecios:todosPrecios,score:calcScore({...c,_allPrecios:todosPrecios},l.fechaCarga)})).sort((a,b)=>b.score-a.score);
@@ -3439,6 +3441,7 @@ async function handleRequest(request, env) {
     if(fechaCargaISO!==undefined) l.cotizaciones[idx].fechaCargaISO=fechaCargaISO;
     if(fechaEntregaISO!==undefined) l.cotizaciones[idx].fechaEntregaISO=fechaEntregaISO;
     if(descripcion!==undefined) l.cotizaciones[idx].descripcion=descripcion;
+    if(body.modalidad!==undefined){ const _MODS=["Consolidada","No consolidada"]; l.cotizaciones[idx].modalidad=_MODS.includes(body.modalidad)?body.modalidad:""; }
     if(archivoId){ l.cotizaciones[idx].archivoId=archivoId; l.cotizaciones[idx].archivoNombre=archivoNombre; }
     if(archivoPdfId){ l.cotizaciones[idx].archivoPropioId=archivoPdfId; l.cotizaciones[idx].archivoPropioNombre=archivoPdfNombre; }
     if(formulario!==undefined) l.cotizaciones[idx].formulario=formulario;

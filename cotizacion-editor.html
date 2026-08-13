@@ -236,6 +236,15 @@ input.invalid,textarea.invalid{border-color:#dc2626!important;background:#fff8f8
           <input type="text" id="f-ruta" placeholder="Ej: Calama → Santiago" oninput="clearErr('f-ruta')"/>
           <span class="field-err" id="err-f-ruta">Ingresa la ruta</span>
         </div>
+        <div class="field" id="f-modalidad-wrap" style="display:none">
+          <label>Modalidad de la oferta</label>
+          <select id="f-modalidad" onchange="autoSave()" style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;box-sizing:border-box">
+            <option value="">— Sin especificar —</option>
+            <option value="Consolidada">Consolidada</option>
+            <option value="No consolidada">No consolidada</option>
+          </select>
+          <span class="field-hint">Para carga general: indica si el precio es por carga consolidada o no.</span>
+        </div>
         <div class="field" style="grid-column:1/-1">
           <label>Descripción del servicio</label>
           <textarea id="f-desc" placeholder="Descripción general del servicio de transporte… (opcional)" oninput="clearErr('f-desc')"></textarea>
@@ -479,6 +488,8 @@ function init(){
     document.getElementById('f-id-licit').value = cod;
   }
   if(p.get('ruta'))         document.getElementById('f-ruta').value          = p.get('ruta');
+  // Modalidad (consolidada / no consolidada): solo aplica a licitaciones de carga general
+  if(p.get('tipo')==='carga'){ var _mw=document.getElementById('f-modalidad-wrap'); if(_mw) _mw.style.display=''; }
   // Las fechas de carga/entrega NO se prellenan: el transportista debe elegirlas
 
   // ── MODO EDICIÓN: traer la cotización guardada del backend ──
@@ -513,6 +524,7 @@ async function cargarCotizacionExistente(){
     const data = await res.json();
     if(res.ok && data.cotizacion){
       const c = data.cotizacion;
+      if(c.modalidad){ var _mm=document.getElementById('f-modalidad'); if(_mm){ _mm.value=c.modalidad; var _mw2=document.getElementById('f-modalidad-wrap'); if(_mw2) _mw2.style.display=''; } }
       // Si guardó el formulario completo, restaurarlo
       if(c.formulario){
         const f = c.formulario;
@@ -919,6 +931,7 @@ async function enviarCotizacion(){
       descripcion:  document.getElementById('f-obs-gen').value.trim() ||
                     document.getElementById('f-desc').value.trim(),
       incluye:      [],
+      modalidad:    (document.getElementById('f-modalidad')||{}).value || '',
       archivoId:    null,
       archivoNombre:null,
       archivoPdfId,
