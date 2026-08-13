@@ -261,6 +261,15 @@ function renderDetalle(t){
   h += '<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Email</div><div style="font-size:13px;color:#374151">'+(t.transportistaEmail?'<a href="mailto:'+t.transportistaEmail+'" style="color:#14532D">'+t.transportistaEmail+'</a>':'—')+'</div></div>';
   h += '<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Precio acordado</div><div style="font-size:13px;font-weight:700;color:#1e2d4e">'+peso(t.precio)+'</div></div>';
   h += '</div>';
+  // Encargado del transporte (opcional, lo indicó el transportista al cotizar)
+  if(t.contactoEncargado && (t.contactoEncargado.nombre||t.contactoEncargado.telefono||t.contactoEncargado.email)){
+    var _ce=t.contactoEncargado;
+    h += '<div style="border-top:0.5px solid #BBF7D0;margin-top:6px;padding-top:10px"><div style="font-size:10px;color:#14532D;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Encargado del transporte</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+      '<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Nombre</div><div style="font-size:13px;color:#374151">'+(_ce.nombre||'—')+'</div></div>'+
+      '<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Teléfono</div><div style="font-size:13px;color:#374151">'+(_ce.telefono||'—')+'</div></div>'+
+      (_ce.email?'<div style="grid-column:1/-1"><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Email</div><div style="font-size:13px;color:#374151"><a href="mailto:'+_ce.email+'" style="color:#14532D">'+_ce.email+'</a></div></div>':'')+
+    '</div></div>';
+  }
   // Equipo y conductor asignados: se muestran como tarjetas propias tras esta caja
   // Contactos operacionales del transportista
   var cOpsT=(t.contactosOperacionales||{}).transportista||[];

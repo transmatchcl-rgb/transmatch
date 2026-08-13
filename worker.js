@@ -573,6 +573,7 @@ function anonimizarTransportista(c, revelar) {
     base.archivoPropioId = c.archivoPropioId||null;
     base.archivoPropioNombre = c.archivoPropioNombre||null;
     base.formulario = c.formulario||null;
+    base.contactoEncargado = c.contactoEncargado||null;
   }
   return base;
 }
@@ -1507,7 +1508,9 @@ async function handleRequest(request, env) {
     const rawUser = await env.USERS.get(user.email); const userData = rawUser ? JSON.parse(rawUser) : {};
     const _MODALIDADES=["Consolidada","No consolidada"];
     const _modalidad = _MODALIDADES.includes(body.modalidad) ? body.modalidad : "";
-    const cotizacion = { id:uid(), codigo:await generarCodigo(env,'COT'), licitacionId, transportistaId:user.id, transportistaNombre:user.nombre, transportistaEmpresa:user.empresa, transportistaEmail:user.email, transportistaTelefono:userData.telefono||"", transportistaRating:userData.rating||5.0, transportistaTransportes:userData.totalTransportes||0, precio:parseFloat(precio), modalidad:_modalidad, tiempoEntrega:tiempoEntrega||"", fechaCargaISO:fechaCargaISO||null, fechaEntregaISO:fechaEntregaISO||null, descripcion:descripcion||"", incluye:incluye||[], archivoId:archivoId||null, archivoNombre:archivoNombre||null, archivoPropioId:archivoPdfId||null, archivoPropioNombre:archivoPdfNombre||null, formulario:formulario||null, tiempoRespuesta:Math.floor((Date.now()-new Date(l.createdAt).getTime())/60000), score:0, createdAt:new Date().toISOString() };
+    const _sanContacto=function(c){ c=c||{}; const n=(c.nombre||'').toString().trim().slice(0,120),t=(c.telefono||'').toString().trim().slice(0,30),e=(c.email||'').toString().trim().slice(0,120); return (n||t||e)?{nombre:n,telefono:t,email:e}:null; };
+    const _contactoEnc=_sanContacto(body.contactoEncargado);
+    const cotizacion = { id:uid(), codigo:await generarCodigo(env,'COT'), licitacionId, transportistaId:user.id, transportistaNombre:user.nombre, transportistaEmpresa:user.empresa, transportistaEmail:user.email, transportistaTelefono:userData.telefono||"", transportistaRating:userData.rating||5.0, transportistaTransportes:userData.totalTransportes||0, precio:parseFloat(precio), modalidad:_modalidad, contactoEncargado:_contactoEnc, tiempoEntrega:tiempoEntrega||"", fechaCargaISO:fechaCargaISO||null, fechaEntregaISO:fechaEntregaISO||null, descripcion:descripcion||"", incluye:incluye||[], archivoId:archivoId||null, archivoNombre:archivoNombre||null, archivoPropioId:archivoPdfId||null, archivoPropioNombre:archivoPdfNombre||null, formulario:formulario||null, tiempoRespuesta:Math.floor((Date.now()-new Date(l.createdAt).getTime())/60000), score:0, createdAt:new Date().toISOString() };
     l.cotizaciones = [...(l.cotizaciones||[]), cotizacion];
     const todosPrecios = l.cotizaciones.map(c=>c.precio);
     l.cotizaciones = l.cotizaciones.map(c=>({...c,_allPrecios:todosPrecios,score:calcScore({...c,_allPrecios:todosPrecios},l.fechaCarga)})).sort((a,b)=>b.score-a.score);
@@ -1851,7 +1854,7 @@ async function handleRequest(request, env) {
         };
       }
     } catch(e){}
-    const transporte={ id:transporteId, codigo:codigoTRN, licitacionId:id, empresaId:l.empresaId||l.clienteId, creadoPorEmail:l.creadoPorEmail||l.clienteEmail, creadoPorNombre:l.creadoPorNombre||l.clienteNombre||'', licitacionCodigo:l.codigo||"", tipoEquipo:l.tipoEquipo+(l.marca?" - "+l.marca:""), origen:l.origen, destino:l.destino, precio:cotiz.precio, clienteEmail:l.clienteEmail, clienteEmpresa:l.clienteEmpresa, clienteNombre:l.clienteNombre||"", clienteTelefono:l.clienteTelefono||"", clienteFacturacion:clienteFacturacion, requisitosEstandar:(Array.isArray(l.estandarRequisitos)?l.estandarRequisitos.map(r=>({id:r.id,label:r.label,archivoId:null,archivoNombre:null,subidoAt:null})):[]), transportistaEmail:cotiz.transportistaEmail, transportistaNombre:cotiz.transportistaNombre, transportistaEmpresa:cotiz.transportistaEmpresa, transportistaTelefono:cotiz.transportistaTelefono||"", estado:"preparacion", estadoDocumentos:"pendiente", historial:[{ estado:"preparacion", nota:"Transporte creado al adjudicar", fecha:new Date().toISOString(), actor:"Sistema" }], oc:null, factura:null, adjudicadoAt:new Date().toISOString() };
+    const transporte={ id:transporteId, codigo:codigoTRN, licitacionId:id, empresaId:l.empresaId||l.clienteId, creadoPorEmail:l.creadoPorEmail||l.clienteEmail, creadoPorNombre:l.creadoPorNombre||l.clienteNombre||'', licitacionCodigo:l.codigo||"", tipoEquipo:l.tipoEquipo+(l.marca?" - "+l.marca:""), origen:l.origen, destino:l.destino, precio:cotiz.precio, clienteEmail:l.clienteEmail, clienteEmpresa:l.clienteEmpresa, clienteNombre:l.clienteNombre||"", clienteTelefono:l.clienteTelefono||"", clienteFacturacion:clienteFacturacion, requisitosEstandar:(Array.isArray(l.estandarRequisitos)?l.estandarRequisitos.map(r=>({id:r.id,label:r.label,archivoId:null,archivoNombre:null,subidoAt:null})):[]), transportistaEmail:cotiz.transportistaEmail, transportistaNombre:cotiz.transportistaNombre, transportistaEmpresa:cotiz.transportistaEmpresa, transportistaTelefono:cotiz.transportistaTelefono||"", contactoEncargado:cotiz.contactoEncargado||null, estado:"preparacion", estadoDocumentos:"pendiente", historial:[{ estado:"preparacion", nota:"Transporte creado al adjudicar", fecha:new Date().toISOString(), actor:"Sistema" }], oc:null, factura:null, adjudicadoAt:new Date().toISOString() };
     await env.RETORNOS.put("transporte:"+transporteId, JSON.stringify(transporte));
     const allT=JSON.parse(await env.RETORNOS.get("transportes:all")||"[]"); allT.unshift(transporteId); await env.RETORNOS.put("transportes:all", JSON.stringify(allT));
     const ov = await crearOV(env, { transporteId, licitacion:l, cotizacion:cotiz });
@@ -3442,6 +3445,7 @@ async function handleRequest(request, env) {
     if(fechaEntregaISO!==undefined) l.cotizaciones[idx].fechaEntregaISO=fechaEntregaISO;
     if(descripcion!==undefined) l.cotizaciones[idx].descripcion=descripcion;
     if(body.modalidad!==undefined){ const _MODS=["Consolidada","No consolidada"]; l.cotizaciones[idx].modalidad=_MODS.includes(body.modalidad)?body.modalidad:""; }
+    if(body.contactoEncargado!==undefined){ const c=body.contactoEncargado||{}; const n=(c.nombre||'').toString().trim().slice(0,120),t=(c.telefono||'').toString().trim().slice(0,30),e=(c.email||'').toString().trim().slice(0,120); l.cotizaciones[idx].contactoEncargado=(n||t||e)?{nombre:n,telefono:t,email:e}:null; }
     if(archivoId){ l.cotizaciones[idx].archivoId=archivoId; l.cotizaciones[idx].archivoNombre=archivoNombre; }
     if(archivoPdfId){ l.cotizaciones[idx].archivoPropioId=archivoPdfId; l.cotizaciones[idx].archivoPropioNombre=archivoPdfNombre; }
     if(formulario!==undefined) l.cotizaciones[idx].formulario=formulario;
