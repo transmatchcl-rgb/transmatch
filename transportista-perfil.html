@@ -282,7 +282,6 @@
           <div class="fg"><label>Correo electrónico</label><input type="email" id="inp-email" disabled/></div>
           <div class="fg"><label>Teléfono / WhatsApp</label><input type="tel" id="inp-tel" placeholder="+56 9 XXXX XXXX"/></div>
           <div class="fg"><label>Ciudad base</label><input type="text" id="inp-ciudad" placeholder="Ej: Santiago"/></div>
-          <div class="fg"><label>RUT</label><input type="text" id="inp-rut" placeholder="12.345.678-9"/><div id="rut-err1" style="display:none;font-size:11px;color:#EF4444;margin-top:3px">RUT inválido — verifica el dígito verificador</div></div>
           <div class="fg"><label>Cargo</label><input type="text" id="inp-cargo" placeholder="Ej: Gerente de operaciones"/></div>
         </div>
         <div class="ok" id="ok1">✓ Perfil actualizado correctamente</div>
@@ -821,7 +820,6 @@ function fill() {
   document.getElementById('inp-email').value   = em;
   document.getElementById('inp-tel').value     = U.telefono || U.whatsapp || '';
   document.getElementById('inp-ciudad').value  = U.ciudad   || '';
-  document.getElementById('inp-rut').value     = U.rut      || '';
   document.getElementById('inp-cargo').value   = U.cargo    || '';
   document.getElementById('inp-empresa').value = emp;
   document.getElementById('inp-rut2').value    = U.rutEmpresa || '';
@@ -882,7 +880,6 @@ async function guardar() {
       telefono: document.getElementById('inp-tel').value.trim(),
       whatsapp: document.getElementById('inp-tel').value.trim(),
       ciudad:   document.getElementById('inp-ciudad').value.trim(),
-      rut:      document.getElementById('inp-rut').value.trim(),
       cargo:    document.getElementById('inp-cargo').value.trim(),
     };
     var res = await fetch(API + '/api/perfil', {
@@ -1930,7 +1927,7 @@ function onRutInput(e) {
 }
 
 function initRutInputs() {
-  ['inp-rut', 'inp-rut2'].forEach(function(id) {
+  ['inp-rut2'].forEach(function(id) {
     var el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('input', onRutInput);
