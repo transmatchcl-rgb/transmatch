@@ -1583,9 +1583,10 @@ async function handleRequest(request, env) {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     const id=path.split("/")[4]; const raw=await env.LICITACIONES.get(id); if(!raw) return err("No encontrada",404);
     let _body={}; try{_body=await request.json();}catch(e){}
-    const l=JSON.parse(raw); if(l.estado!=="abierta") return err("No esta abierta");
+    const l=JSON.parse(raw); if(!["abierta","cerrada"].includes(l.estado)) return err("Solo se puede cerrar una licitación abierta o en revisión");
     const cotizaciones=l.cotizaciones||[];
-    if(_body.sinEnviar || cotizaciones.length===0){
+    // Si ya está en revisión (cerrada), cerrar es siempre terminal (no re-enviar TOP 3).
+    if(_body.sinEnviar || cotizaciones.length===0 || l.estado==="cerrada"){
       // Cierre por admin SIN enviar el TOP 3 (o sin cotizaciones): estado terminal.
       // El cliente la ve "Cerrada" (flag cerradaPorAdmin) y el transportista "No adjudicada"
       // (estado expirada, fuera del listado activo). No se envía correo a nadie.

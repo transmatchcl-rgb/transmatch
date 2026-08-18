@@ -737,6 +737,9 @@ function renderDetalle(l){
       acc.push('<button class="btn btn-outline" onclick="event.stopPropagation();cerrarLicitSinEnviar(\''+l.id+'\')">Cerrar licitación</button>');
     }
   }
+  if(l.estado==='cerrada'){
+    acc.push('<button class="btn btn-outline" onclick="event.stopPropagation();cerrarLicitSinEnviar(\''+l.id+'\')">Cerrar licitación</button>');
+  }
   if(l.estado==='adjudicada'&&!l.cobro){
     acc.push('<button class="btn btn-orange" onclick="event.stopPropagation();generarCobro(\''+l.id+'\')">Generar cobro 4%</button>');
   }
