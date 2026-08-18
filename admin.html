@@ -712,7 +712,18 @@
     }
     var lineas=Object.keys(resumen).map(function(k){ return '• '+k+': '+resumen[k]; }).join('\n');
     var errs=errores.length?('\n\nERRORES:\n'+errores.join('\n')):'';
-    alert((dryRun?'PRUEBA (no se escribió nada) — registros detectados:\n\n':'MIGRACIÓN REAL — registros cargados:\n\n')+lineas+errs);
+    var texto=(dryRun?'PRUEBA (no se escribió nada) — registros detectados:\n\n':'MIGRACIÓN REAL — registros cargados:\n\n')+(lineas||'(sin datos)')+errs;
+    try{ console.log('[migrarSupabase]', texto); }catch(e){}
+    var prev=document.getElementById('sb-result'); if(prev) prev.remove();
+    var box=document.createElement('div');
+    box.id='sb-result';
+    box.style.cssText='position:fixed;inset:0;background:rgba(17,24,39,.5);display:flex;align-items:center;justify-content:center;z-index:99999;padding:20px';
+    box.innerHTML='<div style="background:#fff;border-radius:12px;padding:20px;max-width:460px;width:100%;max-height:80vh;overflow:auto">'
+      +'<div style="font-size:15px;font-weight:700;color:#1e2d4e;margin-bottom:10px">Resultado de la migración</div>'
+      +'<pre style="white-space:pre-wrap;font-size:13px;color:#374151;font-family:inherit;margin:0 0 14px">'+texto.replace(/</g,"&lt;")+'</pre>'
+      +'<button onclick="document.getElementById(\'sb-result\').remove()" style="padding:9px 16px;border-radius:8px;border:none;background:#1e2d4e;color:#fff;font-weight:600;cursor:pointer">Cerrar</button></div>';
+    box.addEventListener('click',function(e){ if(e.target===box) box.remove(); });
+    document.body.appendChild(box);
   }
   async function migrarSupabaseArchivos(){
     if(!confirm('Migrar los ARCHIVOS (PDFs/imágenes) a Supabase. Puede tardar. ¿Continuar?')) return;
