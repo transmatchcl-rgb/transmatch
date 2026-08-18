@@ -700,30 +700,39 @@
   }
 
   var _TABLAS_SB=['empresas','facturas_suscripcion','usuarios','equipos','licitaciones','cotizaciones','preguntas','transportes','ordenes_venta','facturas_consolidado','retornos','notificaciones','actividad','secuencias'];
-  async function migrarSupabase(dryRun){
-    if(!dryRun && !confirm('Vas a CARGAR todos los datos a Supabase (modo real). Es seguro re-ejecutarlo (actualiza, no duplica). ¿Continuar?')) return;
-    var resumen={}, errores=[];
-    for(var i=0;i<_TABLAS_SB.length;i++){
-      var t=_TABLAS_SB[i];
-      toast((dryRun?'Probando ':'Migrando ')+t+'... ('+(i+1)+'/'+_TABLAS_SB.length+')');
-      var r=await api('/api/admin/migrar-supabase','POST',{ tabla:t, dryRun:!!dryRun });
-      if(r && r.ok){ Object.assign(resumen, r.data.insertados||{}); if(r.data.errores&&r.data.errores.length) errores=errores.concat(r.data.errores); }
-      else errores.push(t+': '+((r&&r.data&&r.data.error)||'sin respuesta'));
-    }
-    var lineas=Object.keys(resumen).map(function(k){ return '• '+k+': '+resumen[k]; }).join('\n');
-    var errs=errores.length?('\n\nERRORES:\n'+errores.join('\n')):'';
-    var texto=(dryRun?'PRUEBA (no se escribió nada) — registros detectados:\n\n':'MIGRACIÓN REAL — registros cargados:\n\n')+(lineas||'(sin datos)')+errs;
-    try{ console.log('[migrarSupabase]', texto); }catch(e){}
+  function _sbBox(titulo){
     var prev=document.getElementById('sb-result'); if(prev) prev.remove();
-    var box=document.createElement('div');
-    box.id='sb-result';
+    var box=document.createElement('div'); box.id='sb-result';
     box.style.cssText='position:fixed;inset:0;background:rgba(17,24,39,.5);display:flex;align-items:center;justify-content:center;z-index:99999;padding:20px';
-    box.innerHTML='<div style="background:#fff;border-radius:12px;padding:20px;max-width:460px;width:100%;max-height:80vh;overflow:auto">'
-      +'<div style="font-size:15px;font-weight:700;color:#1e2d4e;margin-bottom:10px">Resultado de la migración</div>'
-      +'<pre style="white-space:pre-wrap;font-size:13px;color:#374151;font-family:inherit;margin:0 0 14px">'+texto.replace(/</g,"&lt;")+'</pre>'
+    box.innerHTML='<div style="background:#fff;border-radius:12px;padding:20px;max-width:480px;width:100%;max-height:80vh;overflow:auto">'
+      +'<div style="font-size:15px;font-weight:700;color:#1e2d4e;margin-bottom:10px">'+titulo+'</div>'
+      +'<pre id="sb-log" style="white-space:pre-wrap;font-size:13px;color:#374151;font-family:inherit;margin:0 0 14px">Iniciando…</pre>'
       +'<button onclick="document.getElementById(\'sb-result\').remove()" style="padding:9px 16px;border-radius:8px;border:none;background:#1e2d4e;color:#fff;font-weight:600;cursor:pointer">Cerrar</button></div>';
     box.addEventListener('click',function(e){ if(e.target===box) box.remove(); });
     document.body.appendChild(box);
+    return document.getElementById('sb-log');
+  }
+  async function migrarSupabase(dryRun){
+    if(!dryRun && !confirm('Vas a CARGAR todos los datos a Supabase (modo real). Es seguro re-ejecutarlo (actualiza, no duplica). ¿Continuar?')) return;
+    var log=_sbBox(dryRun?'Prueba de migración (no escribe nada)':'Migración a Supabase (real)');
+    log.textContent='';
+    var add=function(s){ log.textContent+=s+'\n'; };
+    for(var i=0;i<_TABLAS_SB.length;i++){
+      var t=_TABLAS_SB[i];
+      try{
+        var r=await api('/api/admin/migrar-supabase','POST',{ tabla:t, dryRun:!!dryRun });
+        if(r && r.ok){
+          var n=(r.data && r.data.insertados && r.data.insertados[t]); if(n===undefined||n===null) n=0;
+          var e=(r.data && r.data.errores && r.data.errores.length)?('  ⚠ '+r.data.errores.join('; ')):'';
+          add('• '+t+': '+n+e);
+        } else {
+          add('• '+t+': ERROR '+((r&&r.data&&r.data.error)||'sin respuesta'));
+        }
+      }catch(err){
+        add('• '+t+': ERROR '+((err&&err.message)?err.message:String(err)));
+      }
+    }
+    add('\n— Fin —');
   }
   async function migrarSupabaseArchivos(){
     if(!confirm('Migrar los ARCHIVOS (PDFs/imágenes) a Supabase. Puede tardar. ¿Continuar?')) return;
