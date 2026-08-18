@@ -55,6 +55,26 @@ async function generarCodigo(env, tipo) {
   return tipo + '-' + String(num).padStart(4, '0');
 }
 
+// ── Helpers de migración a Supabase (Fase 2) ──
+function _sbBase(env){ return (env.SUPABASE_URL||"").replace(/\/+$/,"").replace(/\/rest\/v1$/,""); }
+async function sbUpsert(env, table, rows){
+  if(!rows || !rows.length) return 0;
+  const url = _sbBase(env) + "/rest/v1/" + table;
+  let total = 0;
+  for(let i=0;i<rows.length;i+=200){
+    const chunk = rows.slice(i, i+200);
+    const r = await fetch(url, {
+      method:"POST",
+      headers:{ "apikey":env.SUPABASE_KEY, "Authorization":"Bearer "+env.SUPABASE_KEY, "Content-Type":"application/json", "Prefer":"resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify(chunk)
+    });
+    if(!r.ok){ const t=await r.text(); throw new Error(table+" ("+r.status+"): "+t.slice(0,400)); }
+    total += chunk.length;
+  }
+  return total;
+}
+async function kvAllKeys(ns){ const out=[]; let cursor; do{ const l=await ns.list({cursor}); for(const k of l.keys) out.push(k.name); cursor=l.list_complete?undefined:l.cursor; }while(cursor); return out; }
+
 async function getUser(request, env) {
   const auth  = request.headers.get("Authorization") || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : auth;
@@ -1155,6 +1175,132 @@ async function handleRequest(request, env) {
 
   // POST /api/admin/migrar-empresas — FASE 1 del modelo Empresa. Aditivo: crea registros empresa:<id>
   // y etiqueta a cada usuario con empresaId + rol. NO borra nada. Con {dryRun:true} (por defecto) solo reporta.
+  // POST /api/admin/migrar-supabase — carga los datos de KV a Supabase (Fase 2).
+  // body: { tabla?: 'todo'|'empresas'|'usuarios'|..., dryRun?: bool }
+  if (path === "/api/admin/migrar-supabase" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    if(!env.SUPABASE_URL || !env.SUPABASE_KEY) return err("Falta configurar SUPABASE_URL y SUPABASE_KEY en Cloudflare");
+    let body={}; try{ body=await request.json(); }catch(e){}
+    const tabla = body.tabla || "todo";
+    const dryRun = body.dryRun !== false; // por defecto dry-run (no escribe)
+    const D=v=>{ if(!v) return null; const s=String(v).slice(0,10); return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:null; };
+    const TS=v=>v||null;
+    const NUM=v=>{ if(v===''||v==null) return null; const n=Number(v); return isNaN(n)?null:n; };
+    const B=v=>v===true?true:(v===false?false:null);
+    const J=v=>(v==null?null:v);
+    const parseJSON=r=>{ try{ return JSON.parse(r); }catch(e){ return null; } };
+    const out={}; const errores=[];
+    const run=async(name, rows)=>{ try{ if(dryRun){ out[name]=rows.length; } else { out[name]=await sbUpsert(env, name, rows); } }catch(e){ errores.push(name+": "+e.message); } };
+
+    // Cargar entidades desde KV según la tabla pedida
+    const quiere=t=>(tabla==="todo"||tabla===t);
+
+    // empresas + facturas_suscripcion
+    let facSusc=[];
+    if(quiere("empresas")||quiere("facturas_suscripcion")){
+      const rows=[];
+      if(env.EMPRESAS){
+        for(const k of await kvAllKeys(env.EMPRESAS)){
+          if(!k.startsWith("empresa:")) continue;
+          const e=parseJSON(await env.EMPRESAS.get(k)); if(!e) continue;
+          rows.push({ id:e.id, tipo:e.tipo||null, razon_social:e.razonSocial||null, rut:e.rut||null, giro:e.giro||null, direccion:e.direccion||null, comuna:e.comuna||null, ciudad:e.ciudadEmpresa||null, telefono:e.telEmpresa||null, web:e.web||null, descripcion:e.descripcion||null, plan:e.plan||null, estado:e.estado||null, dueno_email:e.duenoEmail||null, max_usuarios:NUM(e.maxUsuarios), industrias:J(e.industrias), vigencia:J(e.vigencia), facturacion:J(e.facturacion), contactos:J(e.contactos), datos_bancarios:J(e.datosBancarios), datos:e });
+          for(const f of (e.facturasSuscripcion||[])) facSusc.push({ id:f.id, empresa_id:e.id, numero:f.numero||null, periodo:f.periodo||null, monto:NUM(f.monto), fecha_emision:D(f.fechaEmision), estado:f.estado||null, archivo_id:f.archivoId||null, archivo_nombre:f.archivoNombre||null, pagada_at:TS(f.pagadaAt), created_at:TS(f.creadoAt) });
+        }
+      }
+      if(quiere("empresas")) await run("empresas", rows);
+    }
+    if(quiere("facturas_suscripcion")) await run("facturas_suscripcion", facSusc);
+
+    // usuarios + equipos
+    if(quiere("usuarios")||quiere("equipos")){
+      const users=[], equipos=[];
+      for(const k of await kvAllKeys(env.USERS)){
+        if(k.startsWith("id:")||k.startsWith("contador:")) continue;
+        const u=parseJSON(await env.USERS.get(k)); if(!u||!u.email) continue;
+        users.push({ id:u.id, email:(u.email||"").toLowerCase(), password_hash:u.password||null, nombre:u.nombre||null, telefono:u.telefono||null, cargo:u.cargo||null, role:u.role||null, estado:u.estado||null, plan:u.plan||null, empresa_id:u.empresaId||null, rol:u.rol||null, es_subusuario:B(u.esSubusuario), empresa_madre_id:u.empresaMadreId||null, rating:NUM(u.rating), total_transportes:NUM(u.totalTransportes), zonas:J(u.zonas), industrias:J(u.industrias), tipos_equipo:J(u.tiposEquipo), notif_prefs:J(u.notifPrefs), datos:u });
+        for(const eq of (u.equipos||[])) equipos.push({ id:eq.id, usuario_id:u.id, empresa_id:u.empresaId||null, tipo:eq.tipo||null, marca:eq.marca||null, modelo:eq.modelo||null, ano:eq.ano?String(eq.ano):null, patente:eq.patente||null, capacidad_max:NUM(eq.capacidadMax), largo_max:NUM(eq.largoMax), ancho_max:NUM(eq.anchoMax), alto_max:NUM(eq.altoMax), descripcion:eq.descripcion||null, documentos:J(eq.documentos), datos:eq, created_at:TS(eq.createdAt) });
+      }
+      if(quiere("usuarios")) await run("usuarios", users);
+      if(quiere("equipos"))  await run("equipos", equipos);
+    }
+
+    // licitaciones + cotizaciones + preguntas
+    if(quiere("licitaciones")||quiere("cotizaciones")||quiere("preguntas")){
+      const lics=[], cots=[], pregs=[];
+      for(const k of await kvAllKeys(env.LICITACIONES)){
+        if(k==="all"||k.startsWith("cliente:")) continue;
+        const l=parseJSON(await env.LICITACIONES.get(k)); if(!l||!l.id) continue;
+        lics.push({ id:l.id, codigo:l.codigo||null, empresa_id:(l.empresaId||l.clienteId)||null, creado_por_email:l.creadoPorEmail||null, tipo_licitacion:l.tipoLicitacion||null, tipo_equipo:l.tipoEquipo||null, tipo_equipo_requerido:l.tipoEquipoRequerido||null, marca:l.marca||null, modelo:l.modelo||null, cantidad_equipos:l.cantidadEquipos?String(l.cantidadEquipos):null, tipo_carga:l.tipoCarga||null, peso:l.peso?String(l.peso):null, peso_unidad:l.pesoUnidad||null, volumen:l.volumen?String(l.volumen):null, dimensiones:l.dimensiones||null, descripcion:l.descripcion||null, origen:l.origen||null, destino:l.destino||null, direccion_origen:l.direccionOrigen||null, direccion_destino:l.direccionDestino||null, tipo_entrega_destino:l.tipoEntregaDestino||null, valor_seguro:l.valorSeguro?String(l.valorSeguro):null, fecha_carga:D(l.fechaCarga), hora_carga:l.horaCarga||null, fecha_entrega:D(l.fechaEntrega), hora_descarga:l.horaDescarga||null, plazo:l.plazo?String(l.plazo):null, requiere_estandar:B(l.requiereEstandar), estandar_detalle:l.estandarDetalle||null, archivo_id:l.archivoId||null, archivo_nombre:l.archivoNombre||null, archivo_visible_transportista:B(l.archivoVisibleTransportista), estandar_archivo_id:l.estandarArchivoId||null, estandar_archivo_nombre:l.estandarArchivoNombre||null, estandar_archivo_visible_transportista:B(l.estandarArchivoVisibleTransportista), estado:l.estado||null, ronda:NUM(l.ronda), cierre_at:TS(l.cierreAt), aprobada_at:TS(l.aprobadaAt), adjudicada_at:TS(l.adjudicadaAt), cerrada_at:TS(l.cerradaAt), expirada_at:TS(l.expiradaAt), cerrada_por_admin:B(l.cerradaPorAdmin), cerrada_por_vencimiento:B(l.cerradaPorVencimiento), motivo_cierre:l.motivoCierre||null, comentario_admin:l.comentarioAdmin||null, adjudicada_a:J(l.adjudicadaA), valoracion:J(l.valoracion), comentarios_admin:J(l.comentariosAdmin), estandar_requisitos:J(l.estandarRequisitos), datos:l, created_at:TS(l.createdAt) });
+        for(const c of (l.cotizaciones||[])) cots.push({ id:c.id, codigo:c.codigo||null, licitacion_id:l.id, transportista_id:c.transportistaId||null, transportista_email:c.transportistaEmail||null, transportista_empresa:c.transportistaEmpresa||null, transportista_nombre:c.transportistaNombre||null, precio:NUM(c.precio), modalidad:c.modalidad||null, tiempo_entrega:c.tiempoEntrega||null, fecha_carga_iso:c.fechaCargaISO||null, fecha_entrega_iso:c.fechaEntregaISO||null, descripcion:c.descripcion||null, score:NUM(c.score), contacto_encargado:J(c.contactoEncargado), formulario:J(c.formulario), archivo_id:c.archivoId||null, archivo_propio_id:c.archivoPropioId||null, created_at:TS(c.createdAt), editado_at:TS(c.editadoAt), datos:c });
+        for(const q of (l.preguntas||[])) pregs.push({ id:q.id||(l.id+"-"+(q.createdAt||Math.random())), licitacion_id:l.id, autor_id:q.autorId||q.transportistaId||null, autor_rol:q.autorRol||q.rol||null, texto:q.texto||q.pregunta||null, respuesta:q.respuesta||null, respondida_at:TS(q.respondidaAt), created_at:TS(q.createdAt), datos:q });
+      }
+      if(quiere("licitaciones")) await run("licitaciones", lics);
+      if(quiere("cotizaciones")) await run("cotizaciones", cots);
+      if(quiere("preguntas"))    await run("preguntas", pregs);
+    }
+
+    // transportes
+    if(quiere("transportes")){
+      const rows=[];
+      for(const k of await kvAllKeys(env.RETORNOS)){
+        if(!k.startsWith("transporte:")) continue;
+        const t=parseJSON(await env.RETORNOS.get(k)); if(!t||!t.id) continue;
+        rows.push({ id:t.id, codigo:t.codigo||null, licitacion_id:t.licitacionId||null, empresa_id:(t.empresaId||t.clienteId)||null, transportista_email:t.transportistaEmail||null, transportista_empresa:t.transportistaEmpresa||null, precio:NUM(t.precio), estado:t.estado||null, estado_documentos:t.estadoDocumentos||null, oc:J(t.oc), factura:J(t.factura), pod:J(t.pod), guia_despacho:J(t.guiaDespacho), pago_cliente:J(t.pagoCliente), contacto_encargado:J(t.contactoEncargado), valoracion:J(t.valoracion), cliente_facturacion:J(t.clienteFacturacion), requisitos_estandar:J(t.requisitosEstandar), asignado_email:t.asignadoEmail||null, historial:J(t.historial), incidencias_cliente:J(t.incidenciasCliente), incidencias_transportista:J(t.incidenciasTransportista), documentos_extra:J(t.documentosExtra), adjudicado_at:TS(t.adjudicadoAt), entregado_at:TS(t.entregadoAt), completado_at:TS(t.completadoAt), datos:t, created_at:TS(t.adjudicadoAt) });
+      }
+      await run("transportes", rows);
+    }
+
+    // ordenes_venta + facturas_consolidado
+    if(quiere("ordenes_venta")||quiere("facturas_consolidado")){
+      const ovs=[], facs=[];
+      for(const k of await kvAllKeys(env.OVS)){
+        if(k.startsWith("ov:")){ const o=parseJSON(await env.OVS.get(k)); if(o&&o.id_ov) ovs.push({ id_ov:o.id_ov, id_transporte:o.id_transporte||null, id_transportista:o.id_transportista||null, id_cliente:o.id_cliente||null, id_licitacion:o.id_licitacion||null, transportista_empresa:o.transportistaEmpresa||null, cliente_empresa:o.clienteEmpresa||null, estado:o.estado||null, monto_cotizado:NUM(o.monto_cotizado), monto_facturado:NUM(o.monto_facturado), comision_estimada:NUM(o.comision_estimada), comision_final:NUM(o.comision_final), comision_porcentaje:NUM(o.comision_porcentaje), comision_tope_uf:NUM(o.comision_tope_uf), tope_aplicado:B(o.tope_aplicado), uf_del_dia:NUM(o.uf_del_dia), id_factura_transportista:o.id_factura_transportista||null, fecha_adjudicacion:TS(o.fecha_adjudicacion), fecha_confirmacion:TS(o.fecha_confirmacion), fecha_facturacion:TS(o.fecha_facturacion), fecha_pago_confirmado:TS(o.fecha_pago_confirmado), metodo_pago:o.metodo_pago||null, historial:J(o.historial), datos:o }); }
+        else if(k.startsWith("factura:")){ const f=parseJSON(await env.OVS.get(k)); if(f&&f.id) facs.push({ id:f.id, transportista_id:f.transportistaId||f.id_transportista||null, periodo:f.periodo||null, monto:NUM(f.monto), estado:f.estado||null, estado_factura:f.estado_factura||null, ovs_ids:J(f.ovs_ids), factura_sii_archivo_id:f.facturaSiiArchivoId||null, created_at:TS(f.createdAt||f.creadoAt), datos:f }); }
+      }
+      if(quiere("ordenes_venta"))       await run("ordenes_venta", ovs);
+      if(quiere("facturas_consolidado")) await run("facturas_consolidado", facs);
+    }
+
+    // retornos
+    if(quiere("retornos")){
+      const rows=[]; const ids=parseJSON(await env.RETORNOS.get("all"))||[];
+      for(const id of ids){ const r=parseJSON(await env.RETORNOS.get(id)); if(r&&r.id) rows.push({ id:r.id, transportista_id:r.transportistaId||null, transportista_email:r.transportistaEmail||null, origen:r.origen||null, destino:r.destino||null, fecha:D(r.fecha), estado:r.estado||null, datos:r, created_at:TS(r.createdAt) }); }
+      await run("retornos", rows);
+    }
+
+    // notificaciones + actividad + secuencias
+    if(quiere("notificaciones")){
+      const rows=[];
+      for(const k of await kvAllKeys(env.SESSIONS)){
+        if(!k.startsWith("notif:")) continue; const parts=k.split(":");
+        const n=parseJSON(await env.SESSIONS.get(k)); if(!n) continue;
+        rows.push({ id:(n.id||k), destinatario:parts[1]||null, tipo:n.tipo||null, mensaje:n.mensaje||null, data:J(n.data), leida:B(n.leida), created_at:TS(n.createdAt) });
+      }
+      await run("notificaciones", rows);
+    }
+    if(quiere("actividad")){
+      const feed=parseJSON(await env.SESSIONS.get("actividad:index"))||[];
+      await run("actividad", feed.map(a=>({ tipo:a.tipo||null, mensaje:a.mensaje||null, data:J(a.data), created_at:TS(a.createdAt) })));
+    }
+    if(quiere("secuencias")){
+      const rows=[];
+      for(const s of ["LIC","COT","TRN","OV"]){ const v=await env.SESSIONS.get("contador:"+s); rows.push({ nombre:s, valor:parseInt(v||"0") }); }
+      await run("secuencias", rows);
+    }
+
+    // archivos (pesado: solo cuando se pide explícitamente)
+    if(tabla==="archivos"){
+      const rows=[];
+      for(const k of await kvAllKeys(env.ARCHIVOS)){
+        const a=parseJSON(await env.ARCHIVOS.get(k)); if(!a) continue;
+        rows.push({ id:a.id||k, nombre:a.nombre||null, tipo:a.tipo||a.mimeType||null, base64:a.base64||null, subido_por:a.subidoPor||null, oculto_transportista:B(a.ocultoTransportista), visibilidad:a.visibilidad||null, licitacion_id:a.licitacionId||null, created_at:TS(a.createdAt) });
+      }
+      await run("archivos", rows);
+    }
+
+    return ok({ ok:true, dryRun, tabla, insertados:out, errores });
+  }
+
   if (path === "/api/admin/migrar-empresas" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     let body={}; try{ body=await request.json(); }catch(e){}
