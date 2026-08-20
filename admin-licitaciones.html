@@ -515,6 +515,7 @@ function renderCard(l){
       '</div>'+
       '<div class="li-right">'+
         '<div class="li-cotiz">'+nCotiz+' cotiz.</div>'+
+        (l.esPrueba?'<span class="badge" style="background:#EDE9FE;color:#5B21B6;margin-bottom:2px">PRUEBA</span>':'')+
         estadoBadge(l.estado, l)+
         (l.estado==='abierta'&&l.cierreAt?'<div class="cuenta-regresiva" data-cierre="'+l.cierreAt+'" style="font-size:10px;color:#9CA3AF;margin-top:2px;text-align:right"></div>':'')+
       '</div>'+
@@ -743,6 +744,7 @@ function renderDetalle(l){
   if(l.estado==='adjudicada'&&!l.cobro){
     acc.push('<button class="btn btn-orange" onclick="event.stopPropagation();generarCobro(\''+l.id+'\')">Generar cobro 4%</button>');
   }
+  acc.push('<button class="btn btn-outline" onclick="event.stopPropagation();marcarPruebaLicit(\''+l.id+'\','+(l.esPrueba?'false':'true')+')">'+(l.esPrueba?'Quitar marca de prueba':'Marcar como prueba')+'</button>');
   var _ampliable = !l.cerradaPorAdmin && _fechaCargaFutura(l) && ['abierta','cerrada','expirada','anulada'].includes(l.estado);
   if(_ampliable){
     acc.push('<button class="btn btn-outline" onclick="event.stopPropagation();abrirModalAmpliar(\''+l.id+'\')">Ampliar plazo</button>');
@@ -782,6 +784,11 @@ async function aprobar(id){
   else toast(r&&r.data&&r.data.error||'Error al aprobar','err');
 }
 
+async function marcarPruebaLicit(id, esPrueba){
+  const r=await api('/api/admin/licitacion/'+id+'/marcar-prueba','POST',{esPrueba:esPrueba});
+  if(r&&r.ok){ toast(r.data.esPrueba?'Marcada como prueba (oculta a transportistas)':'Quitada marca de prueba'); cargar(); }
+  else toast(r&&r.data&&r.data.error||'Error','err');
+}
 async function guardarVisibilidadArchivos(id){
   var ga=document.getElementById('gv-arch-'+id); var ge=document.getElementById('gv-est-'+id);
   var payload={};

@@ -614,6 +614,11 @@ function sanitizarFormularioCotiz(f) {
 }
 
 async function enviarEmail(env, { to, subject, html }) {
+  // Modo pruebas: silencia TODOS los correos salientes (para probar sin molestar a usuarios reales).
+  if (["1","on","true","si","sí"].includes(String(env.MODO_PRUEBAS||"").toLowerCase())) {
+    console.log("[MODO_PRUEBAS] correo silenciado ->", to, "|", subject);
+    return { ok:true, muted:true };
+  }
   if (!env.RESEND_API_KEY) { console.error("Email no enviado: falta RESEND_API_KEY"); return { ok:false, error:"sin_api_key" }; }
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -1557,7 +1562,7 @@ async function handleRequest(request, env) {
     if (!origen||!destino||!fechaCarga) return err("Faltan campos requeridos");
     const paradasNorm = Array.isArray(paradas) ? paradas.filter(p=>p&&typeof p==="object").map(p=>({direccion:String(p.direccion||"").slice(0,200),horario:String(p.horario||"").slice(0,100),contacto:String(p.contacto||"").slice(0,200),descripcion:String(p.descripcion||"").slice(0,300)})).slice(0,5) : [];
     const id = uid(); const codigo = await generarCodigo(env,'LIC');
-    const licitacion = { id, codigo, clienteId:user.id, clienteEmail:user.email, clienteEmpresa:user.empresa||"", clienteNombre:user.nombre||"", clienteTelefono:user.telefono||"", empresaId:user.esSubusuario?(user.empresaMadreId||user.id):user.id, creadoPorEmail:user.email, creadoPorNombre:user.nombre||"", esCreadoPorSubusuario:user.esSubusuario||false, tipoLicitacion:tipoLicitacion||"maquinaria", tipoEquipo:tipoEquipo||tipoCarga||"Carga general", tipoEquipoRequerido:body.tipoEquipoRequerido||"cualquiera", marca:marca||"", modelo:modelo||"", cantidadEquipos:cantidadEquipos||"", tipoCarga:tipoCarga||"", cantidadBultos:cantidadBultos||"", pesoPorBulto:pesoPorBulto||"", peso:peso||"", pesoUnidad:body.pesoUnidad||"ton", volumen:volumen||"", dimensiones:dimensiones||"", descripcion:descripcion||"", origen, destino, direccionOrigen:direccionOrigen||"", direccionDestino:direccionDestino||"", paradas:paradasNorm, tipoEntregaDestino:tipoEntregaDestino||"no_aplica", contactoOrigenNombre:contactoOrigenNombre||"", contactoOrigenTelefono:contactoOrigenTelefono||"", contactoOrigenEmail:contactoOrigenEmail||"", contactoDestinoNombre:contactoDestinoNombre||"", contactoDestinoTelefono:contactoDestinoTelefono||"", contactoDestinoEmail:contactoDestinoEmail||"", fechaCarga, horaCarga:horaCarga||"", fechaEntrega:fechaEntrega||"", horaDescarga:horaDescarga||"", plazo:plazo||"24", valorSeguro:valorSeguro||"", requiereEstandar:!!requiereEstandar, estandarDetalle:requiereEstandar?(estandarDetalle||""):"", estandarArchivoId:requiereEstandar?(estandarArchivoId||null):null, estandarArchivoNombre:requiereEstandar?(estandarArchivoNombre||null):null, estandarRequisitos:(requiereEstandar&&Array.isArray(body.estandarRequisitos))?body.estandarRequisitos.filter(r=>r&&r.label).map(r=>({id:String(r.id||uid()),label:String(r.label).slice(0,120)})).slice(0,30):[], tipoContenedor:tipoContenedor||"", cantidadContenedores:cantidadContenedores||"", condicionContenedor:condicionContenedor||"", pesoVGM:pesoVGM||"", mercanciaPeligrosa:!!mercanciaPeligrosa, claseIMO:mercanciaPeligrosa?(claseIMO||""):"", numeroUN:mercanciaPeligrosa?(numeroUN||""):"", refrigerado:!!refrigerado, temperaturaReefer:refrigerado?(temperaturaReefer||""):"", contSobredimensionado:!!contSobredimensionado, contSobredimensionadoDetalle:contSobredimensionado?(contSobredimensionadoDetalle||""):"", numeroContenedor:numeroContenedor||"", selloContenedor:selloContenedor||"", archivoId:archivoId||null, archivoNombre:archivoNombre||null, estado:"pendiente_admin", cotizaciones:[], cotizacionesEnviadas:[], preguntas:[], ronda:0, createdAt:new Date().toISOString(), cierreAt:new Date(Date.now()+parseInt(plazo||"24")*3600000).toISOString() };
+    const licitacion = { id, codigo, clienteId:user.id, clienteEmail:user.email, clienteEmpresa:user.empresa||"", clienteNombre:user.nombre||"", clienteTelefono:user.telefono||"", empresaId:user.esSubusuario?(user.empresaMadreId||user.id):user.id, creadoPorEmail:user.email, creadoPorNombre:user.nombre||"", esCreadoPorSubusuario:user.esSubusuario||false, tipoLicitacion:tipoLicitacion||"maquinaria", tipoEquipo:tipoEquipo||tipoCarga||"Carga general", tipoEquipoRequerido:body.tipoEquipoRequerido||"cualquiera", marca:marca||"", modelo:modelo||"", cantidadEquipos:cantidadEquipos||"", tipoCarga:tipoCarga||"", cantidadBultos:cantidadBultos||"", pesoPorBulto:pesoPorBulto||"", peso:peso||"", pesoUnidad:body.pesoUnidad||"ton", volumen:volumen||"", dimensiones:dimensiones||"", descripcion:descripcion||"", origen, destino, direccionOrigen:direccionOrigen||"", direccionDestino:direccionDestino||"", paradas:paradasNorm, tipoEntregaDestino:tipoEntregaDestino||"no_aplica", contactoOrigenNombre:contactoOrigenNombre||"", contactoOrigenTelefono:contactoOrigenTelefono||"", contactoOrigenEmail:contactoOrigenEmail||"", contactoDestinoNombre:contactoDestinoNombre||"", contactoDestinoTelefono:contactoDestinoTelefono||"", contactoDestinoEmail:contactoDestinoEmail||"", fechaCarga, horaCarga:horaCarga||"", fechaEntrega:fechaEntrega||"", horaDescarga:horaDescarga||"", plazo:plazo||"24", valorSeguro:valorSeguro||"", requiereEstandar:!!requiereEstandar, estandarDetalle:requiereEstandar?(estandarDetalle||""):"", estandarArchivoId:requiereEstandar?(estandarArchivoId||null):null, estandarArchivoNombre:requiereEstandar?(estandarArchivoNombre||null):null, estandarRequisitos:(requiereEstandar&&Array.isArray(body.estandarRequisitos))?body.estandarRequisitos.filter(r=>r&&r.label).map(r=>({id:String(r.id||uid()),label:String(r.label).slice(0,120)})).slice(0,30):[], tipoContenedor:tipoContenedor||"", cantidadContenedores:cantidadContenedores||"", condicionContenedor:condicionContenedor||"", pesoVGM:pesoVGM||"", mercanciaPeligrosa:!!mercanciaPeligrosa, claseIMO:mercanciaPeligrosa?(claseIMO||""):"", numeroUN:mercanciaPeligrosa?(numeroUN||""):"", refrigerado:!!refrigerado, temperaturaReefer:refrigerado?(temperaturaReefer||""):"", contSobredimensionado:!!contSobredimensionado, contSobredimensionadoDetalle:contSobredimensionado?(contSobredimensionadoDetalle||""):"", numeroContenedor:numeroContenedor||"", selloContenedor:selloContenedor||"", archivoId:archivoId||null, archivoNombre:archivoNombre||null, esPrueba:(body.esPrueba===true), estado:"pendiente_admin", cotizaciones:[], cotizacionesEnviadas:[], preguntas:[], ronda:0, createdAt:new Date().toISOString(), cierreAt:new Date(Date.now()+parseInt(plazo||"24")*3600000).toISOString() };
     await env.LICITACIONES.put(id, JSON.stringify(licitacion));
     const idxC = JSON.parse(await env.LICITACIONES.get("cliente:"+user.id)||"[]"); idxC.unshift(id); await env.LICITACIONES.put("cliente:"+user.id, JSON.stringify(idxC));
     const idxA = JSON.parse(await env.LICITACIONES.get("all")||"[]"); idxA.unshift(id); await env.LICITACIONES.put("all", JSON.stringify(idxA));
@@ -1611,6 +1616,7 @@ async function handleRequest(request, env) {
       let l = JSON.parse(raw);
       if (!l.codigo) { l.codigo = await generarCodigo(env,'LIC'); await env.LICITACIONES.put(id, JSON.stringify(l)); }
       if (user.role==="transportista") {
+        if (l.esPrueba) continue; // las licitaciones de prueba nunca se muestran a transportistas
         if (["abierta","cerrada"].includes(l.estado)) { /* Sin filtro por tipo de equipo: todas las licitaciones abiertas/en revisión se muestran a TODOS los transportistas (matching desactivado a pedido de Majo). */ const _anon=anonimizarCliente(l); const cotEmp=(l.cotizaciones||[]).find(c=>c.transportistaId===user.id || (c.transportistaEmail&&emailsEmpresaT.has(c.transportistaEmail.toLowerCase()))); _anon.empresaYaCotizo=!!cotEmp; _anon.empresaCotizoNombre=(!user.esSubusuario && cotEmp)?(cotEmp.transportistaNombre||''):''; _anon.preguntas=anonimizarPreguntas(l.preguntas,user.id,'transportista'); licitaciones.push(_anon); }
         else if (["adjudicada","completada"].includes(l.estado) && l.adjudicadaA?.transportistaEmail===user.email) licitaciones.push(l);
         else continue;
@@ -1631,7 +1637,7 @@ async function handleRequest(request, env) {
     const raw = await env.LICITACIONES.get(id); if(!raw) return err("No encontrada",404);
     const l = JSON.parse(raw);
     if(user.role==="cliente"){ const _eid=(user.esSubusuario?(user.empresaMadreId||user.id):user.id); if((l.empresaId||l.clienteId)!==_eid) return err("Sin acceso",403); if(user.rol==="miembro"){ const _cr=(l.creadoPorEmail||l.clienteEmail||"").toLowerCase(); if(_cr!==user.email.toLowerCase()) return err("Sin acceso",403); } }
-    if (user.role==="transportista") { if(!["abierta","cerrada"].includes(l.estado)) return err("Sin acceso",403); const _anonG=anonimizarCliente(l); _anonG.preguntas=anonimizarPreguntas(l.preguntas,user.id,'transportista'); return ok({ licitacion:_anonG }); }
+    if (user.role==="transportista") { if(l.esPrueba) return err("Sin acceso",403); if(!["abierta","cerrada"].includes(l.estado)) return err("Sin acceso",403); const _anonG=anonimizarCliente(l); _anonG.preguntas=anonimizarPreguntas(l.preguntas,user.id,'transportista'); return ok({ licitacion:_anonG }); }
     if (user.role==="cliente") { const lCopy={...l}; const adjId=l.adjudicadaA?.cotizacionId; lCopy.cotizaciones=(l.cotizacionesEnviadas||[]).map(c=>anonimizarTransportista(c, l.estado==="adjudicada" && c.id===adjId)); lCopy.totalCotizaciones=(l.cotizaciones||[]).length; lCopy.preguntas=anonimizarPreguntas(l.preguntas,user.id,'cliente'); return ok({ licitacion:lCopy }); }
     return ok({ licitacion:l });
   }
@@ -1695,8 +1701,9 @@ async function handleRequest(request, env) {
     await env.LICITACIONES.put(id, JSON.stringify(l));
     await crearNotificacion(env,l.clienteId,"licitacion_aprobada",`Tu licitacion fue aprobada: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`,{ licitacionId:id });
     // Al aprobar NO se envía correo al cliente (solo notificación interna). El cliente solo recibe correo si es rechazada.
-    // Notificar a los transportistas elegibles (in-app + email según preferencia)
-    await notificarNuevaLicitacionTransportistas(env, l);
+    // Notificar a los transportistas elegibles (in-app + email según preferencia).
+    // Las licitaciones de prueba NO se notifican ni se muestran a los transportistas.
+    if(!l.esPrueba) await notificarNuevaLicitacionTransportistas(env, l);
     await registrarActividad(env,"licitacion_aprobada",`Licitación aprobada y publicada: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo });
     return ok({ ok:true });
   }
@@ -1719,6 +1726,17 @@ async function handleRequest(request, env) {
     l.updatedAt=new Date().toISOString();
     await env.LICITACIONES.put(id, JSON.stringify(l));
     return ok({ ok:true, archivoVisible:_archVis, estandarArchivoVisible:_estVis });
+  }
+
+  // POST /api/admin/licitacion/:id/marcar-prueba — marcar/desmarcar una licitación como de PRUEBA.
+  // Las de prueba no se notifican ni se muestran a transportistas. Sirve para testear sin molestar.
+  if (path.startsWith("/api/admin/licitacion/")&&path.endsWith("/marcar-prueba")&&method==="POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    const id=path.split("/")[4]; const raw=await env.LICITACIONES.get(id); if(!raw) return err("No encontrada",404);
+    let body={}; try{body=await request.json();}catch(e){}
+    const l=JSON.parse(raw); l.esPrueba=(body.esPrueba!==false); l.updatedAt=new Date().toISOString();
+    await env.LICITACIONES.put(id, JSON.stringify(l));
+    return ok({ ok:true, esPrueba:l.esPrueba });
   }
 
   if (path.startsWith("/api/admin/licitacion/")&&path.endsWith("/rechazar")&&method==="POST") {
