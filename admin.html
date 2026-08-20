@@ -735,16 +735,22 @@
     add('\n— Fin —');
   }
   async function migrarSupabaseArchivos(){
-    if(!confirm('Migrar los ARCHIVOS (PDFs/imágenes) a Supabase. Puede tardar. ¿Continuar?')) return;
-    var log=_sbBox('Migración de archivos'); log.textContent='Procesando… (puede tardar)\n';
-    try{
-      const r = await api('/api/admin/migrar-supabase','POST',{ tabla:'archivos', dryRun:false });
-      if(r && r.ok){
-        var n=(r.data.insertados&&r.data.insertados.archivos)||0;
-        var e=(r.data.errores&&r.data.errores.length)?('\n⚠ '+r.data.errores.join('\n')):'';
-        log.textContent+='• archivos: '+n+e+'\n\n— Fin —';
-      } else { log.textContent+='ERROR: '+((r&&r.data&&r.data.error)||'sin respuesta'); }
-    }catch(err){ log.textContent+='ERROR: '+((err&&err.message)?err.message:String(err)); }
+    if(!confirm('Migrar los ARCHIVOS (PDFs/imágenes) a Supabase. Va por lotes; deja la pestaña abierta. ¿Continuar?')) return;
+    var log=_sbBox('Migración de archivos'); log.textContent='Iniciando…\n';
+    var offset=0, cargados=0, total=null, errs='', guard=0;
+    while(guard++ < 2000){
+      try{
+        var r=await api('/api/admin/migrar-supabase','POST',{ tabla:'archivos', dryRun:false, offset:offset, limit:6 });
+        if(!r || !r.ok){ errs+='ERROR: '+((r&&r.data&&r.data.error)||'sin respuesta')+'\n'; break; }
+        var d=r.data;
+        total=(d.total!=null?d.total:total);
+        cargados+=((d.insertados&&d.insertados.archivos)||0);
+        if(d.errores&&d.errores.length) errs+='⚠ '+d.errores.join('; ')+'\n';
+        offset=d.procesadosHasta;
+        log.textContent='Cargados '+cargados+' de '+(total!=null?total:'?')+' archivos…\n'+errs;
+        if(d.done) { log.textContent+='\n— Fin —'; break; }
+      }catch(err){ errs+='ERROR: '+((err&&err.message)?err.message:String(err))+'\n'; log.textContent+=errs; break; }
+    }
   }
   async function exportarTodo() {
     await exportarLicitaciones();

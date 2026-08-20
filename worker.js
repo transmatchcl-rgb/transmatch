@@ -1290,12 +1290,20 @@ async function handleRequest(request, env) {
 
     // archivos (pesado: solo cuando se pide explícitamente)
     if(tabla==="archivos"){
+      // Los archivos (base64) pesan: se migran por lotes chicos con offset/limit.
+      const keys=await kvAllKeys(env.ARCHIVOS);
+      const offset=parseInt(body.offset||0)||0;
+      const limit=parseInt(body.limit||6)||6;
+      const slice=keys.slice(offset, offset+limit);
       const rows=[];
-      for(const k of await kvAllKeys(env.ARCHIVOS)){
+      for(const k of slice){
         const a=parseJSON(await env.ARCHIVOS.get(k)); if(!a) continue;
         rows.push({ id:a.id||k, nombre:a.nombre||null, tipo:a.tipo||a.mimeType||null, base64:a.base64||null, subido_por:a.subidoPor||null, oculto_transportista:B(a.ocultoTransportista), visibilidad:a.visibilidad||null, licitacion_id:a.licitacionId||null, created_at:TS(a.createdAt) });
       }
-      await run("archivos", rows);
+      let ins=0;
+      try{ ins = dryRun ? rows.length : await sbUpsert(env, "archivos", rows); }catch(e){ errores.push("archivos: "+e.message); }
+      const procesadosHasta = offset + slice.length;
+      return ok({ ok:true, dryRun, tabla, insertados:{ archivos:ins }, total:keys.length, offset, procesadosHasta, done:(procesadosHasta>=keys.length), errores });
     }
 
     return ok({ ok:true, dryRun, tabla, insertados:out, errores });
