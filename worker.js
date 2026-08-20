@@ -89,6 +89,11 @@ async function sbCount(env, table){
   const cr = r.headers.get("content-range")||""; const tot=cr.split("/")[1];
   return (tot&&tot!=="*")?parseInt(tot):0;
 }
+async function sbDelete(env, table, filter){
+  const url = _sbBase(env) + "/rest/v1/" + table + "?" + filter;
+  const r = await fetch(url, { method:"DELETE", headers:{ "apikey":env.SUPABASE_KEY, "Authorization":"Bearer "+env.SUPABASE_KEY, "Prefer":"return=minimal" } });
+  if(!r.ok){ const t=await r.text(); throw new Error(table+" DELETE ("+r.status+"): "+t.slice(0,200)); }
+}
 // ── Interruptor de migración: ¿este request usa Supabase? ──
 // Global: env.USAR_SUPABASE = "on"  ·  Por request (para probar): agregar ?_sb=1 a la URL.
 function usarSupabase(env, url){
@@ -105,6 +110,15 @@ async function dalRetornosAll(env, sb){
   const ids=JSON.parse(await env.RETORNOS.get("all")||"[]");
   const raws=await Promise.all(ids.slice(0,50).map(id=>env.RETORNOS.get(id)));
   return raws.filter(Boolean).map(r=>{ try{ return JSON.parse(r); }catch(e){ return null; } }).filter(Boolean);
+}
+async function dalRetornoSave(env, retorno, sb){
+  if(sb){
+    const f=(retorno.fecha&&/^\d{4}-\d{2}-\d{2}/.test(String(retorno.fecha)))?String(retorno.fecha).slice(0,10):null;
+    await sbUpsert(env, "retornos", [{ id:retorno.id, transportista_id:retorno.transportistaId||null, transportista_email:retorno.transportistaEmail||null, origen:retorno.ciudadOrigen||null, destino:retorno.ciudadDestino||null, fecha:f, estado:retorno.estado||null, datos:retorno, created_at:retorno.createdAt||null }]);
+    return;
+  }
+  await env.RETORNOS.put(retorno.id, JSON.stringify(retorno));
+  const idx=JSON.parse(await env.RETORNOS.get("all")||"[]"); idx.unshift(retorno.id); await env.RETORNOS.put("all", JSON.stringify(idx));
 }
 
 async function getUser(request, env) {
@@ -1212,6 +1226,23 @@ async function handleRequest(request, env) {
 
   // POST /api/admin/migrar-empresas — FASE 1 del modelo Empresa. Aditivo: crea registros empresa:<id>
   // y etiqueta a cada usuario con empresaId + rol. NO borra nada. Con {dryRun:true} (por defecto) solo reporta.
+  // POST /api/admin/test-escritura-retorno — prueba el ciclo escribir→leer→limpiar en Supabase.
+  if (path === "/api/admin/test-escritura-retorno" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    if(!env.SUPABASE_URL || !env.SUPABASE_KEY) return err("Falta configurar Supabase");
+    const id="TEST-"+uid();
+    const retorno={ id, transportistaId:"test", transportistaNombre:"PRUEBA", transportistaEmpresa:"PRUEBA", transportistaEmail:"prueba@test", ciudadOrigen:"Ciudad A", ciudadDestino:"Ciudad B", fecha:null, equipo:"Cama baja", capacidad:"30", precio:1, descripcion:"retorno de prueba (migración)", estado:"disponible", createdAt:new Date().toISOString(), _test:true };
+    const pasos=[];
+    try{ await dalRetornoSave(env, retorno, true); pasos.push("Escrito en Supabase: OK"); }
+    catch(e){ return ok({ ok:false, pasos, error:"escritura: "+e.message }); }
+    let encontrado=false;
+    try{ const all=await dalRetornosAll(env, true); encontrado=all.some(r=>r&&r.id===id); pasos.push("Leido de vuelta: "+(encontrado?"OK":"NO se encontro")); }
+    catch(e){ pasos.push("Error al leer: "+e.message); }
+    try{ await sbDelete(env, "retornos", "id=eq."+id); pasos.push("Limpieza del registro de prueba: OK"); }
+    catch(e){ pasos.push("No se pudo limpiar: "+e.message); }
+    return ok({ ok:true, id, encontrado, pasos });
+  }
+
   // GET /api/admin/supabase-test — Fase 3 paso 1: prueba de SOLO LECTURA contra Supabase.
   // No cambia nada del sistema en vivo. Cuenta filas por tabla y mide la latencia.
   if (path === "/api/admin/supabase-test" && method === "GET") {
@@ -2142,10 +2173,9 @@ async function handleRequest(request, env) {
     if(!equipo) return err("equipo requerido"); if(!capacidad) return err("capacidad requerida"); if(!precio) return err("precio requerido");
     const id=uid();
     const retorno={ id, transportistaId:user.id, transportistaNombre:user.nombre, transportistaEmpresa:user.empresa, transportistaEmail:user.email, transportistaRating:user.rating||5.0, ciudadOrigen, ciudadDestino, fecha:fechaDesde||fecha||null, fechaDesde:fechaDesde||null, fechaHasta:fechaHasta||null, equipo:equipo||"", capacidad:capacidad||"", precio:precio?parseFloat(precio):null, descripcion:descripcion||"", estado:"disponible", createdAt:new Date().toISOString() };
-    await env.RETORNOS.put(id, JSON.stringify(retorno));
-    const idx=JSON.parse(await env.RETORNOS.get("all")||"[]"); idx.unshift(id); await env.RETORNOS.put("all", JSON.stringify(idx));
+    await dalRetornoSave(env, retorno, usarSupabase(env, url));
     await registrarActividad(env,"retorno_publicado",`${user.empresa||user.nombre||'Transportista'} publicó un retorno: ${ciudadOrigen} → ${ciudadDestino}`,{ retornoId:id });
-    return ok({ ok:true, id, mensaje:"Retorno publicado." });
+    return ok({ ok:true, id, mensaje:"Retorno publicado.", _fuente:(usarSupabase(env,url)?"supabase":"kv") });
   }
 
   if (path === "/api/retornos" && method === "GET") {
