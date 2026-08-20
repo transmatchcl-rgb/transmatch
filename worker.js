@@ -74,6 +74,21 @@ async function sbUpsert(env, table, rows){
   return total;
 }
 async function kvAllKeys(ns){ const out=[]; let cursor; do{ const l=await ns.list({cursor}); for(const k of l.keys) out.push(k.name); cursor=l.list_complete?undefined:l.cursor; }while(cursor); return out; }
+// Lee de Supabase (REST). params: query string de PostgREST (ej. "select=id&limit=5")
+async function sbSelect(env, table, params){
+  const url = _sbBase(env) + "/rest/v1/" + table + (params?("?"+params):"");
+  const r = await fetch(url, { headers:{ "apikey":env.SUPABASE_KEY, "Authorization":"Bearer "+env.SUPABASE_KEY, "Accept":"application/json" } });
+  if(!r.ok){ const t=await r.text(); throw new Error(table+" ("+r.status+"): "+t.slice(0,300)); }
+  return await r.json();
+}
+// Cuenta filas de una tabla en Supabase (rápido, sin traer datos).
+async function sbCount(env, table){
+  const url = _sbBase(env) + "/rest/v1/" + table + "?limit=1";
+  const r = await fetch(url, { headers:{ "apikey":env.SUPABASE_KEY, "Authorization":"Bearer "+env.SUPABASE_KEY, "Prefer":"count=exact", "Range":"0-0" } });
+  if(!r.ok){ const t=await r.text(); throw new Error(table+" ("+r.status+"): "+t.slice(0,200)); }
+  const cr = r.headers.get("content-range")||""; const tot=cr.split("/")[1];
+  return (tot&&tot!=="*")?parseInt(tot):0;
+}
 
 async function getUser(request, env) {
   const auth  = request.headers.get("Authorization") || "";
@@ -1180,6 +1195,18 @@ async function handleRequest(request, env) {
 
   // POST /api/admin/migrar-empresas — FASE 1 del modelo Empresa. Aditivo: crea registros empresa:<id>
   // y etiqueta a cada usuario con empresaId + rol. NO borra nada. Con {dryRun:true} (por defecto) solo reporta.
+  // GET /api/admin/supabase-test — Fase 3 paso 1: prueba de SOLO LECTURA contra Supabase.
+  // No cambia nada del sistema en vivo. Cuenta filas por tabla y mide la latencia.
+  if (path === "/api/admin/supabase-test" && method === "GET") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    if(!env.SUPABASE_URL || !env.SUPABASE_KEY) return err("Falta configurar SUPABASE_URL y SUPABASE_KEY");
+    const tablas=['empresas','usuarios','equipos','licitaciones','cotizaciones','preguntas','transportes','ordenes_venta','facturas_suscripcion','facturas_consolidado','retornos','notificaciones','actividad','secuencias','archivos'];
+    const t0=Date.now(); const counts={}; const errores=[];
+    for(const tb of tablas){ try{ counts[tb]=await sbCount(env, tb); }catch(e){ errores.push(tb+": "+e.message); } }
+    let muestra=null; try{ muestra=await sbSelect(env,"empresas","select=razon_social,plan,estado&limit=3"); }catch(e){ errores.push("muestra: "+e.message); }
+    return ok({ ok:true, ms:Date.now()-t0, counts, muestra, errores });
+  }
+
   // POST /api/admin/migrar-supabase — carga los datos de KV a Supabase (Fase 2).
   // body: { tabla?: 'todo'|'empresas'|'usuarios'|..., dryRun?: bool }
   if (path === "/api/admin/migrar-supabase" && method === "POST") {
