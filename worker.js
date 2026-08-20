@@ -89,6 +89,23 @@ async function sbCount(env, table){
   const cr = r.headers.get("content-range")||""; const tot=cr.split("/")[1];
   return (tot&&tot!=="*")?parseInt(tot):0;
 }
+// ── Interruptor de migración: ¿este request usa Supabase? ──
+// Global: env.USAR_SUPABASE = "on"  ·  Por request (para probar): agregar ?_sb=1 a la URL.
+function usarSupabase(env, url){
+  if(["1","on","true"].includes(String(env.USAR_SUPABASE||"").toLowerCase())) return true;
+  try{ return !!(url && url.searchParams.get("_sb")==="1"); }catch(e){ return false; }
+}
+// Capa de datos — RETORNOS. Como en la migración guardamos el objeto completo en la columna `datos`,
+// leer de Supabase devuelve exactamente el mismo objeto que usa la app.
+async function dalRetornosAll(env, sb){
+  if(sb){
+    const rows = await sbSelect(env, "retornos", "select=datos&limit=1000");
+    return rows.map(r=>r.datos).filter(Boolean);
+  }
+  const ids=JSON.parse(await env.RETORNOS.get("all")||"[]");
+  const raws=await Promise.all(ids.slice(0,50).map(id=>env.RETORNOS.get(id)));
+  return raws.filter(Boolean).map(r=>{ try{ return JSON.parse(r); }catch(e){ return null; } }).filter(Boolean);
+}
 
 async function getUser(request, env) {
   const auth  = request.headers.get("Authorization") || "";
@@ -2134,22 +2151,22 @@ async function handleRequest(request, env) {
   if (path === "/api/retornos" && method === "GET") {
     const user=await getUser(request,env); if(!user) return err("No autenticado",401);
     if(user.role==="cliente"&&!["pro","enterprise"].includes(user.plan)) return err("Requiere plan Pro o Enterprise",403);
-    const ids=JSON.parse(await env.RETORNOS.get("all")||"[]");
     // Para transportistas: la madre ve todos los retornos de su empresa; el sub-usuario solo los que publicó.
     let scopeEmails=null;
     if(user.role==="transportista"){
       scopeEmails = user.esSubusuario ? new Set([user.email.toLowerCase()]) : await emailsEmpresa(env,user);
     }
+    const _sb = usarSupabase(env, url);
+    const _all = await dalRetornosAll(env, _sb);
     const retornos=[];
-    const _rRaws=await Promise.all(ids.slice(0,50).map(id=>env.RETORNOS.get(id)));
-    for (const raw of _rRaws) {
-      if(!raw) continue;
-      const r=JSON.parse(raw);
+    for (const r0 of _all) {
+      if(!r0) continue;
+      const r={...r0};
       if(user.role==="cliente"){ if(r.estado!=="disponible") continue; delete r.transportistaEmail; retornos.push(r); }
       else if(user.role==="transportista"){ if(!r.transportistaEmail||!scopeEmails.has(r.transportistaEmail.toLowerCase())) continue; retornos.push(r); }
       else { retornos.push(r); }
     }
-    return ok({ retornos });
+    return ok({ retornos, _fuente:(_sb?"supabase":"kv") });
   }
 
   // ── PROPUESTAS: cliente envía propuesta a un retorno ────────
