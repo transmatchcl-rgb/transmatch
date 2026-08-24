@@ -120,6 +120,26 @@ async function dalRetornoSave(env, retorno, sb){
   await env.RETORNOS.put(retorno.id, JSON.stringify(retorno));
   const idx=JSON.parse(await env.RETORNOS.get("all")||"[]"); idx.unshift(retorno.id); await env.RETORNOS.put("all", JSON.stringify(idx));
 }
+// Capa de datos — USUARIOS.
+async function dalGetUsuarioByEmail(env, email, sb){
+  email=(email||"").toLowerCase();
+  if(sb){ const rows=await sbSelect(env,"usuarios","email=eq."+encodeURIComponent(email)+"&select=datos&limit=1"); return rows[0]?rows[0].datos:null; }
+  const raw=await env.USERS.get(email); return raw?JSON.parse(raw):null;
+}
+async function dalGetUsuarioById(env, id, sb){
+  if(!id) return null;
+  if(sb){ const rows=await sbSelect(env,"usuarios","id=eq."+encodeURIComponent(id)+"&select=datos&limit=1"); return rows[0]?rows[0].datos:null; }
+  const email=await env.USERS.get("id:"+id); if(!email) return null; const raw=await env.USERS.get(email); return raw?JSON.parse(raw):null;
+}
+async function dalSaveUsuario(env, u, sb){
+  const email=(u.email||"").toLowerCase();
+  if(sb){
+    await sbUpsert(env,"usuarios",[{ id:u.id, email, password_hash:u.password||null, nombre:u.nombre||null, telefono:u.telefono||null, cargo:u.cargo||null, role:u.role||null, estado:u.estado||null, plan:u.plan||null, empresa_id:u.empresaId||null, rol:u.rol||null, es_subusuario:(u.esSubusuario===true), empresa_madre_id:u.empresaMadreId||null, rating:(u.rating==null?null:u.rating), total_transportes:(u.totalTransportes==null?null:u.totalTransportes), zonas:(u.zonas==null?null:u.zonas), industrias:(u.industrias==null?null:u.industrias), tipos_equipo:(u.tiposEquipo==null?null:u.tiposEquipo), notif_prefs:(u.notifPrefs==null?null:u.notifPrefs), datos:u }]);
+    return;
+  }
+  await env.USERS.put(email, JSON.stringify(u));
+  if(u.id) await env.USERS.put("id:"+u.id, email);
+}
 
 async function getUser(request, env) {
   const auth  = request.headers.get("Authorization") || "";
@@ -130,8 +150,8 @@ async function getUser(request, env) {
   // Sub-usuarios: plan y estado se heredan de la cuenta madre de forma dinámica.
   // Si la madre está suspendida (cascada) o el sub-usuario fue desactivado manualmente, se bloquea el acceso.
   if (user.esSubusuario && user.empresaMadreId) {
-    const rawSelf = await env.USERS.get(user.email);
-    const self = rawSelf ? JSON.parse(rawSelf) : null;
+    let _sbU=false; try{ _sbU=usarSupabase(env, new URL(request.url)); }catch(e){}
+    const self = await dalGetUsuarioByEmail(env, user.email, _sbU);
     const desactivadoManual = self ? !!self.desactivadoManual : false;
     const ef = await efectivoSubusuario(env, {
       esSubusuario: true,
@@ -1089,8 +1109,7 @@ async function handleRequest(request, env) {
         user.equipos.push({ id:uid(), tipo:eq.tipo, marca:eq.marca||"", modelo:eq.modelo||"", ano:eq.ano||"", patente:eq.patente||"", capacidadMax:parseFloat(eq.capacidadMax)||0, largoMax:parseFloat(eq.largoMax)||0, anchoMax:parseFloat(eq.anchoMax)||0, altoMax:parseFloat(eq.altoMax)||0, descripcion:eq.descripcion||"", createdAt:new Date().toISOString() });
       }
     }
-    await env.USERS.put(emailLower, JSON.stringify(user));
-    await env.USERS.put("id:"+user.id, emailLower);
+    await dalSaveUsuario(env, user, usarSupabase(env, url));
     await env.SESSIONS.delete("acceso:"+_regToken); // el link de acceso es de un solo uso
     // Notificar al admin si hay equipo pendiente de aprobación
     if (otroEquipoPendiente) {
@@ -1226,6 +1245,27 @@ async function handleRequest(request, env) {
 
   // POST /api/admin/migrar-empresas — FASE 1 del modelo Empresa. Aditivo: crea registros empresa:<id>
   // y etiqueta a cada usuario con empresaId + rol. NO borra nada. Con {dryRun:true} (por defecto) solo reporta.
+  // POST /api/admin/test-usuario-login — prueba el ciclo de usuarios en Supabase: crear → leer → verificar clave → limpiar.
+  if (path === "/api/admin/test-usuario-login" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    if(!env.SUPABASE_URL || !env.SUPABASE_KEY) return err("Falta configurar Supabase");
+    const pasos=[]; const id="TEST-"+uid(); const email="prueba-"+id.toLowerCase()+"@test.local"; const clave="ClaveDePrueba123!";
+    const nuevo={ id, email, password:await hashPassword(clave), nombre:"Usuario Prueba", role:"cliente", estado:"activo", plan:"basico", rol:"dueno", esSubusuario:false, empresaId:id, rating:5.0, totalTransportes:0, createdAt:new Date().toISOString(), _test:true };
+    try{ await dalSaveUsuario(env, nuevo, true); pasos.push("Usuario creado en Supabase: OK"); }
+    catch(e){ return ok({ ok:false, pasos, error:"crear: "+e.message }); }
+    let leido=null;
+    try{ leido=await dalGetUsuarioByEmail(env, email, true); pasos.push("Leido de vuelta desde Supabase: "+(leido?"OK":"NO se encontro")); }
+    catch(e){ pasos.push("Error al leer: "+e.message); }
+    // Verificar la "clave" igual que el login: comparar el hash
+    let claveOk=false;
+    if(leido){ claveOk=(leido.password===await hashPassword(clave)); pasos.push("Verificacion de contraseña (como el login): "+(claveOk?"OK":"FALLO")); }
+    // Verificar por id también
+    let porId=null; try{ porId=await dalGetUsuarioById(env, id, true); pasos.push("Busqueda por id: "+(porId?"OK":"NO")); }catch(e){ pasos.push("Error por id: "+e.message); }
+    try{ await sbDelete(env, "usuarios", "id=eq."+id); pasos.push("Limpieza del usuario de prueba: OK"); }
+    catch(e){ pasos.push("No se pudo limpiar: "+e.message); }
+    return ok({ ok:true, pasos, exito:(!!leido && claveOk && !!porId) });
+  }
+
   // POST /api/admin/test-escritura-retorno — prueba el ciclo escribir→leer→limpiar en Supabase.
   if (path === "/api/admin/test-escritura-retorno" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
@@ -1544,8 +1584,7 @@ async function handleRequest(request, env) {
       perfilCompletitud: role==="cliente"?40:30,
       passwordProvisorio:true, creadoPorAdmin:true, createdAt:new Date().toISOString(),
     };
-    await env.USERS.put(email, JSON.stringify(nuevo));
-    await env.USERS.put("id:"+nuevo.id, email);
+    await dalSaveUsuario(env, nuevo, usarSupabase(env, url));
     let emailEnviado=false;
     try{ const r=await enviarEmail(env,{ to:email, subject:"Tu cuenta TransMatch está lista", html:emailCredenciales(nombre, email, pass) }); emailEnviado = !!(r&&r.ok); }catch(e){}
     await registrarActividad(env, role==="transportista"?"transportista_registrado":"cliente_registrado", `Cuenta creada por admin: ${empresa||nombre} (${role})`, { userId:nuevo.id });
@@ -1596,9 +1635,9 @@ async function handleRequest(request, env) {
       const token = await signToken({ id:"admin", email:emailLower, role:"admin", nombre:"Administrador", empresa:"TransMatch" }, env.JWT_SECRET);
       return ok({ token, role:"admin", nombre:"Administrador", empresa:"TransMatch", plan:null });
     }
-    const raw = await env.USERS.get(emailLower);
-    if (!raw) return err("Credenciales incorrectas",401);
-    const user = JSON.parse(raw);
+    const _sbL = usarSupabase(env, url);
+    const user = await dalGetUsuarioByEmail(env, emailLower, _sbL);
+    if (!user) return err("Credenciales incorrectas",401);
     if (user.password !== await hashPassword(password)) return err("Credenciales incorrectas",401);
     // Estado efectivo: los sub-usuarios heredan el estado de la cuenta madre (cascada) y respetan su desactivación manual.
     const ef = await efectivoSubusuario(env, user);
@@ -1613,17 +1652,17 @@ async function handleRequest(request, env) {
     const user = await getUser(request, env);
     if (!user) return err("Token invalido",401);
     if (user.role==="admin") return ok({ user:{ id:"admin", email:user.email, role:"admin", nombre:"Administrador", empresa:"TransMatch", plan:null } });
-    const raw = await env.USERS.get(user.email);
-    if (!raw) return err("Usuario no encontrado",404);
-    const u = JSON.parse(raw);
+    const _sbM = usarSupabase(env, url);
+    const u = await dalGetUsuarioByEmail(env, user.email, _sbM);
+    if (!u) return err("Usuario no encontrado",404);
     var planOut=u.plan, estadoOut=u.estado;
     if (u.esSubusuario && u.empresaMadreId) { const ef = await efectivoSubusuario(env, u); planOut = ef.plan; estadoOut = ef.estado; }
     // Datos a nivel empresa (Mi empresa, Contactos, Operaciones, Mis equipos): heredados de la cuenta madre.
     if (u.esSubusuario && u.empresaMadreId) {
-      const mEmail = await env.USERS.get("id:"+u.empresaMadreId);
-      if (mEmail) { const rawM = await env.USERS.get(mEmail); if (rawM) { const m = JSON.parse(rawM);
+      const m = await dalGetUsuarioById(env, u.empresaMadreId, _sbM);
+      if (m) {
         u.empresa=m.empresa; u.rutEmpresa=m.rutEmpresa; u.giro=m.giro; u.telEmpresa=m.telEmpresa; u.ciudadEmpresa=m.ciudadEmpresa; u.direccion=m.direccion; u.web=m.web; u.descripcion=m.descripcion; u.anosExperiencia=m.anosExperiencia; u.zonas=m.zonas; u.equipos=m.equipos; u.tiposEquipo=m.tiposEquipo; u.facturacion=m.facturacion; u.contactoOperaciones=m.contactoOperaciones; u.contactoComercial=m.contactoComercial; u.contactoFacturacion=m.contactoFacturacion; u.contactos=m.contactos; u.datosBancarios=m.datosBancarios; u.industrias=m.industrias; u.rating=m.rating; u.totalTransportes=m.totalTransportes; u.totalCotizaciones=m.totalCotizaciones;
-      } }
+      }
     }
     const _empMe = await empresaDe(env, u); if(_empMe) overlayPerfilEmpresa(u, _empMe);
     return ok({ user:{ id:u.id, email:u.email, role:u.role, nombre:u.nombre, empresa:u.empresa, comuna:u.comuna||'', plan:planOut, rating:u.rating, totalTransportes:u.totalTransportes, estado:estadoOut, desactivadoManual:u.desactivadoManual||false, notifEmail:u.notifEmail, notifWhatsapp:u.notifWhatsapp, whatsapp:u.whatsapp, telefono:u.telefono, ciudad:u.ciudad, rut:u.rut, rutEmpresa:u.rutEmpresa, cargo:u.cargo, giro:u.giro, telEmpresa:u.telEmpresa, ciudadEmpresa:u.ciudadEmpresa, direccion:u.direccion, web:u.web, descripcion:u.descripcion, anosExperiencia:u.anosExperiencia, zonas:u.zonas||[], equipos:u.equipos||[], tiposEquipo:u.tiposEquipo||[], facturacion:u.facturacion||{}, contactoOperaciones:u.contactoOperaciones, contactoComercial:u.contactoComercial, contactoFacturacion:u.contactoFacturacion, contactos:u.contactos||[], datosBancarios:u.datosBancarios||{}, industrias:u.industrias||[], max_usuarios:u.max_usuarios||0, esSubusuario:u.esSubusuario||false, empresaMadreId:u.empresaMadreId||null, rol:u.rol||(u.esSubusuario?'miembro':'dueno'), empresaId:u.empresaId||null, empresaMiembros:u.empresaMiembros||[], permisos:u.permisos||{}, perfilCompletitud:u.perfilCompletitud||0, totalCotizaciones:u.totalCotizaciones||0, notifPrefs:u.notifPrefs||{} } });
