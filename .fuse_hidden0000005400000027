@@ -1,0 +1,1199 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>TransMatch — Licitaciónes disponibles</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Barlow,sans-serif;background:#ffffff;display:flex;flex-direction:column;min-height:100vh}
+#auth-guard{position:fixed;inset:0;background:#ffffff;display:flex;align-items:center;justify-content:center;z-index:9999}
+.spinner{width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+#app{display:none}#app.shown{display:flex;flex-direction:column;min-height:100vh}
+.nav{background:#1e2d4e;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.nav-left{display:flex;align-items:center;gap:16px}
+.nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+  .brand-logo{height:28px;width:auto;display:block}
+.nav-icon{background:#FF8808;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+.nav-name{font-weight:700;color:#fff;font-size:15px}
+.nav-name span{color:#FF8808}
+.nav-links{display:flex;gap:2px}
+.nav-link{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+.nav-link:hover,.nav-link.active{color:#fff;background:rgba(255,255,255,.18)}
+.avatar{width:30px;height:30px;border-radius:50%;background:#FF8808;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;cursor:pointer}
+main{max-width:1100px;margin:0 auto;padding:24px 20px;min-height:calc(100vh - 52px);flex:1}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:700px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.05);padding:14px 16px}
+.stat-card .sc-label{font-size:11px;color:#6B7280;margin-bottom:6px}
+.stat-card .sc-val{font-size:24px;font-weight:700;line-height:1}
+.stat-card .sc-sub{font-size:11px;color:#9CA3AF;margin-top:4px}
+.filter-chip{padding:6px 16px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e8eaf0;background:#fff;color:#6B7280;transition:all .15s;user-select:none;display:inline-flex;align-items:center}
+.filter-chip.active{background:#1e2d4e;color:#fff;border-color:#1e2d4e}
+.licit-card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);margin-bottom:10px;overflow:hidden}
+.licit-hdr{padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;transition:background .12s}
+.licit-hdr:hover{background:#f5f7fb}
+.li-code{font-size:10px;font-weight:700;font-family:IBM Plex Mono,monospace;background:#eef1f8;color:#1e2d4e;padding:2px 7px;border-radius:4px;flex-shrink:0;white-space:nowrap}
+.li-body{flex:1;min-width:0}
+.li-name{font-size:13px;font-weight:700;color:#1e2d4e;margin-bottom:3px}
+.li-meta{font-size:12px;color:#6B7280}
+.li-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.li-precio{font-size:13px;font-weight:700;color:#1e2d4e}
+.li-badge{margin-top:0}
+.li-arr{font-size:16px;color:#9CA3AF;transition:transform .2s;flex-shrink:0}
+.licit-body{display:none;border-top:0.5px solid #f3f4f6}
+.licit-body.open{display:block}
+.card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);overflow:hidden}
+.badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px}
+.badge-orange{background:#FFF7ED;color:#92400E}
+.badge-green{background:#F0FDF4;color:#14532D}
+.badge-blue{background:#eef1f8;color:#1e2d4e}
+.badge-gray{background:#f8f9fc;color:#6B7280;border:0.5px solid #E5E7EB}
+.b-pendiente{background:#FFF7ED;color:#92400E}
+.b-enviada{background:#F0FDF4;color:#14532D}
+.btn{padding:9px 18px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.btn:hover{opacity:.88}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:#1d4ed8;color:#fff}
+.btn-orange{background:#FF8808;color:#fff}
+.btn-green{background:#1E2D4E;color:#fff}
+.btn-outline{background:transparent;border:0.5px solid #E5E7EB;color:#374151}
+.btn-sm{padding:6px 14px;font-size:12px}
+.btn-full{width:100%;justify-content:center}
+.tag{font-size:11px;background:#ffffff;color:#6B7280;padding:3px 9px;border-radius:4px}
+.form-group{margin-bottom:14px}
+label{display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:5px}
+.required{color:#EF4444;margin-left:2px}
+input,textarea{width:100%;padding:10px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;color:#111827;font-family:inherit}
+input:focus,textarea:focus{outline:none;border-color:#1d4ed8;box-shadow:0 0 0 3px rgba(30,45,78,.08)}
+textarea{resize:vertical;min-height:80px}
+.hint{font-size:11px;color:#9CA3AF;margin-top:4px}
+.check-list{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.check-item{display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;cursor:pointer}
+.check-item input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:#1e2d4e}
+.info-box{background:#eef1f8;border-radius:8px;padding:11px 14px;font-size:12px;color:#1e40af;display:flex;gap:8px;margin:10px 18px}
+.warn-box{background:#FFF7ED;border-radius:8px;padding:11px 14px;font-size:12px;color:#92400E;display:flex;gap:8px;margin:10px 18px}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:24px;max-width:500px;width:100%;margin:auto}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:600;color:#111827;margin-bottom:4px}
+.modal-sub{font-size:13px;color:#6B7280;margin-bottom:18px}
+#toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none}
+.upload-zone{border:2px dashed #E5E7EB;border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;background:#FAFAFA}
+.upload-zone:hover,.upload-zone.drag-over{border-color:#1d4ed8;background:#EFF6FF}
+.upload-zone.has-file{border-color:#1ED24E;background:#F0FDF4;border-style:solid}
+.file-preview{display:none;align-items:center;gap:10px;background:#F0FDF4;border-radius:8px;padding:10px 12px;margin-top:8px}
+.file-preview.show{display:flex}
+.file-remove{margin-left:auto;background:none;border:none;cursor:pointer;color:#EF4444;font-size:18px;padding:0 4px}
+
+  .nav-mobile-menu{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:6px;border-radius:6px;background:none;border:none;flex-shrink:0}
+  .nav-mobile-menu span{display:block;width:20px;height:2px;background:#fff;border-radius:2px}
+  .nav-mobile-panel{display:none;position:fixed;top:52px;left:0;right:0;background:#1e2d4e;z-index:999;padding:8px 16px 16px;border-bottom:0.5px solid rgba(255,255,255,.1)}
+  .nav-mobile-panel.open{display:block}
+  .nav-mobile-link{display:block;padding:10px 12px;color:#93C5FD;text-decoration:none;font-size:14px;border-radius:8px;margin-bottom:2px}
+  .nav-mobile-link:hover{background:rgba(255,255,255,.1);color:#fff}
+  @media(max-width:860px){
+    .nav-links,.nav-tabs{display:none!important}
+    .nav-mobile-menu{display:flex!important}.nav-mobile-menu{order:-1}.nav-logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}.nav-logo .brand-logo,.nav-logo>.brand-logo{height:22px}
+    .nav-user-name,.nav-userinfo{display:none!important}
+    .nav-icon,.nav-name{display:none!important}
+  }
+  /* TM-MOBILE-FIX */
+  @media(max-width:600px){
+    [style*="grid-template-columns:1fr 1fr"],
+    [style*="grid-template-columns:repeat(2,1fr)"],
+    [style*="grid-template-columns:repeat(2, 1fr)"],
+    [style*="grid-template-columns:repeat(3,1fr)"],
+    [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
+    body{overflow-x:hidden}
+  }
+.badge-warn{background:#FFFBEB;color:#92400E;border:1px solid #FDE68A}.badge-info{background:#EEF1F6;color:#1E2D4E;border:1px solid #C7CEDB}.badge-success{background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0}.badge-error{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA}.badge-neutral{background:#F3F4F6;color:#6B7280;border:1px solid #E5E7EB}</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const API='https://transmatch.transmatchcl.workers.dev';
+(async function(){
+const token=localStorage.getItem('tm_token');
+const role=localStorage.getItem('tm_role');
+if(!token){window.location.replace('/index.html');return}
+if(role==='admin'){window.location.replace('/admin.html');return}
+if(role==='cliente'){window.location.replace('/cliente.html');return}
+try{
+const res=await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+token}});
+if(res.status===401){localStorage.clear();window.location.replace('/index.html');return}
+if(res.ok){const{user}=await res.json();if(user.role!=='transportista'){window.location.replace('/index.html');return}}
+}catch(e){}
+document.getElementById('auth-guard').style.display='none';
+var appEl=document.getElementById('app');appEl.style.display='flex';appEl.style.flexDirection='column';appEl.style.minHeight='100vh';
+cargarNotificaciones();
+initApp();
+})();
+async function cargarNotificaciones(){
+try {
+var token = localStorage.getItem('tm_token');
+var r = await fetch(API + '/api/notificaciones', { headers: {'Authorization':'Bearer '+token} });
+var data = await r.json();
+var notifs = data.notificaciones || [];
+var noLeidas = notifs.filter(function(n){ return !n.leida; }).length;
+var badge = document.getElementById('notif-count');
+if(badge){ badge.textContent = noLeidas > 9 ? '9+' : noLeidas; badge.style.display = noLeidas > 0 ? 'flex' : 'none'; }
+var list = document.getElementById('notif-list');
+if(!list) return;
+if(notifs.length === 0){
+list.innerHTML = '<div style="padding:32px 20px;text-align:center"><div style="font-size:28px;margin-bottom:8px"></div><div style="font-size:14px;font-weight:500;color:#374151;margin-bottom:4px">Sin notificaciones</div><div style="font-size:12px;color:#9CA3AF">Te avisaremos cuando haya novedades</div></div>';
+return;
+}
+var iconMap = {
+        adjudicacion: '#16a34a',
+        licitacion_aprobada: '#16a34a',
+        licitacion_rechazada: '#EF4444',
+        licitacion_cerrada: '#1d4ed8',
+        cotizaciones_disponibles: '#FF8808',
+        nueva_licitacion: '#1e2d4e',
+        cobro_pendiente: '#FF8808',
+        cobro_pagado: '#16a34a',
+        cuenta_aprobada: '#16a34a',
+      };
+list.innerHTML = notifs.slice(0,20).map(function(n){
+var icono = iconMap[n.tipo] || '#9CA3AF';
+var bg = !n.leida ? 'background:#f0f4ff' : '';
+var ts = n.createdAt ? new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'+
+'<div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;background:'+icono+'"></div>'+
+'<div style="flex:1;min-width:0">'+
+'<div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4">'+n.mensaje+'</div>'+
+'<div style="font-size:11px;color:#9CA3AF">'+ts+'</div>'+
+'</div>'+
+(!n.leida
+? '<button onclick="marcarUnaLeida(\'' + n.id + '\')" title="Marcar como leída" style="background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0;margin-top:2px;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">✓</button>'
+: '') +
+'</div>';
+}).join('');
+cargarPrefsConfig();
+} catch(e){}
+}
+function toggleConfigNotif(){
+var cfg      = document.getElementById('notif-config');
+var list     = document.getElementById('notif-list');
+var hMain    = document.getElementById('notif-header-main');
+var hConfig  = document.getElementById('notif-header-config');
+var isOpen   = cfg && cfg.style.display !== 'none';
+if(isOpen){
+if(cfg)     cfg.style.display     = 'none';
+if(list)    list.style.display    = 'block';
+if(hMain)   hMain.style.display   = 'flex';
+if(hConfig) hConfig.style.display = 'none';
+} else {
+if(cfg)     cfg.style.display     = 'block';
+if(list)    list.style.display    = 'none';
+if(hMain)   hMain.style.display   = 'none';
+if(hConfig) hConfig.style.display = 'flex';
+cargarPrefsConfig();
+}
+}
+function cargarPrefsConfig(){
+try {
+var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+var ec = document.getElementById('notif-email-chk');
+var wc = document.getElementById('notif-wa-chk');
+if(ec) ec.checked = prefs.notifEmail !== false;
+if(wc) wc.checked = !!prefs.notifWhatsapp;
+if(wc && wc.checked){ var wi=document.getElementById('wa-input'); if(wi) wi.style.display='block'; }
+var waNum = document.getElementById('wa-numero');
+if(waNum && prefs.whatsapp) waNum.value = prefs.whatsapp;
+['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
+var el = document.getElementById('pref-'+id);
+if(el) el.checked = prefs['pref_'+id] !== false;
+});
+} catch(e){}
+}
+async function guardarPrefs(){
+try {
+var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+var ec = document.getElementById('notif-email-chk');
+if(ec) prefs.notifEmail = ec.checked;
+localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+if(typeof api === 'function'){ try { await api('/api/auth/me/prefs','POST',{ notifPrefs:{ email: ec?ec.checked:true } }); } catch(e){} }
+} catch(e){}
+}
+async function guardarPrefsDetalle(){
+try {
+var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
+var el = document.getElementById('pref-'+id);
+if(el) prefs['pref_'+id] = el.checked;
+});
+localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+} catch(e){}
+}
+function toggleWA(){
+var wc = document.getElementById('notif-wa-chk');
+var wi = document.getElementById('wa-input');
+if(wi) wi.style.display = (wc && wc.checked) ? 'block' : 'none';
+guardarPrefs();
+}
+function closeAllPanels(){
+var m=document.getElementById('user-menu');
+var p=document.getElementById('notif-panel');
+if(m) m.style.display='none';
+if(p) p.style.display='none';
+}
+function toggleUserMenu(e){
+if(e) e.stopPropagation();
+var _mp=document.getElementById('nav-mobile-panel'); if(_mp) _mp.classList.remove('open');
+var m=document.getElementById('user-menu');
+var isOpen=m&&m.style.display==='block';
+closeAllPanels();
+if(!isOpen&&m) m.style.display='block';
+}
+function toggleNotifs(e){
+if(e) e.stopPropagation();
+    var _mp=document.getElementById('nav-mobile-panel'); if(_mp) _mp.classList.remove('open');
+var panel=document.getElementById('notif-panel');
+if(!panel) return;
+var isOpen=panel.style.display==='flex';
+closeAllPanels();
+if(!isOpen){panel.style.display='flex';cargarNotificaciones();}
+}
+async function marcarUnaLeida(id){
+try {
+await api('/api/notificaciones/leer', 'POST', { id: id });
+await cargarNotificaciones();
+} catch(e){}
+}
+async function marcarTodasLeidas(){
+try {
+const r = await api('/api/notificaciones');
+if(!r || !r.ok) return;
+const notifs = r.data.notificaciones || [];
+const noLeidas = notifs.filter(function(n){ return !n.leida; });
+for(var i=0; i<noLeidas.length; i++){
+await api('/api/notificaciones/leer', 'POST', { id: noLeidas[i].id });
+}
+const badge = document.getElementById('notif-count');
+if(badge) badge.style.display = 'none';
+await cargarNotificaciones();
+} catch(e){}
+}
+</script></head><body><div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px"><svg style="height:32px;width:auto;display:block" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg></div><div class="spinner"></div></div></div><div id="app"><nav class="nav"><div class="nav-left"><a href="/transportista.html" class="nav-logo"><svg class="brand-logo" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg></a><button class="nav-mobile-menu" onclick="toggleMobileNav()" aria-label="Menu"><span></span><span></span><span></span></button><div class="nav-links"><a href="/transportista.html" class="nav-link">Inicio</a><a href="/transportista-retornos.html" class="nav-link">Retornos</a><a href="/transportista-licitaciones.html" class="nav-link active">Licitaciones</a><a href="/transportista-transporte.html" class="nav-link">Transportes</a><a href="/transportista-cobros.html" class="nav-link">Facturacion</a><a href="/transportista-calendario.html" class="nav-link">Calendario</a><a href="/transportista-historial.html" class="nav-link">Historial</a></div></div><div style="display:flex;align-items:center;gap:12px;"><div class="nav-user-name" style="text-align:right"><div style="font-size:13px;color:#fff;font-weight:500" id="nav-nombre">--</div><div style="font-size:11px;color:#93C5FD" id="nav-empresa">--</div></div><div style="display:flex;align-items:center;gap:8px;"><div id="notif-btn" onclick="toggleNotifs(event)" style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;"></span></div><div style="position:relative"><div class="avatar" id="nav-avatar" onclick="toggleUserMenu(event)" style="cursor:pointer">?</div><div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:240px;z-index:999;overflow:hidden"><div style="padding:14px 16px;border-bottom:1px solid #f3f4f6"><div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div><div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div><div id="um-plan" style="font-size:11px;color:#9CA3AF;margin-top:3px"></div></div><a href="/transportista-perfil.html" class="um-item" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+Mi perfil y equipos
+</a><a href="/transportista-historial.html" class="um-item" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4.5"/><polyline points="3 3 3 9 9 9"/></svg>
+Historial
+</a><a href="/ayuda.html" class="um-item" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+Ayuda
+</a><div style="border-top:1px solid #f3f4f6"><button onclick="localStorage.clear();window.location.replace('/index.html')" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#DC2626;background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:background .15s" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background=''"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+Cerrar sesión
+</button></div></div></div></div></div></nav>
+<div id="nav-mobile-panel" class="nav-mobile-panel">
+<a href="/transportista.html" class="nav-mobile-link">Inicio</a>
+<a href="/transportista-retornos.html" class="nav-mobile-link">Retornos</a>
+<a href="/transportista-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
+<a href="/transportista-transporte.html" class="nav-mobile-link">Transportes</a>
+<a href="/transportista-cobros.html" class="nav-mobile-link">Facturacion</a>
+<a href="/transportista-calendario.html" class="nav-mobile-link">Calendario</a>
+<a href="/transportista-historial.html" class="nav-mobile-link">Historial</a>
+</div>
+<div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:360px;background:#fff;border-radius:14px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.14);z-index:500;overflow:hidden;max-height:520px;flex-direction:column"><div id="notif-header-main" style="padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-shrink:0"><span style="font-size:14px;font-weight:700;color:#1e2d4e">Notificaciones</span><div style="display:flex;align-items:center;gap:8px"><button onclick="marcarTodasLeidas()" style="font-size:11px;color:#6B7280;background:none;border:none;cursor:pointer;padding:3px 6px;border-radius:5px" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">Marcar leídas</button><button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;color:#6B7280" title="Configurar notificaciones" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></div></div><div id="notif-header-config" style="display:none;padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:none;align-items:center;gap:10px;flex-shrink:0"><button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;color:#1e2d4e;font-size:13px;font-weight:500;padding:4px 8px;border-radius:6px" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+Volver
+</button><span style="font-size:14px;font-weight:700;color:#1e2d4e">Configuración</span></div><div id="notif-config" style="display:none;border-bottom:0.5px solid #E5E7EB;background:#f8f9fc;flex-shrink:0"><div style="padding:14px 16px"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Canal de notificaciones</div><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"><label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:13px;color:#374151">Por email</span><input type="checkbox" id="notif-email-chk" onchange="guardarPrefs()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label></div><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Sobre licitaciones</div><div style="display:flex;flex-direction:column;gap:0"><label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Nueva licitación disponible</span><input type="checkbox" id="pref-nueva-licit" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label><label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Licitación cerrada sin adjudicación</span><input type="checkbox" id="pref-licit-cerrada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label><label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Licitación adjudicada a mí</span><input type="checkbox" id="pref-adjudicada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label></div><div style="font-size:12px;font-weight:600;color:#374151;margin:10px 0;text-transform:uppercase;letter-spacing:.06em">Sobre retornos</div><label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;cursor:pointer"><span style="font-size:13px;color:#374151">Solicitudes en retornos publicados</span><input type="checkbox" id="pref-retornos" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label></div></div><div id="notif-list" style="overflow-y:auto;flex:1"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div></div><main><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><div><div style="font-size:20px;font-weight:600;color:#1e2d4e">Licitaciones</div><div style="font-size:14px;color:#6B7280;margin-top:2px">Solicitudes de transporte abiertas para cotizar</div></div></div><div class="stat-grid"><div class="stat-card"><div class="sc-label">Disponibles</div><div class="sc-val" id="sc-disponibles" style="color:#1e2d4e">—</div><div class="sc-sub">Sin cotizar aún</div></div><div class="stat-card"><div class="sc-label">Cotizaciones enviadas</div><div class="sc-val" id="sc-enviadas" style="color:#1d4ed8">—</div><div class="sc-sub">En espera de respuesta</div></div><div class="stat-card"><div class="sc-label">Adjudicaciones totales</div><div class="sc-val" id="sc-adjudicadas" style="color:#16a34a">—</div><div class="sc-sub">Transportes ganados</div></div><div class="stat-card"><div class="sc-label">Tasa de adjudicación</div><div class="sc-val" id="sc-tasa" style="color:#FF8808">—</div><div class="sc-sub">De cotizaciones ganadas</div></div></div><div class="card" style="overflow:visible"><div style="padding:10px 12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><div class="filter-chip active" onclick="setTabChip('todas',this)">Todas</div><div class="filter-chip" onclick="setTabChip('pendientes',this)">Disponibles</div><div class="filter-chip" onclick="setTabChip('enviadas',this)">Cot. enviada</div><div class="filter-chip" onclick="setTabChip('adjudicadas',this)">Adjudicadas</div><div class="filter-chip" onclick="setTabChip('no-adjudicadas',this)">No adjudicadas</div><div class="filter-chip" onclick="setTabChip('completadas',this)">Completadas</div></div><div style="height:0.5px;background:#E5E7EB;margin:0 12px"></div><div style="padding:10px 16px;border-bottom:0.5px solid #E5E7EB"><input style="width:100%;padding:7px 10px;border:0.5px solid #E5E7EB;border-radius:7px;font-size:12px" placeholder="Buscar por equipo o ruta..." id="buscador" oninput="filtrar()"/></div><div id="lista-licitaciones" style="padding:8px 12px"><div style="padding:32px;text-align:center"><div class="spinner"></div></div></div></div></main></div><div class="modal-bg" id="modal-detalle"><div class="modal" style="max-width:560px"><div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px"><div id="modal-detalle-titulo" style="font-size:16px;font-weight:700;color:#1e2d4e;padding-right:12px"></div><button onclick="cerrarDetalle()" style="background:none;border:none;cursor:pointer;font-size:20px;color:#9CA3AF;flex-shrink:0;line-height:1">✕</button></div><div id="modal-detalle-body"></div></div></div>
+<div id="toast"></div><script>
+const nombre=localStorage.getItem('tm_nombre')||'';
+const empresa=localStorage.getItem('tm_empresa')||'';
+document.getElementById('nav-avatar').textContent=(nombre[0]||'U').toUpperCase();
+var nn=document.getElementById('nav-nombre');if(nn)nn.textContent=nombre;
+var ne=document.getElementById('nav-empresa');if(ne)ne.textContent=empresa;
+let allLicitaciones=[],selectedId=null,misCotizaciones=new Set();
+var miEmailGlobal='';
+var userId='';
+var tabActual="todas";
+var historialNoGanadas={};
+var licitacionesGanadas=new Set();
+function toast(msg,type='ok'){
+const el=document.getElementById('toast');
+el.textContent=msg;el.style.background=type==='ok'?'#1E2D4E':'#EF4444';
+el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0'},3500);
+}
+function peso(n){return new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n)}
+function formatoRestante(ms){
+  if(ms<=0) return 'Cerrada';
+  var s=Math.floor(ms/1000);var h=Math.floor(s/3600);s-=h*3600;var m=Math.floor(s/60);s-=m*60;
+  if(h>0) return 'Cierra en '+h+'h '+m+'m';
+  if(m>0) return 'Cierra en '+m+'m '+s+'s';
+  return 'Cierra en '+s+'s';
+}
+var _cdTimer=null;
+function iniciarCuentaRegresiva(){
+  if(_cdTimer) clearInterval(_cdTimer);
+  function tick(){
+    var ahora=Date.now();
+    document.querySelectorAll('.cuenta-regresiva').forEach(function(el){
+      var resta=new Date(el.getAttribute('data-cierre')).getTime()-ahora;
+      el.textContent=formatoRestante(resta);
+      if(resta<=0){el.style.color='#9CA3AF';}
+      else if(resta<3600000){el.style.color='#EF4444';}
+      else if(resta<6*3600000){el.style.color='#F59E0B';}
+      else{el.style.color='#9CA3AF';}
+    });
+  }
+  tick(); _cdTimer=setInterval(tick,1000);
+}
+function desde(iso){
+const d=(Date.now()-new Date(iso).getTime())/60000;
+if(d<60)return`hace ${Math.floor(d)}m`;
+if(d<1440)return`hace ${Math.floor(d/60)}h`;
+return`hace ${Math.floor(d/1440)}d`;
+}
+async function api(path,method='GET',body=null){
+const o={method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}};
+if(body)o.body=JSON.stringify(body);
+try{const r=await fetch(API+path,o);if(r.status===401){localStorage.clear();window.location.replace('/index.html');return null}return{ok:r.ok,data:await r.json()}}
+catch(e){return null}
+}
+async function initApp(){
+await cargarLicitaciones();
+}
+// Refrescar badges al volver a la página (ej. tras guardar un borrador)
+window.addEventListener('pageshow', function(e){
+  if(e.persisted && typeof allLicitaciones !== 'undefined' && allLicitaciones.length){ filtrar(); }
+});
+async function cargarLicitaciones(){
+document.getElementById('lista-licitaciones').innerHTML='<div style="padding:32px;text-align:center"><div class="spinner"></div></div>';
+const r=await api('/api/licitaciones');
+allLicitaciones=(r&&r.ok)?(r.data.licitaciones||[]):[];
+const token=localStorage.getItem('tm_token');
+var miEmail=(localStorage.getItem('tm_email')||'').toLowerCase();
+try{
+const me=await api('/api/auth/me');
+if(me&&me.ok){ userId=me.data.user.id; if(me.data.user.email) miEmail=(me.data.user.email||'').toLowerCase(); window._esSubusuarioT=me.data.user.esSubusuario||false; }
+}catch(e){}
+miEmailGlobal=miEmail;
+misCotizaciones=new Set();
+allLicitaciones.forEach(l=>{
+if(l.empresaYaCotizo || (l.cotizaciones||[]).find(c=>(userId&&c.transportistaId===userId)||(miEmail&&(c.transportistaEmail||'').toLowerCase()===miEmail)))misCotizaciones.add(l.id);
+});
+try {
+const hist = await api('/api/transportista/historial');
+if (hist && hist.ok) {
+(hist.data.licitaciones || []).forEach(function(lh) {
+if (lh.miCotizacion) misCotizaciones.add(lh.id);
+if (lh.gane) licitacionesGanadas.add(lh.id);
+// Guardar feedback de posición para las resueltas sin ganar (incluye cerradas/vencidas/anuladas)
+if (lh.miCotizacion && !lh.gane && ['adjudicada','completada','expirada','anulada'].includes(lh.estado)) {
+historialNoGanadas[lh.id] = lh;
+}
+// Traer al listado cualquier licitación en la que participé (cotizando o ganando) que no esté ya
+// en el listado activo — así las que coticé pero se cerraron sin adjudicarse igual aparecen.
+if ((lh.miCotizacion || lh.gane) && !allLicitaciones.find(function(x){ return x.id === lh.id; })) {
+allLicitaciones.push(lh);
+}
+});
+}
+} catch(e) {}
+actualizarStats();
+filtrar();
+var _urlId=new URLSearchParams(window.location.search).get('id');
+if(_urlId){selectLicitacion(_urlId);}
+}
+function actualizarStats(){
+  // Disponibles: abiertas, vigentes y sin cotizar aún
+  var disponibles = allLicitaciones.filter(function(l){
+    return l.estado==='abierta' && !misCotizaciones.has(l.id) && licitacionVigente(l);
+  }).length;
+  // Cotizaciones enviadas: todas donde cotizé y aún no gané (en espera / en revisión)
+  var enviadas = 0;
+  misCotizaciones.forEach(function(id){
+    if(!licitacionesGanadas.has(id)) enviadas++;
+  });
+  // Adjudicaciones totales (transportes ganados)
+  var adjudicadas = licitacionesGanadas.size;
+  // Total de cotizaciones que envié (para la tasa)
+  var totalCotizadas = misCotizaciones.size;
+  var tasa = totalCotizadas>0 ? Math.round((adjudicadas/totalCotizadas)*100) : 0;
+
+  var set = function(id,val){ var el=document.getElementById(id); if(el) el.textContent=val; };
+  set('sc-disponibles', disponibles);
+  set('sc-enviadas', enviadas);
+  set('sc-adjudicadas', adjudicadas);
+  set('sc-tasa', totalCotizadas>0 ? tasa+'%' : '—');
+}
+function setTabChip(tab,el){
+document.querySelectorAll('.filter-chip').forEach(function(b){b.classList.remove('active');});
+el.classList.add('active');
+setTab(tab);
+}
+function setTab(tab){
+tabActual = tab;
+filtrar();
+}
+function tieneBorradorGuardado(licitId){
+  try{
+    var email = localStorage.getItem('tm_email') || 'anon';
+    var raw = localStorage.getItem('tm_cotiz_draft:'+email+':'+licitId);
+    if(!raw) return false;
+    var d = JSON.parse(raw);
+    // Doble verificación de pertenencia
+    if(d.ownerEmail && d.ownerEmail !== email) return false;
+    if(d.licitId && String(d.licitId) !== String(licitId)) return false;
+    var tieneItems = (d.items||[]).some(function(it){ return (it.eq&&it.eq.trim()) || (it.tarifa&&it.tarifa.trim()); });
+    var tieneDatos = (d.ruta&&d.ruta.trim()) || (d.desc&&d.desc.trim()) || d.fechaCarga || d.fechaEntreg;
+    return tieneItems || tieneDatos;
+  }catch(e){ return false; }
+}
+// Una licitación abierta solo está realmente vigente si su cierre no ha pasado.
+// Defensa en el cliente por si el backend devuelve alguna vencida antes de procesarla.
+function licitacionVigente(l){
+  if(l.estado!=='abierta') return true; // otros estados no dependen del cierre aquí
+  var cierre=l.cierreAt;
+  // Licitaciones antiguas sin cierreAt: calcular desde createdAt + plazo
+  if(!cierre && l.createdAt){
+    var horas=parseInt(l.plazo||'24');
+    cierre=new Date(new Date(l.createdAt).getTime()+horas*3600000).toISOString();
+  }
+  if(!cierre) return true; // sin datos para descartarla
+  return new Date(cierre).getTime() > Date.now();
+}
+
+function filtrar(){
+const q=(document.getElementById('buscador').value||'').toLowerCase();
+var base=q?allLicitaciones.filter(l=>(l.tipoEquipo+l.origen+l.destino+l.marca).toLowerCase().includes(q)):allLicitaciones;
+const lista=base.filter(function(l){
+if(tabActual==='pendientes')    return !misCotizaciones.has(l.id) && l.estado==='abierta' && licitacionVigente(l);
+if(tabActual==='enviadas')      return misCotizaciones.has(l.id) && (l.estado==='abierta' || l.estado==='cerrada');
+if(tabActual==='adjudicadas')   return licitacionesGanadas.has(l.id);
+if(tabActual==='no-adjudicadas') return misCotizaciones.has(l.id) && !licitacionesGanadas.has(l.id) && ['adjudicada','completada','expirada','anulada'].includes(l.estado);
+if(tabActual==='completadas')   return licitacionesGanadas.has(l.id) && l.estado==='completada';
+// "Todas": ocultar las abiertas que ya vencieron y no cotizé (ya no son una oportunidad)
+if(l.estado==='abierta' && !misCotizaciones.has(l.id) && !licitacionVigente(l)) return false;
+// Ocultar cerradas/adjudicadas/completadas en las que el transportista no participo
+if(l.estado!=='abierta' && !misCotizaciones.has(l.id)) return false;
+return true;
+});
+if(lista.length===0){
+document.getElementById('lista-licitaciones').innerHTML='<div style="padding:40px;text-align:center;color:#9CA3AF"><div style="font-size:32px;margin-bottom:10px"></div><div style="font-size:14px">Sin licitaciones disponibles</div></div>';
+return;
+}
+document.getElementById('lista-licitaciones').innerHTML=lista.map(function(l){
+var yaCotize = misCotizaciones.has(l.id);
+var gane = licitacionesGanadas.has(l.id);
+var estaResuelta = ['adjudicada','completada','expirada','anulada'].includes(l.estado);
+var plazoCerrado = l.estado==='cerrada'; // el plazo de cotización ya cerró; cliente evaluando
+var tieneBorrador = tieneBorradorGuardado(l.id) && l.estado==='abierta' && !yaCotize;
+var badgeHtml;
+if(gane){
+  badgeHtml = '<span class="badge badge-green">Adjudicada</span>';
+} else if(yaCotize && estaResuelta){
+  badgeHtml = '<span class="badge" style="background:#FEF2F2;color:#991B1B">No adjudicada</span>';
+} else if(yaCotize && plazoCerrado){
+  badgeHtml = '<span class="badge badge-blue">En revision</span>';
+} else if(plazoCerrado){
+  badgeHtml = '<span class="badge" style="background:#F3F4F6;color:#6B7280">Cerrada</span>';
+} else if(yaCotize){
+  badgeHtml = '<span class="badge badge-green">Cotizacion enviada</span>';
+} else if(tieneBorrador){
+  badgeHtml = '<span class="badge badge-blue">Borrador guardado</span>';
+} else {
+  badgeHtml = '<span class="badge badge-orange">Disponible</span>';
+}
+var miCotiz = (l.cotizaciones||[]).find(function(c){ return (userId&&c.transportistaId===userId)||(miEmailGlobal&&(c.transportistaEmail||'').toLowerCase()===miEmailGlobal); });
+var precioMostrar = miCotiz ? miCotiz.precio : ((l.miCotizacion&&l.miCotizacion.precio) || l.presupuesto || null);
+// Detalle inline
+var detalleHtml = renderDetalleInline(l, yaCotize, miCotiz);
+return '<div class="licit-card" id="licit-card-'+l.id+'">'+
+  '<div class="licit-hdr" onclick="toggleLicit(\''+l.id+'\')">' +
+    '<div class="li-code">'+(l.codigo||l.codigo||'LIC')+'</div>'+
+    '<div class="li-body">'+
+      '<div class="li-name">'+(l.codigo?'<span style="font-size:10px;font-family:IBM Plex Mono,monospace;color:#9CA3AF;margin-right:6px">'+l.codigo+'</span>':'')+l.tipoEquipo+(l.marca?' — '+l.marca:'')+'</div>'+
+      '<div class="li-meta">'+l.origen+' → '+l.destino+' · '+desde(l.createdAt)+'</div>'+
+    '</div>'+
+    '<div class="li-right">'+
+      (precioMostrar?'<div class="li-precio">'+peso(precioMostrar)+'</div>':'')+
+      '<div class="li-badge">'+badgeHtml+'</div>'+
+      (l.estado==='abierta'&&l.cierreAt?'<div class="cuenta-regresiva" data-cierre="'+l.cierreAt+'" style="font-size:10px;color:#9CA3AF;margin-top:2px"></div>':'')+
+    '</div>'+
+    '<span class="li-arr" id="li-arr-'+l.id+'">›</span>'+
+  '</div>'+
+  '<div class="licit-body" id="licit-body-'+l.id+'">'+detalleHtml+'</div>'+
+'</div>';
+}).join('');
+iniciarCuentaRegresiva();
+}
+function toggleLicit(id){
+  var body=document.getElementById('licit-body-'+id);
+  var arr=document.getElementById('li-arr-'+id);
+  if(!body) return;
+  var open=body.classList.contains('open');
+  body.classList.toggle('open',!open);
+  if(arr) arr.style.transform=open?'':'rotate(90deg)';
+  if(!open){
+    // Cargar detalle si no se ha cargado aún
+    const l=allLicitaciones.find(x=>x.id===id);
+    if(l&&body.innerHTML.trim()===''){
+      const yaCotize=misCotizaciones.has(l.id);
+      const miCotiz=(l.cotizaciones||[]).find(function(c){return c.transportistaId===userId;});
+      body.innerHTML=renderDetalleInline(l,yaCotize,miCotiz);
+    }
+  }
+}
+function selectLicitacion(id){
+  selectedId=id;
+  const card=document.getElementById('licit-card-'+id);
+  const body=document.getElementById('licit-body-'+id);
+  const arr=document.getElementById('li-arr-'+id);
+  if(body&&!body.classList.contains('open')){
+    body.classList.add('open');
+    if(arr) arr.style.transform='rotate(90deg)';
+    const l=allLicitaciones.find(x=>x.id===id);
+    if(l&&body.innerHTML.trim()===''){
+      const yaCotize=misCotizaciones.has(l.id);
+      const miCotiz=(l.cotizaciones||[]).find(function(c){return c.transportistaId===userId;});
+      body.innerHTML=renderDetalleInline(l,yaCotize,miCotiz);
+    }
+  }
+  if(card) card.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function cerrarDetalle(){var m=document.getElementById('modal-detalle');if(m)m.classList.remove('open');}
+function renderDetalleInline(l,yaCotize,miCotiz){
+if(yaCotize===undefined) yaCotize=misCotizaciones.has(l.id);
+if(miCotiz===undefined) miCotiz=(l.cotizaciones||[]).find(function(c){return c.transportistaId===userId;});
+let h='';
+var _ganada=licitacionesGanadas.has(l.id);
+// Cabecera con badge de estado
+h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB">
+<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+${ _ganada
+   ? '<span class="badge badge-success">Adjudicada</span>'
+   : (yaCotize && (l.estado==='adjudicada'||l.estado==='completada')
+       ? '<span class="badge badge-error">No adjudicada</span>'
+       : (yaCotize && l.estado==='cerrada'
+           ? '<span class="badge badge-info">En revision</span>'
+           : (l.estado==='cerrada'
+               ? '<span class="badge badge-neutral">Cerrada</span>'
+               : (yaCotize
+                   ? '<span class="badge badge-info">Cotizacion enviada</span>'
+                   : '<span class="badge badge-warn">Abierta</span>')))) }
+<span class="tag">${l.tipoLicitacion==='maquinaria'?'Maquinaria pesada':'Carga general'}</span>
+${l.plazo?`<span class="tag">Plazo cotizacion: ${l.plazo}h</span>`:''}
+</div>
+<button onclick="descargarLicitacionPDF('${l.id}',${_ganada?'false':'true'})" style="margin-top:10px;width:fit-content;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Descargar detalle (PDF)</button>
+</div>`;
+
+// SECCIÓN: Equipo / carga solicitada
+var eqRows=[];
+if(l.tipoLicitacion==='maquinaria'){
+  if(l.tipoEquipo)eqRows.push(['Tipo de maquinaria',l.tipoEquipo]);
+  if(l.tipoEquipoRequerido&&l.tipoEquipoRequerido!=='cualquiera')eqRows.push(['Equipo requerido',l.tipoEquipoRequerido]);
+  if(l.cantidadEquipos)eqRows.push(['Cantidad de equipos',l.cantidadEquipos]);
+  if(l.marca)eqRows.push(['Marca',l.marca]);
+  if(l.modelo)eqRows.push(['Modelo',l.modelo]);
+  if(l.peso)eqRows.push(['Peso aprox.',l.peso+' '+(l.pesoUnidad||'ton')]);
+  if(l.dimensiones)eqRows.push(['Dimensiones',l.dimensiones]);
+}else{
+  if(l.tipoEquipoRequerido&&l.tipoEquipoRequerido!=='cualquiera')eqRows.push(['Equipo requerido',l.tipoEquipoRequerido]);
+  if(l.tipoCarga)eqRows.push(['Tipo de carga',l.tipoCarga]);
+  if(l.cantidadEquipos)eqRows.push(['Cantidad de equipos',l.cantidadEquipos]);
+  if(l.peso)eqRows.push(['Peso total',l.peso+' '+(l.pesoUnidad||'ton')]);
+  if(l.volumen)eqRows.push(['Volumen',l.volumen+' m³']);
+  if(l.cantidadBultos)eqRows.push(['N° de bultos',l.cantidadBultos]);
+  if(l.pesoPorBulto)eqRows.push(['Peso por bulto',l.pesoPorBulto+' kg']);
+  if(l.dimensiones)eqRows.push(['Dimensiones',l.dimensiones]);
+}
+if(eqRows.length){
+h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB">
+<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">${l.tipoLicitacion==='maquinaria'?'Equipo solicitado':'Detalle de la carga'}</div>
+${eqRows.map(function(r){return `<div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:13px"><span style="color:#6B7280">${r[0]}</span><span style="color:#374151;font-weight:500;text-align:right">${r[1]}</span></div>`;}).join('')}
+</div>`;
+}
+
+// SECCIÓN: Ruta y fechas (direcciones SÍ, contactos NO hasta adjudicar)
+var tEntMap={mina:'Dentro de la mina',garita:'En garita',no_aplica:'No aplica'};
+var rutaRows=[];
+rutaRows.push(['Origen',l.origen||'—']);
+if(l.direccionOrigen)rutaRows.push(['Dirección de origen',l.direccionOrigen]);
+rutaRows.push(['Destino',l.destino||'—']);
+if(l.direccionDestino)rutaRows.push(['Dirección de destino',l.direccionDestino]);
+if(l.tipoEntregaDestino&&l.tipoEntregaDestino!=='no_aplica')rutaRows.push(['Tipo de entrega',tEntMap[l.tipoEntregaDestino]||'—']);
+if(l.fechaCarga)rutaRows.push(['Fecha de carga',new Date(l.fechaCarga+'T12:00:00').toLocaleDateString('es-CL')+(l.horaCarga?' · '+l.horaCarga:'')]);
+if(l.fechaEntrega)rutaRows.push(['Fecha de descarga',new Date(l.fechaEntrega+'T12:00:00').toLocaleDateString('es-CL')+(l.horaDescarga?' · '+l.horaDescarga:'')]);
+h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB">
+<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Ruta y fechas</div>
+${rutaRows.map(function(r){return `<div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:13px"><span style="color:#6B7280">${r[0]}</span><span style="color:#374151;font-weight:500;text-align:right">${r[1]}</span></div>`;}).join('')}
+</div>`;
+
+// Paradas intermedias (sin contacto hasta adjudicar)
+if(Array.isArray(l.paradas) && l.paradas.length>0){
+h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB">
+<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Paradas intermedias</div>
+${l.paradas.map(function(p,i){return `<div style="font-size:13px;color:#374151;margin-bottom:6px">${i+1}. ${p.direccion||'—'}${p.horario?' · '+p.horario:''}${(p.contacto&&_ganada)?' · '+p.contacto:''}${p.descripcion?'<br><span style="color:#6B7280;margin-left:14px">'+p.descripcion+'</span>':''}</div>`;}).join('')}
+</div>`;
+}
+
+// Valor del seguro
+if(l.valorSeguro){
+h+=`<div style="padding:10px 18px;border-bottom:0.5px solid #E5E7EB"><div style="display:flex;justify-content:space-between;gap:12px;font-size:13px"><span style="color:#6B7280">Valor aprox. del seguro</span><span style="color:#374151;font-weight:500">$${Number(l.valorSeguro).toLocaleString('es-CL')}</span></div></div>`;
+}
+
+// Observaciones / condiciones especiales
+if(l.descripcion){
+h+=`<div style="padding:14px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Observaciones y condiciones especiales</div><div style="font-size:13px;color:#6B7280;line-height:1.6">${l.descripcion}</div></div>`;
+}
+
+// Comentario del equipo TransMatch (admin) — información importante a considerar al cotizar
+if(l.comentarioAdmin){
+h+=`<div style="padding:14px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Nota de TransMatch</div><div style="font-size:13px;color:#6B7280;line-height:1.6">${l.comentarioAdmin}</div></div>`;
+}
+
+// Preguntas y respuestas — mediado por la plataforma, sin revelar identidad en ningún sentido.
+// Cualquier transportista ve todas las preguntas y respuestas (misma información para todos los que coticen).
+var preguntas=l.preguntas||[];
+h+=`<div style="margin:14px 18px 16px;background:#F4F6FB;border:1px solid #E2E7F1;border-radius:14px;padding:4px 4px 14px">
+<div style="display:flex;align-items:center;gap:10px;padding:14px 14px 12px">
+<div style="width:34px;height:34px;border-radius:9px;background:#1e2d4e;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>
+<div><div style="font-size:14px;font-weight:600;color:#1e2d4e">Preguntas y respuestas</div><div style="font-size:12px;color:#6B7280">Consultas sobre la carga · no se revela tu identidad</div></div>
+</div>
+<div style="padding:0 14px">`;
+var comsAdm=l.comentariosAdmin||[];
+if(comsAdm.length){
+  h+=comsAdm.map(function(cm){
+    return `<div style="margin-bottom:10px;padding:10px 12px;background:#FFF7ED;border:1px solid #FDE8CC;border-radius:10px">
+<div style="font-size:11px;font-weight:600;color:#B45309;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">Comentario del administrador</div>
+<div style="font-size:13px;color:#374151;line-height:1.5">${cm.texto}</div>
+<div style="font-size:11px;color:#9CA3AF;margin-top:4px">${new Date(cm.createdAt).toLocaleString('es-CL')}</div>
+</div>`;
+  }).join('');
+}
+if(preguntas.length){
+  h+=preguntas.map(function(p){
+    return `<div style="background:#fff;border:0.5px solid #e8eaf0;border-radius:10px;padding:12px 14px;margin-bottom:10px">
+<div style="font-size:13px;color:#374151${p.respuesta?';margin-bottom:6px':''}"><span style="display:inline-block;background:#eef1f8;color:#1e2d4e;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;margin-right:6px">${p.esTuya?'Tu pregunta':'Pregunta'}</span>${p.texto}</div>
+${p.respuesta?`<div style="font-size:13px;color:#1e2d4e;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:9px 11px"><strong style="color:#14532D">Respuesta:</strong> ${p.respuesta}</div>`:'<div style="font-size:12px;color:#9CA3AF;font-style:italic">Esperando respuesta del cliente</div>'}
+</div>`;
+  }).join('');
+} else {
+  h+='<div style="font-size:12px;color:#9CA3AF;margin-bottom:10px">Todavía no hay preguntas.</div>';
+}
+if(l.estado==='abierta'){
+  h+=`<div style="display:flex;gap:8px;margin-top:4px">
+<input type="text" id="pregunta-input-${l.id}" placeholder="Escribe tu pregunta (no se revela tu identidad)" maxlength="500" style="flex:1;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px;background:#fff">
+<button onclick="enviarPregunta('${l.id}')" style="padding:9px 16px;background:#FF8808;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">Preguntar</button>
+</div>`;
+}
+h+='</div></div>';
+
+// Estándar minero
+if(l.requiereEstandar){
+h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB;background:#FFFBEB">
+<div style="font-size:12px;font-weight:600;color:#92400E;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Requiere estándar minero</div>
+${l.estandarDetalle?`<div style="font-size:13px;color:#374151;line-height:1.6;margin-bottom:${(l.estandarArchivoId&&(_ganada||l.estandarArchivoVisibleTransportista))?'8px':'0'}">${l.estandarDetalle}</div>`:'<div style="font-size:13px;color:#6B7280">El cliente requiere cumplir un estándar minero para esta licitación.</div>'}
+${(l.estandarArchivoId&&(_ganada||l.estandarArchivoVisibleTransportista))?`<button onclick="descargarArchivo('${l.estandarArchivoId}','${l.estandarArchivoNombre||'estandar_minero'}')" style="width:fit-content;display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${l.estandarArchivoNombre||'Documento del estándar'}</button>`:(l.estandarArchivoId?`<div style="font-size:12px;color:#9CA3AF;margin-top:6px">El documento del estándar estará disponible al adjudicarte la licitación.</div>`:'')}
+</div>`;
+}
+
+// Archivo de especificaciones (si ganó, o si el admin lo aprobó para quienes cotizan)
+if(l.archivoId && (_ganada || l.archivoVisibleTransportista)){
+h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Especificaciones técnicas</div><button onclick="descargarArchivo('${l.archivoId}','${l.archivoNombre||'especificaciones'}')"
+style="width:fit-content;display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+${l.archivoNombre||'Descargar especificaciones'}
+</button></div>`;
+} else if(l.archivoId){
+h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;color:#9CA3AF">El cliente adjuntó un archivo de especificaciones. Estará disponible al adjudicarte la licitación.</div></div>`;
+}
+
+// Contacto: solo visible si ganó
+if(_ganada && (l.contactoOrigenNombre||l.contactoOrigenTelefono||l.contactoOrigenEmail||l.contactoDestinoNombre||l.contactoDestinoTelefono||l.contactoDestinoEmail)){
+h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Contacto operacional</div>
+${(l.contactoOrigenNombre||l.contactoOrigenTelefono||l.contactoOrigenEmail)?`<div style="margin-bottom:6px"><div style="font-size:12px;font-weight:600;color:#374151">En origen</div><div style="font-size:13px;color:#374151">${[l.contactoOrigenNombre,l.contactoOrigenTelefono,l.contactoOrigenEmail].filter(Boolean).join(' · ')}</div></div>`:''}
+${(l.contactoDestinoNombre||l.contactoDestinoTelefono||l.contactoDestinoEmail)?`<div><div style="font-size:12px;font-weight:600;color:#374151">En destino</div><div style="font-size:13px;color:#374151">${[l.contactoDestinoNombre,l.contactoDestinoTelefono,l.contactoDestinoEmail].filter(Boolean).join(' · ')}</div></div>`:''}
+</div>`;
+}
+if(yaCotize){
+const histData = historialNoGanadas[l.id];
+const esGanador = licitacionesGanadas.has(l.id);
+const estaAdjudicada = l.estado === 'adjudicada' || l.estado === 'completada';
+if(esGanador && estaAdjudicada){
+var adjArchId = (l.adjudicadaA && l.adjudicadaA.archivoPropioId) || '';
+var adjArchNom = (l.adjudicadaA && l.adjudicadaA.archivoPropioNombre) || 'propuesta';
+h+=`<div style="padding:16px 18px">
+<div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(30,45,78,.06);margin-bottom:12px">
+<div style="background:#FF8808;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+<div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#fff;letter-spacing:.4px;text-transform:uppercase">Ganaste esta licitación</div>
+${((miCotiz&&miCotiz.precio)||(l.adjudicadaA&&l.adjudicadaA.precio))?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#fff;text-align:right;line-height:1">${peso((miCotiz&&miCotiz.precio)||(l.adjudicadaA&&l.adjudicadaA.precio))}<small style="display:block;font-family:Barlow,sans-serif;font-size:10px;color:rgba(255,255,255,.85);font-weight:400;margin-top:2px">Tu cotización</small></div>`:''}
+</div>
+<div style="padding:14px 16px">
+<div style="font-size:13px;color:#6B7280;line-height:1.45">El cliente te seleccionó. Coordina los detalles directamente desde Transportes.</div>
+${(miCotiz&&miCotiz.tiempoEntrega)?`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;margin-top:10px;border-top:1px solid #F1F2F6;font-size:13px"><span style="color:#6B7280">Entrega comprometida</span><span style="color:#1e2d4e;font-weight:600">${miCotiz.tiempoEntrega}</span></div>`:''}
+<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+<button class="btn btn-outline btn-sm" onclick="verPreviewCotiz('${l.id}')">Ver cotización</button>
+${adjArchId ? `<button class="btn btn-outline btn-sm" onclick="verArchivoCotiz('${adjArchId}','${adjArchNom}')">Ver archivo adjunto</button>` : ''}
+</div>
+</div>
+</div>
+</div>`;
+} else if(!esGanador && estaAdjudicada && histData && histData.miCotizacion){
+const mc = histData.miCotizacion;
+const total = histData.totalCotizaciones || '?';
+const precio = mc.precio;
+const entrega = mc.tiempoEntrega || '—';
+const posP = histData.posPrecio || '—';
+const posE = histData.posEntrega || '—';
+const posV = histData.posValoracion || '—';
+h+=`<div style="padding:16px 18px">
+<div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(30,45,78,.06)">
+<div style="background:#1E2D4E;padding:12px 16px">
+<div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#fff;letter-spacing:.4px;text-transform:uppercase">No fuiste adjudicado</div>
+</div>
+<div style="padding:14px 16px">
+<div style="font-size:13px;color:#6B7280;margin-bottom:12px;line-height:1.45">La licitación se adjudicó a otro transportista. Tu desempeño vs. la competencia, para mejorar la próxima:</div>
+<div style="display:grid;grid-template-columns:1.1fr 1fr auto;border:1px solid #EEF0F4;border-radius:8px;overflow:hidden;font-size:13px">
+<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9CA3AF;padding:7px 12px;background:#FAFBFC;border-bottom:1px solid #F1F2F6">Criterio</div>
+<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9CA3AF;padding:7px 12px;background:#FAFBFC;border-bottom:1px solid #F1F2F6;text-align:center">Tu oferta</div>
+<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9CA3AF;padding:7px 12px;background:#FAFBFC;border-bottom:1px solid #F1F2F6;text-align:right">Posición</div>
+<div style="padding:9px 12px;border-bottom:1px solid #F1F2F6;color:#6B7280">Precio</div><div style="padding:9px 12px;border-bottom:1px solid #F1F2F6;color:#1e2d4e;font-weight:600;text-align:center">${new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(precio)}</div><div style="padding:9px 12px;border-bottom:1px solid #F1F2F6;color:#1e2d4e;font-weight:700;text-align:right">${posP==='\u2014'?'\u2014':posP+'\u00ba'} <span style="color:#9CA3AF;font-weight:400;font-size:11px">de ${typeof total==='number'?total:'?'}</span></div>
+<div style="padding:9px 12px;border-bottom:1px solid #F1F2F6;color:#6B7280">Puntualidad</div><div style="padding:9px 12px;border-bottom:1px solid #F1F2F6;color:#1e2d4e;font-weight:600;text-align:center">${entrega}</div><div style="padding:9px 12px;border-bottom:1px solid #F1F2F6;color:#1e2d4e;font-weight:700;text-align:right">${posE==='\u2014'?'\u2014':posE+'\u00ba'} <span style="color:#9CA3AF;font-weight:400;font-size:11px">de ${typeof total==='number'?total:'?'}</span></div>
+<div style="padding:9px 12px;color:#6B7280">Valoración</div><div style="padding:9px 12px;color:#1e2d4e;font-weight:600;text-align:center">${(typeof mc.transportistaRating!=='undefined'&&mc.transportistaRating!==null&&mc.transportistaRating!=='')?(mc.transportistaRating+' \u2605'):'\u2014'}</div><div style="padding:9px 12px;color:#1e2d4e;font-weight:700;text-align:right">${posV==='\u2014'?'\u2014':posV+'\u00ba'} <span style="color:#9CA3AF;font-weight:400;font-size:11px">de ${typeof total==='number'?total:'?'}</span></div>
+</div>
+<div style="font-size:11.5px;color:#9CA3AF;margin-top:10px;line-height:1.5">La posición 1 es la mejor (más barato, más rápido, mejor valorado).</div>
+</div>
+</div>
+</div>`;
+} else if(estaAdjudicada){
+h+=`<div style="padding:16px 18px"><div style="background:#F3F4F6;border-radius:8px;padding:14px;text-align:center"><div style="font-size:14px;color:#6B7280">Esta licitación ya fue adjudicada</div></div></div>`;
+} else {
+const mc = (l.cotizaciones||[]).find(function(c){ return c.transportistaId===userId || (c.transportistaEmail&&miEmailGlobal&&c.transportistaEmail.toLowerCase()===miEmailGlobal); });
+// Cotización de otro usuario de la misma empresa (la madre ve la de un subusuario o viceversa)
+const mcEmpresa = !mc ? (l.cotizaciones||[]).find(function(c){ return c.transportistaEmpresa && l.empresaYaCotizo; }) : null;
+if(!mc && (l.empresaYaCotizo || mcEmpresa)){
+const ce = mcEmpresa || {};
+const precioE = ce.precio ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(ce.precio) : '—';
+h+=`<div style="padding:16px 18px">
+<div style="background:#eef1f8;border:1px solid #d6deef;border-radius:10px;padding:14px;margin-bottom:12px">
+<div style="font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:6px">Tu empresa ya cotizó esta licitación</div>
+<div style="font-size:12px;color:#6B7280;line-height:1.5">${l.empresaCotizoNombre?'Cotización enviada por <strong style="color:#1e2d4e">'+l.empresaCotizoNombre+'</strong>.':'Otro usuario de tu empresa ya envió una cotización.'} Se permiten hasta 2 cotizaciones por empresa.</div>
+${ce.precio?`<div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 0 0;margin-top:8px;border-top:0.5px solid #d6deef"><span style="color:#6B7280">Precio cotizado</span><span style="font-weight:700;color:#1e2d4e">${precioE}</span></div>`:''}
+</div>
+<button class="btn btn-outline btn-sm" onclick="verPreviewCotiz('${l.id}')">Ver cotización</button>
+</div>`;
+} else {
+var misCotiz=(l.cotizaciones||[]).filter(function(c){ return c.transportistaId===userId || (c.transportistaEmail&&miEmailGlobal&&(c.transportistaEmail||'').toLowerCase()===miEmailGlobal); });
+if(!misCotiz.length && mc) misCotiz=[mc];
+var _fmtP=function(n){ return new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n||0); };
+var _nomEq=(l.tipoEquipo+' '+(l.marca||'')).replace(/'/g,"\\'");
+h+='<div style="padding:16px 18px">';
+misCotiz.forEach(function(c,ci){
+var _tit = misCotiz.length>1 ? ('Cotización '+(ci+1)) : 'Tu cotización enviada';
+var _mod = c.modalidad?('<span style="background:#FF8808;color:#fff;font-size:10px;font-weight:600;padding:2px 9px;border-radius:999px;margin-left:8px;vertical-align:middle">'+c.modalidad+'</span>'):'';
+var _cod = c.codigo?('<div style="font-family:IBM Plex Mono,monospace;font-size:10px;color:#AEB7CC;margin-top:2px">'+c.codigo+'</div>'):'';
+var _arch = (c.archivoPropioId||c.archivoId)?('<button class="btn btn-outline btn-sm" onclick="verArchivoCotiz(\''+(c.archivoPropioId||c.archivoId)+'\',\''+((c.archivoPropioNombre||c.archivoNombre||'propuesta')+'').replace(/'/g,"\\'")+'\')">Ver archivo adjunto</button>'):'';
+var _acc = l.estado==='abierta'?('<button class="btn btn-outline btn-sm" onclick="abrirEditarCotiz(\''+l.id+'\',\''+_nomEq+'\',\''+c.id+'\')">Editar</button><button class="btn btn-sm" style="background:#FEF2F2;color:#991B1B;border:1px solid #FECACA" onclick="eliminarCotizacion(\''+l.id+'\',\''+c.id+'\')">Eliminar</button>'):'';
+h+='<div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(30,45,78,.06);margin-bottom:10px">'+
+'<div style="background:#1E2D4E;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px">'+
+'<div><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:16px;font-weight:700;color:#fff;letter-spacing:.4px;text-transform:uppercase">'+_tit+_mod+'</div>'+_cod+'</div>'+
+'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:20px;font-weight:700;color:#fff;text-align:right;line-height:1">'+_fmtP(c.precio)+'<small style="display:block;font-family:Barlow,sans-serif;font-size:10px;color:#AEB7CC;font-weight:400;margin-top:2px">Monto neto</small></div>'+
+'</div>'+
+'<div style="padding:14px 16px">'+
+'<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F1F2F6;font-size:13px"><span style="color:#6B7280">Fecha de entrega</span><span style="color:#1e2d4e;font-weight:600">'+(c.tiempoEntrega||'—')+'</span></div>'+
+'<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:13px"><span style="color:#6B7280">Estado</span><span style="font-size:11px;font-weight:600;color:#1d4ed8;background:#EFF4FF;padding:3px 10px;border-radius:999px">'+(l.estado==='cerrada'?'En revisión':'Enviada')+'</span></div>'+
+'<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="verPreviewCotiz(\''+l.id+'\',\''+c.id+'\')">Ver cotización</button>'+_arch+_acc+'</div>'+
+'</div></div>';
+});
+if(l.estado==='abierta' && misCotiz.length<2){
+h+='<button class="btn btn-outline btn-full" style="margin-top:2px" onclick="abrirModal(\''+l.id+'\',\''+_nomEq+'\')">+ Agregar otra cotización</button>';
+}
+h+='</div>';
+}
+}
+} else {
+if(l.estado==='cerrada'){
+h+=`<div style="padding:16px 18px"><div style="background:#F3F4F6;border-radius:10px;padding:16px;text-align:center"><div style="font-size:14px;font-weight:600;color:#374151;margin-bottom:2px">Plazo de cotización cerrado</div><div style="font-size:12px;color:#6B7280">Esta licitación ya no recibe cotizaciones. El cliente está evaluando las recibidas.</div></div></div>`;
+} else {
+const cierre=new Date(l.cierreAt);
+const horasRestantes=Math.max(0,Math.round((cierre-Date.now())/3600000));
+h+=`<div style="padding:16px 18px">
+${horasRestantes<6?`<div class="warn-box" style="margin:0 0 12px"><span>!</span><span>Cierra en ${horasRestantes} horas. ¡Date prisa!</span></div>`:''}
+<button class="btn btn-orange btn-full" onclick="abrirModal('${l.id}','${(l.tipoEquipo+' '+(l.marca||'')).replace(/'/g,"\\'")}')">
+Cotizar
+</button></div>`;
+}
+}
+document.getElementById('modal-detalle-titulo').innerHTML = (l.codigo?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:IBM Plex Mono,monospace;background:#f5f7fb;padding:1px 6px;border-radius:4px;margin-right:6px">'+l.codigo+'</span>':'')+l.tipoEquipo+(l.marca?' — '+l.marca:'');
+// El título y ruta ya se muestran en el header de la card, solo retornamos el body
+return h;
+}
+async function descargarArchivo(id,nombre){
+try{
+const r=await api('/api/archivos/'+id);
+if(!r||!r.ok){toast('Error al descargar','err');return}
+const{base64,tipo}=r.data;
+const link=document.createElement('a');
+link.href='data:'+(tipo||'application/octet-stream')+';base64,'+base64;
+link.download=nombre;link.click();
+}catch(e){toast('Error al descargar','err')}
+}
+function abrirModal(id,nombre){
+  selectedId=id;
+  const l=allLicitaciones.find(x=>x.id===id);
+  if(!l) return;
+  const p=new URLSearchParams();
+  p.set('licitId',  l.id);
+  p.set('licitCod', l.codigo||l.codigo||'');
+  p.set('equipo',   l.tipoEquipo+(l.marca?' '+l.marca:''));
+  p.set('ruta',     (l.origen||'')+(l.destino?' → '+l.destino:''));
+  if(l.fechaCarga)   p.set('fechaCarga',   l.fechaCarga);
+  if(l.fechaEntrega) p.set('fechaEntrega', l.fechaEntrega);
+  if(l.tipoLicitacion) p.set('tipo', l.tipoLicitacion);
+  window.location.href='/cotizacion-editor.html?'+p.toString();
+}
+async function verArchivoCotiz(archivoId, nombre){
+  try{
+    const r=await api('/api/archivos/'+archivoId);
+    if(!r||!r.ok){toast('Error al abrir el archivo','err');return}
+    const {base64,tipo}=r.data;
+    const mime = tipo||'application/octet-stream';
+    // Convertir base64 a Blob para poder previsualizar en el navegador
+    const bin = atob(base64);
+    const bytes = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    const blob = new Blob([bytes],{type:mime});
+    const url = URL.createObjectURL(blob);
+    const esVisible = mime.indexOf('pdf')!==-1 || mime.indexOf('image')!==-1;
+    if(esVisible){
+      // PDF e imágenes: previsualizar en nueva pestaña
+      window.open(url,'_blank');
+      setTimeout(()=>URL.revokeObjectURL(url),60000);
+    } else {
+      // Word/Excel u otros: el navegador no los muestra inline, se descargan
+      const link=document.createElement('a');
+      link.href=url; link.download=nombre; link.click();
+      setTimeout(()=>URL.revokeObjectURL(url),10000);
+      toast('Este formato se descarga para abrirlo');
+    }
+  }catch(e){toast('Error al abrir el archivo','err')}
+}
+async function verPreviewCotiz(licitacionId, cotizId){
+  var titulo=document.getElementById('modal-detalle-titulo');
+  var body=document.getElementById('modal-detalle-body');
+  titulo.textContent='Tu cotización';
+  body.innerHTML='<div style="padding:24px;text-align:center"><div class="spinner"></div></div>';
+  document.getElementById('modal-detalle').classList.add('open');
+  try{
+    var r=await api('/api/cotizaciones/mia/'+licitacionId+(cotizId?('?cotizId='+encodeURIComponent(cotizId)):''));
+    if(!r||!r.ok||!r.data.cotizacion){ body.innerHTML='<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">No se pudo cargar la cotización</div>'; return; }
+    var c=r.data.cotizacion;
+    var f=c.formulario;
+    var fmt=function(n){ return new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n||0); };
+    // Documento imprimible (con encabezado tipo PDF)
+    var doc='<div id="cotiz-doc" style="background:#fff">';
+    doc+='<div style="display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #1e2d4e;padding-bottom:12px;margin-bottom:16px">'+
+      '<div><div style="font-size:18px;font-weight:800;color:#1e2d4e">TransMatch</div><div style="font-size:11px;color:#6B7280">Cotización de transporte</div></div>'+
+      '<div style="text-align:right;font-size:11px;color:#6B7280">'+(c.codigo?('N° '+c.codigo+'<br>'):'')+(c.createdAt?new Date(c.createdAt).toLocaleDateString('es-CL'):'')+'</div>'+
+    '</div>';
+    var html='';
+    if(!f){
+      html='<div style="font-size:13px;color:#374151;line-height:1.8">'+
+        '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid #E5E7EB"><span style="color:#6B7280">Precio (neto)</span><span style="font-weight:700;color:#1e2d4e">'+fmt(c.precio)+'</span></div>'+
+        (c.fechaEntregaISO?'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid #E5E7EB"><span style="color:#6B7280">Fecha de entrega</span><span style="color:#1e2d4e">'+c.fechaEntregaISO+'</span></div>':'')+
+        (c.descripcion?'<div style="padding:8px 0"><div style="color:#6B7280;margin-bottom:4px">Descripción</div><div style="color:#1e2d4e">'+c.descripcion+'</div></div>':'')+
+        '</div><div style="font-size:12px;color:#9CA3AF;margin-top:12px">Esta cotización fue enviada antes del nuevo formato detallado.</div>';
+    } else {
+      html+='<div style="margin-bottom:16px">';
+      if(f.ruta) html+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:0.5px solid #f0f0f0"><span style="color:#6B7280">Ruta</span><span style="color:#1e2d4e;text-align:right;max-width:60%">'+f.ruta+'</span></div>';
+      if(f.fechaCarga) html+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:0.5px solid #f0f0f0"><span style="color:#6B7280">Fecha de carga</span><span style="color:#1e2d4e">'+f.fechaCarga+'</span></div>';
+      if(f.fechaEntrega) html+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:0.5px solid #f0f0f0"><span style="color:#6B7280">Fecha de entrega</span><span style="color:#1e2d4e">'+f.fechaEntrega+'</span></div>';
+      if(f.validez) html+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:0.5px solid #f0f0f0"><span style="color:#6B7280">Validez</span><span style="color:#1e2d4e">'+f.validez+'</span></div>';
+      html+='</div>';
+      var itemsLlenos = (f.items||[]).filter(function(it){
+        return (it.eq && it.eq.trim()) || (it.tarifa && parseFloat(it.tarifa)>0) || (it.total && parseFloat(it.total)>0);
+      });
+      if(itemsLlenos.length){
+        html+='<div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Detalle del servicio</div>';
+        html+='<div style="border:0.5px solid #E5E7EB;border-radius:8px;overflow:hidden;margin-bottom:16px">';
+        itemsLlenos.forEach(function(it,i){
+          var tarifaNum = parseFloat(String(it.tarifa).replace(/[^\d.,]/g,'').replace(',','.'))||0;
+          var cantNum = parseFloat(String(it.cant).replace(/[^\d.,]/g,'').replace(',','.'))||1;
+          var totalNum = (it.total && parseFloat(it.total)>0) ? parseFloat(it.total) : (tarifaNum*cantNum);
+          html+='<div style="padding:10px 12px;'+(i>0?'border-top:0.5px solid #E5E7EB;':'')+'font-size:13px">'+
+            '<div style="display:flex;justify-content:space-between"><span style="color:#1e2d4e;font-weight:500">'+(it.eq||'—')+((it.modelo||it.mod)?' · '+(it.modelo||it.mod):'')+'</span><span style="color:#1e2d4e;font-weight:600">'+fmt(totalNum)+'</span></div>'+
+            '<div style="color:#9CA3AF;font-size:12px;margin-top:2px">'+(it.cant||'1')+' x '+fmt(tarifaNum)+(it.unidad?' / '+it.unidad:'')+'</div>'+
+          '</div>';
+        });
+        html+='</div>';
+      }
+      html+='<div style="background:#F9FAFB;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px">'+
+        '<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#6B7280">Monto neto</span><span style="color:#1e2d4e">'+fmt(f.montoNeto)+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#6B7280">IVA 19%</span><span style="color:#1e2d4e">'+fmt(f.iva)+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;padding:6px 0 0;margin-top:4px;border-top:0.5px solid #E5E7EB"><span style="font-weight:600;color:#1e2d4e">Total</span><span style="font-weight:700;color:#1e2d4e">'+fmt(f.montoTotal)+'</span></div>'+
+      '</div>';
+      if((f.seguros||[]).length){
+        html+='<div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Seguros</div>';
+        f.seguros.forEach(function(s){
+          var cob = s.cobertura || s.uf || '';
+          if(!s.tipo && !cob) return;
+          html+='<div style="font-size:13px;padding:6px 0;border-bottom:0.5px solid #f0f0f0"><span style="color:#1e2d4e;font-weight:500">'+(s.tipo||'—')+'</span>'+(cob?' · <span style="color:#6B7280">'+cob+' UF</span>':'')+(s.obs?'<div style="color:#9CA3AF;font-size:12px">'+s.obs+'</div>':'')+'</div>';
+        });
+        html+='<div style="margin-bottom:12px"></div>';
+      }
+      if((f.esperaIncluida&&parseFloat(f.esperaIncluida)>0)||(f.cobroEspera&&parseFloat(f.cobroEspera)>0)||(f.cobroEstadia&&parseFloat(f.cobroEstadia)>0)){
+        html+='<div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Espera y estadía</div>';
+        html+='<div style="border:0.5px solid #E5E7EB;border-radius:8px;overflow:hidden;margin-bottom:16px;font-size:13px">';
+        if(f.esperaIncluida&&parseFloat(f.esperaIncluida)>0)html+='<div style="display:flex;justify-content:space-between;padding:8px 12px"><span style="color:#6B7280">Espera incluida</span><span style="color:#1e2d4e;font-weight:500">'+f.esperaIncluida+' h</span></div>';
+        if(f.cobroEspera&&parseFloat(f.cobroEspera)>0)html+='<div style="display:flex;justify-content:space-between;padding:8px 12px;border-top:0.5px solid #E5E7EB"><span style="color:#6B7280">Hora de espera adicional</span><span style="color:#1e2d4e;font-weight:500">'+fmt(f.cobroEspera)+'</span></div>';
+        if(f.cobroEstadia&&parseFloat(f.cobroEstadia)>0)html+='<div style="display:flex;justify-content:space-between;padding:8px 12px;border-top:0.5px solid #E5E7EB"><span style="color:#6B7280">Estadía por noche</span><span style="color:#1e2d4e;font-weight:500">'+fmt(f.cobroEstadia)+'</span></div>';
+        html+='</div>';
+      }
+      if(f.observaciones) html+='<div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Observaciones</div><div style="font-size:13px;color:#374151;line-height:1.6">'+f.observaciones+'</div>';
+    }
+    doc+=html+'</div>';
+    // Botón imprimir/descargar (fuera del área que se imprime)
+    doc+='<div class="no-print" style="margin-top:20px;padding-top:16px;border-top:0.5px solid #E5E7EB;display:flex;justify-content:flex-end;gap:10px">'+
+      '<button onclick="imprimirCotizacionGuardada()" style="background:#fff;color:#1e2d4e;padding:10px 20px;border-radius:8px;border:1px solid #1e2d4e;font-size:13px;font-weight:600;cursor:pointer">Imprimir</button>'+
+      '<button id="btn-descargar-pdf" onclick="descargarCotizacionPDF()" style="background:#1e2d4e;color:#fff;padding:10px 20px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer">Descargar PDF</button>'+
+    '</div>';
+    body.innerHTML=doc;
+  }catch(e){
+    body.innerHTML='<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Error al cargar la cotización</div>';
+  }
+}
+
+function imprimirCotizacionGuardada(){
+  var doc=document.getElementById('cotiz-doc');
+  if(!doc) return;
+  var win=window.open('','_blank');
+  win.document.write('<html><head><title>Cotización - TransMatch</title>'+
+    '<style>body{font-family:Barlow,sans-serif;padding:40px;max-width:720px;margin:0 auto;color:#1e2d4e}</style>'+
+    '</head><body>'+doc.outerHTML+'</body></html>');
+  win.document.close();
+  win.focus();
+  setTimeout(function(){ win.print(); }, 300);
+}
+
+async function descargarCotizacionPDF(){
+  var doc=document.getElementById('cotiz-doc');
+  if(!doc) return;
+  var btn=document.getElementById('btn-descargar-pdf');
+  var txtPrev = btn?btn.textContent:'';
+  if(btn){ btn.textContent='Generando...'; btn.disabled=true; }
+  try{
+    if(typeof html2canvas==='undefined' || !window.jspdf){ showToast('No se pudo generar el PDF, intenta imprimir','err'); return; }
+    var canvas=await html2canvas(doc,{scale:2,backgroundColor:'#ffffff',useCORS:true});
+    var img=canvas.toDataURL('image/png');
+    var jsPDF=window.jspdf.jsPDF;
+    var pdf=new jsPDF('p','mm','a4');
+    var pw=pdf.internal.pageSize.getWidth();
+    var ph=pdf.internal.pageSize.getHeight();
+    var margin=10;
+    var imgW=pw-margin*2;
+    var imgH=canvas.height*imgW/canvas.width;
+    var y=margin;
+    // Si el contenido es más alto que una página, partir en varias
+    if(imgH<=ph-margin*2){
+      pdf.addImage(img,'PNG',margin,y,imgW,imgH);
+    } else {
+      var remaining=imgH; var position=y; var pageContentH=ph-margin*2;
+      // Añadir la imagen completa y desplazar por páginas
+      var sY=0;
+      var ratio=canvas.width/imgW; // px por mm
+      var pagePx=pageContentH*ratio;
+      var pageNum=0;
+      while(sY<canvas.height){
+        var sliceH=Math.min(pagePx, canvas.height-sY);
+        var c2=document.createElement('canvas');
+        c2.width=canvas.width; c2.height=sliceH;
+        var ctx=c2.getContext('2d');
+        ctx.drawImage(canvas,0,sY,canvas.width,sliceH,0,0,canvas.width,sliceH);
+        var img2=c2.toDataURL('image/png');
+        if(pageNum>0) pdf.addPage();
+        pdf.addImage(img2,'PNG',margin,margin,imgW,sliceH/ratio);
+        sY+=sliceH; pageNum++;
+      }
+    }
+    pdf.save('Cotizacion-TransMatch.pdf');
+  }catch(e){
+    showToast('No se pudo generar el PDF','err');
+  }finally{
+    if(btn){ btn.textContent=txtPrev; btn.disabled=false; }
+  }
+}
+
+// Genera un PDF con el detalle del formulario de la licitación.
+// ocultarSensible=true => no incluye contacto ni referencia al archivo (transportista no adjudicado).
+var _tmPdfLogo = new Image(); _tmPdfLogo.src = '/logo-pdf.png'; // logo oficial precargado para el PDF
+function descargarLicitacionPDF(licId, ocultarSensible){
+  var l=allLicitaciones.find(function(x){return x.id===licId;});
+  if(!l){ showToast('No se encontró la licitación','err'); return; }
+  if(!window.jspdf){ showToast('No se pudo generar el PDF','err'); return; }
+  var tEntMap={mina:'Dentro de la mina',garita:'En garita',no_aplica:'No aplica'};
+  function fd(f){ if(!f)return ''; try{return new Date(f+'T12:00:00').toLocaleDateString('es-CL');}catch(e){return f;} }
+  var rows=[];
+  rows.push(['Tipo', l.tipoLicitacion==='maquinaria'?'Maquinaria pesada':'Carga general']);
+  if(l.tipoLicitacion==='maquinaria'){
+    if(l.tipoEquipo)rows.push(['Tipo de maquinaria',l.tipoEquipo]);
+    if(l.tipoEquipoRequerido&&l.tipoEquipoRequerido!=='cualquiera')rows.push(['Equipo requerido',l.tipoEquipoRequerido]);
+    if(l.cantidadEquipos)rows.push(['Cantidad de equipos',String(l.cantidadEquipos)]);
+    if(l.marca)rows.push(['Marca',l.marca]);
+    if(l.modelo)rows.push(['Modelo',l.modelo]);
+    if(l.peso)rows.push(['Peso aprox.',l.peso+' '+(l.pesoUnidad||'ton')]);
+    if(l.dimensiones)rows.push(['Dimensiones',l.dimensiones]);
+  }else{
+    if(l.tipoEquipoRequerido&&l.tipoEquipoRequerido!=='cualquiera')rows.push(['Equipo requerido',l.tipoEquipoRequerido]);
+    if(l.tipoCarga)rows.push(['Tipo de carga',l.tipoCarga]);
+    if(l.cantidadEquipos)rows.push(['Cantidad de equipos',String(l.cantidadEquipos)]);
+    if(l.peso)rows.push(['Peso total',l.peso+' '+(l.pesoUnidad||'ton')]);
+    if(l.volumen)rows.push(['Volumen',l.volumen+' m3']);
+    if(l.cantidadBultos)rows.push(['N de bultos',String(l.cantidadBultos)]);
+    if(l.pesoPorBulto)rows.push(['Peso por bulto',l.pesoPorBulto+' kg']);
+    if(l.dimensiones)rows.push(['Dimensiones',l.dimensiones]);
+  }
+  rows.push(['Origen',l.origen||'-']);
+  if(l.direccionOrigen)rows.push(['Direccion de origen',l.direccionOrigen]);
+  rows.push(['Destino',l.destino||'-']);
+  if(l.direccionDestino)rows.push(['Direccion de destino',l.direccionDestino]);
+  if(l.tipoEntregaDestino&&l.tipoEntregaDestino!=='no_aplica')rows.push(['Tipo de entrega',tEntMap[l.tipoEntregaDestino]||'-']);
+  if(l.fechaCarga)rows.push(['Fecha de carga',fd(l.fechaCarga)+(l.horaCarga?' - '+l.horaCarga:'')]);
+  if(l.fechaEntrega)rows.push(['Fecha de descarga',fd(l.fechaEntrega)+(l.horaDescarga?' - '+l.horaDescarga:'')]);
+  rows.push(['Plazo cotizaciones',(l.plazo||'24')+'h']);
+  if(l.valorSeguro)rows.push(['Valor seguro aprox.','$'+Number(l.valorSeguro).toLocaleString('es-CL')]);
+
+  var jsPDF=window.jspdf.jsPDF;
+  var pdf=new jsPDF('p','mm','a4');
+  var pw=pdf.internal.pageSize.getWidth();
+  var ph=pdf.internal.pageSize.getHeight();
+  var mL=18, mR=18, y=20;
+  var contentW=pw-mL-mR;
+  function nl(salto){ y+=salto; if(y>ph-20){ pdf.addPage(); y=20; } }
+  function seccion(titulo){
+    nl(4);
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor(30,45,78);
+    pdf.text(titulo.toUpperCase(), mL, y);
+    pdf.setDrawColor(225,228,235); pdf.setLineWidth(0.3); pdf.line(mL,y+1.5,pw-mR,y+1.5);
+    nl(6);
+  }
+  try { pdf.addImage(_tmPdfLogo, 'PNG', mL, y-4.6, 30, 30/5.99); }
+  catch(e){ pdf.setFont('helvetica','bold'); pdf.setTextColor(30,45,78); pdf.setFontSize(15); pdf.text('TransMatch', mL, y); }
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(9); pdf.setTextColor(107,114,128);
+  pdf.text('Detalle de licitacion', mL, y+5);
+  pdf.setFont('helvetica','bold'); pdf.setTextColor(30,45,78); pdf.setFontSize(17);
+  pdf.text(String(l.codigo||''), pw-mR, y, {align:'right'});
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(10); pdf.setTextColor(107,114,128);
+  var rutaTxt=(l.origen||'')+(l.destino?'  ->  '+l.destino:'');
+  if(rutaTxt.trim()) pdf.text(rutaTxt, pw-mR, y+6, {align:'right'});
+  pdf.setDrawColor(30,45,78); pdf.setLineWidth(0.5); pdf.line(mL,y+10,pw-mR,y+10);
+  y+=18;
+  pdf.setFontSize(10);
+  rows.forEach(function(r){
+    pdf.setFont('helvetica','normal'); pdf.setTextColor(107,114,128);
+    pdf.text(String(r[0]), mL, y);
+    pdf.setFont('helvetica','bold'); pdf.setTextColor(31,41,55);
+    var val=pdf.splitTextToSize(String(r[1]), contentW*0.5);
+    pdf.text(val, pw-mR, y, {align:'right'});
+    pdf.setDrawColor(238,238,238); pdf.setLineWidth(0.2); pdf.line(mL,y+2.5,pw-mR,y+2.5);
+    nl(7 + (val.length>1?(val.length-1)*5:0));
+  });
+  if(Array.isArray(l.paradas)&&l.paradas.length>0){
+    seccion('Paradas intermedias');
+    pdf.setFontSize(9.5);
+    l.paradas.forEach(function(p,i){
+      pdf.setFont('helvetica','normal'); pdf.setTextColor(55,65,81);
+      var linea=(i+1)+'. '+(p.direccion||'-')+(p.horario?' - '+p.horario:'');
+      var ls=pdf.splitTextToSize(linea, contentW);
+      pdf.text(ls, mL, y); nl(ls.length*5);
+      if(p.descripcion){ pdf.setTextColor(107,114,128); var ds=pdf.splitTextToSize(p.descripcion, contentW-6); pdf.text(ds, mL+6, y); nl(ds.length*5); }
+    });
+  }
+  if(l.descripcion){
+    seccion('Observaciones y condiciones especiales');
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(9.5); pdf.setTextColor(55,65,81);
+    var os=pdf.splitTextToSize(l.descripcion, contentW); pdf.text(os, mL, y); nl(os.length*5);
+  }
+  if(l.requiereEstandar){
+    seccion('Requiere estandar minero');
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(9.5); pdf.setTextColor(55,65,81);
+    var es=pdf.splitTextToSize(l.estandarDetalle||'Requerido', contentW); pdf.text(es, mL, y); nl(es.length*5);
+  }
+  // NOTA: el PDF del transportista NUNCA incluye datos de contacto del cliente.
+  // El contacto operacional se entrega por otros medios al adjudicarse la licitación.
+  nl(4); pdf.setFont('helvetica','italic'); pdf.setFontSize(8); pdf.setTextColor(156,163,175);
+  var nota=pdf.splitTextToSize('El archivo de especificaciones y los datos de contacto del cliente se entregan al adjudicarse la licitacion.', contentW);
+  pdf.text(nota, mL, y); nl(nota.length*4);
+  nl(4); pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor(156,163,175);
+  pdf.text('Generado por TransMatch - '+new Date().toLocaleDateString('es-CL'), mL, y);
+  pdf.save('Licitacion-'+(l.codigo||'TransMatch')+'.pdf');
+}
+function abrirEditarCotiz(licitacionId, nombre, cotizId){
+  selectedId = licitacionId;
+  const l = allLicitaciones.find(x=>x.id===licitacionId);
+  if(!l){ return; }
+  const mc = (l.cotizaciones||[]).find(c=>c.transportistaId===userId);
+  const p = new URLSearchParams();
+  p.set('licitId',  l.id);
+  p.set('licitCod', l.codigo||l.codigo||'');
+  p.set('equipo',   l.tipoEquipo+(l.marca?' '+l.marca:''));
+  p.set('ruta',     (l.origen||'')+(l.destino?' → '+l.destino:''));
+  if(l.fechaCarga)   p.set('fechaCarga',   l.fechaCarga);
+  if(l.fechaEntrega) p.set('fechaEntrega', l.fechaEntrega);
+  if(l.tipoLicitacion) p.set('tipo', l.tipoLicitacion);
+  p.set('editar', '1');
+  var _cid = cotizId || (mc && mc.id);
+  if(_cid) p.set('cotizId', _cid);
+  window.location.href='/cotizacion-editor.html?'+p.toString();
+}
+async function enviarPregunta(licitacionId){
+var input=document.getElementById('pregunta-input-'+licitacionId);
+var texto=(input&&input.value||'').trim();
+if(!texto){ toast('Escribe tu pregunta','err'); return; }
+const r=await api('/api/licitaciones/'+licitacionId+'/pregunta','POST',{texto:texto});
+if(r&&r.ok){
+toast('Pregunta enviada');
+await cargarLicitaciones();
+const l=allLicitaciones.find(x=>x.id===licitacionId);
+if(l) renderPanel(l);
+} else { toast((r&&r.data&&r.data.error)||'Error al enviar','err'); }
+}
+
+async function eliminarCotizacion(licitacionId, cotizId){
+if(!confirm('¿Eliminar tu cotización? Esta acción no se puede deshacer.')) return;
+const r=await api('/api/cotizaciones/eliminar','POST',{licitacionId, cotizacionId:cotizId||undefined});
+if(r&&r.ok){
+toast('Cotización eliminada');
+await cargarLicitaciones();
+const l=allLicitaciones.find(x=>x.id===selectedId);
+if(l) renderPanel(l);
+} else { toast((r?.data?.error)||'Error al eliminar','err'); }
+}
+
+function toggleMobileNav(){
+  var p=document.getElementById('nav-mobile-panel');
+  if(!p) return;
+  var willOpen = !p.classList.contains('open');
+  // Cerrar otros menús (avatar y notificaciones) si existen
+  var um=document.getElementById('user-menu'); if(um) um.style.display='none';
+  var np=document.getElementById('notif-panel'); if(np) np.style.display='none';
+  if(typeof closeAllPanels==='function'){ try{closeAllPanels();}catch(e){} }
+  if(willOpen) p.classList.add('open'); else p.classList.remove('open');
+}
+function cerrarMenuMovil(){
+  var p=document.getElementById('nav-mobile-panel'); if(p) p.classList.remove('open');
+}
+document.addEventListener('click',function(e){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.nav-mobile-menu'))
+    p.classList.remove('open');
+  if(e.target.closest('#notif-panel') || e.target.closest('#notif-btn') ||
+     e.target.closest('#user-menu') || e.target.closest('#nav-avatar')) return;
+  closeAllPanels();
+});
+</script>
+<footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px"><div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap"><div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><svg style="height:28px;width:auto;display:block" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg></div><div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div></div><div style="display:flex;gap:32px;flex-wrap:wrap"><div><div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div><div style="display:flex;flex-direction:column;gap:6px"><a href="/terminos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Términos y condiciones</a><a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Política de privacidad</a><a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Centro de ayuda</a></div></div><div><div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div><div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span><span style="font-size:13px;color:#CBD5E1">+56 9 6908 1098</span><span style="font-size:13px;color:#CBD5E1">Av. La Dehesa 1201</span></div></div></div></div><div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px"><span>© 2026 TransMatch SpA. </span></div></footer><script>document.addEventListener("change",function(e){var t=e.target;if(t&&t.matches&&t.matches('input[type="date"]'))t.blur();});</script>
+</body></html>

@@ -300,7 +300,7 @@ textarea{resize:vertical;min-height:72px}
 
 <script src="/categorias-equipo.js"></script>
 <script>
-var API = 'https://transmatch.transmatchcl.workers.dev';
+var API = (localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
 var selectedRole = 'mandante';
 // Preseleccionar desde URL (?tipo=transportista)
 (function(){

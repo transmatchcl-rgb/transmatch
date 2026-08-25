@@ -102,7 +102,7 @@ textarea{resize:vertical;min-height:80px}
   }
 </style>
 <script>
-var API='https://transmatch.transmatchcl.workers.dev';
+var API=(localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
 document.addEventListener('DOMContentLoaded',async function(){
 var token=localStorage.getItem('tm_token');
 var role=localStorage.getItem('tm_role');
@@ -301,7 +301,7 @@ Usar los mismos datos que en "Empresa"
 </div>
 
 <script>
-var API='https://transmatch.transmatchcl.workers.dev';
+var API=(localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
 var U={};
 
 function showTab(id,el){

@@ -89,7 +89,7 @@ btn.style.color=isPass?"#1e2d4e":"#9CA3AF";
 </div>
 
 <script>
-var API = 'https://transmatch.transmatchcl.workers.dev';
+var API = (localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
 
   async function fetchWithRetry(url, options, retries) {
     retries = retries || 2;

@@ -185,7 +185,7 @@
 </div>
 
 <script>
-  const API = 'https://transmatch.transmatchcl.workers.dev';
+  const API = (localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
   let allC = [], grupos = [];
 
   function toast(msg,type){ var el=document.getElementById('toast'); if(!el){el=document.createElement('div');el.id='toast';el.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transition:opacity .2s';document.body.appendChild(el);} el.textContent=msg; el.style.background=type==='err'?'#EF4444':'#1ED24E'; el.style.opacity='1'; clearTimeout(el._t); el._t=setTimeout(function(){el.style.opacity='0';},3200); }

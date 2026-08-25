@@ -1,0 +1,2315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch — Mi perfil</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Barlow,sans-serif;background:#f5f7fb;min-height:100vh;display:flex;flex-direction:column}
+  #auth-guard{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:9999}
+  #app{display:none}#app.shown{display:flex;flex-direction:column;min-height:100vh}
+  .spinner{width:32px;height:32px;border:3px solid #e8eaf0;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .nav{background:#1e2d4e;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .nav-left{display:flex;align-items:center;gap:16px}
+  .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+  .brand-logo{height:28px;width:auto;display:block}
+  .nav-icon{background:#FF8808;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+  .nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#FF8808}
+  .nav-links{display:flex;gap:2px}
+  .nav-link{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+  .nav-link:hover{color:#fff;background:rgba(255,255,255,.18)}
+  .nav-avatar{width:30px;height:30px;border-radius:50%;background:#FF8808;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;cursor:pointer;flex-shrink:0}
+  .um-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:background .15s}
+  .um-item:hover{background:#f9fafb}
+  .um-danger{color:#DC2626}.um-danger:hover{background:#FEF2F2}
+  main{max-width:860px;margin:0 auto;padding:28px 20px;flex:1}
+  .page-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#1e2d4e;margin-bottom:4px}
+  .page-sub{font-size:13px;color:#6B7280;margin-bottom:24px}
+  .tabs{display:flex;gap:4px;border-bottom:1.5px solid #e8eaf0;margin-bottom:24px;flex-wrap:wrap}
+  .tab{padding:9px 16px;font-size:13px;font-weight:500;color:#6B7280;cursor:pointer;border-radius:8px 8px 0 0;border:none;background:none;transition:all .15s;white-space:nowrap}
+  .tab:hover{color:#1e2d4e;background:#f5f7fb}
+  .tab.active{color:#1e2d4e;font-weight:600;border-bottom:2px solid #FF8808;margin-bottom:-1.5px}
+  .pane{display:none}.pane.active{display:block}
+  .card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);padding:24px;margin-bottom:16px}
+  .card-title{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;color:#1e2d4e;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid #f3f4f6}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:600px){.grid2{grid-template-columns:1fr}}
+  .fg{display:flex;flex-direction:column;gap:5px}
+  .fg.full{grid-column:1/-1}
+  label{font-size:12px;font-weight:500;color:#374151}
+  input,select,textarea{padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px;color:#111827;background:#fff;font-family:inherit;transition:border-color .15s;width:100%}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:#1e2d4e}
+  input:disabled{background:#f5f7fb;color:#9CA3AF}
+  textarea{resize:vertical;min-height:80px}
+  .prof-row{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+  .prof-av{width:52px;height:52px;border-radius:50%;background:#1e2d4e;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;flex-shrink:0}
+  .prof-name{font-size:16px;font-weight:700;color:#1e2d4e}
+  .prof-sub{font-size:12px;color:#6B7280;margin-top:2px}
+  .rating-pill{display:inline-flex;align-items:center;gap:4px;background:#FFF7ED;color:#92400E;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;margin-top:4px}
+  .btn{padding:9px 18px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{opacity:.88}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn-primary{background:#1e2d4e;color:#fff}
+  .btn-orange{background:#FF8808;color:#fff}
+  .btn-red{background:#EF4444;color:#fff}
+  .btn-sm{padding:5px 10px;font-size:12px}
+  .ok{background:#F0FDF4;color:#14532D;border:1px solid #BBF7D0;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:12px;display:none}
+  .err{background:#FEF2F2;color:#991B1B;border:1px solid #FECACA;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:12px;display:none}
+  .info-box{background:#EFF6FF;border-radius:8px;padding:12px 14px;font-size:13px;color:#1e40af;margin-bottom:16px}
+  .eq-row{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 2px 8px rgba(30,45,78,.09);margin-bottom:16px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:0;overflow:hidden;transition:box-shadow .15s,border-color .15s}
+  .eq-row:hover{box-shadow:0 4px 16px rgba(30,45,78,.10);border-color:#c7d0e8}
+  .eq-name{font-size:13px;font-weight:600;color:#1e2d4e}
+  .eq-meta{font-size:11px;color:#6B7280;margin-top:3px}
+  .add-form{background:#f8f9fc;border-radius:12px;border:0.5px solid #e8eaf0;padding:20px;margin-top:16px}
+  .eqc-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:20px}
+  .eqc-card{background:#fff;border-radius:16px;padding:28px;width:100%;max-width:620px;max-height:90vh;overflow-y:auto}
+  @media(max-width:600px){.eqc-card{padding:20px}}
+  .add-title{font-size:14px;font-weight:600;color:#1e2d4e;margin-bottom:14px}
+  .zona-card{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1.5px solid #e8eaf0;border-radius:10px;cursor:pointer;transition:all .15s;margin-bottom:10px;user-select:none}
+  .zona-card:hover{border-color:#1e2d4e}
+  .zona-card.selected{border-color:#1e2d4e;background:#EFF6FF}
+  .zona-title{font-size:13px;font-weight:600;color:#1e2d4e}
+  .zona-sub{font-size:11px;color:#9CA3AF;margin-top:2px}
+
+  /* IMÁGENES DEL EQUIPO */
+  .img-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+  @media(max-width:600px){.img-grid{grid-template-columns:repeat(2,1fr)}}
+  .img-thumb{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:0.5px solid #e8eaf0;cursor:pointer;transition:opacity .15s}
+  .img-thumb:hover{opacity:.85}
+  .img-add{width:100%;aspect-ratio:4/3;border:1.5px dashed #e8eaf0;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:#f8f9fc;transition:all .15s;font-size:12px;color:#9CA3AF;gap:4px}
+  .img-add:hover{border-color:#FF8808;color:#FF8808;background:#fff}
+  /* DOCUMENTOS POR EQUIPO */
+  .doc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+  @media(max-width:600px){.doc-grid{grid-template-columns:1fr}}
+  .doc-item{background:#fff;border:1px solid #e8eaf0;border-radius:10px;padding:12px 14px}
+  .doc-item.ok{border-color:#BBF7D0;background:#F0FDF4;display:block}
+  .doc-item.warn{border-color:#FDE68A;background:#FFFBEB}
+  .doc-item.vencido{border-color:#FECACA;background:#FEF2F2}
+  .doc-item.pendiente{border-color:#e8eaf0;background:#f8f9fc}
+  .doc-label{font-size:12px;font-weight:600;color:#374151;margin-bottom:6px}
+  .doc-estado{font-size:11px;margin-bottom:4px}
+  .doc-fecha{font-size:11px;color:#9CA3AF}
+  .doc-btns{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .doc-btn{padding:4px 10px;font-size:11px;font-weight:500;border-radius:6px;border:none;cursor:pointer;transition:opacity .15s}
+  .doc-btn:hover{opacity:.85}
+  .doc-btn-ver{background:#1e2d4e;color:#fff}
+  .doc-btn-sub{background:#FF8808;color:#fff}
+  .doc-upload-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end}
+  @media(max-width:600px){.doc-upload-row{grid-template-columns:1fr}}
+  .doc-upload-zone{border:1.5px dashed #e8eaf0;border-radius:8px;padding:8px 12px;font-size:12px;color:#9CA3AF;cursor:pointer;text-align:center;transition:all .15s;background:#fff}
+  .doc-upload-zone:hover{border-color:#FF8808;color:#FF8808}
+  .doc-upload-zone.has-file{border-color:#1ED24E;background:#F0FDF4;color:#14532D}
+  .doc-section-title{font-size:13px;font-weight:600;color:#1e2d4e;margin:18px 0 10px;padding-top:14px;border-top:0.5px solid #e8eaf0}
+  /* Alerta vencimiento */
+  .venc-alert{border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:6px;display:flex;gap:8px;align-items:flex-start}
+  .venc-hoy{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B}
+  .venc-2d{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B}
+  .venc-7d{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E}
+  .venc-15d{background:#FFF7ED;border:1px solid #FED7AA;color:#9a3412}
+
+  .nav-mobile-menu{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:6px;border-radius:6px;background:none;border:none;flex-shrink:0}
+  .nav-mobile-menu span{display:block;width:20px;height:2px;background:#fff;border-radius:2px}
+  .nav-mobile-panel{display:none;position:fixed;top:52px;left:0;right:0;background:#1e2d4e;z-index:999;padding:8px 16px 16px;border-bottom:0.5px solid rgba(255,255,255,.1)}
+  .nav-mobile-panel.open{display:block}
+  .nav-mobile-link{display:block;padding:10px 12px;color:#93C5FD;text-decoration:none;font-size:14px;border-radius:8px;margin-bottom:2px}
+  .nav-mobile-link:hover{background:rgba(255,255,255,.1);color:#fff}
+  @media(max-width:860px){
+    .nav-links,.nav-tabs{display:none!important}
+    .nav-mobile-menu{display:flex!important}.nav-mobile-menu{order:-1}.nav-logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}.nav-logo .brand-logo,.nav-logo>.brand-logo{height:22px}
+    .nav-user-name,.nav-userinfo{display:none!important}
+    .nav-icon,.nav-name{display:none!important}
+  }
+  /* TM-MOBILE-FIX */
+  @media(max-width:600px){
+    [style*="grid-template-columns:1fr 1fr"],
+    [style*="grid-template-columns:repeat(2,1fr)"],
+    [style*="grid-template-columns:repeat(2, 1fr)"],
+    [style*="grid-template-columns:repeat(3,1fr)"],
+    [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
+    body{overflow-x:hidden}
+  }
+</style>
+</head>
+<body>
+
+<div id="auth-guard">
+  <div style="text-align:center">
+    <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:20px">
+      <svg style="height:32px;width:auto;display:block" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg>
+    </div>
+    <div class="spinner" style="margin:0 auto"></div>
+  </div>
+</div>
+
+<div id="app">
+  <nav class="nav">
+    <div class="nav-left">
+      <a href="/transportista.html" class="nav-logo">
+        <svg class="brand-logo" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg>
+      </a>
+      <button class="nav-mobile-menu" onclick="toggleMobileNav()" aria-label="Menu"><span></span><span></span><span></span></button><div class="nav-links">
+        <a href="/transportista.html" class="nav-link">Inicio</a>
+        <a href="/transportista-retornos.html" class="nav-link">Retornos</a>
+        <a href="/transportista-licitaciones.html" class="nav-link">Licitaciones</a>
+        <a href="/transportista-transporte.html" class="nav-link">Transportes</a>
+        <a href="/transportista-cobros.html" class="nav-link">Facturación</a>
+        <a href="/transportista-calendario.html" class="nav-link">Calendario</a>
+        <a href="/transportista-historial.html" class="nav-link">Historial</a>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;"><div class="nav-user-name" style="text-align:right"><div style="font-size:13px;color:#fff;font-weight:500" id="nav-nombre">--</div><div style="font-size:11px;color:#93C5FD" id="nav-empresa">--</div></div><div style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;" id="notif-btn" onclick="toggleNotifs(event)">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+  <span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;"></span>
+</div>
+<div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div>
+      <div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:240px;z-index:999;overflow:hidden">
+        <div style="padding:14px 16px;border-bottom:1px solid #f3f4f6">
+          <div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div>
+          <div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div>
+        </div>
+        <a href="/transportista-perfil.html" class="um-item">Mi perfil</a>
+        <a href="/transportista-historial.html" class="um-item">Historial</a>
+        <a href="/ayuda.html" class="um-item">Ayuda</a>
+        <div style="border-top:1px solid #f3f4f6">
+          <button onclick="localStorage.clear();window.location.replace('/index.html')" class="um-item um-danger">Cerrar sesión</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+<div id="nav-mobile-panel" class="nav-mobile-panel">
+<a href="/transportista.html" class="nav-mobile-link">Inicio</a>
+<a href="/transportista-retornos.html" class="nav-mobile-link">Retornos</a>
+<a href="/transportista-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
+<a href="/transportista-transporte.html" class="nav-mobile-link">Transportes</a>
+<a href="/transportista-cobros.html" class="nav-mobile-link">Facturación</a>
+<a href="/transportista-calendario.html" class="nav-mobile-link">Calendario</a>
+<a href="/transportista-historial.html" class="nav-mobile-link">Historial</a>
+</div>
+
+<div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:360px;background:#fff;border-radius:14px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.14);z-index:500;overflow:hidden;max-height:520px;flex-direction:column">
+  <!-- Header dinámico: cambia entre "Notificaciones" y "← Configuración" -->
+  <div id="notif-header-main" style="padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <span style="font-size:14px;font-weight:700;color:#1e2d4e">Notificaciones</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button onclick="marcarTodasLeidas()" style="font-size:11px;color:#6B7280;background:none;border:none;cursor:pointer;padding:3px 6px;border-radius:5px" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">Marcar leídas</button>
+      <button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;color:#6B7280" title="Configurar notificaciones" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="notif-header-config" style="display:none;padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:none;align-items:center;gap:10px;flex-shrink:0">
+    <button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;color:#1e2d4e;font-size:13px;font-weight:500;padding:4px 8px;border-radius:6px" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Volver
+    </button>
+    <span style="font-size:14px;font-weight:700;color:#1e2d4e">Configuración</span>
+  </div>
+  <div id="notif-config" style="display:none;border-bottom:0.5px solid #E5E7EB;background:#f8f9fc;flex-shrink:0">
+    <div style="padding:14px 16px">
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Canal de notificaciones</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:13px;color:#374151">Por email</span><input type="checkbox" id="notif-email-chk" onchange="guardarPrefs()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+        
+        
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Sobre licitaciones</div>
+      <div style="display:flex;flex-direction:column;gap:0">
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Nueva licitación disponible</span><input type="checkbox" id="pref-nueva-licit" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Licitación cerrada sin adjudicación</span><input type="checkbox" id="pref-licit-cerrada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Licitación adjudicada a mí</span><input type="checkbox" id="pref-adjudicada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#374151;margin:10px 0;text-transform:uppercase;letter-spacing:.06em">Sobre retornos</div>
+      <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;cursor:pointer"><span style="font-size:13px;color:#374151">Solicitudes en retornos publicados</span><input type="checkbox" id="pref-retornos" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+    </div>
+  </div>
+  <div id="notif-list" style="overflow-y:auto;flex:1"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div>
+</div>
+
+  <main>
+    <!-- Barra de progreso -->
+    <div id="progreso-banner-t" style="display:none;background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;padding:14px 18px;margin-bottom:16px;box-shadow:0 1px 4px rgba(30,45,78,.06)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:12px;font-weight:600;color:#1e2d4e">Completitud del perfil</span>
+        <span id="progreso-pct-t" style="font-size:12px;font-weight:700;color:#FF8808">0%</span>
+      </div>
+      <div style="background:#e8eaf0;border-radius:999px;height:6px;overflow:hidden">
+        <div id="progreso-bar-t" style="height:100%;background:linear-gradient(90deg,#FF8808,#1e2d4e);border-radius:999px;transition:width .4s ease;width:0%"></div>
+      </div>
+      <div id="progreso-hint-t" style="font-size:11px;color:#9CA3AF;margin-top:5px"></div>
+    </div>
+
+    <div class="page-title">Mi perfil</div>
+    <div class="page-sub">Gestiona tu información personal, empresa, equipos y zona de operaciones</div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('perfil',this)">Datos personales</button>
+      <button class="tab" onclick="showTab('empresa',this)">Mi empresa</button>
+      <button class="tab" onclick="showTab('contactos',this)">Contactos</button>
+      <button class="tab" onclick="showTab('zonas',this)">Operaciones</button>
+      <button class="tab" onclick="showTab('equipos',this)">Mis equipos</button>
+      <button class="tab" onclick="showTab('conductores',this)">Conductores</button>
+      <button class="tab" id="tab-usuarios-t" style="display:none" onclick="showTab('usuarios',this)">Usuarios</button>
+      <button class="tab" onclick="showTab('seguridad',this)">Seguridad</button>
+    </div>
+
+    <!-- DATOS PERSONALES -->
+    <div class="pane active" id="pane-perfil">
+      <div class="card">
+        <div class="prof-row">
+          <div class="prof-av" id="prof-av">?</div>
+          <div>
+            <div class="prof-name" id="prof-name">--</div>
+            <div class="prof-sub" id="prof-email">--</div>
+            <div class="rating-pill">⭐ <span id="prof-rating">5.0</span> · Transportista verificado</div>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="fg"><label>Nombre completo</label><input type="text" id="inp-nombre" placeholder="Tu nombre completo"/></div>
+          <div class="fg"><label>Correo electrónico</label><input type="email" id="inp-email" disabled/></div>
+          <div class="fg"><label>Teléfono / WhatsApp</label><input type="tel" id="inp-tel" placeholder="+56 9 XXXX XXXX"/></div>
+          <div class="fg"><label>Ciudad base</label><input type="text" id="inp-ciudad" placeholder="Ej: Santiago"/></div>
+          <div class="fg"><label>Cargo</label><input type="text" id="inp-cargo" placeholder="Ej: Gerente de operaciones"/></div>
+        </div>
+        <div class="ok" id="ok1">✓ Perfil actualizado correctamente</div>
+        <div class="err" id="err1"></div>
+        <div style="margin-top:16px"><button class="btn btn-primary" onclick="guardar()">Guardar cambios</button></div>
+      </div>
+    </div>
+
+    <!-- MI EMPRESA -->
+    <div class="pane" id="pane-empresa">
+      <div class="card">
+        <div class="card-title">Información de la empresa</div>
+        <div class="grid2">
+          <div class="fg full"><label>Nombre empresa</label><input type="text" id="inp-empresa" placeholder="Transportes Atacama Ltda."/></div>
+          <div class="fg"><label>RUT empresa</label><input type="text" id="inp-rut2" placeholder="76.XXX.XXX-X"/><div id="rut-err2" style="display:none;font-size:11px;color:#EF4444;margin-top:3px">RUT inválido — verifica el dígito verificador</div></div>
+          <div class="fg"><label>Años de experiencia</label><input type="number" id="inp-anos" placeholder="5" min="0"/></div>
+          <div class="fg"><label>Giro / Rubro</label><input type="text" id="inp-giro-t" placeholder="Transporte de carga especial"/></div>
+          <div class="fg"><label>Dirección</label><input type="text" id="inp-dir-t" placeholder="Av. Principal 1234, Santiago"/></div>
+          <div class="fg"><label>Ciudad</label><input type="text" id="inp-ciudad-t" placeholder="Santiago"/></div>
+          <div class="fg full"><label>Sitio web / Redes sociales</label><input type="text" id="inp-web" placeholder="www.mitransporte.cl"/></div>
+          <div class="fg full"><label>Descripción de la empresa y servicios</label><textarea id="inp-desc" placeholder="Describe tu empresa, especialización, cobertura geográfica..."></textarea></div>
+        </div>
+        <div class="ok" id="ok2">Información actualizada correctamente</div>
+        <div class="err" id="err2"></div>
+        <div style="margin-top:16px"><button class="btn btn-primary" onclick="guardarEmpresa()">Guardar cambios</button></div>
+      </div>
+    </div>
+
+    <!-- CONTACTOS (Etapa 2) -->
+    <div class="pane" id="pane-contactos">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title" style="margin-bottom:4px">Datos de facturación de tu empresa</div>
+        <div style="font-size:12px;color:#6B7280;margin-bottom:16px">TransMatch usa estos datos para emitirte la factura mensual por comisión. Asegúrate de que coincidan con tu información en el SII.</div>
+        <div class="grid2">
+          <div class="fg"><label>Razón social</label><input type="text" id="inp-fact-rs" placeholder="Transportes y Logística SpA"/></div>
+          <div class="fg"><label>RUT empresa</label><input type="text" id="inp-fact-rut" placeholder="76.123.456-7"/></div>
+          <div class="fg"><label>Giro tributario</label><input type="text" id="inp-fact-giro" placeholder="Ej: Transporte de carga por carretera"/></div>
+          <div class="fg"><label>Dirección comercial</label><input type="text" id="inp-fact-dir" placeholder="Calle, número, comuna, ciudad"/></div>
+          <div class="fg"><label>Email para facturas</label><input type="email" id="inp-fact-email" placeholder="facturas@empresa.cl"/></div>
+        </div>
+        <div class="ok" id="ok-datos-fact" style="margin-top:12px">Datos de facturación guardados correctamente</div>
+        <div style="margin-top:16px"><button class="btn btn-primary" onclick="guardarDatosFacturacion()">Guardar datos de facturación</button></div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title" style="margin-bottom:4px">Contacto de Operaciones</div>
+        <div style="font-size:12px;color:#6B7280;margin-bottom:16px">Persona encargada de coordinar los transportes en terreno.</div>
+        <div class="grid2">
+          <div class="fg"><label>Nombre</label><input type="text" id="inp-op-nombre" placeholder="Juan Pérez"/></div>
+          <div class="fg"><label>Cargo</label><input type="text" id="inp-op-cargo" placeholder="Jefe de operaciones"/></div>
+          <div class="fg"><label>Teléfono</label><input type="tel" id="inp-op-tel" placeholder="+56 9 XXXX XXXX"/></div>
+          <div class="fg"><label>Email</label><input type="email" id="inp-op-email" placeholder="operaciones@empresa.cl"/></div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title" style="margin-bottom:4px">Contacto Comercial</div>
+        <div style="font-size:12px;color:#6B7280;margin-bottom:16px">Persona encargada de las relaciones comerciales y cotizaciones.</div>
+        <div class="grid2">
+          <div class="fg"><label>Nombre</label><input type="text" id="inp-com-nombre" placeholder="María González"/></div>
+          <div class="fg"><label>Cargo</label><input type="text" id="inp-com-cargo" placeholder="Gerente comercial"/></div>
+          <div class="fg"><label>Teléfono</label><input type="tel" id="inp-com-tel" placeholder="+56 9 XXXX XXXX"/></div>
+          <div class="fg"><label>Email</label><input type="email" id="inp-com-email" placeholder="comercial@empresa.cl"/></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:4px">Contacto de Facturación</div>
+        <div style="font-size:12px;color:#6B7280;margin-bottom:16px">Persona encargada de la gestión de pagos y facturas.</div>
+        <div class="grid2">
+          <div class="fg"><label>Nombre</label><input type="text" id="inp-fac-nombre" placeholder="Carlos Rojas"/></div>
+          <div class="fg"><label>Cargo</label><input type="text" id="inp-fac-cargo" placeholder="Contador"/></div>
+          <div class="fg"><label>Teléfono</label><input type="tel" id="inp-fac-tel" placeholder="+56 9 XXXX XXXX"/></div>
+          <div class="fg"><label>Email</label><input type="email" id="inp-fac-email" placeholder="facturas@empresa.cl"/></div>
+        </div>
+      </div>
+      <div class="ok" id="ok-contactos" style="margin-top:12px">Contactos guardados correctamente</div>
+      <div style="margin-top:16px"><button class="btn btn-primary" onclick="guardarContactos()">Guardar contactos</button></div>
+    </div>
+
+    <!-- OPERACIONES -->
+    <div class="pane" id="pane-zonas">
+
+      <!-- Equipos que opera -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">Equipos que opero</div>
+        <p style="font-size:13px;color:#6B7280;margin-bottom:18px">Selecciona los equipos con los que tu empresa opera. Solo verás licitaciones compatibles con tu flota.</p>
+        <div id="eq-tipos-maquinaria" style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
+                    <div class="zona-card" onclick="toggleTipoEquipo('Cama baja',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Cama baja" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Cama baja</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Camilla',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Camilla" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Camilla</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Equipo modular',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Equipo modular" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Equipo modular</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Palote',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Palote" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Palote</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Rampla / plataforma',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Rampla / plataforma" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Rampla / plataforma</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Camión pluma',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Camión pluma" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Camión pluma</div><div class="zona-sub">autocarga</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Cama cuna',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Cama cuna" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Cama cuna</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Furgón / Sider',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Furgón / Sider" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Furgón / Sider</div><div class="zona-sub">cerrado</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Tolva',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Tolva" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Tolva</div><div class="zona-sub">granel</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Portacontenedor',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Portacontenedor" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Portacontenedor</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Camión plano',this)">
+            <input type="checkbox" class="eq-tipo-cb" value="Camión plano" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+            <div><div class="zona-title">Camión plano</div><div class="zona-sub">plataforma rígida</div></div>
+          </div>
+          <div class="zona-card" onclick="toggleTipoEquipo('Otro',this);toggleOtroTipo()">
+            <input type="checkbox" class="eq-tipo-cb" value="Otro" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()" onchange="toggleOtroTipo()"/>
+            <div><div class="zona-title">Otro</div><div class="zona-sub">Especificar</div></div>
+          </div>
+          <div id="tipo-otro-wrap" style="display:none;margin-bottom:8px">
+            <input type="text" id="tipo-otro-text" placeholder="Especifica el equipo" maxlength="80" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box"/>
+          </div>
+        </div>
+        <div class="ok" id="ok-tipos-eq">Equipos guardados correctamente</div>
+        <div class="err" id="err-tipos-eq"></div>
+        <div style="margin-top:4px"><button class="btn btn-primary" onclick="guardarTiposEquipo()">Guardar equipos</button></div>
+      </div>
+
+      <!-- Zonas de operación -->
+      <div class="card">
+        <div class="card-title">Zona de operaciones</div>
+        <p style="font-size:13px;color:#6B7280;margin-bottom:18px">Selecciona las principales zonas donde opera tu empresa. Puedes seleccionar más de una.</p>
+        <div id="zona-norte-card" class="zona-card" onclick="toggleZona('norte')">
+          <input type="checkbox" id="zona-norte" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+          <div>
+            <div class="zona-title">Zona Norte</div>
+            <div class="zona-sub">Arica y Parinacota, Tarapacá, Antofagasta, Atacama</div>
+          </div>
+        </div>
+        <div id="zona-centro-card" class="zona-card" onclick="toggleZona('centro')">
+          <input type="checkbox" id="zona-centro" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+          <div>
+            <div class="zona-title">Zona Centro</div>
+            <div class="zona-sub">Coquimbo, Valparaíso, Metropolitana, O'Higgins, Maule</div>
+          </div>
+        </div>
+        <div id="zona-sur-card" class="zona-card" onclick="toggleZona('sur')">
+          <input type="checkbox" id="zona-sur" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+          <div>
+            <div class="zona-title">Zona Sur</div>
+            <div class="zona-sub">Biobío, Araucanía, Los Ríos, Los Lagos, Aysén, Magallanes</div>
+          </div>
+        </div>
+        <div id="zona-otras-card" class="zona-card" onclick="toggleZonaOtras(this)" style="margin-top:4px">
+          <input type="checkbox" id="zona-otras" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0;margin-top:2px" onclick="event.stopPropagation()"/>
+          <div>
+            <div class="zona-title">Abierto a operar en otras zonas</div>
+            <div class="zona-sub">Recibirás solicitudes de zonas no seleccionadas</div>
+          </div>
+        </div>
+        <div class="ok" id="ok-zonas">Zonas guardadas correctamente</div>
+        <div class="err" id="err-zonas"></div>
+        <div style="margin-top:16px"><button class="btn btn-primary" onclick="guardarZonas()">Guardar zonas</button></div>
+      </div>
+    </div>
+
+    <!-- MIS EQUIPOS -->
+    <div class="pane" id="pane-equipos">
+      
+      <div id="lista-eq"></div>
+      <div id="btn-eq-wrap" style="margin-top:8px"><button class="btn btn-orange" onclick="abrirForm('eq')">+ Agregar equipo</button></div>
+      <div class="eqc-overlay" id="form-eq" style="display:none" onclick="if(event.target===this)cerrarForm('eq')">
+        <div class="eqc-card">
+        <div class="add-title">Agregar equipo</div>
+        <div class="grid2">
+          <div class="fg full">
+            <label>Tipo de equipo *</label>
+            <select id="eq-tipo" onchange="onEqTipoChange()">
+                            <option value="">Seleccionar...</option>
+              <optgroup label="Transporte de Maquinaria">
+                <option value="Cama baja 2 ejes">Cama baja 2 ejes (hasta 30 ton)</option>
+                <option value="Cama baja 3 ejes">Cama baja 3 ejes (hasta 50 ton)</option>
+                <option value="Cama baja 4 ejes">Cama baja 4 ejes (60-70 ton)</option>
+                <option value="Cama baja con dolly">Cama baja con dolly (80-90 ton)</option>
+                <option value="Cama baja punta de lanza">Cama baja punta de lanza (sobredimensionada)</option>
+                <option value="Cama baja hidráulica multieje">Cama baja hidráulica multieje (+100 ton)</option>
+                <option value="Camilla">Camilla</option>
+                <option value="Tren modular">Tren modular (+150 ton)</option>
+                <option value="Palote 30 ton">Palote 30 ton</option>
+                <option value="Palote 50 ton">Palote 50 ton</option>
+                <option value="Rampla abierta">Rampla abierta (plataforma seca)</option>
+                <option value="Rampla con baranda">Rampla con baranda</option>
+                <option value="Rampla extensible">Rampla extensible (18-24 m)</option>
+                <option value="Camión pluma 5 ton">Camión pluma 5 ton</option>
+                <option value="Camión pluma 8 ton">Camión pluma 8 ton</option>
+                <option value="Camión pluma 12 ton">Camión pluma 12 ton</option>
+                <option value="Camión pluma 20 ton">Camión pluma 20 ton</option>
+                <option value="Tracto pluma con rampla">Tracto pluma con rampla</option>
+              </optgroup>
+              <optgroup label="Transporte de Carga General">
+                <option value="Rampla abierta">Rampla abierta (plataforma seca)</option>
+                <option value="Rampla con baranda">Rampla con baranda</option>
+                <option value="Rampla extensible">Rampla extensible (18-24 m)</option>
+                <option value="Camión pluma 5 ton">Camión pluma 5 ton</option>
+                <option value="Camión pluma 8 ton">Camión pluma 8 ton</option>
+                <option value="Camión pluma 12 ton">Camión pluma 12 ton</option>
+                <option value="Camión pluma 20 ton">Camión pluma 20 ton</option>
+                <option value="Tracto pluma con rampla">Tracto pluma con rampla</option>
+                <option value="Cama cuna">Cama cuna / cureña</option>
+                <option value="Furgón">Camión furgón (cerrado)</option>
+                <option value="Sider">Camión sider (lonas corredizas)</option>
+                <option value="Tolva 10 m3">Camión tolva 10 m3</option>
+                <option value="Tolva 15 m3">Camión tolva 15 m3</option>
+                <option value="Tolva 20 m3">Camión tolva 20 m3</option>
+                <option value="Portacontenedor">Camión portacontenedor</option>
+                <option value="Camión Plano 5 ton">Camión Plano 5 ton</option>
+                <option value="Camión Plano 10 ton">Camión Plano 10 ton</option>
+                <option value="Camión Plano 15 ton">Camión Plano 15 ton</option>
+              </optgroup>
+              <optgroup label="Tractor / Unidad">
+                <option value="Tractocamión">Tractocamión</option>
+              </optgroup>
+              <optgroup label="Otro">
+                <option value="Otro">Otro (especificar)</option>
+              </optgroup>
+            </select>
+            <div id="eq-tipo-otro-wrap" style="display:none;margin-top:8px"><input type="text" id="eq-tipo-otro" placeholder="Especifica el equipo" maxlength="80" style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box"/></div>
+          </div>
+          <div class="fg"><label>Marca</label><input type="text" id="eq-marca" placeholder="Ej: Volvo"/></div>
+          <div class="fg"><label>Modelo</label><input type="text" id="eq-modelo" placeholder="Ej: FH16"/></div>
+          <div class="fg"><label>Año</label><input type="number" id="eq-ano" placeholder="Ej: 2020" min="1990" max="2030"/></div>
+          <div class="fg"><label>Patente</label><input type="text" id="eq-patente" placeholder="Ej: ABCD-12"/></div>
+          <div class="fg"><label>Capacidad máx. (toneladas)</label><input type="number" id="eq-cap" placeholder="Ej: 60" min="1"/></div>
+          <div class="fg"><label>Largo máx. (metros)</label><input type="number" id="eq-largo" placeholder="Ej: 18" step="0.1"/></div>
+          <div class="fg"><label>Ancho máx. (metros)</label><input type="number" id="eq-ancho" placeholder="Ej: 3.5" step="0.1"/></div>
+          <div class="fg"><label>Alto máx. (metros)</label><input type="number" id="eq-alto" placeholder="Ej: 4.5" step="0.1"/></div>
+          <div class="fg full"><label>Descripción adicional</label><input type="text" id="eq-desc" placeholder="Ej: Con permisos sobredimensionados, disponible 24/7..."/></div>
+        </div>
+        
+          <!-- IMÁGENES DEL EQUIPO -->
+          <div class="fg full">
+            <div class="doc-section-title">Fotos del equipo <span style="font-weight:400;color:#9CA3AF">(opcional — hasta 6 fotos)</span></div>
+            <div class="img-grid" id="fotos-preview-new">
+              <div class="img-add" onclick="document.getElementById('fotos-input-new').click()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                Agregar foto
+              </div>
+            </div>
+            <input type="file" id="fotos-input-new" accept="image/*" multiple style="display:none" onchange="handleFotosNew(this)"/>
+          </div>
+
+          <!-- DOCUMENTOS DEL EQUIPO -->
+          <div class="fg full">
+            <div class="doc-section-title">Documentos del equipo <span style="font-weight:400;color:#9CA3AF">(opcional — puedes agregarlos después)</span></div>
+          </div>
+
+          <div class="fg full">
+            <div class="doc-upload-row">
+              <div>
+                <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Permiso de Circulación</label>
+                <div class="doc-upload-zone" id="dz-permiso_circulacion" onclick="document.getElementById('df-permiso_circulacion').click()">Subir archivo (PDF o imagen)</div>
+                <input type="file" id="df-permiso_circulacion" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleDocFile('permiso_circulacion',this)"/>
+              </div>
+              <div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Fecha de vencimiento</label><input type="date" id="dv-permiso_circulacion" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>
+            </div>
+          </div>
+
+          <div class="fg full">
+            <div class="doc-upload-row">
+              <div>
+                <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Revisión Técnica</label>
+                <div class="doc-upload-zone" id="dz-revision_tecnica" onclick="document.getElementById('df-revision_tecnica').click()">Subir archivo (PDF o imagen)</div>
+                <input type="file" id="df-revision_tecnica" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleDocFile('revision_tecnica',this)"/>
+              </div>
+              <div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Fecha de vencimiento</label><input type="date" id="dv-revision_tecnica" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>
+            </div>
+          </div>
+
+          <div class="fg full">
+            <div class="doc-upload-row">
+              <div>
+                <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Gases</label>
+                <div class="doc-upload-zone" id="dz-gases" onclick="document.getElementById('df-gases').click()">Subir archivo (PDF o imagen)</div>
+                <input type="file" id="df-gases" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleDocFile('gases',this)"/>
+              </div>
+              <div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Fecha de vencimiento</label><input type="date" id="dv-gases" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>
+            </div>
+          </div>
+
+          <div class="fg full">
+            <div class="doc-upload-row">
+              <div>
+                <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Seguro Obligatorio</label>
+                <div class="doc-upload-zone" id="dz-seguro_obligatorio" onclick="document.getElementById('df-seguro_obligatorio').click()">Subir archivo (PDF o imagen)</div>
+                <input type="file" id="df-seguro_obligatorio" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleDocFile('seguro_obligatorio',this)"/>
+              </div>
+              <div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Fecha de vencimiento</label><input type="date" id="dv-seguro_obligatorio" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>
+            </div>
+          </div>
+
+          <div class="fg full">
+            <div class="doc-upload-row">
+              <div>
+                <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Póliza de seguro de la empresa</label>
+                <div class="doc-upload-zone" id="dz-poliza_empresa" onclick="document.getElementById('df-poliza_empresa').click()">Subir archivo (PDF o imagen)</div>
+                <input type="file" id="df-poliza_empresa" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleDocFile('poliza_empresa',this)"/>
+              </div>
+              <div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Fecha de vencimiento</label><input type="date" id="dv-poliza_empresa" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>
+            </div>
+          </div>
+
+          <div class="fg full">
+            <div class="doc-upload-row">
+              <div>
+                <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Archivos adicionales</label>
+                <div class="doc-upload-zone" id="dz-adicional" onclick="document.getElementById('df-adicional').click()">Subir archivo (PDF o imagen)</div>
+                <input type="file" id="df-adicional" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleDocFile('adicional',this)"/>
+              </div>
+              <div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Descripción</label><input type="text" id="dv-adicional-desc" placeholder="Ej: Certificado de capacidad..." style="padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px;width:100%"/></div>
+            </div>
+          </div>
+<div class="ok" id="ok-eq">✓ Equipo agregado correctamente</div>
+        <div class="err" id="err-eq"></div>
+        <div style="margin-top:14px;display:flex;gap:10px"><button class="btn btn-orange" id="btn-agregar-eq" onclick="agregarEquipo()">+ Agregar equipo</button><button class="btn btn-outline" onclick="cerrarForm('eq')">Cancelar</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONDUCTORES -->
+    <div class="pane" id="pane-conductores">
+      <div id="lista-cond"></div>
+      <div id="btn-cond-wrap" style="margin-top:8px"><button class="btn btn-orange" onclick="abrirForm('cond')">+ Agregar conductor</button></div>
+      <div class="eqc-overlay" id="form-cond" style="display:none" onclick="if(event.target===this)cerrarForm('cond')">
+        <div class="eqc-card">
+        <div class="add-title">Agregar conductor</div>
+        <div class="grid2">
+          <div class="fg"><label>Nombre completo *</label><input type="text" id="cond-nombre" placeholder="Ej: Juan Pérez González"/></div>
+          <div class="fg"><label>RUT *</label><input type="text" id="cond-rut" placeholder="Ej: 12.345.678-9"/></div>
+          <div class="fg full"><label>Teléfono</label><input type="tel" id="cond-telefono" placeholder="+56 9 XXXX XXXX"/></div>
+        </div>
+
+        <div class="fg full">
+          <div class="doc-section-title" style="margin-top:6px">Carnet de identidad</div>
+        </div>
+        <div class="grid2">
+          <div class="fg">
+            <label>Carnet — frente *</label>
+            <div class="doc-upload-zone" id="dz-carnetFrente" onclick="document.getElementById('df-carnetFrente').click()">Subir imagen (JPG o PNG)</div>
+            <input type="file" id="df-carnetFrente" accept=".jpg,.jpeg,.png,.pdf" style="display:none" onchange="handleCondFile('carnetFrente',this)"/>
+          </div>
+          <div class="fg">
+            <label>Carnet — reverso *</label>
+            <div class="doc-upload-zone" id="dz-carnetReverso" onclick="document.getElementById('df-carnetReverso').click()">Subir imagen (JPG o PNG)</div>
+            <input type="file" id="df-carnetReverso" accept=".jpg,.jpeg,.png,.pdf" style="display:none" onchange="handleCondFile('carnetReverso',this)"/>
+          </div>
+        </div>
+
+        <div class="fg full">
+          <div class="doc-section-title" style="margin-top:6px">Licencia de conducir</div>
+        </div>
+        <div class="grid2">
+          <div class="fg">
+            <label>Licencia — frente *</label>
+            <div class="doc-upload-zone" id="dz-licenciaFrente" onclick="document.getElementById('df-licenciaFrente').click()">Subir imagen (JPG o PNG)</div>
+            <input type="file" id="df-licenciaFrente" accept=".jpg,.jpeg,.png,.pdf" style="display:none" onchange="handleCondFile('licenciaFrente',this)"/>
+          </div>
+          <div class="fg">
+            <label>Licencia — reverso *</label>
+            <div class="doc-upload-zone" id="dz-licenciaReverso" onclick="document.getElementById('df-licenciaReverso').click()">Subir imagen (JPG o PNG)</div>
+            <input type="file" id="df-licenciaReverso" accept=".jpg,.jpeg,.png,.pdf" style="display:none" onchange="handleCondFile('licenciaReverso',this)"/>
+          </div>
+        </div>
+
+        <div class="err" id="err-cond"></div>
+        <div style="margin-top:14px;display:flex;gap:10px"><button class="btn btn-orange" onclick="agregarConductor()">+ Agregar conductor</button><button class="btn btn-outline" onclick="cerrarForm('cond')">Cancelar</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- USUARIOS -->
+    <div class="pane" id="pane-usuarios">
+      <div id="usuarios-contenido-t"><div style="text-align:center;padding:20px;color:#9CA3AF;font-size:13px">Cargando...</div></div>
+    </div>
+
+    <!-- SEGURIDAD -->
+    <div class="pane" id="pane-seguridad">
+      <div class="card">
+        <div class="card-title">Seguridad de la cuenta</div>
+
+        <div style="padding:16px 0;border-top:1px solid #eef0f5">
+          <div style="font-size:14px;font-weight:600;color:#1e2d4e;margin-bottom:3px">Cambiar contraseña</div>
+          <div style="font-size:13px;color:#6B7280;line-height:1.5;margin-bottom:12px">Actualiza tu contraseña sin cerrar sesión. Mínimo 8 caracteres.</div>
+          <div style="display:flex;flex-direction:column;gap:10px;max-width:380px">
+            <div style="position:relative"><input type="password" id="pwd-actual" placeholder="Contraseña actual" autocomplete="current-password" style="width:100%;padding:10px 40px 10px 12px;border:1.5px solid #eef0f5;border-radius:8px;font-size:14px;outline:none"/><button type="button" onclick="togglePwd('pwd-actual',this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;padding:0;display:flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            <div style="position:relative"><input type="password" id="pwd-nueva" placeholder="Nueva contraseña" autocomplete="new-password" style="width:100%;padding:10px 40px 10px 12px;border:1.5px solid #eef0f5;border-radius:8px;font-size:14px;outline:none"/><button type="button" onclick="togglePwd('pwd-nueva',this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;padding:0;display:flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            <div style="position:relative"><input type="password" id="pwd-confirma" placeholder="Repetir nueva contraseña" autocomplete="new-password" style="width:100%;padding:10px 40px 10px 12px;border:1.5px solid #eef0f5;border-radius:8px;font-size:14px;outline:none"/><button type="button" onclick="togglePwd('pwd-confirma',this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;padding:0;display:flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            <div id="pwd-msg" style="display:none;font-size:13px;padding:8px 11px;border-radius:7px"></div>
+            <div><button class="btn btn-orange btn-sm" id="btn-cambiar-pwd" onclick="cambiarPassword()">Actualizar contraseña</button></div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0;border-top:1px solid #eef0f5">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#1e2d4e;margin-bottom:3px">Sesión activa</div>
+            <div style="font-size:13px;color:#6B7280" id="sesion-lbl">--</div>
+          </div>
+          <button class="btn btn-red btn-sm" onclick="localStorage.clear();window.location.replace('/index.html')" style="flex-shrink:0">Cerrar sesión</button>
+        </div>
+
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px 0 4px;border-top:1px solid #eef0f5">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#1e2d4e;margin-bottom:3px">Eliminar cuenta</div>
+            <div style="font-size:13px;color:#6B7280;line-height:1.5">Para dar de baja tu cuenta, escríbenos a <a href="mailto:soporte@transmatch.cl" style="color:#FF8808;text-decoration:none;font-weight:500">soporte@transmatch.cl</a> y la procesamos.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+var API = 'https://transmatch.transmatchcl.workers.dev';
+var U   = {};
+
+(async function authGuard() {
+  var token = localStorage.getItem('tm_token');
+  var role  = localStorage.getItem('tm_role');
+  if (!token) { window.location.replace('/index.html'); return; }
+  if (role === 'admin')   { window.location.replace('/admin.html'); return; }
+  if (role === 'cliente') { window.location.replace('/cliente-perfil.html'); return; }
+  try {
+    var res  = await fetch(API + '/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } });
+    if (res.status === 401) { localStorage.clear(); window.location.replace('/index.html'); return; }
+    var data = await res.json();
+    U = data.user || {};
+  } catch(e) {
+    U = {
+      nombre:  localStorage.getItem('tm_nombre')  || '',
+      email:   localStorage.getItem('tm_email')   || '',
+      empresa: localStorage.getItem('tm_empresa') || '',
+      rating:  5.0, equipos: [], zonas: [],
+    };
+  }
+  document.getElementById('auth-guard').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';document.getElementById('app').style.flexDirection='column';document.getElementById('app').style.minHeight='100vh';
+      cargarNotificaciones();
+  fill();
+  cargarEquipos();
+  // Mostrar tab Usuarios si es admin y tiene max_usuarios > 0
+  var tabUT = document.getElementById('tab-usuarios-t');
+  if(tabUT && !U.esSubusuario && (U.max_usuarios||0) > 0){ tabUT.style.display=''; cargarUsuariosT(); }
+  // Barra de progreso
+  renderProgresoT(U);
+  // Rellenar contactos
+  var opC = U.contactoOperaciones||{};
+  var comC = U.contactoComercial||{};
+  var facC = U.contactoFacturacion||{};
+  var inp = function(id,val){ var el=document.getElementById(id); if(el) el.value=val||''; };
+  inp('inp-op-nombre',opC.nombre); inp('inp-op-cargo',opC.cargo); inp('inp-op-tel',opC.telefono); inp('inp-op-email',opC.email);
+  inp('inp-com-nombre',comC.nombre); inp('inp-com-cargo',comC.cargo); inp('inp-com-tel',comC.telefono); inp('inp-com-email',comC.email);
+  inp('inp-fac-nombre',facC.nombre); inp('inp-fac-cargo',facC.cargo); inp('inp-fac-tel',facC.telefono); inp('inp-fac-email',facC.email);
+  // Datos de facturación de la empresa (para que TransMatch facture)
+  var facE = U.facturacion||{};
+  inp('inp-fact-rs',facE.razonSocial); inp('inp-fact-rut',facE.rut); inp('inp-fact-giro',facE.giro); inp('inp-fact-dir',facE.direccion); inp('inp-fact-email',facE.email);
+  // Campos empresa extendidos
+  inp('inp-giro-t',U.giro); inp('inp-dir-t',U.direccion); inp('inp-ciudad-t',U.ciudad);
+})();
+
+function togglePwd(id,btn){
+  var inp=document.getElementById(id);
+  if(!inp)return;
+  inp.type = inp.type==='password' ? 'text' : 'password';
+  if(btn) btn.style.color = inp.type==='text' ? '#1e2d4e' : '#9CA3AF';
+}
+
+async function cambiarPassword(){
+  var actual=document.getElementById('pwd-actual').value;
+  var nueva=document.getElementById('pwd-nueva').value;
+  var confirma=document.getElementById('pwd-confirma').value;
+  var msg=document.getElementById('pwd-msg');
+  function showMsg(text,ok){ msg.textContent=text; msg.style.display='block'; msg.style.background=ok?'#DCFCE7':'#FEF2F2'; msg.style.color=ok?'#14532D':'#991B1B'; }
+
+  if(!actual||!nueva||!confirma){ showMsg('Completa los tres campos',false); return; }
+  if(nueva.length<8){ showMsg('La nueva contraseña debe tener al menos 8 caracteres',false); return; }
+  if(nueva!==confirma){ showMsg('La nueva contraseña y su confirmación no coinciden',false); return; }
+  if(nueva===actual){ showMsg('La nueva contraseña debe ser distinta a la actual',false); return; }
+
+  var btn=document.getElementById('btn-cambiar-pwd');
+  btn.disabled=true; var txt=btn.textContent; btn.textContent='Actualizando...';
+  try{
+    var res=await fetch(API+'/api/auth/cambiar-password',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({passwordActual:actual,passwordNueva:nueva})});
+    var data={}; try{data=await res.json();}catch(e){}
+    if(res.ok){
+      showMsg('Contraseña actualizada correctamente',true);
+      document.getElementById('pwd-actual').value='';
+      document.getElementById('pwd-nueva').value='';
+      document.getElementById('pwd-confirma').value='';
+    } else {
+      showMsg(data.error||'No se pudo actualizar la contraseña',false);
+    }
+  }catch(e){ showMsg('Error de conexión. Intenta nuevamente.',false); }
+  finally{ btn.disabled=false; btn.textContent=txt; }
+}
+
+function fill() {
+  var n   = U.nombre   || localStorage.getItem('tm_nombre')  || '';
+  var em  = U.email    || localStorage.getItem('tm_email')   || '';
+  var emp = U.empresa  || localStorage.getItem('tm_empresa') || '';
+  var av  = document.getElementById('nav-avatar');
+  if (av && n) av.textContent = n[0].toUpperCase();
+  var nn=document.getElementById('nav-nombre');if(nn)nn.textContent=n;
+  var ne=document.getElementById('nav-empresa');if(ne)ne.textContent=emp;
+  document.getElementById('um-nombre').textContent  = n;
+  document.getElementById('um-empresa').textContent = emp;
+  document.getElementById('prof-av').textContent    = n ? n[0].toUpperCase() : '?';
+  document.getElementById('prof-name').textContent  = n   || '--';
+  document.getElementById('prof-email').textContent = em  || '--';
+  document.getElementById('prof-rating').textContent = (U.rating || 5.0).toFixed(1);
+  document.getElementById('sesion-lbl').textContent  = em ? 'Activa como ' + em : '--';
+  document.getElementById('inp-nombre').value  = n;
+  document.getElementById('inp-email').value   = em;
+  document.getElementById('inp-tel').value     = U.telefono || U.whatsapp || '';
+  document.getElementById('inp-ciudad').value  = U.ciudad   || '';
+  document.getElementById('inp-cargo').value   = U.cargo    || '';
+  document.getElementById('inp-empresa').value = emp;
+  document.getElementById('inp-rut2').value    = U.rutEmpresa || '';
+  document.getElementById('inp-anos').value    = U.anosExperiencia || '';
+  document.getElementById('inp-web').value     = U.web      || '';
+  document.getElementById('inp-desc').value    = U.descripcion || '';
+  var zonas = U.zonas || [];
+  initRutInputs();
+  ['norte','centro','sur'].forEach(function(z) {
+    var cb   = document.getElementById('zona-' + z);
+    var card = document.getElementById('zona-' + z + '-card');
+    if (cb)   cb.checked = zonas.includes(z);
+    if (card) card.classList.toggle('selected', zonas.includes(z));
+  });
+  if (U.otrasZonas) {
+    var cbO=document.getElementById('zona-otras'); var cardO=document.getElementById('zona-otras-card');
+    if(cbO) cbO.checked=true; if(cardO) cardO.classList.add('selected');
+  }
+  // Cargar tipos de equipo guardados
+  var tiposGuardados = U.tiposEquipo || [];
+  document.querySelectorAll('.eq-tipo-cb').forEach(function(cb){
+    if(tiposGuardados.includes(cb.value)){
+      cb.checked = true;
+      var card = cb.closest('.zona-card');
+      if(card) card.classList.add('selected');
+    }
+  });
+}
+
+function showTab(id, el) {
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.querySelectorAll('.pane').forEach(function(p){ p.classList.remove('active'); });
+  el.classList.add('active');
+  document.getElementById('pane-' + id).classList.add('active');
+  if (id === 'equipos') cargarEquipos();
+  if (id === 'conductores') cargarConductores();
+}
+
+function toggleUserMenu(e) {
+  e.stopPropagation();
+  var _mp=document.getElementById('nav-mobile-panel'); if(_mp) _mp.classList.remove('open');
+  var m = document.getElementById('user-menu');
+  if (m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+document.addEventListener('click', function(e) {
+  if(e.target.closest('#user-menu') || e.target.closest('#nav-avatar') ||
+     e.target.closest('#notif-panel') || e.target.closest('#notif-btn')) return;
+  var m = document.getElementById('user-menu');
+  if (m) m.style.display = 'none';
+  if(typeof closeAllPanels==='function'){ try{closeAllPanels();}catch(err){} }
+});
+
+async function guardar() {
+  var btn = event.target; btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    var payload = {
+      nombre:   document.getElementById('inp-nombre').value.trim(),
+      telefono: document.getElementById('inp-tel').value.trim(),
+      whatsapp: document.getElementById('inp-tel').value.trim(),
+      ciudad:   document.getElementById('inp-ciudad').value.trim(),
+      cargo:    document.getElementById('inp-cargo').value.trim(),
+    };
+    var res = await fetch(API + '/api/perfil', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') },
+      body: JSON.stringify(payload)
+    });
+    var ok1 = document.getElementById('ok1'); var err1 = document.getElementById('err1');
+    if (res.ok) {
+      localStorage.setItem('tm_nombre', payload.nombre);
+      ok1.style.display='block';
+      setTimeout(function(){ ok1.style.display='none'; },3000);
+    } else {
+      var d = await res.json();
+      err1.textContent = d.error || 'Error al guardar';
+      err1.style.display = 'block';
+      setTimeout(function(){ err1.style.display='none'; },3000);
+    }
+  } catch(e) {
+    document.getElementById('err1').textContent = 'Error de conexión';
+    document.getElementById('err1').style.display = 'block';
+  }
+  btn.disabled = false; btn.textContent = 'Guardar cambios';
+}
+
+async function guardarEmpresa() {
+  var btn = event.target; btn.disabled = true; btn.textContent = 'Guardando...';
+  var gv=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
+  try {
+    var payload = {
+      empresa: gv('inp-empresa'),
+      rutEmpresa: gv('inp-rut2'),
+      anosExperiencia: parseInt(document.getElementById('inp-anos').value)||0,
+      web: gv('inp-web'),
+      descripcion: gv('inp-desc'),
+      giro: gv('inp-giro-t'),
+      direccion: gv('inp-dir-t'),
+      ciudad: gv('inp-ciudad-t'),
+    };
+    var res = await fetch(API + '/api/perfil', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') },
+      body: JSON.stringify(payload)
+    });
+    var ok2 = document.getElementById('ok2');
+    if (res.ok) {
+      Object.assign(U, payload);
+      localStorage.setItem('tm_empresa', payload.empresa);
+      renderProgresoT(U);
+      ok2.style.display='block';
+      setTimeout(function(){ ok2.style.display='none'; },3000);
+    } else {
+      var d = await res.json();
+      document.getElementById('err2').textContent = d.error || 'Error al guardar';
+      document.getElementById('err2').style.display = 'block';
+      setTimeout(function(){ document.getElementById('err2').style.display='none'; },3000);
+    }
+  } catch(e) {
+    document.getElementById('err2').textContent = 'Error de conexión';
+    document.getElementById('err2').style.display = 'block';
+  }
+  btn.disabled = false; btn.textContent = 'Guardar cambios';
+}
+
+function renderProgresoT(u){
+  var pct = u.perfilCompletitud||calcCompletitudT(u);
+  var banner=document.getElementById('progreso-banner-t');
+  var bar=document.getElementById('progreso-bar-t');
+  var pctEl=document.getElementById('progreso-pct-t');
+  var hint=document.getElementById('progreso-hint-t');
+  if(!banner) return;
+  banner.style.display = pct < 100 ? 'block' : 'none';
+  bar.style.width = pct+'%';
+  pctEl.textContent = pct+'%';
+  pctEl.style.color = pct < 50 ? '#EF4444' : pct < 80 ? '#FF8808' : '#16a34a';
+  var eqs=u.equipos||[];
+  if(pct < 30) hint.textContent='Completa tus datos básicos para comenzar';
+  else if(!u.giro||!u.direccion) hint.textContent='Siguiente: completa los datos de tu empresa';
+  else if(!u.contactoOperaciones||!u.contactoOperaciones.nombre) hint.textContent='Siguiente: agrega tus contactos en la pestaña Contactos';
+  else if(eqs.length===0) hint.textContent='Siguiente: agrega tus equipos en la pestaña Mis equipos';
+  else { var conDocs=eqs.filter(function(e){return Object.keys(e.documentos||{}).length>=3;}); if(conDocs.length===0) hint.textContent='Siguiente: sube los documentos de tus equipos'; else hint.textContent='Perfil casi completo'; }
+}
+
+function calcCompletitudT(u){
+  var pts=0;
+  if(u.nombre)pts+=5;if(u.empresa)pts+=5;if(u.rutEmpresa||u.rut)pts+=5;if(u.cargo)pts+=5;if(u.telefono||u.tel)pts+=5;if(u.email)pts+=5;
+  if(u.zonas&&u.zonas.length)pts+=5;if(u.tiposEquipo&&u.tiposEquipo.length)pts+=5;
+  if(u.giro)pts+=3;if(u.direccion)pts+=3;if(u.ciudad)pts+=3;if(u.descripcion)pts+=3;
+  if(u.contactoOperaciones&&u.contactoOperaciones.nombre)pts+=4;
+  if(u.contactoComercial&&u.contactoComercial.nombre)pts+=4;
+  if(u.contactoFacturacion&&u.contactoFacturacion.nombre)pts+=3;
+  var eqs=u.equipos||[];if(eqs.length>0)pts+=10;
+  var conDocs=eqs.filter(function(e){return Object.keys(e.documentos||{}).length>=3;});if(conDocs.length>0)pts+=10;
+  return Math.min(100,pts);
+}
+
+async function guardarDatosFacturacion(){
+  var gv=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
+  var body={ facturacion:{ razonSocial:gv('inp-fact-rs'), rut:gv('inp-fact-rut'), giro:gv('inp-fact-giro'), direccion:gv('inp-fact-dir'), email:gv('inp-fact-email') } };
+  try{
+    var res=await fetch(API+'/api/perfil',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(body)});
+    if(res.ok){
+      Object.assign(U,body);
+      if(typeof renderProgresoT==='function') renderProgresoT(U);
+      var el=document.getElementById('ok-datos-fact');if(el){el.style.display='block';setTimeout(function(){el.style.display='none';},3000);}
+    }
+  }catch(e){}
+}
+
+async function guardarContactos(){
+  var gv=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
+  var body={
+    contactoOperaciones:{nombre:gv('inp-op-nombre'),cargo:gv('inp-op-cargo'),telefono:gv('inp-op-tel'),email:gv('inp-op-email')},
+    contactoComercial:  {nombre:gv('inp-com-nombre'),cargo:gv('inp-com-cargo'),telefono:gv('inp-com-tel'),email:gv('inp-com-email')},
+    contactoFacturacion:{nombre:gv('inp-fac-nombre'),cargo:gv('inp-fac-cargo'),telefono:gv('inp-fac-tel'),email:gv('inp-fac-email')},
+  };
+  try{
+    var res=await fetch(API+'/api/perfil',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(body)});
+    if(res.ok){
+      Object.assign(U,body);
+      renderProgresoT(U);
+      var el=document.getElementById('ok-contactos');if(el){el.style.display='block';setTimeout(function(){el.style.display='none';},3000);}
+    }
+  }catch(e){}
+}
+
+function toggleTipoEquipo(val, card) {
+  var cbs = document.querySelectorAll('.eq-tipo-cb');
+  var cb = null;
+  cbs.forEach(function(c){ if(c.value===val) cb=c; });
+  if(!cb) return;
+  cb.checked = !cb.checked;
+  card.classList.toggle('selected', cb.checked);
+}
+
+function onEqTipoChange(){var sel=document.getElementById('eq-tipo');var w=document.getElementById('eq-tipo-otro-wrap');var on=sel&&sel.value==='Otro';if(w)w.style.display=on?'block':'none';if(!on){var t=document.getElementById('eq-tipo-otro');if(t)t.value='';}}
+function toggleOtroTipo(){var cb=document.querySelector('.eq-tipo-cb[value="Otro"]');var w=document.getElementById('tipo-otro-wrap');var on=cb&&cb.checked;if(w)w.style.display=on?'block':'none';if(!on){var t=document.getElementById('tipo-otro-text');if(t)t.value='';}}
+async function guardarTiposEquipo() {
+  var tiposSeleccionados = [];
+  var _otroT='';
+  document.querySelectorAll('.eq-tipo-cb').forEach(function(cb){
+    if(!cb.checked) return;
+    if(cb.value==='Otro'){ _otroT=(document.getElementById('tipo-otro-text').value||'').trim(); if(_otroT) tiposSeleccionados.push(_otroT); }
+    else tiposSeleccionados.push(cb.value);
+  });
+  var _otroCb=document.querySelector('.eq-tipo-cb[value="Otro"]');
+  if(_otroCb&&_otroCb.checked&&!_otroT){ var _e=document.getElementById('err-tipos-eq'); if(_e){_e.textContent='Especifica el equipo en "Otro"';_e.style.display='block';} return; }
+  var okEl=document.getElementById('ok-tipos-eq');
+  var errEl=document.getElementById('err-tipos-eq');
+  try {
+    var res = await fetch(API+'/api/perfil', {
+      method:'PUT',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify({tiposEquipo: tiposSeleccionados})
+    });
+    if(res.ok){
+      U.tiposEquipo = tiposSeleccionados;
+      okEl.style.display='block';
+      setTimeout(function(){ okEl.style.display='none'; },3000);
+    } else {
+      errEl.textContent='Error al guardar'; errEl.style.display='block';
+      setTimeout(function(){ errEl.style.display='none'; },3000);
+    }
+  } catch(e) {
+    errEl.textContent='Error de conexión'; errEl.style.display='block';
+  }
+}
+
+function toggleZonaOtras(card) {
+  var cb = document.getElementById('zona-otras');
+  if (!cb) return;
+  cb.checked = !cb.checked;
+  card.classList.toggle('selected', cb.checked);
+}
+
+function toggleZona(z) {
+  var cb   = document.getElementById('zona-' + z);
+  var card = document.getElementById('zona-' + z + '-card');
+  if (!cb) return;
+  cb.checked = !cb.checked;
+  if (card) card.classList.toggle('selected', cb.checked);
+}
+
+async function guardarZonas() {
+  var zonas = ['norte','centro','sur'].filter(function(z){ var el=document.getElementById('zona-'+z); return el&&el.checked; });
+  var otrasZonas = document.getElementById('zona-otras') ? document.getElementById('zona-otras').checked : false;
+  try {
+    var res = await fetch(API + '/api/perfil', { method:'PUT', headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}, body:JSON.stringify({zonas:zonas, otrasZonas:otrasZonas}) });
+    var okEl=document.getElementById('ok-zonas'); var errEl=document.getElementById('err-zonas');
+    if (res.ok) { U.zonas=zonas; okEl.style.display='block'; setTimeout(function(){ okEl.style.display='none'; },3000); }
+    else { errEl.textContent='Error al guardar'; errEl.style.display='block'; setTimeout(function(){ errEl.style.display='none'; },3000); }
+  } catch(e) { document.getElementById('err-zonas').textContent='Error de conexión'; document.getElementById('err-zonas').style.display='block'; }
+}
+
+async function cargarEquipos() {
+  var el = document.getElementById('lista-eq');
+  // Recordar qué tarjetas estaban expandidas para no colapsarlas al re-renderizar
+  var _expandidos = [];
+  if (el) {
+    el.querySelectorAll('.eq-row[data-eqid]').forEach(function(row){
+      var body = row.querySelector('.eq-card-body');
+      if (body && body.style.display === 'block') _expandidos.push(row.getAttribute('data-eqid'));
+    });
+  }
+  el.innerHTML = '<div class="spinner" style="width:22px;height:22px;border-width:2px;margin:16px auto"></div>';
+  // Verificar vencimientos y crear notificaciones
+  try {
+    var res = await fetch(API + '/api/equipos', { headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')} });
+    var d   = await res.json();
+    var eqs = d.equipos || [];
+    if (eqs.length === 0) { el.innerHTML='<div style="text-align:center;padding:20px;color:#9CA3AF;font-size:13px">Sin equipos registrados</div>'; return; }
+    // Revisar vencimientos y notificar si corresponde
+    verificarVencimientosEquipos(eqs);
+    el.innerHTML = eqs.map(function(eq) {
+      var meta=[];
+      if (eq.capacidadMax) meta.push('Cap: '+eq.capacidadMax+' ton');
+      if (eq.largoMax)     meta.push('L: '+eq.largoMax+'m');
+      if (eq.anchoMax)     meta.push('An: '+eq.anchoMax+'m');
+      if (eq.altoMax)      meta.push('Al: '+eq.altoMax+'m');
+      if (eq.patente)      meta.push('Patente: '+eq.patente);
+      // Galería de imágenes
+      var fotos = eq.fotos || [];
+      var fotosHtml = '<div style="margin-top:12px"><div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Fotos del equipo</div>'
+        +'<div class="img-grid">'
+        + fotos.map(function(f){ return '<img src="data:'+f.mimeType+';base64,'+f.base64+'" class="img-thumb" onclick="verFotoEquipo(this)" title="Ver foto"/>'; }).join('')
+        + (fotos.length < 6 ? '<div class="img-add" onclick="abrirModalFoto(\''+eq.id+'\')">'
+          +'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
+          +'Agregar foto</div>' : '')
+        +'</div></div>';
+      // Resumen de documentos obligatorios (5) para la card colapsada
+      var reqKeys = ['permiso_circulacion','revision_tecnica','gases','seguro_obligatorio','poliza_empresa'];
+      var docsEq = eq.documentos || {};
+      var subidos = reqKeys.filter(function(k){ return docsEq[k] && docsEq[k].archivoId; }).length;
+      var completo = subidos >= reqKeys.length;
+      var pillBg = completo ? '#DCFCE7' : '#FEF3C7';
+      var pillColor = completo ? '#14532D' : '#92400E';
+      return '<div class="eq-row" data-eqid="'+eq.id+'" style="flex-direction:column;align-items:stretch;padding:0;overflow:hidden">'
+        +'<div onclick="toggleEqCard(this)" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px;cursor:pointer">'
+        +'<div style="flex:1;min-width:0">'
+        +'<div class="eq-name">'+eq.tipo+(eq.marca?' — '+eq.marca:'')+(eq.modelo?' '+eq.modelo:'')+(eq.ano?' ('+eq.ano+')':'')+'</div>'
+        +(meta.length?'<div class="eq-meta">'+meta.join(' · ')+'</div>':'')
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">'
+        +'<span style="font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;white-space:nowrap;background:'+pillBg+';color:'+pillColor+'">'+subidos+'/'+reqKeys.length+' docs</span>'
+        +'<button class="btn btn-sm" style="background:#fff;border:1px solid #e8eaf0;color:#374151" onclick="event.stopPropagation();editarEquipo(\''+eq.id+'\')">Editar</button>'
+        +'<button class="btn btn-red btn-sm" onclick="event.stopPropagation();eliminarEquipo(\''+eq.id+'\')">Eliminar</button>'
+        +'<svg class="eq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" style="transition:transform .2s;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>'
+        +'</div>'
+        +'</div>'
+        +'<div class="eq-card-body" style="display:none;padding:0 16px 16px;border-top:1px solid #eef0f5">'
+        +(eq.descripcion?'<div class="eq-meta" style="color:#9CA3AF;margin-top:12px">'+eq.descripcion+'</div>':'')
+        + fotosHtml
+        + renderAlertasVencimiento(eq.documentos)
+        + renderDocumentos(eq.id, eq.documentos)
+        +'</div>'
+        +'</div>';
+    }).join('');
+    // Re-expandir las tarjetas que estaban abiertas antes del re-render
+    _expandidos.forEach(function(eqid){
+      var row = el.querySelector('.eq-row[data-eqid="'+eqid+'"]');
+      if (!row) return;
+      var body = row.querySelector('.eq-card-body');
+      var chev = row.querySelector('.eq-chevron');
+      if (body) body.style.display = 'block';
+      if (chev) chev.style.transform = 'rotate(180deg)';
+    });
+  } catch(e) { el.innerHTML='<div style="text-align:center;padding:16px;color:#EF4444;font-size:13px">Error al cargar equipos</div>'; }
+}
+
+function toggleEqCard(head){
+  var card = head.parentNode;
+  var body = card.querySelector('.eq-card-body');
+  if(!body) return;
+  var chev = head.querySelector('.eq-chevron');
+  var cerrado = (body.style.display === 'none' || body.style.display === '');
+  body.style.display = cerrado ? 'block' : 'none';
+  if(chev) chev.style.transform = cerrado ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
+function abrirForm(which){
+  var form=document.getElementById('form-'+which);
+  if(form) form.style.display='flex';
+  document.body.style.overflow='hidden';
+}
+function cerrarForm(which){
+  var form=document.getElementById('form-'+which);
+  if(form) form.style.display='none';
+  document.body.style.overflow='';
+}
+
+// ── CONDUCTORES ──────────────────────────────────────────────
+function toast(msg, type){
+  var t=document.getElementById('_toast');
+  if(!t){ t=document.createElement('div'); t.id='_toast'; t.style.cssText='position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none'; document.body.appendChild(t); }
+  t.style.background = type==='err' ? '#EF4444' : '#16a34a';
+  t.textContent=msg; t.style.opacity='1';
+  clearTimeout(t._h); t._h=setTimeout(function(){ t.style.opacity='0'; },3000);
+}
+var condBuffer = {}; // { carnetFrente:{nombre,base64,mimeType}, ... }
+
+function handleCondFile(key, input) {
+  var file = input.files[0];
+  if (!file) return;
+  if (file.size > 8 * 1024 * 1024) { alert('Archivo demasiado grande. Máximo 8 MB'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var base64 = e.target.result.split(',')[1];
+    condBuffer[key] = { nombre: file.name, base64: base64, mimeType: file.type };
+    var dz = document.getElementById('dz-' + key);
+    if (dz) { dz.textContent = file.name; dz.classList.add('has-file'); }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function subirImagenConductor(key) {
+  var buf = condBuffer[key];
+  if (!buf) return null;
+  try {
+    var res = await fetch(API + '/api/archivos/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') },
+      body: JSON.stringify({ nombre: buf.nombre, tipo: buf.mimeType, base64: buf.base64 })
+    });
+    if (res.ok) { var d = await res.json(); return { id: d.id, nombre: buf.nombre }; }
+  } catch(e) { console.error('Error subiendo imagen conductor:', e); }
+  return null;
+}
+
+async function cargarConductores() {
+  var el = document.getElementById('lista-cond');
+  el.innerHTML = '<div class="spinner" style="width:22px;height:22px;border-width:2px;margin:16px auto"></div>';
+  try {
+    var res = await fetch(API + '/api/conductores', { headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')} });
+    var d = await res.json();
+    var conds = d.conductores || [];
+    if (conds.length === 0) { el.innerHTML='<div style="text-align:center;padding:20px;color:#9CA3AF;font-size:13px">Sin conductores registrados</div>'; return; }
+    el.innerHTML = conds.map(function(c){
+      function docLink(id, nombre, label){
+        if(!id) return '<span style="font-size:12px;color:#9CA3AF">'+label+': no cargado</span>';
+        return '<button class="btn btn-outline btn-sm" onclick="verImagenConductor(\''+id+'\',\''+(nombre||label)+'\')">'+label+'</button>';
+      }
+      var docsCond = [c.carnetFrenteId, c.carnetReversoId, c.licenciaFrenteId, c.licenciaReversoId];
+      var condSubidos = docsCond.filter(function(x){ return !!x; }).length;
+      var condCompleto = condSubidos >= 4;
+      var cPillBg = condCompleto ? '#DCFCE7' : '#FEF3C7';
+      var cPillColor = condCompleto ? '#14532D' : '#92400E';
+      return '<div class="eq-row" style="flex-direction:column;align-items:stretch;padding:0;overflow:hidden">'
+        +'<div onclick="toggleEqCard(this)" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px;cursor:pointer">'
+        +'<div style="flex:1;min-width:0">'
+        +'<div class="eq-name">'+c.nombre+'</div>'
+        +'<div class="eq-meta">RUT: '+c.rut+(c.telefono?' · '+c.telefono:'')+'</div>'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">'
+        +'<span style="font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;white-space:nowrap;background:'+cPillBg+';color:'+cPillColor+'">'+condSubidos+'/4 docs</span>'
+        +'<button class="btn btn-red btn-sm" onclick="event.stopPropagation();eliminarConductor(\''+c.id+'\')">Eliminar</button>'
+        +'<svg class="eq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" style="transition:transform .2s;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>'
+        +'</div>'
+        +'</div>'
+        +'<div class="eq-card-body" style="display:none;padding:0 16px 16px;border-top:1px solid #eef0f5">'
+        +'<div style="margin-top:14px"><div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Carnet de identidad</div>'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap">'+docLink(c.carnetFrenteId,c.carnetFrenteNombre,'Carnet frente')+docLink(c.carnetReversoId,c.carnetReversoNombre,'Carnet reverso')+'</div></div>'
+        +'<div style="margin-top:12px"><div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Licencia de conducir</div>'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap">'+docLink(c.licenciaFrenteId,c.licenciaFrenteNombre,'Licencia frente')+docLink(c.licenciaReversoId,c.licenciaReversoNombre,'Licencia reverso')+'</div></div>'
+        +'</div>'
+        +'</div>';
+    }).join('');
+  } catch(e) { el.innerHTML='<div style="text-align:center;padding:16px;color:#EF4444;font-size:13px">Error al cargar conductores</div>'; }
+}
+
+async function verImagenConductor(archivoId, nombre){
+  try{
+    var res=await fetch(API+'/api/archivos/'+archivoId,{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    if(!res.ok){ toast('Error al abrir el archivo','err'); return; }
+    var d=await res.json();
+    var bin=atob(d.base64); var bytes=new Uint8Array(bin.length);
+    for(var i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    var blob=new Blob([bytes],{type:d.tipo||'image/jpeg'});
+    var u=URL.createObjectURL(blob); window.open(u,'_blank');
+    setTimeout(function(){URL.revokeObjectURL(u);},60000);
+  }catch(e){ toast('Error al abrir el archivo','err'); }
+}
+
+async function agregarConductor() {
+  var nombre=document.getElementById('cond-nombre').value.trim();
+  var rut=document.getElementById('cond-rut').value.trim();
+  var telefono=document.getElementById('cond-telefono').value.trim();
+  var errEl=document.getElementById('err-cond'); errEl.style.display='none';
+  if(!nombre||!rut){ errEl.textContent='Nombre y RUT son requeridos'; errEl.style.display='block'; return; }
+  if(!condBuffer.carnetFrente||!condBuffer.carnetReverso){ errEl.textContent='Debes subir ambos lados del carnet'; errEl.style.display='block'; return; }
+  if(!condBuffer.licenciaFrente||!condBuffer.licenciaReverso){ errEl.textContent='Debes subir ambos lados de la licencia'; errEl.style.display='block'; return; }
+  var btn=event&&event.target; if(btn){ btn.disabled=true; btn.textContent='Subiendo...'; }
+  try {
+    var cf=await subirImagenConductor('carnetFrente');
+    var cr=await subirImagenConductor('carnetReverso');
+    var lf=await subirImagenConductor('licenciaFrente');
+    var lr=await subirImagenConductor('licenciaReverso');
+    var res=await fetch(API+'/api/conductores',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify({
+        nombre:nombre, rut:rut, telefono:telefono,
+        carnetFrenteId:cf&&cf.id, carnetFrenteNombre:cf&&cf.nombre,
+        carnetReversoId:cr&&cr.id, carnetReversoNombre:cr&&cr.nombre,
+        licenciaFrenteId:lf&&lf.id, licenciaFrenteNombre:lf&&lf.nombre,
+        licenciaReversoId:lr&&lr.id, licenciaReversoNombre:lr&&lr.nombre
+      })
+    });
+    if(res.ok){
+      toast('Conductor agregado');
+      // Limpiar formulario
+      document.getElementById('cond-nombre').value='';
+      document.getElementById('cond-rut').value='';
+      document.getElementById('cond-telefono').value='';
+      condBuffer={};
+      ['carnetFrente','carnetReverso','licenciaFrente','licenciaReverso'].forEach(function(k){
+        var dz=document.getElementById('dz-'+k); if(dz){ dz.textContent='Subir imagen (JPG o PNG)'; dz.classList.remove('has-file'); }
+      });
+      await cargarConductores();
+      cerrarForm('cond');
+    } else { var dd=await res.json(); errEl.textContent=dd.error||'Error al agregar conductor'; errEl.style.display='block'; }
+  } catch(e){ errEl.textContent='Error de conexión'; errEl.style.display='block'; }
+  finally { if(btn){ btn.disabled=false; btn.textContent='+ Agregar conductor'; } }
+}
+
+async function eliminarConductor(id) {
+  if(!confirm('¿Eliminar este conductor?')) return;
+  try {
+    var res=await fetch(API+'/api/conductores/'+id,{ method:'DELETE', headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')} });
+    if(res.ok){ toast('Conductor eliminado'); await cargarConductores(); }
+    else toast('Error al eliminar','err');
+  } catch(e){ toast('Error de conexión','err'); }
+}
+
+function verificarVencimientosEquipos(eqs) {
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var alertas = [];
+  eqs.forEach(function(eq){
+    var docs = eq.documentos || {};
+    Object.values(docs).forEach(function(doc){
+      if(!doc || !doc.vencimiento) return;
+      var vence = new Date(doc.vencimiento+'T12:00:00');
+      var dias = Math.round((vence-hoy)/86400000);
+      if([0,2,7,15].includes(dias) || dias < 0){
+        alertas.push({equipo:eq.tipo+(eq.patente?' ('+eq.patente+')':''), doc:doc.label||doc.key, dias:dias});
+      }
+    });
+  });
+  // Crear notificaciones en backend
+  alertas.forEach(function(a){
+    var msg = dias_a_texto(a.dias)+' — '+a.doc+' de '+a.equipo;
+    fetch(API+'/api/notificaciones-equipo', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body: JSON.stringify({mensaje:msg, tipo:'vencimiento_documento'})
+    }).catch(function(){});
+  });
+}
+
+function dias_a_texto(dias){
+  if(dias < 0) return 'Documento vencido hace '+Math.abs(dias)+' día'+(Math.abs(dias)===1?'':'s');
+  if(dias === 0) return 'Documento vence HOY';
+  return 'Documento vence en '+dias+' día'+(dias===1?'':'s');
+}
+
+function renderAlertasVencimiento(documentos) {
+  var docs = documentos || {};
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var alertas = [];
+  Object.values(docs).forEach(function(doc){
+    if(!doc||!doc.vencimiento) return;
+    var vence = new Date(doc.vencimiento+'T12:00:00');
+    var dias = Math.round((vence-hoy)/86400000);
+    var cls=''; var txt='';
+    if(dias<0){cls='venc-2d';txt='Vencido hace '+Math.abs(dias)+' día'+(Math.abs(dias)===1?'':'s')+' — '+(doc.label||doc.key);}
+    else if(dias===0){cls='venc-hoy';txt='Vence HOY — '+(doc.label||doc.key);}
+    else if(dias<=2){cls='venc-2d';txt='Vence en '+dias+' día'+(dias===1?'':'s')+' — '+(doc.label||doc.key);}
+    else if(dias<=7){cls='venc-7d';txt='Vence en '+dias+' días — '+(doc.label||doc.key);}
+    else if(dias<=15){cls='venc-15d';txt='Vence en '+dias+' días — '+(doc.label||doc.key);}
+    if(cls) alertas.push('<div class="venc-alert '+cls+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>'+txt+'</span></div>');
+  });
+  if(!alertas.length) return '';
+  return '<div style="margin-top:10px">'+alertas.join('')+'</div>';
+}
+
+async function agregarEquipo() {
+  var _selTipo=document.getElementById('eq-tipo').value;
+  var tipo=_selTipo;
+  if(_selTipo==='Otro'){ tipo=(document.getElementById('eq-tipo-otro').value||'').trim(); }
+  var okEl=document.getElementById('ok-eq'); var errEl=document.getElementById('err-eq');
+  okEl.style.display='none'; errEl.style.display='none';
+  if (!tipo) { errEl.textContent=_selTipo==='Otro'?'Especifica el equipo en "Otro"':'Selecciona el tipo de equipo'; errEl.style.display='block'; return; }
+  var _btnAdd = document.getElementById('btn-agregar-eq');
+  if (_btnAdd) { if (_btnAdd.disabled) return; _btnAdd.disabled = true; _btnAdd.dataset._txt = _btnAdd.textContent; _btnAdd.textContent = 'Guardando...'; }
+  try {
+    var res = await fetch(API+'/api/equipos', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify({
+        tipo:tipo,
+        marca:document.getElementById('eq-marca').value.trim(),
+        modelo:document.getElementById('eq-modelo').value.trim(),
+        ano:document.getElementById('eq-ano').value,
+        patente:document.getElementById('eq-patente').value.trim(),
+        capacidadMax:parseFloat(document.getElementById('eq-cap').value)||0,
+        largoMax:parseFloat(document.getElementById('eq-largo').value)||0,
+        anchoMax:parseFloat(document.getElementById('eq-ancho').value)||0,
+        altoMax:parseFloat(document.getElementById('eq-alto').value)||0,
+        descripcion:document.getElementById('eq-desc').value.trim(),
+        fotos: fotosBufferNew,
+      })
+    });
+    if (res.ok) {
+      var equipoCreado = await res.json();
+      var equipoId = equipoCreado.id;
+      // Subir documentos
+      var docKeys = ['permiso_circulacion','revision_tecnica','gases','seguro_obligatorio','poliza_empresa','adicional'];
+      var docLabels = {
+        permiso_circulacion:'Permiso de Circulación',
+        revision_tecnica:'Revisión Técnica',
+        gases:'Gases',
+        seguro_obligatorio:'Seguro Obligatorio',
+        poliza_empresa:'Póliza empresa',
+        adicional:'Archivo adicional'
+      };
+      var documentos = {};
+      for (var i = 0; i < docKeys.length; i++) {
+        var key = docKeys[i];
+        var buf = docsBuffer[key];
+        var fechaEl = document.getElementById('dv-' + key);
+        var venc = fechaEl ? fechaEl.value : '';
+        var descEl = document.getElementById('dv-adicional-desc');
+        var desc = (key==='adicional' && descEl) ? descEl.value.trim() : '';
+        if (buf || venc) {
+          var arcId = null; var arcNombre = null;
+          if (buf) {
+            try {
+              var ar = await fetch(API+'/api/archivos/upload',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({nombre:buf.nombre,tipo:buf.mimeType,base64:buf.base64})});
+              if (ar.ok) { var ad=await ar.json(); arcId=ad.id; arcNombre=buf.nombre; }
+            } catch(e){}
+          }
+          documentos[key] = { key:key, label:docLabels[key], vencimiento:key!=='adicional'?venc:null, descripcion:desc, archivoId:arcId, archivoNombre:arcNombre, updatedAt:new Date().toISOString() };
+        }
+      }
+      // Guardar documentos en el equipo
+      if (Object.keys(documentos).length > 0 && equipoId) {
+        try {
+          var uRes = await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+          var uData = await uRes.json();
+          var equipos = (uData.user||{}).equipos||[];
+          var eq = equipos.find(function(e){return e.id===equipoId;});
+          if (eq) { eq.documentos = documentos; await fetch(API+'/api/perfil',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({equipos:equipos})}); }
+        } catch(e){}
+      }
+      // Reset
+      docsBuffer = {}; fotosBufferNew = [];
+      okEl.style.display='block';
+      ['eq-tipo','eq-tipo-otro','eq-marca','eq-modelo','eq-ano','eq-patente','eq-cap','eq-largo','eq-ancho','eq-alto','eq-desc'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; }); if(typeof onEqTipoChange==='function')onEqTipoChange();
+      ['permiso_circulacion','revision_tecnica','gases','seguro_obligatorio','poliza_empresa','adicional'].forEach(function(k){
+        var dz=document.getElementById('dz-'+k); if(dz){dz.textContent='Subir archivo (PDF o imagen)';dz.classList.remove('has-file');}
+        var df=document.getElementById('df-'+k); if(df) df.value='';
+        var dv=document.getElementById('dv-'+k); if(dv) dv.value='';
+      });
+      var descAd=document.getElementById('dv-adicional-desc'); if(descAd) descAd.value='';
+      renderFotosPreviewNew();
+      cargarEquipos();
+      cerrarForm('eq');
+      setTimeout(function(){ okEl.style.display='none'; },3000);
+    } else { var d=await res.json(); errEl.textContent=d.error||'Error al agregar equipo'; errEl.style.display='block'; }
+  } catch(e) { errEl.textContent='Error de conexión'; errEl.style.display='block'; }
+  finally { if (_btnAdd) { _btnAdd.disabled = false; _btnAdd.textContent = _btnAdd.dataset._txt || '+ Agregar equipo'; } }
+}
+
+async function eliminarEquipo(id) {
+  if (!confirm('¿Eliminar este equipo?')) return;
+  try {
+    await fetch(API+'/api/equipos/'+id, {method:'DELETE',headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    cargarEquipos();
+  } catch(e) {}
+}
+
+// ── EDITAR EQUIPO (datos centrales) ────────────────────────────
+async function editarEquipo(id) {
+  var existingModal = document.getElementById('modal-eq-edit');
+  if (existingModal) existingModal.remove();
+  var eq = null;
+  try {
+    var res = await fetch(API+'/api/equipos', { headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')} });
+    var d = await res.json();
+    eq = (d.equipos||[]).find(function(e){ return e.id === id; });
+  } catch(e) {}
+  if (!eq) { alert('No se pudo cargar el equipo'); return; }
+
+  var tipoOptionsHtml = '';
+  var origSelect = document.getElementById('eq-tipo');
+  if (origSelect) tipoOptionsHtml = origSelect.innerHTML;
+
+  var modal = document.createElement('div');
+  modal.id = 'modal-eq-edit';
+  modal.dataset.eqid = id;
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto';
+
+  var inner = document.createElement('div');
+  inner.style.cssText = 'background:#fff;border-radius:16px;padding:28px;width:100%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:90vh;overflow:auto';
+  var esOtroTipo = tipoOptionsHtml.indexOf('value="'+(eq.tipo||'').replace(/"/g,'&quot;')+'"') === -1;
+  inner.innerHTML =
+    '<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Editar equipo</div>' +
+    '<div style="font-size:12px;color:#9CA3AF;margin-bottom:20px">Las fotos se gestionan desde la tarjeta del equipo</div>' +
+    '<div id="eqedit-err" style="display:none;background:#FEF2F2;color:#991B1B;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:14px"></div>' +
+    '<div style="margin-bottom:12px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Tipo de equipo *</label>' +
+      '<select id="eqedit-tipo" onchange="onEqEditTipoChange()" style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px">' + tipoOptionsHtml + '</select>' +
+      '<div id="eqedit-tipo-otro-wrap" style="display:'+(esOtroTipo?'block':'none')+';margin-top:8px"><input type="text" id="eqedit-tipo-otro" placeholder="Especifica el equipo" maxlength="80" value="'+(esOtroTipo?(eq.tipo||'').replace(/"/g,'&quot;'):'')+'" style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box"/></div>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">' +
+      '<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Marca</label><input type="text" id="eqedit-marca" value="'+(eq.marca||'').replace(/"/g,'&quot;')+'" style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box"/></div>' +
+      '<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Modelo</label><input type="text" id="eqedit-modelo" value="'+(eq.modelo||'').replace(/"/g,'&quot;')+'" style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box"/></div>' +
+      '<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Año</label><input type="number" id="eqedit-ano" min="1990" max="2030" value="'+(eq.ano||'')+'" style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box"/></div>' +
+      '<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Patente</label><input type="text" id="eqedit-patente" value="'+(eq.patente||'').replace(/"/g,'&quot;')+'" style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box"/></div>' +
+      '<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Capacidad máx. (ton)</label><input type="number" id="eqedit-cap" min="1" value="'+(eq.capacidadMax||'')+'" style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box"/></div>' +
+      '<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Largo máx. (m)</label><input type="number" id="eqedit-largo" step="0.1" value="'+(eq.largoMax||'')+'" style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box"/></div>' +
+      '<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Ancho máx. (m)</label><input type="number" id="eqedit-ancho" step="0.1" value="'+(eq.anchoMax||'')+'" style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box"/></div>' +
+      '<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Alto máx. (m)</label><input type="number" id="eqedit-alto" step="0.1" value="'+(eq.altoMax||'')+'" style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box"/></div>' +
+    '</div>' +
+    '<div style="margin-bottom:20px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Descripción adicional</label><input type="text" id="eqedit-desc" value="'+(eq.descripcion||'').replace(/"/g,'&quot;')+'" style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box"/></div>' +
+    '<div id="eqedit-docs-container" style="margin-bottom:6px;padding-top:14px;border-top:1px solid #eef0f5">' + renderDocumentos(id, eq.documentos) + '</div>' +
+    '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">' +
+      '<button id="eqedit-btn-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>' +
+      '<button id="eqedit-btn-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar cambios</button>' +
+    '</div>';
+
+  modal.appendChild(inner);
+  document.body.appendChild(modal);
+  var selTipo = document.getElementById('eqedit-tipo');
+  if (selTipo) selTipo.value = esOtroTipo ? 'Otro' : (eq.tipo || '');
+
+  document.getElementById('eqedit-btn-cancel').addEventListener('click', function(){ modal.remove(); });
+  document.getElementById('eqedit-btn-save').addEventListener('click', function(){ guardarEdicionEquipo(id); });
+  modal.addEventListener('click', function(e){ if (e.target === modal) modal.remove(); });
+}
+
+function onEqEditTipoChange(){
+  var sel=document.getElementById('eqedit-tipo'); var w=document.getElementById('eqedit-tipo-otro-wrap');
+  var on=sel&&sel.value==='Otro'; if(w) w.style.display=on?'block':'none';
+}
+
+async function guardarEdicionEquipo(id) {
+  var errEl = document.getElementById('eqedit-err');
+  errEl.style.display='none';
+  var selTipo = document.getElementById('eqedit-tipo').value;
+  var tipo = selTipo;
+  if (selTipo === 'Otro') tipo = (document.getElementById('eqedit-tipo-otro').value||'').trim();
+  if (!tipo) { errEl.textContent = selTipo==='Otro' ? 'Especifica el equipo en "Otro"' : 'Selecciona el tipo de equipo'; errEl.style.display='block'; return; }
+
+  var btn = document.getElementById('eqedit-btn-save');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try {
+    var userRes = await fetch(API+'/api/auth/me', { headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')} });
+    var userData = await userRes.json();
+    var equipos = (userData.user||{}).equipos || [];
+    var eq = equipos.find(function(e){ return e.id === id; });
+    if (!eq) { errEl.textContent='El equipo ya no existe'; errEl.style.display='block'; btn.disabled=false; btn.textContent='Guardar cambios'; return; }
+    eq.tipo = tipo;
+    eq.marca = (document.getElementById('eqedit-marca').value||'').trim();
+    eq.modelo = (document.getElementById('eqedit-modelo').value||'').trim();
+    eq.ano = document.getElementById('eqedit-ano').value;
+    eq.patente = (document.getElementById('eqedit-patente').value||'').trim();
+    eq.capacidadMax = parseFloat(document.getElementById('eqedit-cap').value)||0;
+    eq.largoMax = parseFloat(document.getElementById('eqedit-largo').value)||0;
+    eq.anchoMax = parseFloat(document.getElementById('eqedit-ancho').value)||0;
+    eq.altoMax = parseFloat(document.getElementById('eqedit-alto').value)||0;
+    eq.descripcion = (document.getElementById('eqedit-desc').value||'').trim();
+    var saveRes = await fetch(API+'/api/perfil', { method:'PUT', headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}, body:JSON.stringify({equipos:equipos}) });
+    if (!saveRes.ok) { errEl.textContent='Error al guardar'; errEl.style.display='block'; btn.disabled=false; btn.textContent='Guardar cambios'; return; }
+    var modal = document.getElementById('modal-eq-edit'); if (modal) modal.remove();
+    cargarEquipos();
+  } catch(e) {
+    errEl.textContent='Error de conexión'; errEl.style.display='block';
+    btn.disabled=false; btn.textContent='Guardar cambios';
+  }
+}
+
+// ── DOCUMENTOS ────────────────────────────────────────────────
+var docsBuffer = {}; // { key: { nombre, base64, mimeType, vencimiento } }
+
+function handleDocFile(key, input) {
+  var file = input.files[0];
+  if (!file) return;
+  if (file.size > 8 * 1024 * 1024) { alert('Archivo demasiado grande. Máximo 8 MB'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var base64 = e.target.result.split(',')[1];
+    docsBuffer[key] = { nombre: file.name, base64: base64, mimeType: file.type };
+    var dz = document.getElementById('dz-' + key);
+    if (dz) { dz.textContent = '✓ ' + file.name; dz.classList.add('has-file'); }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function subirDocumento(equipoId, key, label) {
+  var buf = docsBuffer[key];
+  var fecha = document.getElementById('dv-' + key);
+  var vencimiento = fecha ? fecha.value : '';
+  if (!buf && !vencimiento) return null;
+
+  var resultado = { key: key, label: label, vencimiento: vencimiento, archivoId: null, archivoNombre: null };
+
+  if (buf) {
+    try {
+      var res = await fetch(API + '/api/archivos/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') },
+        body: JSON.stringify({ nombre: buf.nombre, tipo: buf.mimeType, base64: buf.base64 })
+      });
+      if (res.ok) {
+        var d = await res.json();
+        resultado.archivoId   = d.id;
+        resultado.archivoNombre = buf.nombre;
+      }
+    } catch(e) { console.error('Error subiendo doc:', e); }
+  }
+  return resultado;
+}
+
+function docEstado(doc) {
+  if (!doc || (!doc.archivoId && !doc.vencimiento)) return { clase: 'pendiente', texto: 'Pendiente' };
+  if (!doc.vencimiento) return { clase: 'ok', texto: 'Subido (sin fecha de vencimiento)' };
+  var hoy   = new Date(); hoy.setHours(0,0,0,0);
+  var vence = new Date(doc.vencimiento + 'T12:00:00');
+  var dias  = Math.round((vence - hoy) / 86400000);
+  if (dias < 0)   return { clase: 'vencido', texto: 'Vencido hace ' + Math.abs(dias) + ' día'+(Math.abs(dias)===1?'':'s') };
+  if (dias === 0) return { clase: 'warn',    texto: 'Vence hoy' };
+  if (dias <= 15) return { clase: 'warn',    texto: 'Vence en ' + dias + ' día'+(dias===1?'':'s') };
+  return { clase: 'ok', texto: 'Vigente — vence ' + new Date(doc.vencimiento + 'T12:00:00').toLocaleDateString('es-CL') };
+}
+
+function renderDocumentos(equipoId, documentos) {
+  var docs = documentos || {};
+  var labelMap = {
+    permiso_circulacion: 'Permiso de Circulación',
+    revision_tecnica:    'Revisión Técnica',
+    gases:               'Gases',
+    seguro_obligatorio:  'Seguro Obligatorio',
+    poliza_empresa:      'Póliza empresa',
+    adicional:           'Archivo adicional',
+  };
+  var colorMap = { ok:'#14532D', warn:'#92400E', vencido:'#991B1B', pendiente:'#9CA3AF' };
+  var html = '<div style="margin-top:14px"><div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Documentos</div><div class="doc-grid">';
+  Object.keys(labelMap).forEach(function(key) {
+    var doc    = docs[key] || null;
+    var estado = docEstado(doc);
+    var color  = colorMap[estado.clase] || '#9CA3AF';
+    var fechaStr = (doc && doc.vencimiento && key !== 'adicional')
+      ? '<div class="doc-fecha">Vence: ' + new Date(doc.vencimiento + 'T12:00:00').toLocaleDateString('es-CL') + '</div>'
+      : '';
+    var btnVer = (doc && doc.archivoId)
+      ? '<button class="doc-btn doc-btn-ver" data-aid="' + doc.archivoId + '" data-nombre="' + (doc.archivoNombre || 'documento') + '" onclick="verArchivoBtn(this)">Ver</button>'
+      : '';
+    var btnSub = '<button class="doc-btn doc-btn-sub" data-eqid="' + equipoId + '" data-key="' + key + '" data-label="' + labelMap[key] + '" onclick="abrirModalBtn(this)">'
+      + (doc && doc.archivoId ? 'Actualizar' : 'Subir') + '</button>';
+    // Estado visual sin emojis
+    var icono = {ok:'·', warn:'!', vencido:'✕', pendiente:'—'}[estado.clase]||'—';
+    html += '<div class="doc-item ' + estado.clase + '">'
+      + '<div class="doc-label">' + labelMap[key] + '</div>'
+      + '<div class="doc-estado" style="color:' + color + ';font-weight:500">' + estado.texto + '</div>'
+      + fechaStr
+      + (doc && doc.descripcion ? '<div class="doc-fecha">'+doc.descripcion+'</div>' : '')
+      + '<div class="doc-btns">' + btnVer + btnSub + '</div>'
+      + '</div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+// ── FOTOS DEL EQUIPO ──────────────────────────────────────────
+var fotosBufferNew = [];
+
+function handleFotosNew(input) {
+  var files = Array.from(input.files).slice(0, 6 - fotosBufferNew.length);
+  files.forEach(function(file){
+    if(file.size > 8*1024*1024){ alert('Máximo 8 MB por foto'); return; }
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var base64 = e.target.result.split(',')[1];
+      fotosBufferNew.push({nombre:file.name, base64:base64, mimeType:file.type});
+      renderFotosPreviewNew();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value='';
+}
+
+function renderFotosPreviewNew() {
+  var grid = document.getElementById('fotos-preview-new');
+  if(!grid) return;
+  var html = fotosBufferNew.map(function(f,i){
+    return '<div style="position:relative">'
+      +'<img src="data:'+f.mimeType+';base64,'+f.base64+'" class="img-thumb"/>'
+      +'<button onclick="quitarFotoNew('+i+')" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center">×</button>'
+      +'</div>';
+  }).join('');
+  if(fotosBufferNew.length < 6){
+    html += '<div class="img-add" onclick="document.getElementById(\'fotos-input-new\').click()">'
+      +'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
+      +'Agregar foto</div>';
+  }
+  grid.innerHTML = html;
+}
+
+function quitarFotoNew(i){ fotosBufferNew.splice(i,1); renderFotosPreviewNew(); }
+
+function verFotoEquipo(img){
+  var modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:flex;align-items:center;justify-content:center;cursor:zoom-out';
+  var imgEl=document.createElement('img');
+  imgEl.src=img.src; imgEl.style.cssText='max-width:90vw;max-height:90vh;border-radius:8px;object-fit:contain';
+  modal.appendChild(imgEl);
+  modal.onclick=function(){ modal.remove(); };
+  document.body.appendChild(modal);
+}
+
+function abrirModalFoto(equipoId){
+  var input=document.createElement('input');
+  input.type='file'; input.accept='image/*'; input.multiple=true;
+  input.onchange=function(){
+    Array.from(input.files).slice(0,6).forEach(function(file){
+      if(file.size>8*1024*1024){ alert('Máximo 8 MB por foto'); return; }
+      var reader=new FileReader();
+      reader.onload=async function(e){
+        var base64=e.target.result.split(',')[1];
+        await guardarFotoEquipo(equipoId,{nombre:file.name,base64:base64,mimeType:file.type});
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+  input.click();
+}
+
+async function guardarFotoEquipo(equipoId, foto){
+  try{
+    var userRes=await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    var userData=await userRes.json();
+    var equipos=(userData.user||{}).equipos||[];
+    var eq=equipos.find(function(e){return e.id===equipoId;});
+    if(!eq) return;
+    if(!eq.fotos) eq.fotos=[];
+    if(eq.fotos.length>=6){ alert('Máximo 6 fotos por equipo'); return; }
+    eq.fotos.push(foto);
+    await fetch(API+'/api/perfil',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({equipos:equipos})});
+    cargarEquipos();
+  }catch(e){}
+}
+
+function verArchivoBtn(btn) {
+  verArchivo(btn.dataset.aid, btn.dataset.nombre);
+}
+
+function abrirModalBtn(btn) {
+  abrirModalDoc(btn.dataset.eqid, btn.dataset.key, btn.dataset.label);
+}
+
+// MODAL para subir/actualizar documento individual
+function abrirModalDoc(equipoId, key, label) {
+  var existingModal = document.getElementById('modal-doc');
+  if (existingModal) existingModal.remove();
+  modalFileBuffer = null;
+
+  var modal = document.createElement('div');
+  modal.id = 'modal-doc';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+
+  var inner = document.createElement('div');
+  inner.style.cssText = 'background:#fff;border-radius:16px;padding:28px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.2)';
+  inner.innerHTML =
+    '<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">' + label + '</div>' +
+    '<div style="font-size:12px;color:#9CA3AF;margin-bottom:20px">Actualizar documento</div>' +
+    '<div style="margin-bottom:14px">' +
+      '<label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Archivo (PDF o imagen)</label>' +
+      '<div id="modal-dz" class="doc-upload-zone" style="padding:14px">Seleccionar archivo</div>' +
+      '<input type="file" id="modal-file" accept=".pdf,.jpg,.jpeg,.png" style="display:none"/>' +
+    '</div>' +
+    (key === 'adicional'
+      ? '<div style="margin-bottom:14px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Descripción del archivo</label><input type="text" id="modal-desc" placeholder="Ej: Certificado de capacidad de carga" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+      : '<div style="margin-bottom:20px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Fecha de vencimiento</label><input type="date" id="modal-fecha" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>') +
+    '<div style="display:flex;gap:10px;justify-content:flex-end">' +
+      '<button id="modal-btn-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>' +
+      '<button id="modal-btn-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar</button>' +
+    '</div>';
+
+  modal.appendChild(inner);
+  document.body.appendChild(modal);
+
+  // Event listeners sin comillas en HTML
+  document.getElementById('modal-btn-cancel').addEventListener('click', function() { modal.remove(); });
+  document.getElementById('modal-btn-save').addEventListener('click', function() { guardarDocModal(equipoId, key, label); });
+  document.getElementById('modal-dz').addEventListener('click', function() { document.getElementById('modal-file').click(); });
+  document.getElementById('modal-file').addEventListener('change', function() { handleModalFile(this); });
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+}
+
+
+var modalFileBuffer = null;
+function triggerModalFile() { document.getElementById("modal-file").click(); }
+
+function handleModalFile(input) {
+  var file = input.files[0];
+  if (!file) return;
+  if (file.size > 8 * 1024 * 1024) { alert('Máximo 8 MB'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    modalFileBuffer = { nombre: file.name, base64: e.target.result.split(',')[1], mimeType: file.type };
+    var dz = document.getElementById('modal-dz');
+    if (dz) { dz.textContent = '✓ ' + file.name; dz.classList.add('has-file'); }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function guardarDocModal(equipoId, key, label) {
+  var btn = document.querySelector('#modal-doc button:last-child');
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+
+  var vencimiento = key !== 'adicional' ? ((document.getElementById('modal-fecha') || {}).value || '') : null;
+  var descripcion = key === 'adicional' ? ((document.getElementById('modal-desc') || {}).value || '') : null;
+  var archivoId   = null;
+  var archivoNombre = null;
+
+  if (modalFileBuffer) {
+    try {
+      var res = await fetch(API + '/api/archivos/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') },
+        body: JSON.stringify({ nombre: modalFileBuffer.nombre, tipo: modalFileBuffer.mimeType, base64: modalFileBuffer.base64 })
+      });
+      if (res.ok) { var d = await res.json(); archivoId = d.id; archivoNombre = modalFileBuffer.nombre; }
+    } catch(e) { console.error(e); }
+  }
+
+  // Guardar en el perfil del usuario — documentos por equipo
+  try {
+    var userRes = await fetch(API + '/api/auth/me', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') } });
+    var userData = await userRes.json();
+    var u = userData.user || {};
+    var equipos = u.equipos || [];
+    var eq = equipos.find(function(e){ return e.id === equipoId; });
+    if (eq) {
+      if (!eq.documentos) eq.documentos = {};
+      eq.documentos[key] = { key: key, label: label, vencimiento: vencimiento, descripcion: descripcion, archivoId: archivoId || (eq.documentos[key] ? eq.documentos[key].archivoId : null), archivoNombre: archivoNombre || (eq.documentos[key] ? eq.documentos[key].archivoNombre : null), updatedAt: new Date().toISOString() };
+      await fetch(API + '/api/perfil', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') },
+        body: JSON.stringify({ equipos: equipos })
+      });
+    }
+  } catch(e) { console.error(e); }
+
+  modalFileBuffer = null;
+  var modal = document.getElementById('modal-doc');
+  if (modal) modal.remove();
+  // Si el modal de editar equipo está abierto para este mismo equipo, refrescar su sección de documentos
+  var editModal = document.getElementById('modal-eq-edit');
+  if (editModal && editModal.dataset.eqid === equipoId) {
+    var docsContainer = document.getElementById('eqedit-docs-container');
+    if (docsContainer && eq) docsContainer.innerHTML = renderDocumentos(equipoId, eq.documentos);
+  }
+  cargarEquipos();
+}
+
+async function verArchivo(archivoId, nombre) {
+  try {
+    var res = await fetch(API + '/api/archivos/' + archivoId, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') } });
+    var d   = await res.json();
+    if (!d.base64) { alert('No se pudo cargar el archivo'); return; }
+    var mimeType = d.tipo || 'application/octet-stream';
+    var byteChars = atob(d.base64);
+    var byteArr   = new Uint8Array(byteChars.length);
+    for (var i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
+    var blob = new Blob([byteArr], { type: mimeType });
+    var url  = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  } catch(e) { alert('Error al abrir el archivo'); }
+}
+
+
+// ── RUT FORMATO Y VALIDACIÓN ────────────────────────────────
+function limpiarRut(rut) {
+  return rut.replace(/[^0-9kK]/g, '').toUpperCase();
+}
+
+function formatearRut(rut) {
+  var limpio = limpiarRut(rut);
+  if (limpio.length < 2) return limpio;
+  var cuerpo = limpio.slice(0, -1);
+  var dv     = limpio.slice(-1);
+  // Agregar puntos cada 3 dígitos
+  var cuerpoFormateado = '';
+  var count = 0;
+  for (var i = cuerpo.length - 1; i >= 0; i--) {
+    cuerpoFormateado = cuerpo[i] + cuerpoFormateado;
+    count++;
+    if (count % 3 === 0 && i !== 0) cuerpoFormateado = '.' + cuerpoFormateado;
+  }
+  return cuerpoFormateado + '-' + dv;
+}
+
+function calcularDV(rut) {
+  var limpio = String(rut).replace(/[^0-9]/g, '');
+  var suma = 0;
+  var multiplo = 2;
+  for (var i = limpio.length - 1; i >= 0; i--) {
+    suma += parseInt(limpio[i]) * multiplo;
+    multiplo = multiplo < 7 ? multiplo + 1 : 2;
+  }
+  var resto = suma % 11;
+  var dv = 11 - resto;
+  if (dv === 11) return '0';
+  if (dv === 10) return 'K';
+  return String(dv);
+}
+
+function validarRut(rut) {
+  var limpio = limpiarRut(rut);
+  if (limpio.length < 2) return false;
+  var cuerpo = limpio.slice(0, -1);
+  var dv     = limpio.slice(-1);
+  return calcularDV(cuerpo) === dv;
+}
+
+function onRutInput(e) {
+  var input = e.target;
+  var pos   = input.selectionStart;
+  var limpio = limpiarRut(input.value);
+  if (limpio.length > 1) {
+    input.value = formatearRut(limpio);
+  }
+  // Validación visual
+  var errId = input.id === 'inp-rut' ? 'rut-err1' : 'rut-err2';
+  var errEl = document.getElementById(errId);
+  if (errEl) {
+    if (limpio.length > 1 && !validarRut(limpio)) {
+      errEl.style.display = 'block';
+      input.style.borderColor = '#EF4444';
+    } else {
+      errEl.style.display = 'none';
+      input.style.borderColor = limpio.length > 1 ? '#1ED24E' : '';
+    }
+  }
+}
+
+function initRutInputs() {
+  ['inp-rut2'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', onRutInput);
+    el.addEventListener('blur', function() {
+      var limpio = limpiarRut(el.value);
+      if (limpio.length > 1) el.value = formatearRut(limpio);
+    });
+  });
+}
+
+
+  async function cargarNotificaciones(){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var r = await fetch(API + '/api/notificaciones', { headers: {'Authorization':'Bearer '+token} });
+      var data = await r.json();
+      var notifs = data.notificaciones || [];
+      var noLeidas = notifs.filter(function(n){ return !n.leida; }).length;
+      var badge = document.getElementById('notif-count');
+      if(badge){ badge.textContent = noLeidas > 9 ? '9+' : noLeidas; badge.style.display = noLeidas > 0 ? 'flex' : 'none'; }
+      var list = document.getElementById('notif-list');
+      if(!list) return;
+      if(notifs.length === 0){
+        list.innerHTML = '<div style="padding:32px 20px;text-align:center"><div style="font-size:28px;margin-bottom:8px"></div><div style="font-size:14px;font-weight:500;color:#374151;margin-bottom:4px">Sin notificaciones</div><div style="font-size:12px;color:#9CA3AF">Te avisaremos cuando haya novedades</div></div>';
+        return;
+      }
+      var iconMap = {
+        adjudicacion: '#16a34a',
+        licitacion_aprobada: '#16a34a',
+        licitacion_rechazada: '#EF4444',
+        licitacion_cerrada: '#1d4ed8',
+        cotizaciones_disponibles: '#FF8808',
+        nueva_licitacion: '#1e2d4e',
+        cobro_pendiente: '#FF8808',
+        cobro_pagado: '#16a34a',
+        cuenta_aprobada: '#16a34a',
+      };
+      list.innerHTML = notifs.slice(0,20).map(function(n){
+        var icono = iconMap[n.tipo] || '#9CA3AF';
+        var bg = !n.leida ? 'background:#f0f4ff' : '';
+        var ts = n.createdAt ? new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+        return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'+
+          '<div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;background:'+icono+'"></div>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4">'+n.mensaje+'</div>'+
+            '<div style="font-size:11px;color:#9CA3AF">'+ts+'</div>'+
+          '</div>'+
+          (!n.leida
+            ? '<button onclick="marcarUnaLeida(\'' + n.id + '\')" title="Marcar como leída" style="background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0;margin-top:2px;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">✓</button>'
+            : '') +
+        '</div>';
+      }).join('');
+      cargarPrefsConfig();
+    } catch(e){}
+  }
+
+  // ── GESTIÓN DE USUARIOS (TRANSPORTISTA) ────────────────────
+  var _usuariosDataT = [];
+  var PERMISOS_TRANSPORTISTA = [
+    {
+      key:'trazabilidad',
+      label:'Ver trazabilidad de acciones',
+      tooltip:'Permite ver quién realizó cada acción en la empresa: quién cotizó, quién actualizó el estado de un transporte, quién subió documentos, etc.'
+    },
+  ];
+
+  async function cargarUsuariosT(){
+    var el = document.getElementById('usuarios-contenido-t');
+    if(!el) return;
+    try {
+      var res = await fetch(API+'/api/mi-empresa/usuarios',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+      if(!res.ok){ el.innerHTML='<div style="text-align:center;padding:20px;color:#9CA3AF;font-size:13px">Error al cargar</div>'; return; }
+      var data = await res.json();
+      _usuariosDataT = data.miembros||[];
+      var max = data.max_usuarios||0;
+      renderUsuariosT(_usuariosDataT, max, data.invitacionesPendientes||[]);
+    }catch(e){ el.innerHTML='<div style="text-align:center;padding:20px;color:#9CA3AF;font-size:13px">Error de conexión</div>'; }
+  }
+
+  function renderUsuariosT(miembros, max, invitaciones){
+    invitaciones = invitaciones || [];
+    var el = document.getElementById('usuarios-contenido-t'); if(!el) return;
+    var totalOcupados = miembros.length + invitaciones.length;
+    var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
+      +'<div style="font-size:13px;color:#6B7280">'+totalOcupados+' de '+max+' usuarios extra</div>'
+      +(totalOcupados < max ? '<button class="btn btn-orange btn-sm" onclick="abrirModalInvitarT()">+ Invitar usuario</button>' : '<span style="font-size:12px;color:#9CA3AF">Límite alcanzado</span>')
+      +'</div>';
+    if(!miembros.length && !invitaciones.length){
+      html += '<div style="text-align:center;padding:32px;background:#f8f9fc;border-radius:10px;border:0.5px solid #e8eaf0"><div style="font-size:14px;font-weight:600;color:#374151;margin-bottom:6px">Sin usuarios extra aún</div><div style="font-size:13px;color:#9CA3AF">Invita personas de tu empresa y define qué pueden hacer en la plataforma.</div></div>';
+    } else {
+      html += miembros.map(function(m){
+        var perms=m.permisos||{};
+        var permLabels=PERMISOS_TRANSPORTISTA.filter(function(p){return perms[p.key];}).map(function(p){return p.label;});
+        return '<div style="border:0.5px solid #e8eaf0;border-radius:10px;padding:14px 16px;margin-bottom:10px;background:#fff">'
+          +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px">'
+          +'<div><div style="font-size:13px;font-weight:600;color:#1e2d4e">'+m.nombre+' <span style="display:inline-block;margin-left:6px;background:#F0FDF4;color:#14532D;font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;vertical-align:middle">Activo</span></div><div style="font-size:12px;color:#6B7280;margin-top:2px">'+m.email+'</div></div>'
+          +'<div style="display:flex;gap:6px;flex-shrink:0">'
+          +'<button class="btn btn-outline btn-sm" onclick="abrirModalPermisosT(\''+m.email+'\',\''+m.nombre+'\')">Editar permisos</button>'
+          +'<button onclick="eliminarUsuarioT(\''+m.email+'\',\''+m.nombre+'\')" style="padding:5px 10px;font-size:12px;border-radius:6px;border:1px solid #FECACA;background:#FEF2F2;color:#DC2626;cursor:pointer">Eliminar</button>'
+          +'</div></div>'
+          +(permLabels.length?'<div style="display:flex;flex-wrap:wrap;gap:5px">'+permLabels.map(function(l){return '<span style="background:#eef1f8;color:#1e2d4e;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px">'+l+'</span>';}).join('')+'</div>'
+          :'<div style="font-size:12px;color:#9CA3AF">Sin permisos asignados</div>')
+          +'</div>';
+      }).join('');
+      html += invitaciones.map(function(inv){
+        var vencida = inv.vencida;
+        var badgeBg = vencida ? '#FEF2F2' : '#FFFBEB';
+        var badgeColor = vencida ? '#991B1B' : '#92400E';
+        var badgeTxt = vencida ? 'Invitación vencida' : 'Invitación pendiente';
+        return '<div style="border:0.5px solid '+(vencida?'#FECACA':'#FDE68A')+';border-radius:10px;padding:14px 16px;margin-bottom:10px;background:'+(vencida?'#FEF2F2':'#FFFBEB')+'">'
+          +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
+          +'<div><div style="font-size:13px;font-weight:600;color:#1e2d4e">'+inv.emailInvitado+' <span style="display:inline-block;margin-left:6px;background:'+badgeBg+';color:'+badgeColor+';font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;vertical-align:middle">'+badgeTxt+'</span></div>'
+          +'<div style="font-size:12px;color:#6B7280;margin-top:2px">'+(vencida?'Venció el ':'Expira el ')+fechaCorta(inv.expiresAt)+'</div></div>'
+          +'<div style="display:flex;gap:6px;flex-shrink:0">'
+          +(vencida?'<button class="btn btn-orange btn-sm" onclick="reenviarInvitacionT(\''+inv.emailInvitado+'\')">Reenviar</button>':'<button class="btn btn-outline btn-sm" onclick="reenviarInvitacionT(\''+inv.emailInvitado+'\')">Reenviar</button>')
+          +'<button onclick="cancelarInvitacionT(\''+inv.emailInvitado+'\')" style="padding:5px 10px;font-size:12px;border-radius:6px;border:1px solid #FECACA;background:#FEF2F2;color:#DC2626;cursor:pointer">Cancelar</button>'
+          +'</div></div>'
+          +'</div>';
+      }).join('');
+    }
+    el.innerHTML = html;
+  }
+
+  function abrirModalInvitarT(){
+    var modal=document.createElement('div'); modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+    var inner=document.createElement('div'); inner.style.cssText='background:#fff;border-radius:16px;padding:28px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto';
+    var permsHtml=PERMISOS_TRANSPORTISTA.map(function(p){return '<label style="display:flex;align-items:flex-start;gap:10px;padding:12px 0;border-bottom:0.5px solid #f3f4f6;cursor:pointer"><input type="checkbox" data-key="'+p.key+'" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer;margin-top:2px;flex-shrink:0"/><div><span style="font-size:13px;color:#374151;font-weight:500">'+p.label+'</span>'+(p.tooltip?'<div style="font-size:11px;color:#9CA3AF;margin-top:3px;line-height:1.4">'+p.tooltip+'</div>':'')+'</div></label>';}).join('');
+    inner.innerHTML='<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Invitar usuario</div>'
+      +'<div style="font-size:12px;color:#9CA3AF;margin-bottom:20px">El usuario recibirá un email con un link para crear su contraseña.</div>'
+      +'<div style="margin-bottom:16px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Email del usuario *</label>'
+      +'<input type="email" id="invt-email" placeholder="correo@empresa.cl" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+      +'<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Permisos</div>'
+      +permsHtml
+      +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">'
+      +'<button id="invt-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
+      +'<button id="invt-save" style="padding:9px 18px;border-radius:8px;background:#FF8808;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Enviar invitación</button>'
+      +'</div>';
+    modal.appendChild(inner); document.body.appendChild(modal);
+    document.getElementById('invt-cancel').onclick=function(){modal.remove();};
+    document.getElementById('invt-save').onclick=async function(){
+      var email=(document.getElementById('invt-email').value||'').trim();
+      if(!email){alert('Ingresa el email');return;}
+      var permisos={};
+      modal.querySelectorAll('input[type=checkbox][data-key]').forEach(function(cb){permisos[cb.dataset.key]=cb.checked;});
+      var btn=document.getElementById('invt-save'); btn.disabled=true; btn.textContent='Enviando...';
+      try{
+        var res=await fetch(API+'/api/mi-empresa/invitar',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({emailInvitado:email,permisos:permisos})});
+        var d=await res.json();
+        if(res.ok){modal.remove();alert('Invitación enviada a '+email);cargarUsuariosT();}
+        else{alert(d.error||'Error');btn.disabled=false;btn.textContent='Enviar invitación';}
+      }catch(e){alert('Error de conexión');btn.disabled=false;btn.textContent='Enviar invitación';}
+    };
+    modal.onclick=function(e){if(e.target===modal)modal.remove();};
+  }
+
+  function abrirModalPermisosT(emailTarget, nombreTarget){
+    var usuario=_usuariosDataT.find(function(m){return m.email===emailTarget;});
+    var permsActuales=usuario?(usuario.permisos||{}):{};
+    var modal=document.createElement('div'); modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+    var inner=document.createElement('div'); inner.style.cssText='background:#fff;border-radius:16px;padding:28px;width:100%;max-width:440px';
+    var permsHtml=PERMISOS_TRANSPORTISTA.map(function(p){return '<label style="display:flex;align-items:flex-start;gap:10px;padding:12px 0;border-bottom:0.5px solid #f3f4f6;cursor:pointer"><input type="checkbox" data-key="'+p.key+'" '+(permsActuales[p.key]?'checked':'')+' style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer;margin-top:2px;flex-shrink:0"/><div><span style="font-size:13px;color:#374151;font-weight:500">'+p.label+'</span>'+(p.tooltip?'<div style="font-size:11px;color:#9CA3AF;margin-top:3px;line-height:1.4">'+p.tooltip+'</div>':'')+'</div></label>';}).join('');
+    inner.innerHTML='<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Permisos de '+nombreTarget+'</div>'
+      +'<div style="font-size:12px;color:#9CA3AF;margin-bottom:16px">'+emailTarget+'</div>'
+      +permsHtml
+      +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">'
+      +'<button id="permt-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
+      +'<button id="permt-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar permisos</button>'
+      +'</div>';
+    modal.appendChild(inner); document.body.appendChild(modal);
+    document.getElementById('permt-cancel').onclick=function(){modal.remove();};
+    document.getElementById('permt-save').onclick=async function(){
+      var permisos={};
+      modal.querySelectorAll('input[type=checkbox][data-key]').forEach(function(cb){permisos[cb.dataset.key]=cb.checked;});
+      var res=await fetch(API+'/api/mi-empresa/usuario/'+encodeURIComponent(emailTarget)+'/permisos',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({permisos:permisos})});
+      if(res.ok){modal.remove();cargarUsuariosT();}else{var d=await res.json();alert(d.error||'Error');}
+    };
+    modal.onclick=function(e){if(e.target===modal)modal.remove();};
+  }
+
+  async function eliminarUsuarioT(emailTarget, nombre){
+    if(!confirm('¿Eliminar la cuenta de '+nombre+'?')) return;
+    var res=await fetch(API+'/api/mi-empresa/usuario/'+encodeURIComponent(emailTarget),{method:'DELETE',headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    if(res.ok) cargarUsuariosT(); else{var d=await res.json();alert(d.error||'Error');}
+  }
+
+  function fechaCorta(iso){
+    if(!iso) return '';
+    try{ return new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return ''; }
+  }
+
+  function reenviarInvitacionT(email){
+    // Reabrir el modal de invitar con el email precargado (vuelve a generar el link y reenvía el correo)
+    abrirModalInvitarT();
+    var input=document.getElementById('invt-email');
+    if(input){ input.value=email; }
+  }
+
+  async function cancelarInvitacionT(email){
+    if(!confirm('¿Cancelar la invitación a '+email+'? El link dejará de funcionar.')) return;
+    try{
+      var res=await fetch(API+'/api/mi-empresa/invitacion/'+encodeURIComponent(email),{method:'DELETE',headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+      if(res.ok){ cargarUsuariosT(); }
+      else{ var d=await res.json(); alert(d.error||'Error'); }
+    }catch(e){ alert('Error de conexión'); }
+  }
+
+  function toggleConfigNotif(){
+    var cfg      = document.getElementById('notif-config');
+    var list     = document.getElementById('notif-list');
+    var hMain    = document.getElementById('notif-header-main');
+    var hConfig  = document.getElementById('notif-header-config');
+    var isOpen   = cfg && cfg.style.display !== 'none';
+    if(isOpen){
+      if(cfg)     cfg.style.display     = 'none';
+      if(list)    list.style.display    = 'block';
+      if(hMain)   hMain.style.display   = 'flex';
+      if(hConfig) hConfig.style.display = 'none';
+    } else {
+      if(cfg)     cfg.style.display     = 'block';
+      if(list)    list.style.display    = 'none';
+      if(hMain)   hMain.style.display   = 'none';
+      if(hConfig) hConfig.style.display = 'flex';
+      cargarPrefsConfig();
+    }
+  }
+
+  async function cargarPrefsConfig(){
+    try {
+      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      var ec = document.getElementById('notif-email-chk');
+      var wc = document.getElementById('notif-wa-chk');
+      if(ec) ec.checked = prefs.notifEmail !== false;
+      if(wc) wc.checked = !!prefs.notifWhatsapp;
+      if(wc && wc.checked){ var wi=document.getElementById('wa-input'); if(wi) wi.style.display='block'; }
+      var waNum = document.getElementById('wa-numero');
+      if(waNum && prefs.whatsapp) waNum.value = prefs.whatsapp;
+      // Cargar preferencias detalladas desde el backend (default: todas activas)
+      var notifPrefs = {};
+      try {
+        var me = await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+        var data = await me.json();
+        if(me.ok && data.user && data.user.notifPrefs) notifPrefs = data.user.notifPrefs;
+      } catch(e){}
+      ['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
+        var el = document.getElementById('pref-'+id);
+        // Default ON: solo desmarcado si explícitamente es false
+        if(el) el.checked = notifPrefs[id] !== false;
+      });
+    } catch(e){}
+  }
+
+  async function guardarPrefs(){
+    try {
+      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      var ec = document.getElementById('notif-email-chk');
+      if(ec) prefs.notifEmail = ec.checked;
+      localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+      if(typeof api === 'function'){
+        try { await api('/api/auth/me/prefs','POST',{ notifPrefs:{ email: ec?ec.checked:true } }); } catch(e){}
+      }
+    } catch(e){}
+  }
+  async function guardarPrefsDetalle(){
+    try {
+      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      var notifPrefs = {};
+      ['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
+        var el = document.getElementById('pref-'+id);
+        if(el){ prefs['pref_'+id] = el.checked; notifPrefs[id] = el.checked; }
+      });
+      localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+      // Guardar también en el backend para que los emails respeten la preferencia
+      await fetch(API+'/api/auth/me/prefs',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+        body:JSON.stringify({ notifPrefs: notifPrefs })
+      });
+    } catch(e){}
+  }
+
+
+  function toggleWA(){
+    var wc = document.getElementById('notif-wa-chk');
+    var wi = document.getElementById('wa-input');
+    if(wi) wi.style.display = (wc && wc.checked) ? 'block' : 'none';
+    guardarPrefs();
+  }
+
+
+  function closeAllPanels(){
+    var m=document.getElementById('user-menu');
+    var p=document.getElementById('notif-panel');
+    if(m) m.style.display='none';
+    if(p) p.style.display='none';
+  }
+
+  function toggleNotifs(e){
+    if(e) e.stopPropagation();
+    var _mp=document.getElementById('nav-mobile-panel'); if(_mp) _mp.classList.remove('open');
+    var panel=document.getElementById('notif-panel');
+    if(!panel) return;
+    var isOpen=panel.style.display==='flex';
+    closeAllPanels();
+    if(!isOpen){panel.style.display='flex';cargarNotificaciones();}
+  }
+
+
+  async function marcarUnaLeida(id){
+    try {
+      var token = localStorage.getItem('tm_token');
+      await fetch(API+'/api/notificaciones/leer',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({id:id})});
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+  async function marcarTodasLeidas(){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var r = await fetch(API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+      var data = r.ok ? await r.json() : {};
+      var notifs = (data.notificaciones||[]).filter(function(n){ return !n.leida; });
+      for(var i=0;i<notifs.length;i++){
+        await fetch(API+'/api/notificaciones/leer',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({id:notifs[i].id})});
+      }
+      var badge = document.getElementById('notif-count');
+      if(badge) badge.style.display='none';
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+
+function toggleMobileNav(){
+  var p=document.getElementById('nav-mobile-panel');
+  if(!p) return;
+  var willOpen = !p.classList.contains('open');
+  var um=document.getElementById('user-menu'); if(um) um.style.display='none';
+  var np=document.getElementById('notif-panel'); if(np) np.style.display='none';
+  if(typeof closeAllPanels==='function'){ try{closeAllPanels();}catch(e){} }
+  if(willOpen) p.classList.add('open'); else p.classList.remove('open');
+}
+document.addEventListener('click',function(e){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.nav-mobile-menu'))
+    p.classList.remove('open');
+});
+</script>
+<footer style="background:#1e2d4e;margin-top:40px;padding:28px 24px 20px">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <svg style="height:28px;width:auto;display:block" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg>
+      </div>
+      <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+    </div>
+    <div style="display:flex;gap:32px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <a href="/términos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Términos y condiciones</a>
+          <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Política de privacidad</a>
+          <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Centro de ayuda</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span>
+          <span style="font-size:13px;color:#CBD5E1">+56 9 6908 1098</span><span style="font-size:13px;color:#CBD5E1">Av. La Dehesa 1201</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <span>© 2026 TransMatch SpA.</span>
+  </div>
+</footer>
+<script>document.addEventListener("change",function(e){var t=e.target;if(t&&t.matches&&t.matches('input[type="date"]'))t.blur();});</script>
+</body>
+</html>

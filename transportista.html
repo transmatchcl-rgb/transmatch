@@ -72,7 +72,7 @@
     .page-hdr>div{text-align:left;width:100%}
   }
 </style><script>
- const API='https://transmatch.transmatchcl.workers.dev';
+ const API=(localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
  (async function(){
  const token=localStorage.getItem('tm_token');
  const role=localStorage.getItem('tm_role');
@@ -331,7 +331,7 @@
     const o = {method:method||'GET', headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}};
     if(body) o.body = JSON.stringify(body);
     try {
-      const r = await fetch('https://transmatch.transmatchcl.workers.dev'+path, o);
+      const r = await fetch((localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev')+path, o);
       if(r.status===401){localStorage.clear();window.location.replace('/index.html');return null;}
       return {ok:r.ok, data:await r.json()};
     } catch(e){ return null; }

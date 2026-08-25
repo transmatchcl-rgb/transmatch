@@ -336,7 +336,7 @@
 </footer>
 
 <script>
- const API = 'https://transmatch.transmatchcl.workers.dev';
+ const API = (localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
 
  function peso(n){ return n ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '$0'; }
 

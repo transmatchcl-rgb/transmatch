@@ -177,7 +177,7 @@
 </div>
 
 <script>
-  var API = 'https://transmatch.transmatchcl.workers.dev';
+  var API = (localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
   var licitacionId = new URLSearchParams(window.location.search).get('id');
   var scores = {plazo: 0, equipo: 0, comunicación: 0, seguridad: 0};
 

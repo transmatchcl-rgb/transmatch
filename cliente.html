@@ -234,7 +234,7 @@
     </div>
   </div>
 </main></div><script>
-  var API = 'https://transmatch.transmatchcl.workers.dev';
+  var API = (localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
 
   function logout(){ localStorage.clear(); window.location.replace('/index.html'); }
   function peso(n){ return n ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '$0'; }

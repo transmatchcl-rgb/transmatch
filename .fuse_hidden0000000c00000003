@@ -1,0 +1,1091 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch — Cobros y OV</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Barlow',sans-serif;background:#f5f7fb;display:flex;flex-direction:column;min-height:100vh}
+#auth-guard{position:fixed;inset:0;background:#1e2d4e;display:flex;align-items:center;justify-content:center;z-index:9999}
+.gs{width:36px;height:36px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#app{display:none;flex-direction:column;min-height:100vh}
+.nav{background:#1e2d4e;padding:0 24px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.nav-left{display:flex;align-items:center;gap:16px}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+  .brand-logo{height:30px;width:auto;display:block}
+.nav-icon{background:#FF8808;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+.nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#FF8808}
+.nav-badge{background:rgba(255,255,255,.15);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px}
+.nav-tabs{display:flex;gap:2px}
+.nav-tab{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+.nav-tab:hover,.nav-tab.active{color:#fff;background:rgba(255,255,255,.12)}
+.logout-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer}
+main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
+.page-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.page-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#1e2d4e}
+.page-sub{font-size:13px;color:#6B7280;margin-top:2px}
+.grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+@media(max-width:700px){.grid-4{grid-template-columns:repeat(2,1fr)}}
+.stat{background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);padding:16px 18px}
+.stat-label{font-size:12px;color:#6B7280;margin-bottom:6px}
+.stat-val{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700}
+.stat-sub{font-size:11px;color:#9CA3AF;margin-top:4px}
+.card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);overflow:hidden;margin-bottom:16px}
+.card-hdr{padding:14px 18px;border-bottom:0.5px solid #e8eaf0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.card-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:600;color:#111827}
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px;border-bottom:0.5px solid #e8eaf0}
+.sel{padding:8px 12px;border:0.5px solid #E5E7EB;border-radius:7px;font-size:13px;background:#fff;color:#374151}
+.srch{padding:8px 12px;border:0.5px solid #E5E7EB;border-radius:7px;font-size:13px;flex:1;min-width:160px}
+.sel:focus,.srch:focus{outline:none;border-color:#1e2d4e}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;padding:10px 16px;text-align:left;border-bottom:0.5px solid #E5E7EB;white-space:nowrap;background:#fafafa}
+.tbl td{font-size:13px;color:#374151;padding:12px 16px;border-bottom:0.5px solid #F3F4F6;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#f5f7fb}
+.badge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.b-condicional{background:#FFF7ED;color:#92400E}
+.b-confirmada{background:#EFF6FF;color:#1e40af}
+.b-facturada{background:#F0FDF4;color:#14532D}
+.b-anulada{background:#FEF2F2;color:#991B1B}
+.b-activa{background:#F0FDF4;color:#14532D}
+.b-vencida{background:#FFF7ED;color:#92400E}
+.b-suspendida{background:#FEF2F2;color:#991B1B}
+.btn{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s;display:inline-flex;align-items:center;gap:5px}
+.btn:hover{opacity:.85}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:#1e2d4e;color:#fff}
+.btn-orange{background:#FF8808;color:#fff}
+.btn-red{background:#EF4444;color:#fff}
+.btn-outline{background:transparent;border:0.5px solid #E5E7EB;color:#374151}
+.btn-sm{padding:5px 10px;font-size:11px}
+.empty{text-align:center;padding:32px;color:#9CA3AF;font-size:13px}
+.spinner{width:22px;height:22px;border:2px solid #e8eaf0;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite;margin:32px auto}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:24px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:16px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:12px;font-weight:500;color:#374151;margin-bottom:5px}
+.fg input,.fg select,.fg textarea{width:100%;padding:9px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:inherit}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:#1e2d4e}
+.fg textarea{resize:vertical;min-height:70px}
+.info-box{background:#eef1f8;border-radius:8px;padding:12px 14px;font-size:13px;color:#1e40af;margin-bottom:14px;line-height:1.6}
+.warn-box{background:#FFF7ED;border-radius:8px;padding:12px 14px;font-size:13px;color:#92400E;margin-bottom:14px;line-height:1.6}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.detail-item{background:#f8f9fc;border-radius:8px;padding:10px 12px}
+.detail-label{font-size:11px;color:#9CA3AF;font-weight:500;margin-bottom:3px}
+.detail-val{font-size:14px;font-weight:600;color:#1e2d4e}
+#toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none}
+.tabs-bar{display:flex;gap:4px;margin-bottom:16px;background:#fff;border-radius:10px;padding:4px;border:0.5px solid #e8eaf0;width:fit-content}
+.tab-btn{padding:8px 18px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;color:#6B7280;transition:all .15s}
+.tab-btn.active{background:#1e2d4e;color:#fff}
+
+  .nav-mobile-menu{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:6px;border-radius:6px;background:none;border:none;flex-shrink:0}
+  .nav-mobile-menu span{display:block;width:20px;height:2px;background:#fff;border-radius:2px}
+  .nav-mobile-panel{display:none;position:fixed;top:52px;left:0;right:0;background:#1e2d4e;z-index:999;padding:8px 16px 16px;border-bottom:0.5px solid rgba(255,255,255,.1)}
+  .nav-mobile-panel.open{display:block}
+  .nav-mobile-link{display:block;padding:10px 12px;color:#93C5FD;text-decoration:none;font-size:14px;border-radius:8px;margin-bottom:2px}
+  .nav-mobile-link:hover{background:rgba(255,255,255,.1);color:#fff}
+  @media(max-width:860px){
+    .nav-links,.nav-tabs{display:none!important}
+    .nav-mobile-menu{display:flex!important}.nav-mobile-menu{order:-1}.nav-logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}.nav-logo .brand-logo,.nav-logo>.brand-logo{height:22px}
+    .nav-user-name{display:none!important}
+  }
+  /* TM-MOBILE-FIX */
+  @media(max-width:600px){
+    [style*="grid-template-columns:1fr 1fr"],
+    [style*="grid-template-columns:repeat(2,1fr)"],
+    [style*="grid-template-columns:repeat(2, 1fr)"],
+    [style*="grid-template-columns:repeat(3,1fr)"],
+    [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
+    body{overflow-x:hidden}
+  }
+</style>
+</head>
+<body>
+<div id="auth-guard">
+  <div style="text-align:center">
+    <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px">
+      <svg style="height:30px;width:auto;display:block" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg>
+    </div>
+    <div class="gs" style="margin:0 auto"></div>
+  </div>
+</div>
+
+<div id="app">
+  <nav class="nav">
+    <div class="nav-left">
+      <a href="/admin.html" class="nav-logo">
+        <svg class="brand-logo" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg>
+        <span class="nav-badge">ADMIN</span>
+      </a>
+            <button class="nav-mobile-menu" onclick="toggleMobileNav()" aria-label="Menu"><span></span><span></span><span></span></button><div class="nav-tabs">
+        <a href="/admin.html" class="nav-tab">Dashboard</a>
+        <a href="/admin-licitaciones.html" class="nav-tab">Licitaciones</a>
+        <a href="/admin-cotizaciones.html" class="nav-tab">Cotizaciones</a>
+        <a href="/admin-transportes.html" class="nav-tab">Transportes</a>
+        <a href="/admin-retornos.html" class="nav-tab">Retornos</a>
+        <a href="/admin-clientes.html" class="nav-tab">Clientes</a>
+        <a href="/admin-transportistas.html" class="nav-tab">Transportistas</a>
+        <a href="/admin-cobros.html" class="nav-tab active">Facturación</a>
+        <a href="/admin-reportes.html" class="nav-tab">Reportes</a>
+      </div>
+      </div>
+    <button class="logout-btn" onclick="localStorage.clear();window.location.replace('/admin-login.html')">Cerrar sesion</button>
+  </nav>
+<div id="nav-mobile-panel" class="nav-mobile-panel">
+<a href="/admin.html" class="nav-mobile-link">Dashboard</a>
+<a href="/admin-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
+<a href="/admin-cotizaciones.html" class="nav-mobile-link">Cotizaciones</a>
+<a href="/admin-transportes.html" class="nav-mobile-link">Transportes</a>
+<a href="/admin-retornos.html" class="nav-mobile-link">Retornos</a>
+<a href="/admin-clientes.html" class="nav-mobile-link">Clientes</a>
+<a href="/admin-transportistas.html" class="nav-mobile-link">Transportistas</a>
+<a href="/admin-cobros.html" class="nav-mobile-link">Facturación</a>
+<a href="/admin-reportes.html" class="nav-mobile-link">Reportes</a>
+</div>
+
+
+  <main>
+    <div class="page-hdr">
+      <div>
+        <div class="page-title">Cobros y Ordenes de Venta</div>
+        <div class="page-sub">Comisiones por transporte y suscripciones de clientes</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-orange" onclick="abrirBatch()">Consolidar OV del mes</button>
+        
+      </div>
+    </div>
+
+    <!-- Toggle de flujo de cobro -->
+    <div style="display:inline-flex;background:#EEF1F6;border-radius:10px;padding:4px;gap:4px;margin-bottom:18px">
+      <button id="flbtn-transportistas" onclick="switchFlujo('transportistas')" style="border:none;cursor:pointer;font-size:13px;font-weight:600;padding:8px 16px;border-radius:8px;background:#1e2d4e;color:#fff">Comisiones a transportistas</button>
+      <button id="flbtn-clientes" onclick="switchFlujo('clientes')" style="border:none;cursor:pointer;font-size:13px;font-weight:600;padding:8px 16px;border-radius:8px;background:transparent;color:#374151">Facturas a clientes</button>
+    </div>
+
+    <div id="flujo-transportistas">
+    <!-- Stats -->
+    <div class="grid-4">
+      <div class="stat">
+        <div class="stat-label">OV Condicionales</div>
+        <div class="stat-val" id="st-condicional" style="color:#92400E">—</div>
+        <div class="stat-sub">Esperando factura del cliente</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">OV Confirmadas</div>
+        <div class="stat-val" id="st-confirmada" style="color:#1e40af">—</div>
+        <div class="stat-sub">Listas para facturar</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Comision pendiente</div>
+        <div class="stat-val" id="st-monto-pend" style="color:#FF8808;font-size:18px">—</div>
+        <div class="stat-sub">OV confirmadas este mes</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Comision facturada</div>
+        <div class="stat-val" id="st-monto-fact" style="color:#14532D;font-size:18px">—</div>
+        <div class="stat-sub">Acumulado historico</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-bar">
+      <button class="tab-btn active" onclick="switchTab('ovs',this)">Ordenes de Venta</button>
+      <button class="tab-btn" onclick="switchTab('facturas',this)">Consolidados mensuales</button>
+      <button class="tab-btn" onclick="switchTab('alertas',this)">Alertas</button>
+    </div>
+
+    <!-- TAB: OVs -->
+    <div id="tab-ovs">
+      <div class="card">
+        <div class="filter-bar">
+          <select class="sel" id="fil-estado-ov" onchange="filtrarOVs()">
+            <option value="">Todos los estados</option>
+            <option value="CONDICIONAL">Condicional</option>
+            <option value="CONFIRMADA">Confirmada</option>
+            <option value="FACTURADA">Facturada</option>
+            <option value="ANULADA">Anulada</option>
+          </select>
+          <input class="srch" id="fil-buscar-ov" placeholder="Buscar OV, transportista o cliente..." oninput="filtrarOVs()"/>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>OV</th>
+                <th>Transportista</th>
+                <th>Licitacion</th>
+                <th style="text-align:right">Comision estimada</th>
+                <th style="text-align:right">Comision final</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-ovs"><tr><td colspan="8"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Facturas mensuales -->
+    <div id="tab-facturas" style="display:none">
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-title">Consolidados de OV emitidos</span>
+          <button class="btn btn-orange btn-sm" onclick="abrirBatch()">Consolidar OV del mes</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Periodo</th>
+                <th>Transportista</th>
+                <th>OVs incluidas</th>
+                <th>Total comision</th>
+                <th>Estado pago</th>
+                <th>Fecha emision</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-facturas"><tr><td colspan="7"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Alertas -->
+    <div id="tab-alertas" style="display:none">
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-title">OV condicionales sin factura del cliente</span>
+          <span id="alerta-count" style="font-size:12px;color:#9CA3AF"></span>
+        </div>
+        <div id="lista-alertas"><div class="spinner"></div></div>
+      </div>
+    </div>
+    </div><!-- /flujo-transportistas -->
+
+    <!-- FLUJO: Facturas a clientes (TransMatch → empresa) -->
+    <div id="flujo-clientes" style="display:none">
+      <div class="grid-4" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+        <div class="stat"><div class="stat-label">Total emitido</div><div class="stat-val" id="st-fc-emitido" style="color:#1e2d4e;font-size:18px">—</div><div class="stat-sub" id="st-fc-scope">Todas las empresas</div></div>
+        <div class="stat"><div class="stat-label">Pagado</div><div class="stat-val" id="st-fc-pagado" style="color:#14532D;font-size:18px">—</div><div class="stat-sub">Facturas saldadas</div></div>
+        <div class="stat"><div class="stat-label">Pendiente</div><div class="stat-val" id="st-fc-pend" style="color:#92400E;font-size:18px">—</div><div class="stat-sub">Por cobrar</div></div>
+      </div>
+      <div class="card">
+        <div class="filter-bar" style="align-items:center;flex-wrap:wrap">
+          <select class="sel" id="fc-empresa" onchange="cargarFacturasCliente()" style="min-width:240px"><option value="">Todas las empresas</option></select>
+          <select class="sel" id="fc-estado" onchange="renderFacturasClientes()">
+            <option value="">Todos los estados</option>
+            <option value="pendiente">Pendientes</option>
+            <option value="pagada">Pagadas</option>
+          </select>
+          <button class="btn btn-orange btn-sm" onclick="abrirSubirFactura()" style="margin-left:auto">Subir factura</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Empresa</th>
+                <th>N° factura</th>
+                <th>Periodo</th>
+                <th>Emision</th>
+                <th style="text-align:right">Monto</th>
+                <th style="text-align:center">Estado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tbody-fc"><tr><td colspan="7"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal: Detalle OV -->
+<div class="modal-bg" id="modal-ov">
+  <div class="modal">
+    <div class="modal-title">Detalle Orden de Venta</div>
+    <div id="modal-ov-body"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+      <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="cerrarModal('modal-ov')">Cerrar</button>
+      <button class="btn btn-red btn-sm" id="btn-anular-ov" onclick="abrirAnularOV()" style="display:none">Anular OV</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Anular OV -->
+<div class="modal-bg" id="modal-anular">
+  <div class="modal">
+    <div class="modal-title">Anular Orden de Venta</div>
+    <div class="warn-box">Solo puedes anular OV en estado CONDICIONAL. Esta accion no se puede deshacer.</div>
+    <input type="hidden" id="anular-ov-id"/>
+    <div class="fg">
+      <label>Motivo de anulacion *</label>
+      <select id="anular-motivo">
+        <option value="">Seleccionar motivo...</option>
+        <option value="cliente_cancela">Cliente cancelo el transporte</option>
+        <option value="transportista_abandona">Transportista no se presento</option>
+        <option value="fuerza_mayor">Fuerza mayor acreditada</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Observaciones (opcional)</label>
+      <textarea id="anular-obs" placeholder="Detalle adicional..."></textarea>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="cerrarModal('modal-anular')">Cancelar</button>
+      <button class="btn btn-red" style="flex:1;justify-content:center" onclick="confirmarAnulacion()">Confirmar anulacion</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Facturacion batch -->
+<div class="modal-bg" id="modal-batch">
+  <div class="modal">
+    <div class="modal-title">Consolidar órdenes de venta</div>
+    <div class="info-box">Este proceso agrupa todas las OV en estado CONFIRMADA del mes en un consolidado por transportista. Las OV pasarán a estado FACTURADA y no se podrán modificar. La factura tributaria se emite en el SII y se sube aparte.</div>
+    <div class="fg">
+      <label>Periodo a facturar</label>
+      <select id="batch-periodo"></select>
+    </div>
+    <div id="batch-preview" style="margin-bottom:14px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="cerrarModal('modal-batch')">Cancelar</button>
+      <button class="btn btn-orange" style="flex:1;justify-content:center" id="btn-batch" onclick="ejecutarBatch()">Consolidar OV</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Subir factura a cliente -->
+<div class="modal-bg" id="modal-subir-factura">
+  <div class="modal">
+    <div class="modal-title">Subir factura a cliente</div>
+    <div class="info-box">La factura quedará disponible en el portal del cliente (pestaña "Mi suscripción") y se le enviará un correo de aviso.</div>
+    <div class="fg">
+      <label>Empresa *</label>
+      <select id="sf-empresa"></select>
+    </div>
+    <div class="fg">
+      <label>N° factura *</label>
+      <input id="sf-numero" placeholder="Ej. 1247"/>
+    </div>
+    <div class="fg">
+      <label>Periodo</label>
+      <input id="sf-periodo" placeholder="Ej. Julio 2026"/>
+    </div>
+    <div style="display:flex;gap:10px">
+      <div class="fg" style="flex:1">
+        <label>Monto (CLP) *</label>
+        <input id="sf-monto" type="number" placeholder="580000"/>
+      </div>
+      <div class="fg" style="flex:1">
+        <label>Fecha emision</label>
+        <input id="sf-fecha" type="date"/>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Estado</label>
+      <select id="sf-estado">
+        <option value="pendiente">Pendiente</option>
+        <option value="pagada">Pagada</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Archivo PDF *</label>
+      <input id="sf-file" type="file" accept="application/pdf"/>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="cerrarModal('modal-subir-factura')">Cancelar</button>
+      <button class="btn btn-orange" style="flex:1;justify-content:center" id="btn-sf" onclick="confirmarSubirFactura()">Subir factura</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Editar factura a cliente -->
+<div class="modal-bg" id="modal-editar-factura">
+  <div class="modal">
+    <div class="modal-title">Editar factura</div>
+    <div class="info-box">Corrige los datos de la factura. El PDF ya subido no cambia.</div>
+    <div id="ef-empresa-nom" style="font-weight:600;color:#1E2D4E;margin-bottom:10px"></div>
+    <div class="fg">
+      <label>N° factura</label>
+      <input id="ef-numero"/>
+    </div>
+    <div class="fg">
+      <label>Periodo</label>
+      <input id="ef-periodo" placeholder="Ej. Julio 2026"/>
+    </div>
+    <div style="display:flex;gap:10px">
+      <div class="fg" style="flex:1">
+        <label>Monto total (CLP)</label>
+        <input id="ef-monto" type="number"/>
+      </div>
+      <div class="fg" style="flex:1">
+        <label>Fecha emision</label>
+        <input id="ef-fecha" type="date"/>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Estado</label>
+      <select id="ef-estado">
+        <option value="pendiente">Pendiente</option>
+        <option value="pagada">Pagada</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="cerrarModal('modal-editar-factura')">Cancelar</button>
+      <button class="btn btn-orange" style="flex:1;justify-content:center" id="btn-ef" onclick="guardarEdicionFactura()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Marcar factura pagada -->
+<div class="modal-bg" id="modal-pago">
+  <div class="modal">
+    <div class="modal-title">Registrar pago recibido</div>
+    <div class="info-box" id="modal-pago-info"></div>
+    <input type="hidden" id="pago-factura-id"/>
+    <div class="fg">
+      <label>Metodo de pago</label>
+      <select id="metodo-pago">
+        <option value="transferencia">Transferencia bancaria</option>
+        <option value="cheque">Cheque</option>
+        <option value="efectivo">Efectivo</option>
+        <option value="otro">Otro</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Notas (opcional)</label>
+      <textarea id="notas-pago" placeholder="Ej: Transferencia N° 123456, fecha 15/05/2026..."></textarea>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="cerrarModal('modal-pago')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="confirmarPago()">Confirmar pago</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="fc-menu" style="display:none;position:fixed;z-index:600;background:#fff;border:0.5px solid #E5E7EB;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:160px;overflow:hidden"></div>
+
+<script>
+var API = 'https://transmatch.transmatchcl.workers.dev';
+var allOVs = [], allFacturas = [], ovActual = null, _licCodigo = {};
+
+// ── Helpers ──
+function peso(n){ return n!=null&&n!=='' ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '—'; }
+function fecha(iso){ return iso ? new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}) : '—'; }
+function diasDesde(iso){ if(!iso) return 0; return Math.floor((Date.now()-new Date(iso))/(1000*60*60*24)); }
+
+function toast(msg, type){
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = type==='err' ? '#EF4444' : type==='warn' ? '#FF8808' : '#1ED24E';
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(function(){ el.style.opacity='0'; }, 3500);
+}
+
+function badgeOV(estado){
+  var map = {
+    CONDICIONAL: 'b-condicional',
+    CONFIRMADA:  'b-confirmada',
+    FACTURADA:   'b-facturada',
+    ANULADA:     'b-anulada'
+  };
+  return '<span class="badge '+(map[estado]||'b-gray')+'">'+estado+'</span>';
+}
+
+async function apiFetch(path, method, body){
+  var o = {method:method||'GET', headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}};
+  if(body) o.body = JSON.stringify(body);
+  try {
+    var r = await fetch(API+path, o);
+    if(r.status===401){ localStorage.clear(); window.location.replace('/admin-login.html'); return null; }
+    return {ok:r.ok, status:r.status, data:await r.json()};
+  } catch(e){ return null; }
+}
+
+// ── Tabs ──
+function switchTab(id, btn){
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('tab-ovs').style.display     = id==='ovs'      ? 'block' : 'none';
+  document.getElementById('tab-facturas').style.display= id==='facturas' ? 'block' : 'none';
+  document.getElementById('tab-alertas').style.display = id==='alertas'  ? 'block' : 'none';
+  if(id==='alertas') renderAlertas();
+}
+
+// ── Toggle de flujo (transportistas vs clientes) ──
+var _clientesCargado = false;
+function switchFlujo(flujo){
+  var t = flujo==='transportistas';
+  document.getElementById('flujo-transportistas').style.display = t ? 'block' : 'none';
+  document.getElementById('flujo-clientes').style.display = t ? 'none' : 'block';
+  var bt=document.getElementById('flbtn-transportistas'), bc=document.getElementById('flbtn-clientes');
+  bt.style.background = t?'#1e2d4e':'transparent'; bt.style.color = t?'#fff':'#374151';
+  bc.style.background = t?'transparent':'#1e2d4e'; bc.style.color = t?'#374151':'#fff';
+  if(!t && !_clientesCargado){ _clientesCargado=true; initClientesTab(); }
+}
+
+/* ── Facturas a clientes (TransMatch → empresa) ── */
+var _empresasCliente = null;
+var allFacturasClientes = [];
+async function initClientesTab(){
+  // Cargar empresas (para el filtro y el modal de subir), solo una vez
+  if(!_empresasCliente){
+    var r = await apiFetch('/api/admin/usuarios');
+    if(r && r.ok){
+      _empresasCliente = (r.data.usuarios||[])
+        .filter(function(u){ return u.role==='cliente' && !u.esSubusuario; })
+        .sort(function(a,b){ return (a.empresa||a.nombre||'').localeCompare(b.empresa||b.nombre||''); });
+      document.getElementById('fc-empresa').innerHTML = '<option value="">Todas las empresas</option>' + _empresasCliente.map(function(u){
+        return '<option value="'+u.email+'">'+(u.empresa||u.nombre||u.email)+'</option>';
+      }).join('');
+    }
+  }
+  cargarFacturasCliente();
+}
+function fileToBase64(file){
+  return new Promise(function(res,rej){ var fr=new FileReader(); fr.onload=function(){ res(String(fr.result).split(',')[1]); }; fr.onerror=rej; fr.readAsDataURL(file); });
+}
+async function cargarFacturasCliente(){
+  var email = document.getElementById('fc-empresa').value;
+  var tb = document.getElementById('tbody-fc');
+  tb.innerHTML='<tr><td colspan="7"><div class="spinner"></div></td></tr>';
+  var r = await apiFetch('/api/admin/facturas-cliente'+(email?('?email='+encodeURIComponent(email)):''));
+  if(!r || !r.ok){ allFacturasClientes=[]; tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#EF4444;padding:18px">Error al cargar</td></tr>'; return; }
+  allFacturasClientes = r.data.facturas||[];
+  renderFacturasClientes();
+}
+function renderFacturasClientes(){
+  var estadoFil = document.getElementById('fc-estado').value;
+  var hayEmpresa = !!document.getElementById('fc-empresa').value;
+  // Indicadores sobre el scope de empresa (sin aplicar el filtro de estado)
+  var emitido = allFacturasClientes.reduce(function(s,f){ return s+(f.monto||0); }, 0);
+  var pagado  = allFacturasClientes.filter(function(f){ return f.estado==='pagada'; }).reduce(function(s,f){ return s+(f.monto||0); }, 0);
+  document.getElementById('st-fc-emitido').textContent = peso(emitido);
+  document.getElementById('st-fc-pagado').textContent  = peso(pagado);
+  document.getElementById('st-fc-pend').textContent    = peso(emitido-pagado);
+  document.getElementById('st-fc-scope').textContent   = hayEmpresa ? 'Empresa seleccionada' : 'Todas las empresas';
+  var lista = allFacturasClientes;
+  if(estadoFil) lista = lista.filter(function(f){ return f.estado===estadoFil; });
+  var tb = document.getElementById('tbody-fc');
+  if(!lista.length){ tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#9CA3AF;padding:18px">Sin facturas'+(estadoFil?(estadoFil==='pagada'?' pagadas':' pendientes'):'')+'</td></tr>'; return; }
+  tb.innerHTML = lista.map(function(f){
+    var badge = f.estado==='pagada' ? '<span class="badge b-facturada">Pagada</span>' : '<span class="badge b-condicional">Pendiente</span>';
+    var ver = f.archivoId ? '<button class="btn btn-outline btn-sm" onclick="verFacturaAdmin(\''+f.archivoId+'\')">Ver PDF</button>' : '';
+    var menu = '<button class="btn btn-outline btn-sm" style="padding:5px 11px" onclick="abrirMenuFactura(event,\''+f.empresaEmail+'\',\''+f.id+'\',\''+f.estado+'\')">•••</button>';
+    return '<tr>'
+      +'<td style="font-weight:500;color:#1e2d4e">'+(f.empresaNombre||'—')+'</td>'
+      +'<td style="font-family:IBM Plex Mono,monospace;font-size:12px">'+(f.numero||'--')+'</td>'
+      +'<td>'+(f.periodo||'--')+'</td>'
+      +'<td>'+fecha(f.fechaEmision)+'</td>'
+      +'<td style="text-align:right;font-weight:600">'+peso(f.monto)+'</td>'
+      +'<td style="text-align:center">'+badge+'</td>'
+      +'<td style="text-align:right;white-space:nowrap"><div style="display:inline-flex;gap:6px">'+ver+menu+'</div></td>'
+      +'</tr>';
+  }).join('');
+}
+function abrirMenuFactura(ev, email, id, estado){
+  ev.stopPropagation();
+  cerrarMenuFactura();
+  var m = document.getElementById('fc-menu');
+  var toggleEstado = estado==='pagada' ? 'pendiente' : 'pagada';
+  var toggleLabel  = estado==='pagada' ? 'Marcar pendiente' : 'Marcar pagada';
+  m.innerHTML = '<button onclick="cerrarMenuFactura();editarFacturaCliente(\''+email+'\',\''+id+'\')" style="display:block;width:100%;text-align:left;padding:10px 14px;font-size:13px;background:none;border:none;cursor:pointer;color:#374151">Editar</button>'
+    + '<button onclick="cerrarMenuFactura();toggleEstadoFactura(\''+email+'\',\''+id+'\',\''+toggleEstado+'\')" style="display:block;width:100%;text-align:left;padding:10px 14px;font-size:13px;background:none;border:none;cursor:pointer;color:#374151;border-top:0.5px solid #F3F4F6">'+toggleLabel+'</button>'
+    + '<button onclick="cerrarMenuFactura();eliminarFacturaCliente(\''+email+'\',\''+id+'\')" style="display:block;width:100%;text-align:left;padding:10px 14px;font-size:13px;background:none;border:none;cursor:pointer;color:#EF4444;border-top:0.5px solid #F3F4F6">Eliminar</button>';
+  var r = ev.currentTarget.getBoundingClientRect();
+  m.style.display='block';
+  m.style.top = (r.bottom+4)+'px';
+  m.style.left = Math.max(8,(r.right-170))+'px';
+}
+function cerrarMenuFactura(){ var m=document.getElementById('fc-menu'); if(m) m.style.display='none'; }
+document.addEventListener('click', function(e){ var m=document.getElementById('fc-menu'); if(m && m.style.display==='block' && !m.contains(e.target)) cerrarMenuFactura(); });
+function abrirSubirFactura(){
+  if(!_empresasCliente){ toast('Cargando empresas, intenta de nuevo','warn'); initClientesTab(); return; }
+  var sel = document.getElementById('sf-empresa');
+  sel.innerHTML = _empresasCliente.map(function(u){ return '<option value="'+u.email+'">'+(u.empresa||u.nombre||u.email)+'</option>'; }).join('');
+  var actual = document.getElementById('fc-empresa').value;
+  if(actual) sel.value = actual;
+  document.getElementById('sf-numero').value='';
+  document.getElementById('sf-periodo').value='';
+  document.getElementById('sf-monto').value='';
+  document.getElementById('sf-fecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('sf-estado').value='pendiente';
+  document.getElementById('sf-file').value='';
+  document.getElementById('modal-subir-factura').classList.add('open');
+}
+async function confirmarSubirFactura(){
+  var email = document.getElementById('sf-empresa').value;
+  var numero = document.getElementById('sf-numero').value.trim();
+  var monto = document.getElementById('sf-monto').value;
+  var fileEl = document.getElementById('sf-file');
+  if(!email){ toast('Selecciona una empresa','err'); return; }
+  if(!numero){ toast('Ingresa el N° de factura','err'); return; }
+  if(!monto){ toast('Ingresa el monto','err'); return; }
+  if(!fileEl.files || !fileEl.files[0]){ toast('Adjunta el PDF','err'); return; }
+  var file = fileEl.files[0];
+  if(file.size > 8*1024*1024){ toast('El PDF supera los 8 MB','err'); return; }
+  var btn = document.getElementById('btn-sf'); btn.disabled=true; btn.textContent='Subiendo...';
+  try {
+    var base64 = await fileToBase64(file);
+    var r = await apiFetch('/api/admin/factura-cliente','POST',{
+      email: email,
+      numero: numero,
+      periodo: document.getElementById('sf-periodo').value.trim(),
+      monto: Number(monto),
+      fechaEmision: document.getElementById('sf-fecha').value,
+      estado: document.getElementById('sf-estado').value,
+      base64: base64,
+      archivoNombre: file.name
+    });
+    btn.disabled=false; btn.textContent='Subir factura';
+    if(r && r.ok){
+      toast('Factura subida y enviada al cliente');
+      cerrarModal('modal-subir-factura');
+      document.getElementById('fc-empresa').value = email;
+      cargarFacturasCliente();
+    } else {
+      toast((r&&r.data&&r.data.error)||'Error al subir la factura','err');
+    }
+  } catch(e){ btn.disabled=false; btn.textContent='Subir factura'; toast('Error al leer el archivo','err'); }
+}
+async function toggleEstadoFactura(email, id, nuevoEstado){
+  var r = await apiFetch('/api/admin/factura-cliente/estado','POST',{email:email, facturaId:id, estado:nuevoEstado});
+  if(r && r.ok){ toast('Estado actualizado'); cargarFacturasCliente(); }
+  else toast('Error al actualizar','err');
+}
+async function eliminarFacturaCliente(email, id){
+  if(!confirm('¿Eliminar esta factura? El cliente dejará de verla.')) return;
+  var r = await apiFetch('/api/admin/factura-cliente/eliminar','POST',{email:email, facturaId:id});
+  if(r && r.ok){ toast('Factura eliminada'); cargarFacturasCliente(); }
+  else toast('Error al eliminar','err');
+}
+function editarFacturaCliente(email, id){
+  var f = allFacturasClientes.filter(function(x){ return x.id===id && x.empresaEmail===email; })[0];
+  if(!f){ toast('Factura no encontrada','err'); return; }
+  document.getElementById('modal-editar-factura').dataset.email = email;
+  document.getElementById('modal-editar-factura').dataset.id = id;
+  document.getElementById('ef-empresa-nom').textContent = f.empresaNombre||'';
+  document.getElementById('ef-numero').value = f.numero||'';
+  document.getElementById('ef-periodo').value = f.periodo||'';
+  document.getElementById('ef-monto').value = f.monto||'';
+  document.getElementById('ef-fecha').value = (f.fechaEmision||'').slice(0,10);
+  document.getElementById('ef-estado').value = f.estado==='pagada'?'pagada':'pendiente';
+  document.getElementById('modal-editar-factura').classList.add('open');
+}
+async function guardarEdicionFactura(){
+  var mod = document.getElementById('modal-editar-factura');
+  var btn = document.getElementById('btn-ef'); btn.disabled=true; btn.textContent='Guardando...';
+  var r = await apiFetch('/api/admin/factura-cliente/editar','POST',{
+    email: mod.dataset.email, facturaId: mod.dataset.id,
+    numero: document.getElementById('ef-numero').value.trim(),
+    periodo: document.getElementById('ef-periodo').value.trim(),
+    monto: Number(document.getElementById('ef-monto').value)||0,
+    fechaEmision: document.getElementById('ef-fecha').value,
+    estado: document.getElementById('ef-estado').value
+  });
+  btn.disabled=false; btn.textContent='Guardar cambios';
+  if(r && r.ok){ toast('Factura actualizada'); cerrarModal('modal-editar-factura'); cargarFacturasCliente(); }
+  else toast((r&&r.data&&r.data.error)||'Error al guardar','err');
+}
+async function verFacturaAdmin(id){
+  try{
+    var r = await fetch(API+'/api/archivos/'+id,{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    var d = await r.json();
+    var arr = new Uint8Array(atob(d.base64).split('').map(function(ch){ return ch.charCodeAt(0); }));
+    var blob = new Blob([arr], {type:d.tipo||'application/pdf'});
+    var url = URL.createObjectURL(blob);
+    window.open(url,'_blank');
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+  }catch(e){ toast('Error al abrir la factura','err'); }
+}
+
+function cerrarModal(id){ document.getElementById(id).classList.remove('open'); }
+
+// ── Carga inicial ──
+async function initPage(){
+  document.getElementById('tbody-ovs').innerHTML = '<tr><td colspan="8"><div class="spinner"></div></td></tr>';
+  document.getElementById('tbody-facturas').innerHTML = '<tr><td colspan="7"><div class="spinner"></div></td></tr>';
+
+  var [ovsR, factR, licR] = await Promise.all([
+    apiFetch('/api/admin/ordenes-venta'),
+    apiFetch('/api/admin/facturas-mensuales'),
+    apiFetch('/api/licitaciones')
+  ]);
+
+  allOVs = ovsR?.ok ? (ovsR.data.ordenes || ovsR.data.ovs || []) : [];
+  allFacturas = factR?.ok ? (factR.data.facturas || []) : [];
+  _licCodigo = {};
+  if(licR && licR.ok){ (licR.data.licitaciones||[]).forEach(function(l){ if(l.id) _licCodigo[l.id]=l.codigo||''; }); }
+
+  // Stats
+  var cond = allOVs.filter(function(o){ return o.estado==='CONDICIONAL'; });
+  var conf = allOVs.filter(function(o){ return o.estado==='CONFIRMADA'; });
+  var fact = allOVs.filter(function(o){ return o.estado==='FACTURADA'; });
+  document.getElementById('st-condicional').textContent = cond.length;
+  document.getElementById('st-confirmada').textContent  = conf.length;
+  document.getElementById('st-monto-pend').textContent  = peso(conf.reduce(function(s,o){ return s+(o.comision_final||o.comision_estimada||0); },0));
+  document.getElementById('st-monto-fact').textContent  = peso(fact.reduce(function(s,o){ return s+(o.comision_final||0); },0));
+
+  filtrarOVs();
+  renderFacturas();
+}
+
+// ── OVs ──
+function filtrarOVs(){
+  var estado = document.getElementById('fil-estado-ov').value;
+  var q = (document.getElementById('fil-buscar-ov').value||'').toLowerCase();
+  var lista = allOVs;
+  if(estado) lista = lista.filter(function(o){ return o.estado===estado; });
+  if(q) lista = lista.filter(function(o){
+    return ((o.id_ov||'')+(o.id_transportista||'')+(o.transportistaNombre||'')+(o.transportistaEmpresa||'')+(o.id_licitacion||'')).toLowerCase().includes(q);
+  });
+
+  if(lista.length===0){
+    document.getElementById('tbody-ovs').innerHTML = '<tr><td colspan="8" class="empty">Sin resultados</td></tr>';
+    return;
+  }
+
+  document.getElementById('tbody-ovs').innerHTML = lista.map(function(ov){
+    var comEst = ov.comision_estimada!=null ? peso(ov.comision_estimada) : '—';
+    var comFin = ov.comision_final!=null ? '<strong>'+peso(ov.comision_final)+'</strong>' : '—';
+    var acciones = '';
+    if(ov.estado==='CONDICIONAL'){
+      acciones += '<button class="btn btn-outline btn-sm" onclick="verOV(\''+ov.id_ov+'\')">Ver</button> ';
+      acciones += '<button class="btn btn-red btn-sm" onclick="abrirAnularOVDirecto(\''+ov.id_ov+'\')">Anular</button>';
+    } else {
+      acciones = '<button class="btn btn-outline btn-sm" onclick="verOV(\''+ov.id_ov+'\')">Ver</button>';
+    }
+    return '<tr>'
+      +'<td><span style="font-family:IBM Plex Mono,monospace;font-size:11px;color:#9CA3AF">'+ov.id_ov+'</span></td>'
+      +'<td><div style="font-weight:500;color:#1e2d4e">'+(ov.transportistaEmpresa||ov.id_transportista)+'</div><div style="font-size:11px;color:#9CA3AF">'+(ov.transportistaNombre||'')+'</div></td>'
+      +'<td style="font-family:IBM Plex Mono,monospace;font-size:12px;color:#185FA5">'+(_licCodigo[ov.id_licitacion]||'—')+'</td>'
+      +'<td style="text-align:right">'+comEst+'</td>'
+      +'<td style="text-align:right">'+comFin+'</td>'
+      +'<td>'+badgeOV(ov.estado)+'</td>'
+      +'<td style="font-size:12px">'+fecha(ov.fecha_adjudicacion)+'</td>'
+      +'<td>'+acciones+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+function verOV(id){
+  var ov = allOVs.find(function(o){ return o.id_ov===id; });
+  if(!ov) return;
+  ovActual = ov;
+  var html = '<div class="detail-grid">'
+    +'<div class="detail-item"><div class="detail-label">ID OV</div><div class="detail-val" style="font-size:12px;font-family:IBM Plex Mono,monospace">'+ov.id_ov+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Estado</div><div class="detail-val">'+badgeOV(ov.estado)+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Transportista</div><div class="detail-val">'+(ov.transportistaEmpresa||ov.id_transportista)+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Licitacion</div><div class="detail-val" style="font-size:12px;font-family:IBM Plex Mono,monospace">'+(_licCodigo[ov.id_licitacion]||ov.id_licitacion||'—')+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Monto cotizado</div><div class="detail-val">'+peso(ov.monto_cotizado)+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Monto facturado</div><div class="detail-val">'+peso(ov.monto_facturado)+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Comision estimada</div><div class="detail-val">'+peso(ov.comision_estimada)+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Comision final</div><div class="detail-val" style="color:#1e2d4e">'+peso(ov.comision_final)+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">UF del dia</div><div class="detail-val">'+(ov.uf_del_dia ? '$'+ov.uf_del_dia.toLocaleString('es-CL') : '—')+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Fecha adjudicacion</div><div class="detail-val">'+fecha(ov.fecha_adjudicacion)+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Fecha confirmacion</div><div class="detail-val">'+fecha(ov.fecha_confirmacion)+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">Fecha facturacion</div><div class="detail-val">'+fecha(ov.fecha_facturacion)+'</div></div>'
+    +'</div>';
+  if(ov.motivo_anulacion){
+    html += '<div class="warn-box">Motivo de anulacion: <strong>'+ov.motivo_anulacion+'</strong>'+(ov.observaciones?' — '+ov.observaciones:'')+'</div>';
+  }
+  document.getElementById('modal-ov-body').innerHTML = html;
+  document.getElementById('btn-anular-ov').style.display = ov.estado==='CONDICIONAL' ? 'inline-flex' : 'none';
+  document.getElementById('modal-ov').classList.add('open');
+}
+
+function abrirAnularOV(){
+  document.getElementById('anular-ov-id').value = ovActual.id_ov;
+  document.getElementById('anular-motivo').value = '';
+  document.getElementById('anular-obs').value = '';
+  cerrarModal('modal-ov');
+  document.getElementById('modal-anular').classList.add('open');
+}
+
+function abrirAnularOVDirecto(id){
+  document.getElementById('anular-ov-id').value = id;
+  document.getElementById('anular-motivo').value = '';
+  document.getElementById('anular-obs').value = '';
+  document.getElementById('modal-anular').classList.add('open');
+}
+
+async function confirmarAnulacion(){
+  var id = document.getElementById('anular-ov-id').value;
+  var motivo = document.getElementById('anular-motivo').value;
+  var obs = document.getElementById('anular-obs').value.trim();
+  if(!motivo){ toast('Selecciona el motivo de anulacion','err'); return; }
+  var btn = event.target; btn.disabled=true; btn.textContent='Anulando...';
+  var r = await apiFetch('/api/admin/ordenes-venta/'+id+'/anular','POST',{motivo_anulacion:motivo, observaciones:obs, anulado_por_admin:localStorage.getItem('tm_email')});
+  btn.disabled=false; btn.textContent='Confirmar anulacion';
+  if(r && r.ok){
+    toast('OV anulada correctamente');
+    cerrarModal('modal-anular');
+    initPage();
+  } else {
+    toast((r?.data?.error)||'Error al anular la OV','err');
+  }
+}
+
+// ── Facturas mensuales ──
+function renderFacturas(){
+  var lista = allFacturas;
+  if(!lista.length){
+    document.getElementById('tbody-facturas').innerHTML = '<tr><td colspan="7" class="empty">Sin facturas emitidas aun</td></tr>';
+    return;
+  }
+  document.getElementById('tbody-facturas').innerHTML = lista.map(function(f){
+    var estadoBadge = f.estado_pago==='pagado'
+      ? '<span class="badge b-facturada">Pagado</span>'
+      : '<span class="badge b-condicional">Pago pendiente</span>';
+    var facturaBadge = f.estado_factura==='facturado'
+      ? '<span class="badge b-facturada">Facturado</span>'
+      : '<span class="badge b-condicional">Sin factura SII</span>';
+    var facturaBtn = f.estado_factura==='facturado'
+      ? '<button class="btn btn-outline btn-sm" onclick="verFacturaAdmin(\''+f.facturaSiiArchivoId+'\')">Ver factura</button>'
+      : '<button class="btn btn-orange btn-sm" onclick="subirFacturaSii(\''+f.id+'\')">Subir factura SII</button>';
+    var accion = f.estado_pago!=='pagado'
+      ? '<button class="btn btn-outline btn-sm" onclick="abrirPago(\''+f.id+'\',\''+f.transportistaEmpresa+'\','+f.total_comision+')">Marcar pagado</button>'
+      : '<span style="font-size:11px;color:#9CA3AF">'+fecha(f.fecha_pago)+'</span>';
+    return '<tr>'
+      +'<td style="font-weight:500">'+f.periodo+'</td>'
+      +'<td><div style="font-weight:500;color:#1e2d4e">'+f.transportistaEmpresa+'</div></td>'
+      +'<td style="text-align:center">'+f.total_ovs+'</td>'
+      +'<td style="font-weight:700;color:#1e2d4e">'+peso(f.total_comision)+'</td>'
+      +'<td><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">'+facturaBadge+estadoBadge+'</div></td>'
+      +'<td style="font-size:12px">'+fecha(f.fecha_emision)+'</td>'
+      +'<td><div style="display:flex;gap:6px;flex-wrap:wrap">'+facturaBtn+accion+'</div></td>'
+      +'</tr>';
+  }).join('');
+}
+
+async function subirFacturaSii(facturaId){
+  var inp=document.createElement('input'); inp.type='file'; inp.accept='application/pdf';
+  inp.onchange=async function(){
+    var file=inp.files && inp.files[0]; if(!file) return;
+    if(file.size>8*1024*1024){ toast('El PDF supera los 8 MB','err'); return; }
+    toast('Subiendo factura...','warn');
+    try{
+      var base64=await fileToBase64(file);
+      var r=await apiFetch('/api/admin/facturas-mensuales/'+facturaId+'/factura-sii','POST',{base64:base64, archivoNombre:file.name});
+      if(r&&r.ok){ toast('Factura subida y enviada al transportista'); initPage(); }
+      else toast((r&&r.data&&r.data.error)||'Error al subir la factura','err');
+    }catch(e){ toast('Error al leer el archivo','err'); }
+  };
+  inp.click();
+}
+
+function abrirPago(id, empresa, monto){
+  document.getElementById('pago-factura-id').value = id;
+  document.getElementById('modal-pago-info').textContent = empresa+' — '+peso(monto);
+  document.getElementById('notas-pago').value = '';
+  document.getElementById('modal-pago').classList.add('open');
+}
+
+async function confirmarPago(){
+  var id = document.getElementById('pago-factura-id').value;
+  var metodo = document.getElementById('metodo-pago').value;
+  var notas = document.getElementById('notas-pago').value.trim();
+  var btn = event.target; btn.disabled=true; btn.textContent='Guardando...';
+  var r = await apiFetch('/api/admin/facturas-mensuales/'+id+'/pago','POST',{metodo_pago:metodo, notas:notas});
+  btn.disabled=false; btn.textContent='Confirmar pago';
+  if(r && r.ok){
+    toast('Pago registrado correctamente');
+    cerrarModal('modal-pago');
+    initPage();
+  } else {
+    toast((r?.data?.error)||'Error al registrar el pago','err');
+  }
+}
+
+// ── Batch mensual ──
+function abrirBatch(){
+  // Poblar selector de periodos (mes actual + 2 anteriores)
+  var sel = document.getElementById('batch-periodo');
+  sel.innerHTML = '';
+  var hoy = new Date();
+  for(var i=0; i<3; i++){
+    var d = new Date(hoy.getFullYear(), hoy.getMonth()-i, 1);
+    var key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    var label = d.toLocaleDateString('es-CL',{month:'long',year:'numeric'});
+    var opt = document.createElement('option');
+    opt.value = key; opt.textContent = label;
+    sel.appendChild(opt);
+  }
+  previsualizarBatch();
+  document.getElementById('modal-batch').classList.add('open');
+}
+
+function previsualizarBatch(){
+  var periodo = document.getElementById('batch-periodo').value;
+  var ovsPeriodo = allOVs.filter(function(o){
+    if(o.estado!=='CONFIRMADA') return false;
+    if(!o.fecha_confirmacion) return false;
+    var k = o.fecha_confirmacion.substring(0,7);
+    return k===periodo;
+  });
+
+  // Agrupar por transportista
+  var porTransportista = {};
+  ovsPeriodo.forEach(function(o){
+    var tid = o.id_transportista;
+    if(!porTransportista[tid]) porTransportista[tid]={empresa:o.transportistaEmpresa||tid, ovs:0, total:0};
+    porTransportista[tid].ovs++;
+    porTransportista[tid].total += (o.comision_final||0);
+  });
+
+  var keys = Object.keys(porTransportista);
+  if(!keys.length){
+    document.getElementById('batch-preview').innerHTML = '<div style="font-size:13px;color:#9CA3AF;text-align:center;padding:12px 0">Sin OV confirmadas en este periodo</div>';
+    document.getElementById('btn-batch').disabled = true;
+    return;
+  }
+  document.getElementById('btn-batch').disabled = false;
+
+  var html = '<div style="border:1px solid #E5E7EB;border-radius:8px;overflow-x:auto">'
+    +'<table class="tbl"><thead><tr><th>Transportista</th><th>OVs</th><th>Total comision</th></tr></thead><tbody>';
+  var totalGral = 0;
+  keys.forEach(function(k){
+    var t = porTransportista[k];
+    totalGral += t.total;
+    html += '<tr><td>'+t.empresa+'</td><td style="text-align:center">'+t.ovs+'</td><td style="font-weight:600">'+peso(t.total)+'</td></tr>';
+  });
+  html += '<tr style="background:#f8f9fc"><td><strong>Total</strong></td><td style="text-align:center"><strong>'+ovsPeriodo.length+'</strong></td><td style="font-weight:700;color:#1e2d4e">'+peso(totalGral)+'</td></tr>';
+  html += '</tbody></table></div>';
+  document.getElementById('batch-preview').innerHTML = html;
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  var sel = document.getElementById('batch-periodo');
+  if(sel) sel.addEventListener('change', previsualizarBatch);
+});
+
+async function ejecutarBatch(){
+  var periodo = document.getElementById('batch-periodo').value;
+  var btn = document.getElementById('btn-batch');
+  btn.disabled=true; btn.textContent='Consolidando...';
+  var r = await apiFetch('/api/admin/facturacion-batch','POST',{periodo:periodo});
+  btn.disabled=false; btn.textContent='Consolidar OV';
+  if(r && r.ok){
+    toast('OV consolidadas correctamente');
+    cerrarModal('modal-batch');
+    initPage();
+  } else {
+    toast((r?.data?.error)||'Error al generar las facturas','err');
+  }
+}
+
+// ── Alertas ──
+function renderAlertas(){
+  var DIAS_ALERTA = 7;
+  var alertas = allOVs.filter(function(o){
+    return o.estado==='CONDICIONAL' && diasDesde(o.fecha_adjudicacion) >= DIAS_ALERTA;
+  }).sort(function(a,b){ return diasDesde(b.fecha_adjudicacion)-diasDesde(a.fecha_adjudicacion); });
+
+  document.getElementById('alerta-count').textContent = alertas.length+' alertas';
+
+  if(!alertas.length){
+    document.getElementById('lista-alertas').innerHTML = '<div class="empty">Sin OV condicionales con mas de '+DIAS_ALERTA+' dias de espera</div>';
+    return;
+  }
+
+  document.getElementById('lista-alertas').innerHTML = alertas.map(function(ov){
+    var dias = diasDesde(ov.fecha_adjudicacion);
+    var urgencia = dias >= 14 ? 'color:#991B1B;font-weight:700' : 'color:#92400E;font-weight:600';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:0.5px solid #F3F4F6;flex-wrap:wrap;gap:8px">'
+      +'<div>'
+        +'<div style="font-size:13px;font-weight:500;color:#1e2d4e">OV '+ov.id_ov+'</div>'
+        +'<div style="font-size:11px;color:#9CA3AF;margin-top:2px">'+(ov.transportistaEmpresa||ov.id_transportista)+' · Adjudicada '+fecha(ov.fecha_adjudicacion)+'</div>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:10px">'
+        +'<span style="'+urgencia+';font-size:13px">'+dias+' dias</span>'
+        +'<button class="btn btn-red btn-sm" onclick="abrirAnularOVDirecto(\''+ov.id_ov+'\')">Anular</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+// ── Auth ──
+(function(){
+  var token = localStorage.getItem('tm_token');
+  var role  = localStorage.getItem('tm_role');
+  if(!token || role!=='admin'){ window.location.replace('/admin-login.html'); return; }
+  document.getElementById('auth-guard').style.display='none';
+  var a=document.getElementById('app');
+  a.style.display='flex';a.style.flexDirection='column';a.style.minHeight='100vh';
+  initPage();
+})();
+
+function toggleMobileNav(){
+  var p=document.getElementById('nav-mobile-panel');
+  if(!p) return;
+  var willOpen = !p.classList.contains('open');
+  // Cerrar otros menús (avatar y notificaciones) si existen
+  var um=document.getElementById('user-menu'); if(um) um.style.display='none';
+  var np=document.getElementById('notif-panel'); if(np) np.style.display='none';
+  if(typeof closeAllPanels==='function'){ try{closeAllPanels();}catch(e){} }
+  if(willOpen) p.classList.add('open'); else p.classList.remove('open');
+}
+function cerrarMenuMovil(){
+  var p=document.getElementById('nav-mobile-panel'); if(p) p.classList.remove('open');
+}
+document.addEventListener('click',function(e){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.nav-mobile-menu'))
+    p.classList.remove('open');
+});
+</script>
+
+<footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px">
+    <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <svg style="height:28px;width:auto;display:block" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg>
+        </div>
+        <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+      </div>
+      <div style="display:flex;gap:32px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <a href="/terminos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Términos y condiciones</a>
+            <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Política de privacidad</a>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span>
+            <span style="font-size:13px;color:#CBD5E1">+56 9 6908 1098</span><span style="font-size:13px;color:#CBD5E1">Av. La Dehesa 1201</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B">
+      © 2026 TransMatch SpA. Todos los derechos reservados.
+    </div>
+  </footer>
+</body></html>

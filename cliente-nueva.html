@@ -114,7 +114,7 @@ textarea{resize:vertical;min-height:90px}
   }
 </style>
 <script>
-var API='https://transmatch.transmatchcl.workers.dev';
+var API=(localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
 var editId=new URLSearchParams(window.location.search).get('editar');
 var duplicarId=new URLSearchParams(window.location.search).get('duplicar');
 (async function(){
@@ -620,7 +620,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 
 <script src="/categorias-equipo.js"></script>
 <script>
-var API='https://transmatch.transmatchcl.workers.dev';
+var API=(localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
 var tipoLicitacion=null;
 var modoEdicion=null;
 var archivoMaq=null;
@@ -1522,7 +1522,7 @@ function actualizarPlazoExpress(){
   }
 }
 
-var _API='https://transmatch.transmatchcl.workers.dev';
+var _API=(localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
 function closeAllPanels(){var p=document.getElementById('notif-panel');if(p)p.style.display='none';var m=document.getElementById('user-menu');if(m)m.style.display='none';}
 function toggleUserMenu(e){if(e)e.stopPropagation();var m=document.getElementById('user-menu');var open=m&&m.style.display==='block';closeAllPanels();if(!open&&m)m.style.display='block';}
 function toggleNotifs(e){if(e)e.stopPropagation();var p=document.getElementById('notif-panel');var open=p&&p.style.display==='flex';closeAllPanels();if(!open&&p){p.style.display='flex';_cargarNotif();}}

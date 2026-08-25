@@ -1,0 +1,663 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>TransMatch — Cliente</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><style>
+ *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ body { font-family: Barlow, sans-serif; background:#ffffff; ;display:flex;flex-direction:column;min-height:100vh}
+
+ /* Pantalla de carga que bloquea TODO el contenido */
+ #auth-guard {
+ position: fixed; inset: 0; background:#ffffff;
+ display: flex; align-items: center; justify-content: center;
+ z-index: 9999;
+ }
+ .guard-inner { text-align: center; }
+ .guard-logo { display: flex; align-items: center; gap: 8px; justify-content: center; margin-bottom: 24px; }
+ .guard-icon { background: #FF8808; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #fff; font-size: 16px; }
+ .guard-name { font-size: 20px; font-weight: 700; color: #1e2d4e; }
+ .guard-name span { color: #FF8808; }
+ .spinner { width: 32px; height: 32px; border: 3px solid #E5E7EB; border-top-color: #1e2d4e; border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto; }
+ @keyframes spin { to { transform: rotate(360deg); } }
+
+ /* El resto de la página oculto hasta pasar el guard */
+ #app { display: none; }
+
+ .nav { background: #1e2d4e; padding: 0 20px; height: 52px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+ .nav-logo { display: flex; align-items: center; gap: 16px; }
+ .brand-logo { height: 30px; width: auto; display: block; }
+ .nav-icon { background: #FF8808; border-radius: 7px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #fff; font-size: 14px; }
+ .nav-name { font-weight: 700; color: #fff; font-size: 15px; text-decoration: none; }
+ .nav-name span { color: #FF8808; }
+ .nav-links { display: flex; gap: 2px; overflow-x: auto; }
+ .nav-link { padding: 6px 13px; border-radius: 6px; font-size: 13px; text-decoration: none; color: #93C5FD; white-space: nowrap; }
+ .nav-link.active, .nav-link:hover { color: #fff; background: rgba(255,255,255,.18); }
+ .nav-right { display: flex; align-items: center; gap: 10px; }
+ .nav-user { font-size: 13px; color: #fff; font-weight: 500; }
+ .nav-avatar{width:34px;height:34px;border-radius:50%;background:#FF8808;color:#fff;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+  .nav-sub { font-size: 11px; color: #93C5FD; }
+ .avatar { width: 30px; height: 30px; border-radius: 50%; background: #FF8808; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; font-size: 13px; cursor: pointer; }
+
+ main { max-width: 1200px; margin: 0 auto; padding: 24px 20px; ;flex:1}
+ .page-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+ .page-title {font-family:'Barlow Condensed',sans-serif; font-size: 20px; font-weight: 600; color: #111827; }
+ .page-sub { font-size: 14px; color: #6B7280; margin-top: 3px; }
+
+ .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+ .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 20px; }
+ @media(max-width:768px) { .grid-4 { grid-template-columns: repeat(2,1fr); } .grid-2 { grid-template-columns: 1fr; } }
+
+ .stat { background: #fff; border-radius: 10px; border: 0.5px solid #E5E7EB; padding: 16px 18px; }
+ .stat-label { font-size: 12px; color: #6B7280; margin-bottom: 6px; }
+ .stat-val {font-family:'Barlow Condensed',sans-serif; font-size: 28px; font-weight: 600; }
+ .card { background: #fff; border-radius: 10px; border: 0.5px solid #E5E7EB; margin-bottom: 14px; overflow: hidden; }
+ .card-hdr { padding: 14px 18px; border-bottom: 0.5px solid #E5E7EB; display: flex; align-items: center; justify-content: space-between; }
+ .card-title {font-family:'Barlow Condensed',sans-serif; font-size: 15px; font-weight: 500; color: #111827; }
+ .row { display: flex; align-items: center; gap: 12px; padding: 13px 18px; border-bottom: 0.5px solid #F3F4F6; cursor: pointer; }
+ .row:hover { background: #FAFAFA; }
+ .row:last-child { border-bottom: none; }
+ .row-icon { width: 36px; height: 36px; border-radius: 8px; background: #EFF6FF; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+ .row-body { flex: 1; min-width: 0; }
+ .row-name { font-size: 13px; font-weight: 500; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+ .row-meta { font-size: 11px; color: #6B7280; margin-top: 2px; }
+ .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 9px; border-radius: 999px; }
+ .badge-orange { background: #FFF7ED; color: #92400E; }
+ .badge-blue { background: #EFF6FF; color: #1e40af; }
+ .badge-green { background: #F0FDF4; color: #14532D; }
+ .badge-gray { background:#f8f9fc; color: #6B7280; border: 0.5px solid #E5E7EB; }
+ .btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: opacity .15s; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+ .btn:hover { opacity: .88; }
+ .btn-orange { background: #FF8808; color: #fff; }
+ .btn-outline { background: transparent; border: 0.5px solid #E5E7EB; color: #374151; }
+ .btn-sm { padding: 5px 12px; font-size: 12px; }
+ .alert { padding: 10px 14px; border-radius: 8px; font-size: 13px; display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+ .alert-warn { background: #FFF7ED; color: #92400E; }
+ .alert-ok { background: #F0FDF4; color: #14532D; }
+ .empty { text-align: center; padding: 40px 20px; color: #9CA3AF; }
+ .empty-icon { font-size: 36px; margin-bottom: 10px; }
+
+  
+
+  .um-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:background .15s}
+  .um-item:hover{background:#f9fafb}
+  .um-danger{color:#DC2626}
+  .um-danger:hover{background:#FEF2F2}
+
+  /* Gráficos */
+  .charts-row { display: grid; grid-template-columns: 280px 1fr; gap: 14px; margin-bottom: 20px; }
+  @media(max-width:768px){ .charts-row { grid-template-columns: 1fr; } }
+  .chart-card { background:#fff; border-radius:10px; border:0.5px solid #E5E7EB; padding:16px 18px; }
+  .chart-title { font-size:13px; font-weight:600; color:#111827; margin-bottom:4px; }
+  .chart-sub { font-size:11px; color:#9CA3AF; margin-bottom:14px; }
+  .dona-wrap { position:relative; width:140px; height:140px; margin:0 auto 14px; }
+  .dona-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
+  .dona-num { font-size:26px; font-weight:700; color:#1e2d4e; line-height:1; }
+  .dona-lbl { font-size:10px; color:#9CA3AF; margin-top:2px; }
+  .dona-legend { display:flex; flex-direction:column; gap:6px; }
+  .legend-item { display:flex; align-items:center; gap:8px; font-size:12px; color:#374151; }
+  .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .legend-val { margin-left:auto; font-weight:600; color:#111827; }
+
+  .nav-mobile-menu{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:6px;border-radius:6px;background:none;border:none;flex-shrink:0}
+  .nav-mobile-menu span{display:block;width:20px;height:2px;background:#fff;border-radius:2px}
+  .nav-mobile-panel{display:none;position:fixed;top:52px;left:0;right:0;background:#1e2d4e;z-index:999;padding:8px 16px 16px;border-bottom:0.5px solid rgba(255,255,255,.1)}
+  .nav-mobile-panel.open{display:block}
+  .nav-mobile-link{display:block;padding:10px 12px;color:#93C5FD;text-decoration:none;font-size:14px;border-radius:8px;margin-bottom:2px}
+  .nav-mobile-link:hover{background:rgba(255,255,255,.1);color:#fff}
+  @media(max-width:860px){
+    .nav-links,.nav-tabs{display:none!important}
+    .nav-mobile-menu{display:flex!important}.nav-mobile-menu{order:-1}.nav-logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}.nav-logo .brand-logo,.nav-logo>.brand-logo{height:22px}
+    .nav-user-name,.nav-userinfo,.nav-user,.nav-sub{display:none!important}.nav-avatar{width:30px;height:30px;font-size:13px}
+    .nav-icon,.nav-name{display:none!important}
+  }
+  /* TM-MOBILE-FIX */
+  @media(max-width:600px){
+    [style*="grid-template-columns:1fr 1fr"],
+    [style*="grid-template-columns:repeat(2,1fr)"],
+    [style*="grid-template-columns:repeat(2, 1fr)"],
+    [style*="grid-template-columns:repeat(3,1fr)"],
+    [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
+    body{overflow-x:hidden}
+  }
+.badge-warn{background:#FFFBEB;color:#92400E;border:1px solid #FDE68A}.badge-info{background:#EEF1F6;color:#1E2D4E;border:1px solid #C7CEDB}.badge-success{background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0}.badge-error{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA}.badge-neutral{background:#F3F4F6;color:#6B7280;border:1px solid #E5E7EB}</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script><!-- ══ AUTH GUARD — corre ANTES de mostrar nada ══════════ --></head><body><!-- Guard visible mientras se verifica auth --><div id="auth-guard"><div class="guard-inner"><div class="guard-logo"><svg style="height:32px;width:auto;display:block" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#1E2D4E"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#1E2D4E"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#1E2D4E"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg></div><div class="spinner"></div></div></div><!-- App — oculta hasta pasar el guard --><div id="app"><!-- Navbar --><nav class="nav"><div class="nav-logo"><a href="/cliente.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;"><svg class="brand-logo" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg></a><div class="nav-links"><a href="/cliente.html" class="nav-link active">Inicio</a><a href="/cliente-licitaciones.html" class="nav-link">Licitaciones</a><a href="/cliente-retornos.html" id="nav-retornos" class="nav-link">Retornos</a><a href="/cliente-transporte.html" class="nav-link">Transportes</a><a href="/cliente-facturacion.html" class="nav-link">Facturacion</a><a href="/cliente-calendario.html" class="nav-link">Calendario</a></div></div><div class="nav-right"><div style="display:flex;align-items:center;gap:12px;"><div class="nav-userinfo" style="text-align:right"><div class="nav-user" id="nav-nombre">—</div><div class="nav-sub" id="nav-empresa">—</div></div><div style="display:flex;align-items:center;gap:8px;"><div id="notif-btn" onclick="toggleNotifs(event)" style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;"></span></div><div style="position:relative"><div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div><div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:220px;z-index:999;overflow:hidden"><div style="padding:14px 16px;border-bottom:1px solid #f3f4f6"><div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div><div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div></div><a href="/cliente-perfil.html" class="um-item">Configuracion</a><a href="/ayuda.html" class="um-item">Ayuda</a><a href="/landing-servicios.html" class="um-item">Planes y precios</a><div style="border-top:1px solid #f3f4f6"><button onclick="cerrarSesion()" class="um-item um-danger">Cerrar sesion</button></div></div></div></div><!-- Panel notificaciónes --><div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:320px;background:#fff;border-radius:12px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.12);z-index:9000;max-height:440px;overflow:hidden;flex-direction:column;"><div style="padding:12px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:8px"><span style="font-size:14px;font-weight:600;color:#111827">Notificaciónes</span><button onclick="event.stopPropagation();marcarTodasLeidas()" style="font-size:11px;color:#1e2d4e;background:none;border:none;cursor:pointer;white-space:nowrap;flex-shrink:0">Marcar todas leídas</button></div><div id="notif-list" style="overflow-y:auto;max-height:380px;"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div></div></div></div>
+    <button class="nav-mobile-menu" onclick="toggleMobileNav()" aria-label="Menu"><span></span><span></span><span></span></button>
+  </nav>
+<div id="nav-mobile-panel" class="nav-mobile-panel">
+<a href="/cliente.html" class="nav-mobile-link">Inicio</a>
+<a href="/cliente-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
+<a href="/cliente-retornos.html" class="nav-mobile-link">Retornos</a>
+<a href="/cliente-transporte.html" class="nav-mobile-link">Transportes</a>
+<a href="/cliente-facturacion.html" class="nav-mobile-link">Facturación</a>
+<a href="/cliente-calendario.html" class="nav-mobile-link">Calendario</a>
+</div><main>
+  <!-- Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+    <div>
+      <div style="font-size:20px;font-weight:700;color:#1e2d4e" id="bienvenida">Bienvenido</div>
+      <div style="font-size:13px;color:#6B7280;margin-top:2px">Resumen de tu actividad</div>
+    </div>
+    <div style="display:flex;gap:10px"><a href="/cliente-retornos.html" class="btn" id="btn-retornos" style="background:#1e2d4e;color:#fff;border:none">Retornos disponibles</a><a href="/cliente-nueva.html" class="btn btn-orange">+ Nueva licitacion</a></div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="grid-4" style="margin-bottom:20px">
+    <div class="stat">
+      <div class="stat-label">Licitaciónes activas</div>
+      <div id="kpi-abiertas" class="stat-val" style="color:#FF8808">—</div>
+      <div style="font-size:12px;color:#9CA3AF;margin-top:3px">Abiertas y en revisión</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Licitaciones adjudicadas</div>
+      <div id="kpi-completadas" class="stat-val" style="color:#1ED24E">—</div>
+      <div style="font-size:12px;color:#9CA3AF;margin-top:3px">Total histórico</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Tasa de adjudicación</div>
+      <div id="kpi-tasa" class="stat-val" style="color:#1e2d4e">—</div>
+      <div style="font-size:12px;color:#9CA3AF;margin-top:3px">Licitaciones que resultaron en flete</div>
+    </div>
+  </div>
+
+  <!-- Fila superior: Dona + Acciones + Retornos -->
+  <div class="dash-3col" style="display:grid;grid-template-columns:1fr 1.5fr;gap:14px;margin-bottom:14px">
+
+    <!-- Dona: Estado de licitaciones -->
+    <div class="chart-card" style="margin:0">
+      <div class="chart-title">Estado de licitaciones</div>
+      <div class="chart-sub">Distribución actual de tus procesos</div>
+      <div class="dona-wrap">
+        <canvas id="chart-dona"></canvas>
+        <div class="dona-center">
+          <div class="dona-num" id="dona-total">—</div>
+          <div class="dona-lbl">Total</div>
+        </div>
+      </div>
+      <div class="dona-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#FF8808"></div>Abiertas<span class="legend-val" id="leg-abiertas">—</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1d4ed8"></div>Con cotizaciones<span class="legend-val" id="leg-cerradas">—</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1ED24E"></div>Adjudicadas<span class="legend-val" id="leg-adjudicadas">—</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#6B7280"></div>En revisión<span class="legend-val" id="leg-revision">—</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#E5E7EB"></div>Completadas<span class="legend-val" id="leg-completadas">—</span></div>
+      </div>
+    </div>
+
+    <!-- Acciones pendientes -->
+    <div class="card" id="card-acciones" style="margin:0">
+      <div class="card-hdr"><span class="card-title">Próximos pasos</span></div>
+      <div id="lista-acciones">
+        <div class="empty"><div class="spinner" style="width:22px;height:22px;border-width:2px;margin:0 auto"></div></div>
+      </div>
+    </div>
+
+    <!-- Retornos disponibles (movido al header) -->
+    <div style="display:none">
+      <div id="retornos-banner" style="display:none">
+        <div id="retornos-count"></div>
+        <a id="link-retornos" href="/cliente-retornos.html" style="display:none">Ver retornos</a>
+      </div>
+      <!-- Transportes activos -->
+      <div class="card" id="card-transportes" style="display:none">
+        <div class="card-hdr">
+          <span class="card-title">Transportes en curso</span>
+          <a href="/cliente-transporte.html" style="font-size:13px;color:#1d4ed8;text-decoration:none">Ver todos</a>
+        </div>
+        <div id="lista-transportes"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Línea: Actividad mensual — full width -->
+  <div class="chart-card" style="margin-bottom:14px">
+    <div class="chart-title">Actividad mensual</div>
+    <div class="chart-sub">Licitaciones publicadas en los últimos 6 meses</div>
+    <canvas id="chart-linea" style="max-height:200px"></canvas>
+  </div>
+
+  <!-- Mis licitaciones recientes -->
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-title">Mis licitaciónes</span>
+      <a href="/cliente-licitaciones.html" style="font-size:13px;color:#1d4ed8;text-decoration:none">Ver todas</a>
+    </div>
+    <div id="lista-licitaciones">
+      <div class="empty"><div class="spinner" style="width:22px;height:22px;border-width:2px;margin:0 auto"></div></div>
+    </div>
+  </div>
+</main></div><script>
+  var API = 'https://transmatch.transmatchcl.workers.dev';
+
+  function logout(){ localStorage.clear(); window.location.replace('/index.html'); }
+  function peso(n){ return n ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '$0'; }
+  function desde(iso){ if(!iso) return ''; var d=Math.floor((Date.now()-new Date(iso))/86400000); return d===0?'hoy':d===1?'hace 1d':'hace '+d+'d'; }
+  function fechaStr(iso){ return iso ? new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}) : '--'; }
+
+  async function apiCall(path){
+    try {
+      var res = await fetch(API+path, {headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+      if(res.status===401){ logout(); return null; }
+      return res.ok ? await res.json() : null;
+    } catch(e){ return null; }
+  }
+
+  function makeRow(href, html){
+    var onclick = href ? ' onclick="window.location.href=\'' + href + '\'"' : '';
+    return '<div style="display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:0.5px solid #f3f4f6;cursor:pointer"'
+      + onclick
+      + ' onmouseover="this.style.background=\'#f5f7fb\'" onmouseout="this.style.background=\'\'">'
+      + html + '</div>';
+  }
+
+  function initApp(){
+    var nombre  = localStorage.getItem('tm_nombre') || '';
+    var empresa = localStorage.getItem('tm_empresa') || '';
+    var plan    = localStorage.getItem('tm_plan') || 'basico';
+
+    document.getElementById('bienvenida').textContent = 'Bienvenido/a, ' + (nombre||empresa);
+    var navN = document.getElementById('nav-nombre');
+    var navE = document.getElementById('nav-empresa');
+    if(navN) navN.textContent = nombre;
+    if(navE) navE.textContent = empresa;
+    document.getElementById('nav-avatar').textContent = (nombre[0]||'?').toUpperCase();
+
+    var planLabel = {basico:'Plan Básico', pro:'Plan Pro', enterprise:'Enterprise'}[plan] || plan;
+    var planColor = {basico:'#6B7280', pro:'#1e2d4e', enterprise:'#92400E'}[plan] || '#6B7280';
+
+    var retBanner = document.getElementById('retornos-banner');
+    var retCount = document.getElementById('retornos-count');
+    if(['pro','enterprise'].includes(plan)){
+      var lr = document.getElementById('link-retornos');
+      if(lr) lr.style.display = 'inline-block';
+      cargarRetornos();
+    } else {
+      if(retCount) retCount.textContent = 'Disponible en Plan Pro o Enterprise';
+    }
+    cargarDashboard();
+  }
+
+  async function cargarDashboard(){
+    // Disparar ambas cargas en paralelo (son independientes)
+    var _pLic = apiCall('/api/licitaciones');
+    var _pTra = apiCall('/api/transportes');
+    var data = await _pLic;
+    if(!data){
+      var els = ['lista-acciones','lista-licitaciones','lista-notifs'];
+      els.forEach(function(id){
+        var el = document.getElementById(id);
+        if(el) el.innerHTML = '<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Sin datos disponibles</div>';
+      });
+      ['kpi-abiertas','kpi-completadas'].forEach(function(id){
+        var el = document.getElementById(id);
+        if(el) el.textContent = '0';
+      });
+      return;
+    }
+    var licitaciones = data.licitaciones || [];
+
+    // Estado real de cada transporte (para distinguir "en curso" de ya entregado/completado)
+    var transPorLic = {};
+    try {
+      var dataT = await _pTra;
+      (((dataT && dataT.transportes) || [])).forEach(function(t){ if(t.licitacionId) transPorLic[t.licitacionId] = t; });
+    } catch(e){}
+    function transporteEnCurso(l){
+      var t = transPorLic[l.id];
+      if(!t) return true; // recién adjudicada, transporte aún sin avanzar
+      return t.estado !== 'entregado' && t.estado !== 'completado' && !t.factura;
+    }
+
+    var activas     = licitaciones.filter(function(l){ return l.estado==='abierta'||l.estado==='cerrada'; });
+    var completadas = licitaciones.filter(function(l){ return l.estado==='completada'; });
+    var adjudicadas = licitaciones.filter(function(l){ return l.estado==='adjudicada'; });
+    var conCotiz    = licitaciones.filter(function(l){ return l.estado==='cerrada'; });
+
+    var elA=document.getElementById('kpi-abiertas');     if(elA) elA.textContent=activas.length;
+    var elT=document.getElementById('kpi-completadas');  if(elT) elT.textContent=(adjudicadas.length+completadas.length);
+    var totalFinalizadas = licitaciones.filter(function(l){ return ['adjudicada','completada','rechazada'].includes(l.estado); }).length;
+    var tasaNum = totalFinalizadas > 0 ? Math.round((adjudicadas.length+completadas.length) / totalFinalizadas * 100) : 0;
+    var elTasa = document.getElementById('kpi-tasa');
+    if(elTasa){ elTasa.textContent = tasaNum + '%'; elTasa.style.color = tasaNum >= 60 ? '#1ED24E' : tasaNum >= 30 ? '#FF8808' : '#EF4444'; }
+
+    renderGraficos(licitaciones);
+
+    // Acciones pendientes
+    var acciones = [];
+    conCotiz.forEach(function(l){
+      acciones.push({ color:'#FF8808', titulo:'Cotizaciones listas para revisar', sub: l.tipoEquipo+(l.marca?' \u2014 '+l.marca:'')+' \u00b7 '+l.origen+' \u2192 '+l.destino, href:'/cliente-licitaciones.html?id='+l.id });
+    });
+    adjudicadas.filter(transporteEnCurso).forEach(function(l){
+      acciones.push({ color:'#1e2d4e', titulo:'Transporte en curso', sub: l.tipoEquipo+' \u00b7 '+l.origen+' \u2192 '+l.destino+(l.adjudicadaA?' \u00b7 '+peso(l.adjudicadaA.precio):''), href:'/cliente-transporte.html' });
+    });
+    licitaciones.filter(function(l){ return l.estado==='pendiente_admin'; }).forEach(function(l){
+      acciones.push({ color:'#6B7280', titulo:'Licitacion en revisión por TransMatch', sub: l.tipoEquipo+' \u00b7 publicada '+desde(l.createdAt), href:'/cliente-licitaciones.html?id='+l.id });
+    });
+
+    var elAcc = document.getElementById('lista-acciones');
+    if(acciones.length===0){
+      elAcc.innerHTML = '<div style="padding:20px 18px;font-size:13px;color:#9CA3AF;text-align:center">Sin acciones pendientes</div>';
+    } else {
+      elAcc.innerHTML = acciones.map(function(a){
+        var inner = '<div style="width:8px;height:8px;border-radius:50%;background:'+a.color+';flex-shrink:0"></div>'
+          + '<div style="flex:1;min-width:0">'
+          + '<div style="font-size:13px;font-weight:600;color:'+a.color+'">'+a.titulo+'</div>'
+          + '<div style="font-size:11px;color:#9CA3AF;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.sub+'</div>'
+          + '</div>'
+          + '<div style="font-size:18px;color:#e8eaf0">\u203a</div>';
+        return makeRow(a.href, inner);
+      }).join('');
+    }
+
+    // Lista licitaciones
+    var badgeMap = {pendiente_admin:'badge-warn',abierta:'badge-warn',cerrada:'badge-info',adjudicada:'badge-success',completada:'badge-success',rechazada:'badge-error',anulada:'badge-error'};
+    var labelMap = {pendiente_admin:'En revisión',abierta:'Abierta',cerrada:'Con cotizaciones',adjudicada:'Adjudicada',completada:'Completada',rechazada:'Rechazada',anulada:'Anulada'};
+    var elList = document.getElementById('lista-licitaciones');
+    if(licitaciones.length===0){
+      elList.innerHTML = '<div style="padding:32px;text-align:center;color:#9CA3AF;font-size:13px">Aun no tienes licitaciones<br><a href="/cliente-nueva.html" style="color:#FF8808;font-weight:500">Publicar la primera</a></div>';
+    } else {
+      elList.innerHTML = licitaciones.slice(0,5).map(function(l){
+        var nC = (l.cotizaciones||[]).length;
+        var codTag = '<div style="font-size:10px;font-weight:700;font-family:IBM Plex Mono,monospace;background:#eef1f8;color:#1e2d4e;padding:3px 7px;border-radius:5px;flex-shrink:0;white-space:nowrap;align-self:center">'+(l.codigo||l.codigo||'LIC')+'</div>';
+        var inner = codTag
+          + '<div style="flex:1;min-width:0">'
+          + '<div style="font-size:13px;font-weight:600;color:#1e2d4e">'+l.tipoEquipo+(l.marca?' \u2014 '+l.marca:'')+'</div>'
+          + '<div style="font-size:11px;color:#9CA3AF;margin-top:2px">'+l.origen+' \u2192 '+l.destino+' \u00b7 '+desde(l.createdAt)+'</div>'
+          + '</div>'
+          + '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'
+          + (nC>0 ? '<span style="font-size:11px;color:#FF8808;font-weight:500">'+nC+' cotiz.</span>' : '')
+          + '<span class="badge '+(badgeMap[l.estado]||'badge-gray')+'">'+(labelMap[l.estado]||'\u2014')+'</span>'
+          + '</div>';
+        return '<div style="display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:0.5px solid #f3f4f6;cursor:pointer" onclick="window.location.href=\'/cliente-licitaciones.html?id='+l.id+'\';" onmouseover="this.style.background=\'#f5f7fb\'" onmouseout="this.style.background=\'\'">'+inner+'</div>';
+      }).join('');
+    }
+
+    // Transportes en curso
+    var transEnCurso = adjudicadas.filter(transporteEnCurso);
+    if(transEnCurso.length>0){
+      document.getElementById('card-transportes').style.display = 'block';
+      document.getElementById('lista-transportes').innerHTML = transEnCurso.map(function(l){
+        var inner = '<div style="width:10px;height:10px;border-radius:50%;background:#FF8808;flex-shrink:0"></div>'
+          + '<div style="flex:1">'
+          + '<div style="font-size:13px;font-weight:500;color:#1e2d4e">'+l.tipoEquipo+(l.marca?' \u2014 '+l.marca:'')+'</div>'
+          + '<div style="font-size:11px;color:#9CA3AF;margin-top:2px">'+l.origen+' \u2192 '+l.destino+(l.adjudicadaA?' \u00b7 '+peso(l.adjudicadaA.precio):'')+'</div>'
+          + '</div>'
+          + '<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#FFF7ED;color:#92400E">En curso</span>';
+        return makeRow('/cliente-transporte.html', inner);
+      }).join('');
+    }
+
+  }
+
+  var _chartDona = null;
+  var _chartLinea = null;
+
+  function renderGraficos(licitaciones) {
+    // ── Datos dona ──────────────────────────────────────────
+    var nAbiertas    = licitaciones.filter(function(l){ return l.estado==='abierta'; }).length;
+    var nCerradas    = licitaciones.filter(function(l){ return l.estado==='cerrada'; }).length;
+    var nAdjudicadas = licitaciones.filter(function(l){ return l.estado==='adjudicada'; }).length;
+    var nRevision    = licitaciones.filter(function(l){ return l.estado==='pendiente_admin'; }).length;
+    var nCompletadas = licitaciones.filter(function(l){ return l.estado==='completada'; }).length;
+    var total = licitaciones.length;
+
+    document.getElementById('dona-total').textContent  = total;
+    document.getElementById('leg-abiertas').textContent    = nAbiertas;
+    document.getElementById('leg-cerradas').textContent    = nCerradas;
+    document.getElementById('leg-adjudicadas').textContent = nAdjudicadas;
+    document.getElementById('leg-revision').textContent    = nRevision;
+    document.getElementById('leg-completadas').textContent = nCompletadas;
+
+    var donaCtx = document.getElementById('chart-dona').getContext('2d');
+    if(_chartDona) _chartDona.destroy();
+    _chartDona = new Chart(donaCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Abiertas','Con cotizaciones','Adjudicadas','En revisión','Completadas'],
+        datasets:[{
+          data: [nAbiertas, nCerradas, nAdjudicadas, nRevision, nCompletadas],
+          backgroundColor: ['#FF8808','#1d4ed8','#1ED24E','#6B7280','#E5E7EB'],
+          borderWidth: 2,
+          borderColor: '#fff',
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        cutout: '70%',
+        plugins: { legend:{ display:false }, tooltip:{
+          callbacks:{ label: function(ctx){ return ' '+ctx.label+': '+ctx.raw; } }
+        }},
+        animation: { animateScale: true }
+      }
+    });
+
+    // ── Datos línea (últimos 6 meses) ────────────────────────
+    var meses = [];
+    var conteos = [];
+    var ahora = new Date();
+    for(var i = 5; i >= 0; i--){
+      var d = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1);
+      var yr = d.getFullYear();
+      var mo = d.getMonth();
+      meses.push(d.toLocaleDateString('es-CL', { month:'short', year:'2-digit' }));
+      conteos.push(licitaciones.filter(function(l){
+        var f = new Date(l.createdAt);
+        return f.getFullYear()===yr && f.getMonth()===mo;
+      }).length);
+    }
+
+    var lineaCtx = document.getElementById('chart-linea').getContext('2d');
+    if(_chartLinea) _chartLinea.destroy();
+
+    // Gradiente de relleno
+    var grad = lineaCtx.createLinearGradient(0, 0, 0, 180);
+    grad.addColorStop(0, 'rgba(255,136,8,0.18)');
+    grad.addColorStop(1, 'rgba(255,136,8,0)');
+
+    _chartLinea = new Chart(lineaCtx, {
+      type: 'line',
+      data: {
+        labels: meses,
+        datasets:[{
+          label: 'Licitaciones',
+          data: conteos,
+          borderColor: '#FF8808',
+          backgroundColor: grad,
+          borderWidth: 2.5,
+          pointBackgroundColor: '#FF8808',
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          tension: 0.35,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: { label: function(ctx){ return ' '+ctx.raw+' licitaciones'; } }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize:1, font:{ size:11 }, color:'#9CA3AF' },
+            grid: { color:'#f3f4f6' }
+          },
+          x: {
+            ticks: { font:{ size:11 }, color:'#9CA3AF' },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  }
+
+  async function cargarRetornos(){
+    var data = await apiCall('/api/retornos');
+    if(!data) return;
+    var ret = (data.retornos||[]).filter(function(r){ return r.estado==='disponible'; });
+    var el = document.getElementById('retornos-count');
+    if(el) el.textContent = ret.length + ' retorno'+(ret.length!==1?'s':'')+' disponible'+(ret.length!==1?'s':'')+' cerca de tu ruta';
+  }
+
+  async function cargarNotificaciones(){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var r = await fetch(API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+      var data = r.ok ? await r.json() : {};
+      var notifs = data.notificaciones || [];
+      var noLeidas = notifs.filter(function(n){ return !n.leida; }).length;
+      var badge = document.getElementById('notif-count');
+      if(badge){ badge.style.display = noLeidas>0 ? 'flex' : 'none'; badge.textContent = noLeidas; }
+      var list = document.getElementById('notif-list');
+      if(!list) return;
+      if(!notifs.length){ list.innerHTML='<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Sin notificaciones</div>'; return; }
+      var iconMap = { licitacion_aprobada:'✅', licitacion_rechazada:'❌', cotizaciones_disponibles:'🎯', cuenta_aprobada:'✅', cobro_pendiente:'💰', cobro_pagado:'✅', adjudicacion:'🏆', licitacion_cerrada:'📋' };
+      list.innerHTML = notifs.slice(0,20).map(function(n){
+        var icono = iconMap[n.tipo] || '🔔';
+        var bg = !n.leida ? 'background:#f0f4ff' : '';
+        var ts = n.createdAt ? new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+        return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'+
+          '<div style="font-size:18px;flex-shrink:0;margin-top:1px">'+icono+'</div>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4;word-break:break-word">'+n.mensaje+'</div>'+
+            '<div style="font-size:11px;color:#9CA3AF">'+ts+'</div>'+
+          '</div>'+
+          (!n.leida ? '<button onclick="event.stopPropagation();marcarUnaLeida(this.dataset.nid)" data-nid="'+n.id+'" title="Marcar como leída" style="background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0;margin-top:2px;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">✓</button>' : '')+
+        '</div>';
+      }).join('');
+    } catch(e){}
+  }
+
+  async function marcarTodasLeidas(){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var r = await fetch(API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+      var data = r.ok ? await r.json() : {};
+      var notifs = (data.notificaciones||[]).filter(function(n){ return !n.leida; });
+      for(var i=0;i<notifs.length;i++){
+        await fetch(API+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:notifs[i].id})});
+      }
+      var badge = document.getElementById('notif-count');
+      if(badge) badge.style.display='none';
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+  async function marcarUnaLeida(id){
+    try {
+      var token = localStorage.getItem('tm_token');
+      await fetch(API+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:id})});
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+  
+
+
+  (function(){
+    var token = localStorage.getItem('tm_token');
+    var role  = localStorage.getItem('tm_role');
+    if(!token){ window.location.replace('/index.html'); return; }
+    if(role==='admin'){ window.location.replace('/admin.html'); return; }
+    if(role==='transportista'){ window.location.replace('/transportista.html'); return; }
+    document.getElementById('auth-guard').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';document.getElementById('app').style.flexDirection='column';document.getElementById('app').style.minHeight='100vh';
+      cargarNotificaciones();
+    initApp();
+  })();
+
+    function closeAllPanels(){
+    var m=document.getElementById('user-menu');
+    var p=document.getElementById('notif-panel');
+    if(m) m.style.display='none';
+    if(p) p.style.display='none';
+  }
+  function toggleUserMenu(e){
+    e.stopPropagation();
+    var m=document.getElementById('user-menu');
+    var isOpen=m.style.display==='block';
+    closeAllPanels();
+    if(!isOpen) m.style.display='block';
+  }
+  function toggleNotifs(e){
+    if(e) e.stopPropagation();
+    var p=document.getElementById('notif-panel');
+    var isOpen=p.style.display==='flex';
+    closeAllPanels();
+    if(!isOpen){ p.style.display='flex'; cargarNotificaciones(); }
+  }
+  document.addEventListener('click',function(){ closeAllPanels(); });
+  function cerrarSesion(){localStorage.clear();window.location.replace('/index.html');}
+  (function(){
+    var n  = localStorage.getItem('tm_nombre')  || '';
+    var em = localStorage.getItem('tm_empresa') || '';
+    var nn = document.getElementById('nav-nombre');
+    var ns = document.getElementById('nav-empresa');
+    var av = document.getElementById('nav-avatar');
+    var un = document.getElementById('um-nombre');
+    var ue = document.getElementById('um-empresa');
+    if(nn) nn.textContent = n;
+    if(ns) ns.textContent = em;
+    if(av && n) av.textContent = n[0].toUpperCase();
+    if(un) un.textContent = n;
+    if(ue) ue.textContent = em;
+  })();
+</script>
+<footer style="background:#1e2d4e;margin-top:40px;padding:28px 24px 20px">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <svg style="height:28px;width:auto;display:block" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg>
+      </div>
+      <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+    </div>
+    <div style="display:flex;gap:32px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <a href="/terminos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Términos y condiciones</a>
+          <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Política de privacidad</a>
+          <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Centro de ayuda</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span>
+          <span style="font-size:13px;color:#CBD5E1">+56 9 6908 1098</span><span style="font-size:13px;color:#CBD5E1">Av. La Dehesa 1201</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B">
+    © 2026 TransMatch SpA.
+  </div>
+</footer>
+<script>
+function toggleMobileNav(){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p) p.classList.toggle('open');
+}
+document.addEventListener('click',function(e){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.nav-mobile-menu'))
+    p.classList.remove('open');
+});
+</script>
+</body></html>

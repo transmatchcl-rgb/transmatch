@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch — Mis transportes</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Barlow,sans-serif;background:#f5f7fb;min-height:100vh;display:flex;flex-direction:column}
+  #auth-guard{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:9999}
+  .spinner{width:32px;height:32px;border:3px solid #e8eaf0;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #app{display:none}#app.shown{display:flex;flex-direction:column;min-height:100vh}
+  .nav{background:#1e2d4e;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .nav-left{display:flex;align-items:center;gap:16px}
+  .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+  .brand-logo{height:28px;width:auto;display:block}
+  .nav-icon{background:#FF8808;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+  .nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#FF8808}
+  .nav-links{display:flex;gap:2px}
+  .nav-link{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+  .nav-link:hover,.nav-link.active{color:#fff;background:rgba(255,255,255,.12)}
+  .nav-avatar{width:30px;height:30px;border-radius:50%;background:#FF8808;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;cursor:pointer}
+  main{max-width:960px;margin:0 auto;padding:24px 20px;flex:1}
+  .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+  .hdr-title{font-size:20px;font-weight:700;color:#1e2d4e}
+  .hdr-sub{font-size:13px;color:#6B7280;margin-top:2px}
+  /* FILTROS */
+  .filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .fil-btn{padding:6px 16px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e8eaf0;background:#fff;color:#6B7280;transition:all .15s;font-family:inherit}
+  .fil-btn.active{background:#1e2d4e;color:#fff;border-color:#1e2d4e}
+  /* CARD */
+  .trn-card{background:#fff;border-radius:12px;border:1px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);margin-bottom:12px;overflow:hidden}
+  .trn-hdr{padding:16px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none}
+  .trn-hdr:hover{background:#f5f7fb}
+  .trn-código{font-size:10px;font-weight:700;font-family:IBM Plex Mono,monospace;background:#eef1f8;color:#1e2d4e;padding:2px 8px;border-radius:4px;flex-shrink:0}
+  .trn-info{flex:1;min-width:0}
+  .trn-title{font-size:14px;font-weight:600;color:#1e2d4e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .trn-meta{font-size:11px;color:#6B7280;margin-top:2px}
+  .badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px}
+  .s-preparacion{background:#FEF9C3;color:#854D0E}
+  .s-en_ruta{background:#DBEAFE;color:#1e40af}
+  .s-carga_recogida{background:#EDE9FE;color:#5B21B6}
+  .s-en_destino{background:#FFF7ED;color:#92400E}
+  .s-entregado{background:#F0FDF4;color:#14532D}
+  .arr{font-size:16px;color:#9CA3AF;transition:transform .2s;flex-shrink:0}
+  /* DETALLE */
+  .trn-body{display:none;border-top:1px solid #f3f4f6;padding:20px}
+  .trn-body.open{display:block}
+  /* TIMELINE */
+  .tl-wrap{margin-bottom:20px}
+  .tl-title{font-size:12px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px}
+  .tl-steps{display:flex;align-items:flex-start;position:relative}
+  .tl-step{flex:1;text-align:center;position:relative}
+  .tl-step::before{content:'';position:absolute;top:13px;left:-50%;right:50%;height:2px;background:#e8eaf0;z-index:0}
+  .tl-step:first-child::before{display:none}
+  .tl-step.done::before,.tl-step.active::before{background:#1e2d4e}
+  .tl-dot{width:28px;height:28px;border-radius:50%;background:#e8eaf0;display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-size:13px;position:relative;z-index:1;transition:all .2s}
+  .tl-step.done .tl-dot{background:#1e2d4e;color:#fff}
+  .tl-step.active .tl-dot{background:#FF8808;color:#fff;box-shadow:0 0 0 4px rgba(255,136,8,.2)}
+  .tl-label{font-size:10px;color:#9CA3AF;font-weight:500;line-height:1.3}
+  .tl-step.done .tl-label,.tl-step.active .tl-label{color:#1e2d4e;font-weight:600}
+  /* ACTUALIZAR ESTADO */
+  .estado-form{background:#f8f9fc;border-radius:10px;padding:16px;margin-bottom:16px}
+  .estado-subtitle{font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:10px}
+  .sig-estado{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .nota-inp{flex:1;min-width:180px;padding:8px 12px;border:1px solid #e8eaf0;border-radius:7px;font-size:13px;font-family:inherit}
+  .nota-inp:focus{outline:none;border-color:#1e2d4e}
+  .btn{padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s}
+  .btn:hover{opacity:.88}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn-primary{background:#1e2d4e;color:#fff}
+  .btn-orange{background:#FF8808;color:#fff}
+  .btn-green{background:#1E2D4E;color:#fff}
+  .btn-outline{background:#fff;border:1px solid #e8eaf0;color:#374151}
+  .btn-sm{padding:6px 14px;font-size:12px}
+  /* DOCS */
+  .doc-card{border:1px solid #e8eaf0;border-radius:10px;padding:14px 16px;margin-bottom:10px}
+  .doc-title{font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:6px}
+  .doc-ok{background:#F0FDF4;border-radius:7px;padding:8px 12px;font-size:12px;color:#14532D;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .doc-pending{background:#FFF7ED;border-radius:7px;padding:8px 12px;font-size:12px;color:#92400E}
+  .doc-wait{background:#f8f9fc;border-radius:7px;padding:8px 12px;font-size:12px;color:#9CA3AF}
+  /* HISTORIAL */
+  .hist-list{margin-top:4px}
+  .hist-item{display:flex;gap:10px;padding:6px 0;border-bottom:0.5px solid #f3f4f6}
+  .hist-item:last-child{border-bottom:none}
+  .hist-dot{width:8px;height:8px;border-radius:50%;background:#1e2d4e;margin-top:4px;flex-shrink:0}
+  .hist-text{font-size:12px;color:#374151}
+  .hist-date{font-size:11px;color:#9CA3AF}
+  .empty{text-align:center;padding:48px;color:#9CA3AF;font-size:13px}
+  #toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none}
+
+  .nav-mobile-menu{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:6px;border-radius:6px;background:none;border:none;flex-shrink:0}
+  .nav-mobile-menu span{display:block;width:20px;height:2px;background:#fff;border-radius:2px}
+  .nav-mobile-panel{display:none;position:fixed;top:52px;left:0;right:0;background:#1e2d4e;z-index:999;padding:8px 16px 16px;border-bottom:0.5px solid rgba(255,255,255,.1)}
+  .nav-mobile-panel.open{display:block}
+  .nav-mobile-link{display:block;padding:10px 12px;color:#93C5FD;text-decoration:none;font-size:14px;border-radius:8px;margin-bottom:2px}
+  .nav-mobile-link:hover{background:rgba(255,255,255,.1);color:#fff}
+  @media(max-width:860px){
+    .nav-links,.nav-tabs{display:none!important}
+    .nav-mobile-menu{display:flex!important}.nav-mobile-menu{order:-1}.nav-logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}.nav-logo .brand-logo,.nav-logo>.brand-logo{height:22px}
+    .nav-user-name,.nav-userinfo{display:none!important}
+    .nav-icon,.nav-name{display:none!important}
+  }
+  /* TM-MOBILE-FIX */
+  @media(max-width:600px){
+    [style*="grid-template-columns:1fr 1fr"],
+    [style*="grid-template-columns:repeat(2,1fr)"],
+    [style*="grid-template-columns:repeat(2, 1fr)"],
+    [style*="grid-template-columns:repeat(3,1fr)"],
+    [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
+    body{overflow-x:hidden}
+  }
+</style>
+</head>
+<body>
+
+<div id="auth-guard">
+  <div style="text-align:center">
+    <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:20px">
+      <svg style="height:32px;width:auto;display:block" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg>
+    </div>
+    <div class="spinner" style="margin:0 auto"></div>
+  </div>
+</div>
+
+<div id="app">
+  <nav class="nav">
+    <div class="nav-left">
+      <a href="/transportista.html" class="nav-logo"><svg class="brand-logo" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg></a>
+      <button class="nav-mobile-menu" onclick="toggleMobileNav()" aria-label="Menu"><span></span><span></span><span></span></button><div class="nav-links"><a href="/transportista.html" class="nav-link">Inicio</a><a href="/transportista-retornos.html" class="nav-link">Retornos</a><a href="/transportista-licitaciones.html" class="nav-link">Licitaciones</a><a href="/transportista-transporte.html" class="nav-link active">Transportes</a><a href="/transportista-cobros.html" class="nav-link">Facturacion</a><a href="/transportista-calendario.html" class="nav-link">Calendario</a><a href="/transportista-historial.html" class="nav-link">Historial</a></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;"><div class="nav-user-name" style="text-align:right"><div style="font-size:13px;color:#fff;font-weight:500" id="nav-nombre">--</div><div style="font-size:11px;color:#93C5FD" id="nav-empresa">--</div></div><div style="display:flex;align-items:center;gap:8px;"><div style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;" id="notif-btn" onclick="toggleNotifs(event)">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+  <span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;"></span>
+</div>
+<div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)" style="cursor:pointer">?</div>
+<div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:240px;z-index:999;overflow:hidden">
+  <div style="padding:14px 16px;border-bottom:1px solid #f3f4f6">
+    <div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div>
+    <div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div>
+  </div>
+  <a href="/transportista-perfil.html" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Mi perfil y equipos
+  </a>
+  <a href="/transportista-historial.html" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4.5"/><polyline points="3 3 3 9 9 9"/></svg>
+    Historial
+  </a>
+  <a href="/ayuda.html" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    Ayuda
+  </a>
+  <div style="border-top:1px solid #f3f4f6">
+    <button onclick="localStorage.clear();window.location.replace('/index.html')" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#DC2626;background:none;border:none;cursor:pointer;width:100%;font-family:inherit" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background=''">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Cerrar sesión
+    </button>
+  </div>
+</div>
+</div>
+  </nav>
+<div id="nav-mobile-panel" class="nav-mobile-panel">
+<a href="/transportista.html" class="nav-mobile-link">Inicio</a>
+<a href="/transportista-retornos.html" class="nav-mobile-link">Retornos</a>
+<a href="/transportista-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
+<a href="/transportista-transporte.html" class="nav-mobile-link">Transportes</a>
+<a href="/transportista-cobros.html" class="nav-mobile-link">Facturacion</a>
+<a href="/transportista-calendario.html" class="nav-mobile-link">Calendario</a>
+<a href="/transportista-historial.html" class="nav-mobile-link">Historial</a>
+</div>
+
+<div id="notif-panel" onclick="event.stopPropagation()" style="display:none;position:fixed;top:60px;right:16px;width:360px;background:#fff;border-radius:14px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.14);z-index:500;overflow:hidden;max-height:520px;flex-direction:column">
+  <!-- Header dinámico: cambia entre "Notificaciones" y "← Configuración" -->
+  <div id="notif-header-main" style="padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <span style="font-size:14px;font-weight:700;color:#1e2d4e">Notificaciones</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button onclick="event.stopPropagation();marcarTodasLeidas()" style="font-size:11px;color:#6B7280;background:none;border:none;cursor:pointer;padding:3px 6px;border-radius:5px" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">Marcar leídas</button>
+      <button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;color:#6B7280" title="Configurar notificaciones" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="notif-header-config" style="display:none;padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:none;align-items:center;gap:10px;flex-shrink:0">
+    <button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;color:#1e2d4e;font-size:13px;font-weight:500;padding:4px 8px;border-radius:6px" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Volver
+    </button>
+    <span style="font-size:14px;font-weight:700;color:#1e2d4e">Configuración</span>
+  </div>
+  <div id="notif-config" style="display:none;border-bottom:0.5px solid #E5E7EB;background:#f8f9fc;flex-shrink:0">
+    <div style="padding:14px 16px">
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Canal de notificaciones</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:13px;color:#374151">Por email</span><input type="checkbox" id="notif-email-chk" onchange="guardarPrefs()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+        
+        
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Sobre licitaciones</div>
+      <div style="display:flex;flex-direction:column;gap:0">
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Nueva licitación disponible</span><input type="checkbox" id="pref-nueva-licit" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Licitación cerrada sin adjudicación</span><input type="checkbox" id="pref-licit-cerrada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Licitación adjudicada a mí</span><input type="checkbox" id="pref-adjudicada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#374151;margin:10px 0;text-transform:uppercase;letter-spacing:.06em">Sobre retornos</div>
+      <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;cursor:pointer"><span style="font-size:13px;color:#374151">Solicitudes en retornos publicados</span><input type="checkbox" id="pref-retornos" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+    </div>
+  </div>
+  <div id="notif-list" style="overflow-y:auto;flex:1"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div>
+</div>
+
+  <main>
+    <div class="hdr">
+      <div>
+        <div class="hdr-title">Mis transportes</div>
+        <div class="hdr-sub">Trazabilidad y documentos de cada transporte adjudicado</div>
+      </div>
+      
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+      <div style="background:#fff;border:0.5px solid #e8eaf0;border-radius:10px;padding:14px 16px">
+        <div style="font-size:11px;color:#6B7280;margin-bottom:4px">En curso</div>
+        <div style="font-size:22px;font-weight:700;color:#1e2d4e" id="kpi-en-curso">—</div>
+        <div style="font-size:11px;color:#9CA3AF;margin-top:2px">Transportes activos</div>
+      </div>
+      <div style="background:#fff;border:0.5px solid #e8eaf0;border-radius:10px;padding:14px 16px">
+        <div style="font-size:11px;color:#6B7280;margin-bottom:4px">Entregados este mes</div>
+        <div style="font-size:22px;font-weight:700;color:#1e2d4e" id="kpi-entregados-mes">—</div>
+        <div style="font-size:11px;color:#9CA3AF;margin-top:2px" id="kpi-mes-label">—</div>
+      </div>
+      <div style="background:#fff;border:0.5px solid #e8eaf0;border-radius:10px;padding:14px 16px">
+        <div style="font-size:11px;color:#6B7280;margin-bottom:4px">Monto total</div>
+        <div style="font-size:18px;font-weight:700;color:#1e2d4e" id="kpi-monto">—</div>
+        <div style="font-size:11px;color:#9CA3AF;margin-top:2px">Total histórico</div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <button class="fil-btn active" onclick="filtrar('todos',this)">Todos</button>
+      <button class="fil-btn" onclick="filtrar('en_curso',this)">En curso</button>
+      <button class="fil-btn" onclick="filtrar('entregado',this)">Entregados</button>
+    </div>
+
+    <div id="lista"><div class="spinner" style="margin:40px auto"></div></div>
+  </main>
+</div>
+<div id="toast"></div>
+
+<script>
+var API = 'https://transmatch.transmatchcl.workers.dev';
+var transportes = [];
+
+var ESTADOS = [
+  {id:'preparacion',    label:'En preparacion', icon:'·'},
+  {id:'carga_recogida', label:'Carga recogida',  icon:'·'},
+  {id:'en_ruta',        label:'En ruta',         icon:'·'},
+  {id:'en_destino',     label:'En destino',      icon:'·'},
+  {id:'entregado',      label:'Entregado',       icon:'·'},
+];
+
+function toggleFacturacion(btn){
+  var box = btn.closest('div').parentNode;
+  var panel = box.querySelector('.fact-panel');
+  if(!panel) return;
+  var abierto = panel.style.display==='block';
+  panel.style.display = abierto ? 'none' : 'block';
+  btn.textContent = abierto ? 'Ver datos de facturación' : 'Ocultar datos de facturación';
+}
+function estadoIdx(e){ return ESTADOS.findIndex(function(x){return x.id===e;}); }
+function estadoLabel(e){ var m=ESTADOS.find(function(x){return x.id===e;}); return m?m.icon+' '+m.label:e; }
+function peso(n){ return n?new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n):'--'; }
+function fechaHora(iso){ if(!iso)return'--'; return new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+
+function toast(msg,type){
+  var el=document.getElementById('toast');
+  el.textContent=msg; el.style.background=type==='err'?'#EF4444':'#1ED24E';
+  el.style.opacity='1'; clearTimeout(el._t); el._t=setTimeout(function(){el.style.opacity='0';},3500);
+}
+
+async function cargar(){
+  document.getElementById('lista').innerHTML='<div class="spinner" style="margin:40px auto"></div>';
+  try {
+    var res=await fetch(API+'/api/transportes',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    if(res.status===401){localStorage.clear();window.location.replace('/index.html');return;}
+    var d=await res.json();
+    transportes=d.transportes||[];
+    // KPIs
+    var enCurso=transportes.filter(function(t){return t.estado!=='entregado';}).length;
+    var mesActual=new Date().toISOString().slice(0,7);
+    var entregadosMes=transportes.filter(function(t){return t.estado==='entregado'&&(t.adjudicadoAt||'').slice(0,7)===mesActual;}).length;
+    var montoTotal=transportes.reduce(function(s,t){return s+(t.precio||0);},0);
+    var kpiEC=document.getElementById('kpi-en-curso'); if(kpiEC) kpiEC.textContent=enCurso;
+    var kpiEM=document.getElementById('kpi-entregados-mes'); if(kpiEM) kpiEM.textContent=entregadosMes;
+    var kpiML=document.getElementById('kpi-mes-label'); if(kpiML) kpiML.textContent=new Date().toLocaleDateString('es-CL',{month:'long',year:'numeric'});
+    var kpiMo=document.getElementById('kpi-monto'); if(kpiMo) kpiMo.textContent=montoTotal>0?peso(montoTotal):'$0';
+    filtrar('todos', document.querySelector('.fil-btn.active'));
+  } catch(e){
+    document.getElementById('lista').innerHTML='<div class="empty">Error al cargar. Intenta nuevamente.</div>';
+  }
+}
+
+function filtrar(f, btn){
+  if(btn){
+    document.querySelectorAll('.fil-btn').forEach(function(b){b.classList.remove('active');});
+    btn.classList.add('active');
+  }
+  var lista=transportes;
+  if(f==='en_curso')  lista=transportes.filter(function(t){return t.estado!=='entregado';});
+  if(f==='entregado') lista=transportes.filter(function(t){return t.estado==='entregado';});
+
+  if(lista.length===0){
+    document.getElementById('lista').innerHTML='<div class="empty">'+(f==='en_curso'?'Sin transportes en curso':'Sin transportes entregados aun')+'</div>';
+    return;
+  }
+  document.getElementById('lista').innerHTML=lista.map(function(t,i){
+    return renderCard(t,i);
+  }).join('');
+}
+
+function renderCard(t,i){
+  var idx=estadoIdx(t.estado);
+  var badgeCls='s-'+(t.estado||'preparacion');
+  var hoy=new Date(); hoy.setHours(0,0,0,0);
+  var fechaEnt=t.fechaEntrega?new Date(t.fechaEntrega+'T12:00:00'):null;
+  var vence=fechaEnt&&fechaEnt<=hoy&&t.estado!=='entregado';
+  var fechaLabel='';
+  if(fechaEnt){
+    var diff=Math.round((fechaEnt-hoy)/(1000*60*60*24));
+    if(t.estado==='entregado') fechaLabel='<span style="font-size:11px;color:#6B7280">Entregado '+fechaEnt.toLocaleDateString("es-CL",{day:"2-digit",month:"short",year:"numeric"})+'</span>';
+    else if(diff===0) fechaLabel='<span style="font-size:11px;color:#f97316;font-weight:600">Entrega hoy</span>';
+    else if(diff<0)  fechaLabel='<span style="font-size:11px;color:#dc2626;font-weight:600">Entrega vencida '+Math.abs(diff)+'d</span>';
+    else             fechaLabel='<span style="font-size:11px;color:#6B7280">Entrega: '+fechaEnt.toLocaleDateString("es-CL",{day:"2-digit",month:"short",year:"numeric"})+'</span>';
+  }
+  return '<div class="trn-card" id="card-'+t.id+'"'+(vence?' style="border:1.5px solid #f97316"':'')+'>'+
+    '<div class="trn-hdr" onclick="toggleCard(\''+t.id+'\')">'+
+      '<span class="trn-código">'+(t.codigo||'TRN')+'</span>'+
+      '<div class="trn-info">'+
+        '<div class="trn-title">'+t.tipoEquipo+'</div>'+
+        '<div class="trn-meta">'+t.origen+' → '+t.destino+' · '+t.clienteEmpresa+'</div>'+
+        (fechaLabel?'<div style="margin-top:3px">'+fechaLabel+'</div>':'')+
+      '</div>'+
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">'+
+        '<span style="font-size:13px;font-weight:700;color:#1e2d4e">'+peso(t.precio)+'</span>'+
+        '<span class="badge '+badgeCls+'">'+estadoLabel(t.estado)+'</span>'+
+        '<span class="arr" id="arr-'+t.id+'">›</span>'+
+      '</div>'+
+    '</div>'+
+    '<div class="trn-body" id="body-'+t.id+'">'+renderDetalle(t)+'</div>'+
+  '</div>';
+}
+
+function renderDetalle(t){
+  var idx=estadoIdx(t.estado);
+  var hoy=new Date(); hoy.setHours(0,0,0,0);
+  var fechaEnt=t.fechaEntrega?new Date(t.fechaEntrega+'T12:00:00'):null;
+  var vence=fechaEnt&&fechaEnt<=hoy&&t.estado!=='entregado';
+  var h='';
+
+  // Banner vencimiento
+  if(vence){
+    h+='<div style="background:#fff7ed;border-left:3px solid #f97316;padding:10px 14px;font-size:12px;color:#c2410c;font-weight:600;margin-bottom:14px">Entrega comprometida vencida. Actualiza el estado al llegar a destino.</div>';
+  }
+
+  // Info grid
+  h+='<div style="background:#f8f9fc;border-radius:8px;padding:12px 14px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+    '<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Empresa cliente</div><div style="font-size:13px;font-weight:500;color:#1e2d4e">'+t.clienteEmpresa+'</div></div>'+
+    '<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Precio acordado</div><div style="font-size:13px;font-weight:700;color:#1e2d4e">'+peso(t.precio)+'</div></div>'+
+    '<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Adjudicado</div><div style="font-size:12px;color:#6B7280">'+fechaHora(t.adjudicadoAt)+'</div></div>'+
+    (t.fechaEntrega?'<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Entrega comprometida</div><div style="font-size:12px;color:'+(vence?'#c2410c':'#374151')+';font-weight:'+(vence?'600':'400')+'">'+new Date(t.fechaEntrega+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'})+'</div></div>':'')+
+  '</div>';
+
+  // ── CONTACTO DEL CLIENTE (se revela al adjudicar) ──────────
+  h+='<div style="border:0.5px solid #DBEAFE;border-radius:10px;padding:14px;margin-bottom:16px;background:#EFF6FF">';
+  h+='<div style="font-size:12px;font-weight:700;color:#1e2d4e;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Contacto del cliente</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
+  h+='<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Nombre</div><div style="font-size:13px;color:#1e2d4e">'+( t.clienteNombre||'—')+'</div></div>';
+  h+='<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Email</div><div style="font-size:13px;color:#1e2d4e">'+(t.clienteEmail?'<a href="mailto:'+t.clienteEmail+'" style="color:#1e2d4e">'+t.clienteEmail+'</a>':'—')+'</div></div>';
+  h+='<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Teléfono empresa</div><div style="font-size:13px;color:#1e2d4e">'+(t.clienteTelefono||'—')+'</div></div>';
+  h+='</div>';
+  // Contactos operacionales del cliente
+  var cOps = (t.contactosOperacionales||{}).cliente||[];
+  if(cOps.length){
+    h+='<div style="font-size:11px;font-weight:600;color:#1e40af;margin-bottom:6px">Contacto operacional en terreno</div>';
+    cOps.forEach(function(c){
+      h+='<div style="background:#fff;border-radius:7px;padding:8px 10px;margin-bottom:6px;font-size:12px;color:#374151">'
+        +(c.nombre?'<strong>'+c.nombre+'</strong>':'')
+        +(c.cargo?' · '+c.cargo:'')
+        +(c.telefono?'<br>'+c.telefono:'')
+        +(c.email?'<br><a href="mailto:'+c.email+'" style="color:#1e2d4e">'+c.email+'</a>':'')
+        +'</div>';
+    });
+  }
+  h+='</div>';
+
+  // ── DATOS DE FACTURACIÓN DEL CLIENTE ─────────────────────────
+  var fc = t.clienteFacturacion||{};
+  var tieneFact = fc.razonSocial||fc.rut||fc.giro||fc.direccion;
+  h+='<div style="border:0.5px solid #e8eaf0;border-radius:10px;padding:14px;margin-bottom:16px">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">';
+  h+='<div style="font-size:12px;font-weight:700;color:#1e2d4e;text-transform:uppercase;letter-spacing:.04em">Datos de facturación del cliente</div>';
+  h+='<button class="btn btn-outline" style="font-size:12px;padding:5px 12px" onclick="toggleFacturacion(this)">Ver datos de facturación</button>';
+  h+='</div>';
+  h+='<div class="fact-panel" style="display:none;margin-top:12px;padding-top:12px;border-top:0.5px solid #e8eaf0">';
+  if(tieneFact){
+    h+='<div style="font-size:12px;color:#6B7280;margin-bottom:10px">Usa estos datos para emitir la factura del servicio de transporte al cliente.</div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+    var df=function(label,val){ return '<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">'+label+'</div><div style="font-size:13px;color:#1e2d4e">'+(val||'—')+'</div></div>'; };
+    h+=df('Razón social',fc.razonSocial)+df('RUT',fc.rut)+df('Giro',fc.giro)+df('Dirección',fc.direccion)+df('Email facturación',fc.email)+df('Teléfono',fc.telefono);
+    if(fc.contactoNombre) h+=df('Contacto',fc.contactoNombre);
+    h+='</div>';
+  } else {
+    h+='<div style="font-size:13px;color:#9CA3AF">El cliente aún no ha completado sus datos de facturación. Puedes solicitarlos por los datos de contacto de arriba.</div>';
+  }
+  h+='</div></div>';
+
+  // ── DIRECCIONES ──────────────────────────────────────────────
+  var dirs = t.direcciones||{};
+  h+='<div style="border:0.5px solid #e8eaf0;border-radius:10px;padding:14px;margin-bottom:16px">';
+  h+='<div style="font-size:12px;font-weight:700;color:#1e2d4e;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Puntos de carga y descarga</div>';
+  // Carga
+  h+='<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:600;color:#6B7280;margin-bottom:4px">Punto de carga</div>';
+  if(dirs.carga&&dirs.carga.direccion){
+    h+='<div style="font-size:13px;color:#1e2d4e;margin-bottom:2px">'+dirs.carga.direccion+'</div>';
+    if(dirs.carga.horario) h+='<div style="font-size:12px;color:#6B7280">Horario: '+dirs.carga.horario+'</div>';
+    if(dirs.carga.restricciones) h+='<div style="font-size:12px;color:#92400E">Restricciones: '+dirs.carga.restricciones+'</div>';
+    if(dirs.carga.notas) h+='<div style="font-size:12px;color:#6B7280">'+dirs.carga.notas+'</div>';
+    if(dirs.carga.mapsUrl) h+='<a href="'+dirs.carga.mapsUrl+'" target="_blank" style="font-size:12px;color:#1e2d4e;font-weight:500">Ver en Google Maps →</a>';
+  } else {
+    h+='<div style="font-size:12px;color:#9CA3AF">El cliente aún no ha ingresado la dirección exacta.</div>';
+  }
+  h+='</div>';
+  // Descarga
+  h+='<div><div style="font-size:11px;font-weight:600;color:#6B7280;margin-bottom:4px">Punto de descarga</div>';
+  if(dirs.descarga&&dirs.descarga.direccion){
+    h+='<div style="font-size:13px;color:#1e2d4e;margin-bottom:2px">'+dirs.descarga.direccion+'</div>';
+    if(dirs.descarga.horario) h+='<div style="font-size:12px;color:#6B7280">Horario: '+dirs.descarga.horario+'</div>';
+    if(dirs.descarga.restricciones) h+='<div style="font-size:12px;color:#92400E">Restricciones: '+dirs.descarga.restricciones+'</div>';
+    if(dirs.descarga.notas) h+='<div style="font-size:12px;color:#6B7280">'+dirs.descarga.notas+'</div>';
+    if(dirs.descarga.mapsUrl) h+='<a href="'+dirs.descarga.mapsUrl+'" target="_blank" style="font-size:12px;color:#1e2d4e;font-weight:500">Ver en Google Maps →</a>';
+  } else {
+    h+='<div style="font-size:12px;color:#9CA3AF">El cliente aún no ha ingresado la dirección exacta.</div>';
+  }
+  h+='</div></div>';
+
+  // ── PATENTE Y EQUIPO ──────────────────────────────────────────
+  h+='<div style="background:#fff;border:1px solid #e8eaf0;border-radius:12px;overflow:hidden;margin-bottom:16px;box-shadow:0 1px 4px rgba(30,45,78,.05)">';
+  h+='<div style="background:#1e2d4e;padding:12px 16px"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px">EQUIPO ASIGNADO</div></div>';
+  h+='<div style="padding:16px">';
+  if(t.equipoAsignado&&t.equipoAsignado.patente){
+    var eq=t.equipoAsignado;
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;margin-bottom:16px">';
+    h+='<div><div style="font-size:10px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Patente</div><div><span style="font-family:IBM Plex Mono,monospace;font-size:18px;font-weight:600;color:#1e2d4e;letter-spacing:1px;background:#FFF4E8;border:1px solid #FBD9AE;border-radius:6px;padding:2px 10px;display:inline-block">'+eq.patente+'</span></div></div>';
+    if(eq.tipo) h+='<div><div style="font-size:10px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Tipo</div><div style="font-size:14px;color:#1e2d4e;font-weight:600">'+eq.tipo+'</div></div>';
+    if(eq.marca||eq.modelo) h+='<div><div style="font-size:10px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Marca / Modelo</div><div style="font-size:14px;color:#1e2d4e;font-weight:600">'+[eq.marca,eq.modelo].filter(Boolean).join(' ')+'</div></div>';
+    h+='</div>';
+    // Documentos del equipo (resumen) — el chip de color es clickeable para descargar
+    if(eq.documentos&&Object.keys(eq.documentos).length){
+      h+='<div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Documentos del equipo</div>';
+      h+='<div style="display:flex;flex-wrap:wrap;gap:7px">';
+      Object.values(eq.documentos).forEach(function(doc){
+        if(!doc) return;
+        var hoy2=new Date(); hoy2.setHours(0,0,0,0);
+        var dias=doc.vencimiento?Math.round((new Date(doc.vencimiento+'T12:00:00')-hoy2)/86400000):999;
+        var bg=dias<0?'#FEF2F2':dias<=15?'#FFFBEB':'#F0FDF4';
+        var color=dias<0?'#991B1B':dias<=15?'#92400E':'#14532D';
+        var bd=dias<0?'#FECACA':dias<=15?'#FDE68A':'#BBF7D0';
+        var texto=dias<0?'Vencido':dias===0?'Vence hoy':dias<=15?'Vence en '+dias+'d':'Vigente';
+        var etq=(doc.label||doc.key)+' · '+texto;
+        if(doc.archivoId) h+='<button onclick="descargar(\''+doc.archivoId+'\',\''+(doc.label||doc.key||'documento')+'\')" title="Descargar" style="background:'+bg+';color:'+color+';border:1px solid '+bd+';font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;cursor:pointer">'+etq+'</button>';
+        else h+='<span style="background:'+bg+';color:'+color+';border:1px solid '+bd+';font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px">'+etq+'</span>';
+      });
+      h+='</div>';
+    }
+    h+='<div style="margin-top:15px;padding-top:14px;border-top:1px solid #F1F2F6"><button class="btn btn-outline btn-sm" onclick="abrirModalPatente(\''+t.id+'\')">Cambiar equipo</button></div>';
+  } else {
+    h+='<div style="text-align:center;padding:12px 4px 4px"><div style="font-size:13px;color:#6B7280;margin-bottom:15px;line-height:1.45">Aún no asignas el equipo para este transporte. No es obligatorio — el transporte igual sigue su curso.</div>';
+    h+='<button class="btn btn-orange btn-sm" onclick="abrirModalPatente(\''+t.id+'\')">Asignar equipo / Ingresar patente</button></div>';
+  }
+  h+='</div>';
+  h+='</div>';
+
+  // ── CONDUCTOR ASIGNADO ────────────────────────────────────────
+  h+='<div style="background:#fff;border:1px solid #e8eaf0;border-radius:12px;overflow:hidden;margin-bottom:16px;box-shadow:0 1px 4px rgba(30,45,78,.05)">';
+  h+='<div style="background:#1e2d4e;padding:12px 16px"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px">CONDUCTOR ASIGNADO</div></div>';
+  h+='<div style="padding:16px">';
+  if(t.conductorAsignado&&t.conductorAsignado.nombre){
+    var cd=t.conductorAsignado;
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;margin-bottom:16px">';
+    h+='<div><div style="font-size:10px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Nombre</div><div style="font-size:14px;color:#1e2d4e;font-weight:600">'+cd.nombre+'</div></div>';
+    h+='<div><div style="font-size:10px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">RUT</div><div style="font-family:IBM Plex Mono,monospace;font-size:14px;color:#1e2d4e">'+cd.rut+'</div></div>';
+    if(cd.telefono) h+='<div><div style="font-size:10px;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Teléfono</div><div style="font-size:14px;color:#1e2d4e;font-weight:600">'+cd.telefono+'</div></div>';
+    h+='</div>';
+    function dlCond(id,nom,lbl){ return id?'<button onclick="descargar(\''+id+'\',\''+(nom||lbl)+'\')" title="Descargar" style="background:#F0FDF4;color:#14532D;border:1px solid #BBF7D0;font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;cursor:pointer">'+lbl+'</button>':'<span style="background:transparent;color:#6B7280;border:1px dashed #e8eaf0;font-size:12px;font-weight:500;padding:6px 11px;border-radius:7px">'+lbl+' · no cargado</span>'; }
+    h+='<div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Documentos del conductor</div>';
+    h+='<div style="display:flex;flex-wrap:wrap;gap:7px">'+dlCond(cd.carnetFrenteId,cd.carnetFrenteNombre,'Carnet frente')+dlCond(cd.carnetReversoId,cd.carnetReversoNombre,'Carnet reverso')+dlCond(cd.licenciaFrenteId,cd.licenciaFrenteNombre,'Licencia frente')+dlCond(cd.licenciaReversoId,cd.licenciaReversoNombre,'Licencia reverso')+'</div>';
+    h+='<div style="margin-top:15px;padding-top:14px;border-top:1px solid #F1F2F6"><button class="btn btn-outline btn-sm" onclick="abrirModalConductor(\''+t.id+'\')">Cambiar conductor</button></div>';
+  } else {
+    h+='<div style="text-align:center;padding:12px 4px 4px"><div style="font-size:13px;color:#6B7280;margin-bottom:15px;line-height:1.45">Aún no asignas el conductor para este transporte. No es obligatorio.</div>';
+    h+='<button class="btn btn-orange btn-sm" onclick="abrirModalConductor(\''+t.id+'\')">Asignar conductor</button></div>';
+  }
+  h+='</div>';
+  h+='</div>';
+
+  // -- DOCUMENTOS REQUERIDOS POR LA FAENA (estandar) --
+  var _reqs=t.requisitosEstandar||[];
+  if(_reqs.length){
+    var _carg=_reqs.filter(function(r){return r.archivoId;}).length;
+    h+='<div style="background:#fff;border:1px solid #e8eaf0;border-radius:12px;overflow:hidden;margin-bottom:16px;box-shadow:0 1px 4px rgba(30,45,78,.05)">';
+    h+='<div style="background:#1e2d4e;padding:12px 16px;display:flex;justify-content:space-between;align-items:center"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px">DOCUMENTOS REQUERIDOS POR LA FAENA</div><div style="font-size:11.5px;color:#AEB7CC">'+_carg+' de '+_reqs.length+'</div></div>';
+    h+='<div style="padding:14px 16px">';
+    _reqs.forEach(function(r,ri){
+      var _bb=ri<_reqs.length-1?'border-bottom:1px solid #F1F2F6':'';
+      var _nom=((r.archivoNombre||r.label||'documento')+'').split("'").join('').split('"').join('');
+      h+='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;'+_bb+'">';
+      h+='<span style="font-size:13.5px;font-weight:600;color:#1e2d4e">'+(r.label||'Documento')+'</span>';
+      if(r.archivoId){ h+='<span style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;font-weight:600;background:#F0FDF4;color:#14532D;border:1px solid #BBF7D0;padding:3px 10px;border-radius:999px">Cargado</span><button class="btn btn-outline btn-sm" onclick="descargar(\''+r.archivoId+'\',\''+_nom+'\')">Ver</button><button class="btn btn-outline btn-sm" onclick="subirRequisito(\''+t.id+'\',\''+r.id+'\')">Reemplazar</button></span>'; }
+      else { h+='<button class="btn btn-orange btn-sm" onclick="subirRequisito(\''+t.id+'\',\''+r.id+'\')">Subir</button>'; }
+      h+='</div>';
+    });
+    h+='<div style="font-size:11.5px;color:#6B7280;margin-top:12px;line-height:1.5">No bloquea el transporte. El cliente los descarga desde su vista.</div>';
+    h+='</div></div>';
+  }
+  // ── CONTACTOS OPERACIONALES DEL TRANSPORTISTA ─────────────────
+  var cOpsT=(t.contactosOperacionales||{}).transportista||[];
+  h+='<div style="border:0.5px solid #e8eaf0;border-radius:10px;padding:14px;margin-bottom:16px">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+  h+='<div style="font-size:12px;font-weight:700;color:#1e2d4e;text-transform:uppercase;letter-spacing:.04em">Tu contacto operacional</div>';
+  if(cOpsT.length<2) h+='<button class="btn btn-outline btn-sm" onclick="abrirModalContacto(\''+t.id+'\',\'transportista\')">+ Agregar contacto</button>';
+  h+='</div>';
+  if(cOpsT.length===0){
+    h+='<div style="font-size:12px;color:#9CA3AF">Agrega el contacto de quien estará a cargo del transporte (conductor, encargado).</div>';
+  } else {
+    cOpsT.forEach(function(c,ci){
+      h+='<div style="background:#f8f9fc;border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px">';
+      h+='<div style="font-size:13px;color:#374151">'
+        +(c.nombre?'<strong style="color:#1e2d4e">'+c.nombre+'</strong>':'')
+        +(c.cargo?' <span style="font-size:11px;color:#6B7280">· '+c.cargo+'</span>':'')
+        +(c.telefono?'<div>'+c.telefono+'</div>':'')
+        +(c.email?'<div><a href="mailto:'+c.email+'" style="color:#1e2d4e">'+c.email+'</a></div>':'')
+        +'</div>';
+      h+='<button onclick="eliminarContactoOp(\''+t.id+'\',\'transportista\','+ci+')" style="background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:16px;padding:2px">×</button>';
+      h+='</div>';
+    });
+  }
+  h+='</div>';
+
+  // Timeline
+  h+='<div class="tl-wrap"><div class="tl-title">Estado del transporte</div><div class="tl-steps">';
+  ESTADOS.forEach(function(e,i){
+    var cls=i<idx?'done':(i===idx?'active':'');
+    h+='<div class="tl-step '+cls+'"><div class="tl-dot">'+e.icon+'</div><div class="tl-label">'+e.label+'</div></div>';
+  });
+  h+='</div></div>';
+
+  // Actualizar estado
+  if(t.estado!=='entregado'){
+    var siguiente=ESTADOS[idx+1];
+    if(siguiente){
+      h+='<div class="estado-form">'+
+        '<div class="estado-subtitle">Actualizar estado</div>'+
+        '<div class="sig-estado">'+
+          '<span style="font-size:13px;font-weight:500;color:#1e2d4e">'+siguiente.icon+' '+siguiente.label+'</span>'+
+          '<input class="nota-inp" id="nota-'+t.id+'" placeholder="Nota opcional (ej: Saliendo a las 08:00)"/>'+
+          '<button class="btn btn-primary" onclick="actualizarEstado(\''+t.id+'\',\''+siguiente.id+'\')">Confirmar</button>'+
+        '</div>';
+      // Opción de marcar como entregado directamente (si el siguiente paso no es ya "entregado")
+      if(siguiente.id!=='entregado'){
+        h+='<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid #e8eaf0;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">'+
+          '<span style="font-size:12px;color:#6B7280">¿El transporte ya fue entregado?</span>'+
+          '<button class="btn btn-outline btn-sm" style="color:#14532D;border-color:#BBF7D0" onclick="marcarEntregadoDirecto(\''+t.id+'\')">Marcar como entregado</button>'+
+        '</div>';
+      }
+      h+='</div>';
+    }
+  }
+
+  // Prueba de entrega (POD) — visible al llegar a destino / entregado
+  if(['en_destino','entregado'].includes(t.estado)){
+    var pod=t.pod||null;
+    h+='<div class="doc-card" style="margin:12px 0"><div class="doc-title">Prueba de entrega (POD) <span style="font-size:10px;font-weight:400;color:#9CA3AF;margin-left:4px">— fotos y datos de quien recibe</span></div>';
+    if(pod){
+      h+='<div style="font-size:12px;color:#14532D;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:8px 10px;margin-bottom:10px">Registrada el '+fechaHora(pod.registradoAt)+'</div>';
+      if(pod.receptorNombre||pod.receptorRut){ h+='<div style="font-size:13px;color:#374151;margin-bottom:8px">Recibió: <strong>'+(pod.receptorNombre||'—')+'</strong>'+(pod.receptorRut?' · '+pod.receptorRut:'')+'</div>'; }
+      if((pod.fotos||[]).length){ h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'+pod.fotos.map(function(f){return '<img src="data:'+(f.mimeType||'image/jpeg')+';base64,'+f.base64+'" onclick="verFotoPod(this)" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:0.5px solid #e8eaf0;cursor:zoom-in"/>';}).join('')+'</div>'; }
+      h+='<div style="font-size:12px;color:#6B7280;margin-bottom:6px">Puedes actualizarla:</div>';
+    }
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+        '<input id="pod-nom-'+t.id+'" placeholder="Nombre de quien recibe" value="'+(pod&&pod.receptorNombre?String(pod.receptorNombre).replace(/"/g,"&quot;"):'')+'" style="padding:8px 10px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/>'+
+        '<input id="pod-rut-'+t.id+'" placeholder="RUT de quien recibe" value="'+(pod&&pod.receptorRut?String(pod.receptorRut).replace(/"/g,"&quot;"):'')+'" style="padding:8px 10px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/>'+
+      '</div>';
+    h+='<label style="display:block;border:1px dashed #cbd2de;border-radius:8px;padding:10px 14px;font-size:13px;color:#6B7280;cursor:pointer;text-align:center">Agregar foto(s) de la entrega<input type="file" accept="image/*" multiple style="display:none" onchange="handlePodFotos(\''+t.id+'\',this)"/></label>';
+    h+='<div id="pod-preview-'+t.id+'" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>';
+    h+='<button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="guardarPOD(\''+t.id+'\')">Guardar prueba de entrega</button>';
+    h+='</div>';
+  }
+
+  // Documentos
+  h+='<div style="font-size:12px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Documentos del transporte</div>';
+  // OC del cliente
+  h+='<div class="doc-card"><div class="doc-title">Orden de compra (cliente)</div>';
+  var ocReal = !!(t.oc && t.oc.archivoId);
+  if(ocReal){
+    h+='<div class="doc-ok"><span>Subida el '+fechaHora(t.oc.subidoAt)+'</span><button class="btn btn-outline btn-sm" onclick="descargar(\''+t.oc.archivoId+'\',\''+t.oc.nombre+'\')">Descargar</button></div>';
+  } else {
+    h+='<div class="doc-wait">El cliente no ha adjuntado una orden de compra (documento opcional).</div>';
+  }
+  h+='</div>';
+  // Factura
+  h+='<div class="doc-card" style="margin-top:10px"><div class="doc-title">Tu factura de cobro</div>';
+  if(t.factura){
+    h+='<div class="doc-ok"><span>Subida el '+fechaHora(t.factura.subidoAt)+'</span><button class="btn btn-outline btn-sm" onclick="descargar(\''+t.factura.archivoId+'\',\''+t.factura.nombre+'\')">Descargar</button></div>';
+    var _pc=(t.pagoCliente&&t.pagoCliente.estado)||'pendiente';
+    var _pcBadge=_pc==='pagado'?'<span style="background:#E1F5EE;color:#0F6E56;font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px">Pagado por el cliente</span>':'<span style="background:#FAEEDA;color:#854F0B;font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px">Pago pendiente</span>';
+    var _pcBtn=_pc==='pagado'?'<button class="btn btn-outline btn-sm" onclick="marcarPagoCliente(\''+t.id+'\',\'pendiente\')">Marcar pendiente</button>':'<button class="btn btn-sm" style="background:#1e2d4e;color:#fff" onclick="marcarPagoCliente(\''+t.id+'\',\'pagado\')">Marcar pagado</button>';
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding-top:10px;border-top:0.5px solid #eef1f6;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:#6B7280">Pago del cliente:</span>'+_pcBadge+'</div>'+_pcBtn+'</div>';
+  } else {
+    h+='<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Sube tu factura para registrar el cobro en el sistema.</div>'+
+      '<label style="display:block;border:1px dashed #cbd2de;border-radius:8px;padding:10px 14px;font-size:13px;color:#6B7280;cursor:pointer;text-align:center">Seleccionar factura (PDF/Word)<input type="file" id="fac-file-'+t.id+'" accept=".pdf,.doc,.docx" style="display:none" onchange="subirFactura(\''+t.id+'\')"/></label>'+
+      '<div id="fac-status-'+t.id+'" style="font-size:12px;color:#6B7280;margin-top:6px"></div>';
+  }
+  h+='</div>';
+  // Guía de despacho — la sube el cliente
+  h+='<div class="doc-card" style="margin-top:10px"><div class="doc-title">Guía de despacho <span style="font-size:10px;font-weight:400;color:#9CA3AF;margin-left:4px">— la emite el cliente</span></div>';
+  if(t.guiaDespacho){
+    h+='<div class="doc-ok"><span>Subida el '+fechaHora(t.guiaDespacho.subidoAt)+'</span><button class="btn btn-outline btn-sm" onclick="descargar(\''+t.guiaDespacho.archivoId+'\',\''+t.guiaDespacho.nombre+'\')">Descargar</button></div>';
+  } else {
+    h+='<div class="doc-wait">Pendiente — el cliente aún no ha subido la guía de despacho</div>';
+  }
+  h+='</div>';
+
+  // Documentación extra (seguros, contratos, permisos, etc.)
+  h+='<div class="doc-card" style="margin-top:10px">';
+  h+='<div class="doc-title">Documentación extra <span style="font-size:10px;font-weight:400;color:#9CA3AF;margin-left:4px">— seguros, contratos, permisos, etc.</span></div>';
+  var docsExtra = t.documentosExtra||[];
+  if(docsExtra.length===0){
+    h+='<div style="font-size:12px;color:#6B7280;margin-bottom:10px">Aún no has agregado documentación extra para este transporte.</div>';
+  } else {
+    docsExtra.forEach(function(d){
+      h+='<div class="doc-ok" style="margin-bottom:6px"><span>'+d.label+' — subido el '+fechaHora(d.subidoAt)+'</span><span style="display:flex;gap:6px;flex-shrink:0">'
+        +'<button class="btn btn-outline btn-sm" onclick="descargar(\''+d.archivoId+'\',\''+d.archivoNombre+'\')">Descargar</button>'
+        +'<button class="btn btn-outline btn-sm" style="color:#DC2626;border-color:#FECACA" onclick="eliminarDocumentoExtra(\''+t.id+'\',\''+d.id+'\')">Eliminar</button>'
+        +'</span></div>';
+    });
+  }
+  h+='<button class="btn btn-outline btn-sm" style="margin-top:4px" onclick="abrirModalDocumentoExtra(\''+t.id+'\')">+ Agregar documento</button>';
+  h+='</div>';
+
+  // Historial
+  var hist=(t.historial||[]);
+  if(hist.length>0){
+    h+='<div style="font-size:12px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-top:14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:6px;user-select:none" onclick="toggleHistorial(\''+t.id+'\')">'
+      +'<span id="hist-arrow-'+t.id+'" style="display:inline-block;transition:transform .15s">▸</span> Historial'
+      +'</div>'+
+      '<div id="hist-list-'+t.id+'" class="hist-list" style="display:none">'+
+      hist.slice().reverse().map(function(ev){
+        return '<div class="hist-item"><div class="hist-dot"></div><div>'+
+          '<div class="hist-text"><strong>'+estadoLabel(ev.estado)+'</strong>'+(ev.nota?' — '+ev.nota:'')+'</div>'+
+          '<div class="hist-date">'+fechaHora(ev.fecha)+(ev.actor?' · '+ev.actor:'')+'</div>'+
+        '</div></div>';
+      }).join('')+
+      '</div>';
+  }
+
+  // ── VALORACIÓN RECIBIDA ────────────────────────────────────────
+  if(t.valoracion){
+    var estrellas='';
+    var prom=Math.round(t.valoracion.promedio||0);
+    for(var _s=1;_s<=5;_s++){ estrellas+=(_s<=prom?'★':'☆'); }
+    h += '<div style="margin-top:14px;padding-top:14px;border-top:0.5px solid #E5E7EB">';
+    h += '<div style="font-size:14px;font-weight:600;color:#111827;margin-bottom:8px">Valoración del cliente</div>';
+    h += '<div style="background:#f8f9fb;border-radius:8px;padding:12px 14px;margin-bottom:8px">';
+    h += '<div style="color:#FF8808;font-size:14px;letter-spacing:1px">'+estrellas+' <span style="color:#374151;font-size:12px;font-weight:500">'+(t.valoracion.promedio||0)+'/5</span></div>';
+    if(t.valoracion.comentario) h += '<div style="font-size:13px;color:#374151;margin-top:6px">"'+t.valoracion.comentario+'"</div>';
+    h += '</div>';
+    if(t.valoracion.respuestaTransportista){
+      h += '<div style="background:#EEF1F6;border-radius:8px;padding:10px 12px;margin-bottom:8px">'
+        + '<div style="font-size:11px;font-weight:600;color:#1E2D4E;margin-bottom:2px">Tu respuesta</div>'
+        + '<div style="font-size:13px;color:#1e2d4e">'+t.valoracion.respuestaTransportista+'</div></div>';
+    } else {
+      h += '<div style="font-size:11px;color:#9CA3AF;margin-bottom:6px">La nota no se puede cambiar, pero puedes agregar contexto — los futuros clientes verán tu respuesta junto a la valoración.</div>';
+      h += '<div style="display:flex;gap:8px">';
+      h += '<input type="text" id="valresp-input-'+t.id+'" placeholder="Responder a esta valoración" maxlength="500" style="flex:1;padding:8px 10px;border:1px solid #e8eaf0;border-radius:6px;font-size:13px">';
+      h += '<button onclick="responderValoracion(\''+t.id+'\')" style="padding:8px 14px;background:#FF8808;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Responder</button>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  // ── INCIDENCIAS ────────────────────────────────────────────────
+  h += '<div style="margin-top:14px;padding-top:14px;border-top:0.5px solid #E5E7EB">';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
+  h += '<div style="font-size:14px;font-weight:600;color:#111827">Incidencias</div>';
+  h += '<button class="btn btn-outline btn-sm" onclick="abrirModalIncidencia(\''+t.id+'\')">Reportar una incidencia</button>';
+  h += '</div>';
+  var incsT=t.incidenciasTransportista||[];
+  if(incsT.length){
+    incsT.slice().reverse().forEach(function(inc){
+      h+='<div style="background:#FFFBEB;border:0.5px solid #FDE68A;border-radius:8px;padding:10px 12px;margin-bottom:8px">'
+        +'<div style="font-size:12px;font-weight:600;color:#92400E">'+inc.tipo+'</div>'
+        +'<div style="font-size:12px;color:#78350F;margin-top:2px">'+inc.descripcion+'</div>'
+        +'<div style="font-size:10px;color:#9CA3AF;margin-top:4px">'+fechaHora(inc.createdAt)+'</div>'
+        +'</div>';
+    });
+  }
+  h += '</div>';
+
+  return h;
+}
+
+function toggleHistorial(transporteId){
+  var list=document.getElementById('hist-list-'+transporteId);
+  var arrow=document.getElementById('hist-arrow-'+transporteId);
+  if(!list) return;
+  var abierto = list.style.display!=='none';
+  list.style.display = abierto?'none':'block';
+  if(arrow) arrow.style.transform = abierto?'rotate(0deg)':'rotate(90deg)';
+}
+
+function toggleCard(id){
+  var body=document.getElementById('body-'+id);
+  var arr=document.getElementById('arr-'+id);
+  var open=body.classList.contains('open');
+  body.classList.toggle('open',!open);
+  arr.style.transform=open?'':'rotate(90deg)';
+}
+
+async function marcarEntregadoDirecto(transporteId){
+  if(!confirm('¿Marcar este transporte como ENTREGADO? Se omitirán los estados intermedios. Esta acción confirma que la carga llegó a destino.')) return;
+  // Poner una nota automática en el campo si está vacío, para dejar registro del salto
+  var nota=document.getElementById('nota-'+transporteId);
+  if(nota && !nota.value.trim()) nota.value='Marcado como entregado directamente';
+  await actualizarEstado(transporteId, 'entregado');
+}
+
+async function actualizarEstado(transporteId, nuevoEstado){
+  var nota=document.getElementById('nota-'+transporteId);
+  var notaVal=nota?nota.value.trim():'';
+  try {
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/estado',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify({estado:nuevoEstado,nota:notaVal})
+    });
+    var d=await res.json();
+    if(res.ok){
+      toast('Estado actualizado: '+estadoLabel(nuevoEstado));
+      await cargar();
+      setTimeout(function(){toggleCard(transporteId);},200);
+    } else {
+      toast(d.error||'Error al actualizar','err');
+    }
+  } catch(e){toast('Error de conexión','err');}
+}
+
+// ── Prueba de entrega (POD) ──
+function verFotoPod(img){
+  var o=document.createElement('div');
+  o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3000;display:flex;align-items:center;justify-content:center;cursor:zoom-out;padding:20px';
+  o.onclick=function(){ o.remove(); };
+  var big=document.createElement('img'); big.src=img.src; big.style.cssText='max-width:95%;max-height:95%;border-radius:10px';
+  o.appendChild(big); document.body.appendChild(o);
+}
+var podFotoBuffer={};
+function handlePodFotos(transporteId, input){
+  podFotoBuffer[transporteId]=podFotoBuffer[transporteId]||[];
+  Array.prototype.slice.call(input.files||[]).forEach(function(f){
+    if(f.size>8*1024*1024){ toast('Foto demasiado grande (máx 8 MB): '+f.name,'err'); return; }
+    var reader=new FileReader();
+    reader.onload=function(e){ podFotoBuffer[transporteId].push({nombre:f.name,base64:e.target.result.split(',')[1],mimeType:f.type||'image/jpeg'}); renderPodPreview(transporteId); };
+    reader.readAsDataURL(f);
+  });
+  input.value='';
+}
+function renderPodPreview(transporteId){
+  var cont=document.getElementById('pod-preview-'+transporteId); if(!cont) return;
+  var buf=podFotoBuffer[transporteId]||[];
+  cont.innerHTML=buf.map(function(f,i){ return '<div style="position:relative"><img src="data:'+f.mimeType+';base64,'+f.base64+'" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:0.5px solid #e8eaf0"/><button onclick="quitarPodFoto(\''+transporteId+'\','+i+')" style="position:absolute;top:-6px;right:-6px;background:#EF4444;color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:1">×</button></div>'; }).join('');
+}
+function quitarPodFoto(transporteId,i){ if(podFotoBuffer[transporteId]){ podFotoBuffer[transporteId].splice(i,1); renderPodPreview(transporteId); } }
+async function guardarPOD(transporteId){
+  var nom=(document.getElementById('pod-nom-'+transporteId)||{}).value||'';
+  var rut=(document.getElementById('pod-rut-'+transporteId)||{}).value||'';
+  var nuevas=podFotoBuffer[transporteId]||[];
+  var t=(transportes||[]).find(function(x){return x.id===transporteId;});
+  var existentes=(t&&t.pod&&t.pod.fotos)?t.pod.fotos:[];
+  var fotos=existentes.concat(nuevas);
+  if(!fotos.length && !nom.trim() && !rut.trim()){ toast('Agrega al menos una foto o los datos del receptor','err'); return; }
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/pod',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({fotos:fotos,receptorNombre:nom,receptorRut:rut})});
+    var d=await res.json();
+    if(res.ok){ toast('Prueba de entrega guardada'); podFotoBuffer[transporteId]=[]; await cargar(); setTimeout(function(){toggleCard(transporteId);},200); }
+    else toast(d.error||'Error al guardar','err');
+  }catch(e){ toast('Error de conexión','err'); }
+}
+
+var EQ_DOCS=[['permiso_circulacion','Permiso de Circulacion'],['revision_tecnica','Revision Tecnica'],['gases','Gases'],['seguro_obligatorio','Seguro Obligatorio'],['poliza_empresa','Poliza empresa']];
+var eqFileBuffer={};
+function eqDocInputHtml(key,label){
+  return '<div><label style="font-size:11px;color:#374151;display:block;margin-bottom:4px">'+label+'</label>'
+    +'<label id="eqdz-'+key+'" style="display:block;border:1px dashed #cbd2de;border-radius:8px;padding:8px 10px;font-size:12px;color:#9CA3AF;cursor:pointer;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Subir archivo<input type="file" style="display:none" onchange="handleEqFile(\''+key+'\',this)"/></label></div>';
+}
+function handleEqFile(key,input){
+  var f=input.files[0]; if(!f) return;
+  if(f.size>8*1024*1024){ toast('Archivo demasiado grande. Maximo 8 MB','err'); return; }
+  var reader=new FileReader();
+  reader.onload=function(e){
+    eqFileBuffer[key]={nombre:f.name,base64:e.target.result.split(',')[1],mimeType:f.type};
+    var dz=document.getElementById('eqdz-'+key);
+    if(dz){ dz.childNodes[0].nodeValue=f.name; dz.style.color='#1e2d4e'; dz.style.borderColor='#FF8808'; }
+  };
+  reader.readAsDataURL(f);
+}
+async function subirArchivoBuf(buf){
+  if(!buf) return null;
+  try{
+    var res=await fetch(API+'/api/archivos/upload',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({nombre:buf.nombre,tipo:buf.mimeType,base64:buf.base64})});
+    if(res.ok){ var d=await res.json(); return {id:d.id,nombre:buf.nombre}; }
+  }catch(e){ console.error('upload',e); }
+  return null;
+}
+
+async function abrirModalPatente(transporteId){
+  // Cargar equipos del transportista para autocomplete
+  var equipos=[];
+  try{
+    var r=await fetch(API+'/api/equipos',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    var d=await r.json(); equipos=d.equipos||[];
+  }catch(e){}
+
+  var modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  var inner=document.createElement('div');
+  inner.style.cssText='background:#fff;border-radius:16px;padding:28px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto';
+
+  var optsHtml=equipos.map(function(eq){
+    return '<option value="'+eq.id+'">'+eq.tipo+(eq.patente?' — '+eq.patente:'')+(eq.marca?' ('+eq.marca+')':'')+'</option>';
+  }).join('');
+
+  eqFileBuffer={};
+  var docInputsHtml=EQ_DOCS.map(function(p){ return eqDocInputHtml(p[0],p[1]); }).join('');
+
+  inner.innerHTML='<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Asignar equipo</div>'
+    +'<div style="font-size:12px;color:#9CA3AF;margin-bottom:20px">Selecciona de tu flota o ingresa la patente manualmente</div>'
+    +(equipos.length?'<div style="margin-bottom:16px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Seleccionar de mi flota</label>'
+      +'<select id="mp-select" onchange="autocompletarEquipo(this)" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px">'
+      +'<option value="">— Seleccionar equipo registrado —</option>'+optsHtml+'</select></div>':'')
+    +'<div style="padding-top:14px;border-top:0.5px solid #f3f4f6;margin-bottom:16px"><div style="font-size:12px;font-weight:600;color:#6B7280;margin-bottom:10px">O ingresa manualmente</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Patente *</label><input type="text" id="mp-patente" placeholder="ABCD-12" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px;text-transform:uppercase"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Tipo de equipo</label><input type="text" id="mp-tipo" placeholder="Ej: Cama baja" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Marca</label><input type="text" id="mp-marca" placeholder="Ej: Volvo" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Modelo</label><input type="text" id="mp-modelo" placeholder="Ej: FH16" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'</div></div>'
+    +'<div id="mp-docs-section"></div>'
+    +'<div id="mp-upload-section" style="margin-top:14px;padding-top:14px;border-top:0.5px solid #f3f4f6"><div style="font-size:12px;font-weight:600;color:#6B7280;margin-bottom:8px">Documentos del equipo (opcional)</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+docInputsHtml+'</div>'
+    +'<label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:#374151;cursor:pointer"><input type="checkbox" id="mp-guardar" style="width:16px;height:16px"/> Guardar este equipo en mi perfil</label></div>'
+    +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">'
+    +'<button id="mp-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
+    +'<button id="mp-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar</button>'
+    +'</div>';
+
+  modal.appendChild(inner);
+  document.body.appendChild(modal);
+  window._mpEquipos=equipos;
+  document.getElementById('mp-cancel').onclick=function(){ modal.remove(); };
+  document.getElementById('mp-save').onclick=function(){ guardarEquipoAsignado(transporteId,modal); };
+  modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
+}
+
+function autocompletarEquipo(sel){
+  var equipos=window._mpEquipos||[];
+  var up=document.getElementById('mp-upload-section');
+  var eq=equipos.find(function(e){return e.id===sel.value;});
+  if(!eq){ if(up) up.style.display='block'; var sec0=document.getElementById('mp-docs-section'); if(sec0) sec0.innerHTML=''; return; }
+  if(up) up.style.display='none';
+  var p=document.getElementById('mp-patente'); if(p) p.value=eq.patente||'';
+  var t=document.getElementById('mp-tipo'); if(t) t.value=eq.tipo||'';
+  var m=document.getElementById('mp-marca'); if(m) m.value=eq.marca||'';
+  var mo=document.getElementById('mp-modelo'); if(mo) mo.value=eq.modelo||'';
+  // Mostrar resumen de documentos
+  var sec=document.getElementById('mp-docs-section');
+  if(sec&&eq.documentos&&Object.keys(eq.documentos).length){
+    var hoy=new Date(); hoy.setHours(0,0,0,0);
+    var items=Object.values(eq.documentos).map(function(doc){
+      if(!doc) return '';
+      var dias=doc.vencimiento?Math.round((new Date(doc.vencimiento+'T12:00:00')-hoy)/86400000):999;
+      var color=dias<0?'#991B1B':dias<=15?'#92400E':'#14532D';
+      var bg=dias<0?'#FEF2F2':dias<=15?'#FFFBEB':'#F0FDF4';
+      var txt=dias<0?'Vencido':dias===0?'Vence hoy':dias<=15?'Vence en '+dias+'d':'Vigente';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid #f3f4f6">'
+        +'<span style="font-size:12px;color:#374151">'+(doc.label||doc.key)+'</span>'
+        +'<span style="background:'+bg+';color:'+color+';font-size:11px;font-weight:500;padding:2px 8px;border-radius:6px">'+txt+'</span>'
+        +'</div>';
+    }).join('');
+    sec.innerHTML='<div style="border:0.5px solid #e8eaf0;border-radius:8px;padding:12px 14px;margin-top:0">'
+      +'<div style="font-size:12px;font-weight:600;color:#1e2d4e;margin-bottom:8px">Documentos del equipo</div>'
+      +items+'</div>';
+  } else if(sec){
+    sec.innerHTML='<div style="border:0.5px solid #FDE68A;border-radius:8px;padding:10px 14px;background:#FFFBEB;font-size:12px;color:#92400E;margin-top:0">Este equipo no tiene documentos registrados. Puedes subirlos en <a href="/transportista-perfil.html" style="color:#92400E;font-weight:600">Mis equipos</a>.</div>';
+  }
+}
+
+async function guardarEquipoAsignado(transporteId, modal){
+  var patente=(document.getElementById('mp-patente').value||'').trim().toUpperCase();
+  if(!patente){ toast('Ingresa la patente del equipo','err'); return; }
+  var sel=document.getElementById('mp-select');
+  var equipos=window._mpEquipos||[];
+  var eqReg=sel&&sel.value?equipos.find(function(e){return e.id===sel.value;}):null;
+  var saveBtn=document.getElementById('mp-save'); if(saveBtn){ saveBtn.disabled=true; saveBtn.textContent='Guardando...'; }
+  var documentos=eqReg?eqReg.documentos:undefined;
+  if(!eqReg){
+    var docsObj={};
+    for(var i=0;i<EQ_DOCS.length;i++){
+      var k=EQ_DOCS[i][0], lbl=EQ_DOCS[i][1];
+      if(eqFileBuffer[k]){
+        var subido=await subirArchivoBuf(eqFileBuffer[k]);
+        if(subido) docsObj[k]={key:k,label:lbl,archivoId:subido.id,archivoNombre:subido.nombre};
+      }
+    }
+    if(Object.keys(docsObj).length) documentos=docsObj;
+  }
+  var payload={
+    patente:patente,
+    tipo:(document.getElementById('mp-tipo').value||'').trim()||undefined,
+    marca:(document.getElementById('mp-marca').value||'').trim()||undefined,
+    modelo:(document.getElementById('mp-modelo').value||'').trim()||undefined,
+    equipoId:eqReg?eqReg.id:undefined,
+    documentos:documentos,
+  };
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/equipo',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify(payload)
+    });
+    if(res.ok){
+      var chk=document.getElementById('mp-guardar');
+      if(!eqReg && chk && chk.checked){
+        try{ await fetch(API+'/api/equipos',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({tipo:payload.tipo||'Equipo',marca:payload.marca,modelo:payload.modelo,patente:payload.patente,documentos:documentos||{}})}); }catch(e){}
+      }
+      toast('Equipo asignado correctamente'); modal.remove(); await cargar(); setTimeout(function(){toggleCard(transporteId);},200);
+    }
+    else { var d=await res.json(); toast(d.error||'Error al guardar','err'); if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Guardar'; } }
+  }catch(e){ toast('Error de conexión','err'); if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Guardar'; } }
+}
+
+var CD_DOCS=[['carnetFrente','Carnet frente'],['carnetReverso','Carnet reverso'],['licenciaFrente','Licencia frente'],['licenciaReverso','Licencia reverso']];
+var cdFileBuffer={};
+function cdDocInputHtml(key,label){
+  return '<div><label style="font-size:11px;color:#374151;display:block;margin-bottom:4px">'+label+'</label>'
+    +'<label id="cddz-'+key+'" style="display:block;border:1px dashed #cbd2de;border-radius:8px;padding:8px 10px;font-size:12px;color:#9CA3AF;cursor:pointer;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Subir archivo<input type="file" style="display:none" onchange="handleCdFile(\''+key+'\',this)"/></label></div>';
+}
+function handleCdFile(key,input){
+  var f=input.files[0]; if(!f) return;
+  if(f.size>8*1024*1024){ toast('Archivo demasiado grande. Maximo 8 MB','err'); return; }
+  var reader=new FileReader();
+  reader.onload=function(e){
+    cdFileBuffer[key]={nombre:f.name,base64:e.target.result.split(',')[1],mimeType:f.type};
+    var dz=document.getElementById('cddz-'+key);
+    if(dz){ dz.childNodes[0].nodeValue=f.name; dz.style.color='#1e2d4e'; dz.style.borderColor='#FF8808'; }
+  };
+  reader.readAsDataURL(f);
+}
+
+async function abrirModalConductor(transporteId){
+  var conductores=[];
+  try{ var r=await fetch(API+'/api/conductores',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}}); var d=await r.json(); conductores=d.conductores||[]; }catch(e){}
+  cdFileBuffer={};
+  var optsHtml=conductores.map(function(c){ return '<option value="'+c.id+'">'+c.nombre+' — '+c.rut+'</option>'; }).join('');
+  var docInputsHtml=CD_DOCS.map(function(p){ return cdDocInputHtml(p[0],p[1]); }).join('');
+  var modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  var inner=document.createElement('div');
+  inner.style.cssText='background:#fff;border-radius:16px;padding:28px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto';
+  inner.innerHTML='<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Asignar conductor</div>'
+    +'<div style="font-size:12px;color:#9CA3AF;margin-bottom:20px">Selecciona de tus conductores o ingresa los datos manualmente</div>'
+    +(conductores.length?'<div style="margin-bottom:16px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Seleccionar registrado</label><select id="cd-select" onchange="autocompletarConductor(this)" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"><option value="">— Seleccionar conductor —</option>'+optsHtml+'</select></div>':'')
+    +'<div style="padding-top:14px;border-top:0.5px solid #f3f4f6;margin-bottom:8px"><div style="font-size:12px;font-weight:600;color:#6B7280;margin-bottom:10px">O ingresa manualmente</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Nombre *</label><input type="text" id="cd-nombre" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">RUT *</label><input type="text" id="cd-rut" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Telefono</label><input type="text" id="cd-telefono" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'</div></div>'
+    +'<div id="cd-upload-section" style="margin-top:8px"><div style="font-size:12px;font-weight:600;color:#6B7280;margin-bottom:8px">Documentos del conductor</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+docInputsHtml+'</div>'
+    +'<label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:#374151;cursor:pointer"><input type="checkbox" id="cd-guardar" style="width:16px;height:16px"/> Guardar este conductor en mi perfil</label></div>'
+    +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">'
+    +'<button id="cd-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
+    +'<button id="cd-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar</button>'
+    +'</div>';
+  modal.appendChild(inner); document.body.appendChild(modal);
+  window._cdConductores=conductores;
+  document.getElementById('cd-cancel').onclick=function(){ modal.remove(); };
+  document.getElementById('cd-save').onclick=function(){ guardarConductorAsignado(transporteId,modal); };
+  modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
+}
+
+function autocompletarConductor(sel){
+  var conds=window._cdConductores||[];
+  var up=document.getElementById('cd-upload-section');
+  var c=conds.find(function(x){return x.id===sel.value;});
+  if(!c){ if(up) up.style.display='block'; return; }
+  if(up) up.style.display='none';
+  var n=document.getElementById('cd-nombre'); if(n) n.value=c.nombre||'';
+  var r=document.getElementById('cd-rut'); if(r) r.value=c.rut||'';
+  var tel=document.getElementById('cd-telefono'); if(tel) tel.value=c.telefono||'';
+}
+
+async function guardarConductorAsignado(transporteId, modal){
+  var sel=document.getElementById('cd-select');
+  var conds=window._cdConductores||[];
+  var cReg=sel&&sel.value?conds.find(function(x){return x.id===sel.value;}):null;
+  var nombre=(document.getElementById('cd-nombre').value||'').trim();
+  var rut=(document.getElementById('cd-rut').value||'').trim();
+  var telefono=(document.getElementById('cd-telefono').value||'').trim();
+  if(!nombre||!rut){ toast('Nombre y RUT son requeridos','err'); return; }
+  var saveBtn=document.getElementById('cd-save'); if(saveBtn){ saveBtn.disabled=true; saveBtn.textContent='Guardando...'; }
+  var payload={ nombre:nombre, rut:rut, telefono:telefono, conductorId:cReg?cReg.id:undefined };
+  if(cReg){
+    payload.carnetFrenteId=cReg.carnetFrenteId; payload.carnetFrenteNombre=cReg.carnetFrenteNombre;
+    payload.carnetReversoId=cReg.carnetReversoId; payload.carnetReversoNombre=cReg.carnetReversoNombre;
+    payload.licenciaFrenteId=cReg.licenciaFrenteId; payload.licenciaFrenteNombre=cReg.licenciaFrenteNombre;
+    payload.licenciaReversoId=cReg.licenciaReversoId; payload.licenciaReversoNombre=cReg.licenciaReversoNombre;
+  } else {
+    if(cdFileBuffer.carnetFrente){ var a1=await subirArchivoBuf(cdFileBuffer.carnetFrente); if(a1){ payload.carnetFrenteId=a1.id; payload.carnetFrenteNombre=a1.nombre; } }
+    if(cdFileBuffer.carnetReverso){ var a2=await subirArchivoBuf(cdFileBuffer.carnetReverso); if(a2){ payload.carnetReversoId=a2.id; payload.carnetReversoNombre=a2.nombre; } }
+    if(cdFileBuffer.licenciaFrente){ var a3=await subirArchivoBuf(cdFileBuffer.licenciaFrente); if(a3){ payload.licenciaFrenteId=a3.id; payload.licenciaFrenteNombre=a3.nombre; } }
+    if(cdFileBuffer.licenciaReverso){ var a4=await subirArchivoBuf(cdFileBuffer.licenciaReverso); if(a4){ payload.licenciaReversoId=a4.id; payload.licenciaReversoNombre=a4.nombre; } }
+  }
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/conductor',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(payload)});
+    if(res.ok){
+      var chk=document.getElementById('cd-guardar');
+      if(!cReg && chk && chk.checked){
+        try{ await fetch(API+'/api/conductores',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({nombre:nombre,rut:rut,telefono:telefono,carnetFrenteId:payload.carnetFrenteId,carnetFrenteNombre:payload.carnetFrenteNombre,carnetReversoId:payload.carnetReversoId,carnetReversoNombre:payload.carnetReversoNombre,licenciaFrenteId:payload.licenciaFrenteId,licenciaFrenteNombre:payload.licenciaFrenteNombre,licenciaReversoId:payload.licenciaReversoId,licenciaReversoNombre:payload.licenciaReversoNombre})}); }catch(e){}
+      }
+      toast('Conductor asignado correctamente'); modal.remove(); await cargar(); setTimeout(function(){toggleCard(transporteId);},200);
+    } else { var d=await res.json(); toast(d.error||'Error al guardar','err'); if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Guardar'; } }
+  }catch(e){ toast('Error de conexión','err'); if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Guardar'; } }
+}
+
+async function responderValoracion(transporteId){
+  var input=document.getElementById('valresp-input-'+transporteId);
+  var respuesta=(input&&input.value||'').trim();
+  if(!respuesta){ toast('Escribe una respuesta','err'); return; }
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/valoracion/responder',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify({respuesta:respuesta})
+    });
+    if(res.ok){ toast('Respuesta publicada'); await cargar(); setTimeout(function(){ toggleCard(transporteId); },200); }
+    else{ var d=await res.json(); toast(d.error||'Error','err'); }
+  }catch(e){ toast('Error de conexión','err'); }
+}
+
+function abrirModalIncidencia(transporteId){
+  var modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  var inner=document.createElement('div');
+  inner.style.cssText='background:#fff;border-radius:16px;padding:28px;width:100%;max-width:440px';
+  inner.innerHTML='<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Reportar una incidencia</div>'
+    +'<div style="font-size:12px;color:#6B7280;margin-bottom:16px">Este reporte queda registrado con fines de control de calidad. <strong>Solo lo ve TransMatch</strong> — no se le notifica al cliente, y TransMatch no interviene en la resolución de conflictos entre las partes (ver Términos y Condiciones). Si necesitas resolver esto, te recomendamos contactar directamente al cliente.</div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px">'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Categoría *</label>'
+    +'<select id="inc-tipo" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px">'
+    +'<option value="">Selecciona...</option>'
+    +'<option value="Carga no lista al llegar">Carga no lista al llegar</option>'
+    +'<option value="Información de la carga incorrecta">Información de la carga incorrecta</option>'
+    +'<option value="Tiempo de espera excesivo">Tiempo de espera excesivo</option>'
+    +'<option value="Problema con el pago">Problema con el pago</option>'
+    +'<option value="Otro">Otro</option>'
+    +'</select></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Descripción *</label><textarea id="inc-desc" placeholder="Cuéntanos brevemente qué ocurrió" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px;min-height:80px;resize:vertical;font-family:inherit"></textarea></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">'
+    +'<button id="inc-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
+    +'<button id="inc-save" style="padding:9px 18px;border-radius:8px;background:#FF8808;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Enviar reporte</button>'
+    +'</div>';
+  modal.appendChild(inner); document.body.appendChild(modal);
+  document.getElementById('inc-cancel').onclick=function(){ modal.remove(); };
+  document.getElementById('inc-save').onclick=function(){ enviarIncidencia(transporteId,modal); };
+  modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
+}
+
+async function enviarIncidencia(transporteId, modal){
+  var tipo=document.getElementById('inc-tipo').value;
+  var descripcion=(document.getElementById('inc-desc').value||'').trim();
+  if(!tipo){ toast('Selecciona una categoría','err'); return; }
+  if(!descripcion){ toast('Describe brevemente lo ocurrido','err'); return; }
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/incidencia',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify({tipo:tipo,descripcion:descripcion})
+    });
+    if(res.ok){ toast('Reporte enviado — queda registrado internamente'); modal.remove(); await cargar(); setTimeout(function(){ toggleCard(transporteId); },200); }
+    else{ var d=await res.json(); toast(d.error||'Error','err'); }
+  }catch(e){ toast('Error de conexión','err'); }
+}
+
+function abrirModalContacto(transporteId, rol){
+  var t=transportes.find(function(x){return x.id===transporteId;});
+  var existentes=t?(t.contactosOperacionales||{})[rol]||[]:[];
+  if(existentes.length>=2){ toast('Máximo 2 contactos por transporte'); return; }
+  var modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  var inner=document.createElement('div');
+  inner.style.cssText='background:#fff;border-radius:16px;padding:28px;width:100%;max-width:440px';
+  // Autocompletar con datos del usuario
+  var nombre=localStorage.getItem('tm_nombre')||'';
+  var empresa=localStorage.getItem('tm_empresa')||'';
+  inner.innerHTML='<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Agregar contacto operacional</div>'
+    +'<div style="font-size:12px;color:#9CA3AF;margin-bottom:16px">Persona que estará a cargo del transporte en terreno</div>'
+    +'<button onclick="autocompletarMisDatos()" style="width:100%;padding:8px;border-radius:8px;border:0.5px solid #e8eaf0;background:#f8f9fc;font-size:12px;cursor:pointer;margin-bottom:14px;color:#1e2d4e;font-weight:500">Usar mis datos ('+nombre+')</button>'
+    +'<div style="display:flex;flex-direction:column;gap:10px">'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Nombre *</label><input type="text" id="mc-nombre" placeholder="Nombre completo" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Cargo / Rol</label><input type="text" id="mc-cargo" placeholder="Ej: Conductor, Encargado" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Teléfono *</label><input type="tel" id="mc-telefono" placeholder="+56 9 XXXX XXXX" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Email</label><input type="email" id="mc-email" placeholder="opcional" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">'
+    +'<button id="mc-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
+    +'<button id="mc-save" style="padding:9px 18px;border-radius:8px;background:#FF8808;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar contacto</button>'
+    +'</div>';
+  modal.appendChild(inner); document.body.appendChild(modal);
+  document.getElementById('mc-cancel').onclick=function(){ modal.remove(); };
+  document.getElementById('mc-save').onclick=function(){ guardarContactoOp(transporteId,rol,modal); };
+  modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
+}
+
+function autocompletarMisDatos(){
+  var n=document.getElementById('mc-nombre'); if(n) n.value=localStorage.getItem('tm_nombre')||'';
+  var t=document.getElementById('mc-telefono'); if(t) t.value=localStorage.getItem('tm_telefono')||'';
+  var e=document.getElementById('mc-email'); if(e) e.value=localStorage.getItem('tm_email')||'';
+}
+
+async function guardarContactoOp(transporteId, rol, modal){
+  var nombre=(document.getElementById('mc-nombre').value||'').trim();
+  var telefono=(document.getElementById('mc-telefono').value||'').trim();
+  if(!nombre||!telefono){ toast('Nombre y teléfono son requeridos','err'); return; }
+  var contacto={nombre:nombre,cargo:(document.getElementById('mc-cargo').value||'').trim(),telefono:telefono,email:(document.getElementById('mc-email').value||'').trim()};
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/contacto-operacional',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify({rol:rol,contacto:contacto})
+    });
+    if(res.ok){ toast('Contacto agregado'); modal.remove(); await cargar(); setTimeout(function(){toggleCard(transporteId);},200); }
+    else{ var d=await res.json(); toast(d.error||'Error','err'); }
+  }catch(e){ toast('Error de conexión','err'); }
+}
+
+async function eliminarContactoOp(transporteId, rol, idx){
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/contacto-operacional/'+rol+'/'+idx,{
+      method:'DELETE',
+      headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}
+    });
+    if(res.ok){ await cargar(); setTimeout(function(){toggleCard(transporteId);},200); }
+  }catch(e){}
+}
+
+async function subirFactura(transporteId){
+  var fi=document.getElementById('fac-file-'+transporteId);
+  var statusEl=document.getElementById('fac-status-'+transporteId);
+  if(!fi||!fi.files[0]){return;}
+  var file=fi.files[0];
+  if(statusEl) statusEl.textContent='Subiendo '+file.name+'...';
+  var reader=new FileReader();
+  reader.onload=async function(e){
+    var base64=e.target.result.split(',')[1];
+    try {
+      var res=await fetch(API+'/api/transportes/'+transporteId+'/subir-factura',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+        body:JSON.stringify({base64:base64,mimeType:file.type,nombre:file.name})
+      });
+      var d=await res.json();
+      if(res.ok){
+        toast('Factura subida. La OV ha sido confirmada y el transporte completado.');
+        await cargar();
+        setTimeout(function(){toggleCard(transporteId);},200);
+      } else { if(statusEl) statusEl.textContent=''; toast(d.error||'Error al subir','err'); }
+    } catch(e){ if(statusEl) statusEl.textContent=''; toast('Error de conexion','err'); }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function marcarPagoCliente(transporteId, estado){
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/pago-cliente',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({estado:estado})});
+    if(res.ok){ toast(estado==='pagado'?'Marcado como pagado por el cliente':'Marcado como pendiente'); await cargar(); setTimeout(function(){toggleCard(transporteId);},200); }
+    else{ var d=await res.json().catch(function(){return{};}); toast(d.error||'Error','err'); }
+  }catch(e){ toast('Error de conexión','err'); }
+}
+
+function abrirModalDocumentoExtra(transporteId){
+  var modal=document.createElement('div');
+  modal.id='modal-doc-extra';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto';
+  var inner=document.createElement('div');
+  inner.style.cssText='background:#fff;border-radius:16px;padding:28px;width:100%;max-width:420px';
+  inner.innerHTML=
+    '<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Agregar documento</div>'+
+    '<div style="font-size:12px;color:#9CA3AF;margin-bottom:20px">Ej: Seguro de carga, Contrato de transporte, Permiso especial</div>'+
+    '<div id="docextra-err" style="display:none;background:#FEF2F2;color:#991B1B;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:14px"></div>'+
+    '<div style="margin-bottom:14px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Nombre del documento *</label><input type="text" id="docextra-label" placeholder="Ej: Seguro de carga" maxlength="80" style="width:100%;padding:9px 11px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box"/></div>'+
+    '<div style="margin-bottom:20px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Archivo *</label><input type="file" id="docextra-file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style="font-size:13px"/></div>'+
+    '<div style="display:flex;gap:10px;justify-content:flex-end">'+
+      '<button id="docextra-btn-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'+
+      '<button id="docextra-btn-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar</button>'+
+    '</div>';
+  modal.appendChild(inner);
+  document.body.appendChild(modal);
+  document.getElementById('docextra-btn-cancel').onclick=function(){modal.remove();};
+  document.getElementById('docextra-btn-save').onclick=function(){guardarDocumentoExtra(transporteId,modal);};
+}
+
+async function guardarDocumentoExtra(transporteId,modal){
+  var label=(document.getElementById('docextra-label').value||'').trim();
+  var fi=document.getElementById('docextra-file');
+  var errEl=document.getElementById('docextra-err');
+  if(!label){errEl.textContent='Indica un nombre para el documento';errEl.style.display='block';return;}
+  if(!fi||!fi.files[0]){errEl.textContent='Selecciona un archivo';errEl.style.display='block';return;}
+  var file=fi.files[0];
+  var btn=document.getElementById('docextra-btn-save');
+  btn.disabled=true;btn.textContent='Guardando...';
+  var reader=new FileReader();
+  reader.onload=async function(e){
+    var base64=e.target.result.split(',')[1];
+    try{
+      var res=await fetch(API+'/api/transportes/'+transporteId+'/documento-extra',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+        body:JSON.stringify({label:label,base64:base64,mimeType:file.type,nombre:file.name})
+      });
+      var d=await res.json();
+      if(res.ok){ modal.remove(); toast('Documento agregado.'); await cargar(); setTimeout(function(){toggleCard(transporteId);},200); }
+      else{ errEl.textContent=d.error||'Error al subir'; errEl.style.display='block'; btn.disabled=false; btn.textContent='Guardar'; }
+    }catch(e){ errEl.textContent='Error de conexion'; errEl.style.display='block'; btn.disabled=false; btn.textContent='Guardar'; }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function eliminarDocumentoExtra(transporteId,docId){
+  if(!confirm('¿Eliminar este documento?'))return;
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/documento-extra/'+docId,{
+      method:'DELETE',
+      headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}
+    });
+    var d=await res.json();
+    if(res.ok){ toast('Documento eliminado.'); await cargar(); setTimeout(function(){toggleCard(transporteId);},200); }
+    else toast(d.error||'Error al eliminar','err');
+  }catch(e){ toast('Error de conexion','err'); }
+}
+
+async function subirRequisito(transporteId, reqId){
+  var inp=document.createElement('input');
+  inp.type='file'; inp.accept='.pdf,.jpg,.jpeg,.png,.doc,.docx';
+  inp.onchange=function(){
+    var file=inp.files[0]; if(!file) return;
+    if(file.size>8*1024*1024){ toast('El archivo supera 8 MB','err'); return; }
+    var reader=new FileReader();
+    reader.onload=async function(e){
+      var base64=e.target.result.split(',')[1];
+      try{
+        var res=await fetch(API+'/api/transportes/'+transporteId+'/requisito/'+reqId,{ method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}, body:JSON.stringify({base64:base64,mimeType:file.type,nombre:file.name}) });
+        var d=await res.json();
+        if(res.ok){ toast('Documento cargado.'); await cargar(); setTimeout(function(){toggleCard(transporteId);},200); }
+        else toast(d.error||'Error al subir','err');
+      }catch(e){ toast('Error de conexion','err'); }
+    };
+    reader.readAsDataURL(file);
+  };
+  inp.click();
+}
+
+async function descargar(archivoId,nombre){
+  try {
+    var res=await fetch(API+'/api/archivos/'+archivoId,{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    var d=await res.json();
+    var arr=new Uint8Array(atob(d.base64).split('').map(function(c){return c.charCodeAt(0);}));
+    var blob=new Blob([arr],{type:d.mimeType||'application/octet-stream'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;a.download=nombre||'archivo';a.click();
+    URL.revokeObjectURL(url);
+  } catch(e){toast('Error al descargar','err');}
+}
+
+(async function(){
+  var token=localStorage.getItem('tm_token');
+  var role=localStorage.getItem('tm_role');
+  if(!token||role!=='transportista'){window.location.replace('/index.html');return;}
+  document.getElementById('nav-avatar').textContent=(localStorage.getItem('tm_nombre')||'?')[0].toUpperCase();
+var nn=document.getElementById('nav-nombre');if(nn)nn.textContent=localStorage.getItem('tm_nombre')||'';
+var ne=document.getElementById('nav-empresa');if(ne)ne.textContent=localStorage.getItem('tm_empresa')||'';
+  document.getElementById('auth-guard').style.display='none';
+  var appEl=document.getElementById('app');appEl.style.display='flex';appEl.style.flexDirection='column';appEl.style.minHeight='100vh';
+      cargarNotificaciones();
+  cargar();
+})();
+
+  function toggleUserMenu(e){
+    e.stopPropagation();
+  var _mp=document.getElementById('nav-mobile-panel'); if(_mp) _mp.classList.remove('open');
+    var m=document.getElementById('user-menu');
+    var isOpen=m&&m.style.display==='block';
+    closeAllPanels();
+    if(!isOpen&&m) m.style.display='block';
+  }
+  document.addEventListener('click',function(e){
+  if(e.target.closest('#notif-panel') || e.target.closest('#notif-btn') ||
+     e.target.closest('#user-menu') || e.target.closest('#nav-avatar')) return;
+  closeAllPanels();
+});
+
+  async function cargarNotificaciones(){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var r = await fetch(API + '/api/notificaciones', { headers: {'Authorization':'Bearer '+token} });
+      var data = await r.json();
+      var notifs = data.notificaciones || [];
+      var noLeidas = notifs.filter(function(n){ return !n.leida; }).length;
+      var badge = document.getElementById('notif-count');
+      if(badge){ badge.textContent = noLeidas > 9 ? '9+' : noLeidas; badge.style.display = noLeidas > 0 ? 'flex' : 'none'; }
+      var list = document.getElementById('notif-list');
+      if(!list) return;
+      if(notifs.length === 0){
+        list.innerHTML = '<div style="padding:32px 20px;text-align:center"><div style="font-size:28px;margin-bottom:8px"></div><div style="font-size:14px;font-weight:500;color:#374151;margin-bottom:4px">Sin notificaciones</div><div style="font-size:12px;color:#9CA3AF">Te avisaremos cuando haya novedades</div></div>';
+        return;
+      }
+      var iconMap = {
+        adjudicacion: '#16a34a',
+        licitacion_aprobada: '#16a34a',
+        licitacion_rechazada: '#EF4444',
+        licitacion_cerrada: '#1d4ed8',
+        cotizaciones_disponibles: '#FF8808',
+        nueva_licitacion: '#1e2d4e',
+        cobro_pendiente: '#FF8808',
+        cobro_pagado: '#16a34a',
+        cuenta_aprobada: '#16a34a',
+      };
+      list.innerHTML = notifs.slice(0,20).map(function(n){
+        var icono = iconMap[n.tipo] || '#9CA3AF';
+        var bg = !n.leida ? 'background:#f0f4ff' : '';
+        var ts = n.createdAt ? new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+        return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'+
+          '<div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;background:'+icono+'"></div>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4">'+n.mensaje+'</div>'+
+            '<div style="font-size:11px;color:#9CA3AF">'+ts+'</div>'+
+          '</div>'+
+          (!n.leida
+            ? '<button onclick="event.stopPropagation();marcarUnaLeida(\'' + n.id + '\')" title="Marcar como leída" style="background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0;margin-top:2px;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">✓</button>'
+            : '') +
+        '</div>';
+      }).join('');
+      cargarPrefsConfig();
+    } catch(e){}
+  }
+
+  function toggleConfigNotif(){
+    var cfg      = document.getElementById('notif-config');
+    var list     = document.getElementById('notif-list');
+    var hMain    = document.getElementById('notif-header-main');
+    var hConfig  = document.getElementById('notif-header-config');
+    var isOpen   = cfg && cfg.style.display !== 'none';
+    if(isOpen){
+      if(cfg)     cfg.style.display     = 'none';
+      if(list)    list.style.display    = 'block';
+      if(hMain)   hMain.style.display   = 'flex';
+      if(hConfig) hConfig.style.display = 'none';
+    } else {
+      if(cfg)     cfg.style.display     = 'block';
+      if(list)    list.style.display    = 'none';
+      if(hMain)   hMain.style.display   = 'none';
+      if(hConfig) hConfig.style.display = 'flex';
+      cargarPrefsConfig();
+    }
+  }
+
+  function cargarPrefsConfig(){
+    try {
+      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      var ec = document.getElementById('notif-email-chk');
+      var wc = document.getElementById('notif-wa-chk');
+      if(ec) ec.checked = prefs.notifEmail !== false;
+      if(wc) wc.checked = !!prefs.notifWhatsapp;
+      if(wc && wc.checked){ var wi=document.getElementById('wa-input'); if(wi) wi.style.display='block'; }
+      var waNum = document.getElementById('wa-numero');
+      if(waNum && prefs.whatsapp) waNum.value = prefs.whatsapp;
+      ['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
+        var el = document.getElementById('pref-'+id);
+        if(el) el.checked = prefs['pref_'+id] !== false;
+      });
+    } catch(e){}
+  }
+
+  async function guardarPrefs(){
+    try {
+      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      var ec = document.getElementById('notif-email-chk');
+      if(ec) prefs.notifEmail = ec.checked;
+      localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+      if(typeof api === 'function'){
+        try { await api('/api/auth/me/prefs','POST',{ notifPrefs:{ email: ec?ec.checked:true } }); } catch(e){}
+      }
+    } catch(e){}
+  }
+  async function guardarPrefsDetalle(){
+    try {
+      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      ['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
+        var el = document.getElementById('pref-'+id);
+        if(el) prefs['pref_'+id] = el.checked;
+      });
+      localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+    } catch(e){}
+  }
+
+
+  function toggleWA(){
+    var wc = document.getElementById('notif-wa-chk');
+    var wi = document.getElementById('wa-input');
+    if(wi) wi.style.display = (wc && wc.checked) ? 'block' : 'none';
+    guardarPrefs();
+  }
+
+
+  function closeAllPanels(){
+    var m=document.getElementById('user-menu');
+    var p=document.getElementById('notif-panel');
+    if(m) m.style.display='none';
+    if(p) p.style.display='none';
+  }
+
+  function toggleNotifs(e){
+    if(e) e.stopPropagation();
+    var _mp=document.getElementById('nav-mobile-panel'); if(_mp) _mp.classList.remove('open');
+    var panel=document.getElementById('notif-panel');
+    if(!panel) return;
+    var isOpen=panel.style.display==='flex';
+    closeAllPanels();
+    if(!isOpen){panel.style.display='flex';cargarNotificaciones();}
+  }
+
+
+  async function marcarUnaLeida(id){
+    try {
+      var token = localStorage.getItem('tm_token');
+      await fetch('https://transmatch.transmatchcl.workers.dev/api/notificaciones/leer', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body: JSON.stringify({id: id})
+      });
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+  async function marcarTodasLeidas(){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var r = await fetch('https://transmatch.transmatchcl.workers.dev/api/notificaciones', {headers:{'Authorization':'Bearer '+token}});
+      var data = r.ok ? await r.json() : {};
+      var notifs = (data.notificaciones||[]).filter(function(n){ return !n.leida; });
+      for(var i=0;i<notifs.length;i++){
+        await fetch('https://transmatch.transmatchcl.workers.dev/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:notifs[i].id})});
+      }
+      var badge = document.getElementById('notif-count');
+      if(badge) badge.style.display='none';
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+
+function toggleMobileNav(){
+  var p=document.getElementById('nav-mobile-panel');
+  if(!p) return;
+  var willOpen = !p.classList.contains('open');
+  // Cerrar otros menús (avatar y notificaciones) si existen
+  var um=document.getElementById('user-menu'); if(um) um.style.display='none';
+  var np=document.getElementById('notif-panel'); if(np) np.style.display='none';
+  if(typeof closeAllPanels==='function'){ try{closeAllPanels();}catch(e){} }
+  if(willOpen) p.classList.add('open'); else p.classList.remove('open');
+}
+function cerrarMenuMovil(){
+  var p=document.getElementById('nav-mobile-panel'); if(p) p.classList.remove('open');
+}
+document.addEventListener('click',function(e){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.nav-mobile-menu'))
+    p.classList.remove('open');
+});
+</script>
+
+<footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <!-- Logo -->
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <svg style="height:28px;width:auto;display:block" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg>
+      </div>
+      <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+    </div>
+    <!-- Links -->
+    <div style="display:flex;gap:32px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <a href="/terminos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Términos y condiciones</a>
+          <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Política de privacidad</a>
+          <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Centro de ayuda</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span>
+          <span style="font-size:13px;color:#CBD5E1">+56 9 6908 1098</span><span style="font-size:13px;color:#CBD5E1">Av. La Dehesa 1201</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <span>© 2026 TransMatch SpA. T

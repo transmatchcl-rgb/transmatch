@@ -1,0 +1,1037 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>TransMatch — Retornos disponibles</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><style>
+ *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+ body{font-family:Barlow,sans-serif;background:#ffffff;display:flex;flex-direction:column;min-height:100vh}
+ #auth-guard{position:fixed;inset:0;background:#ffffff;display:flex;align-items:center;justify-content:center;z-index:9999}
+ .spinner{width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+ @keyframes spin{to{transform:rotate(360deg)}}
+ #app{display:none}#app.shown{display:flex;flex-direction:column;min-height:100vh}
+ .nav{background:#1e2d4e;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+ .nav-left{display:flex;align-items:center;gap:16px}
+ .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+  .brand-logo{height:28px;width:auto;display:block}
+ .nav-icon{background:#FF8808;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+ .nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#FF8808}
+ .nav-links{display:flex;gap:2px}
+ .nav-link{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+ .nav-link:hover,.nav-link.active{color:#fff;background:rgba(255,255,255,.18)}
+ .avatar{width:30px;height:30px;border-radius:50%;background:#FF8808;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;cursor:pointer}
+ main{max-width:900px;margin:0 auto;padding:24px 20px;min-height:calc(100vh - 52px);flex:1}
+ .card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);overflow:hidden;margin-bottom:16px}
+ .card-hdr{padding:16px 20px;border-bottom:0.5px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between}
+ .card-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:600;color:#111827}
+ .btn{padding:9px 18px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s;display:inline-flex;align-items:center;gap:6px}
+ .btn:hover{opacity:.88}
+ .btn:disabled{opacity:.5;cursor:not-allowed}
+ .btn-orange{background:#FF8808;color:#fff}
+ .btn-outline{background:transparent;border:0.5px solid #E5E7EB;color:#374151}
+ .btn-sm{padding:5px 12px;font-size:12px}
+ .badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px}
+ .badge-green{background:#F0FDF4;color:#14532D}
+ .badge-blue{background:#EFF6FF;color:#1e3a8a}
+ .info-box{background:#eef1f8;border-radius:10px;padding:16px;margin-bottom:20px;display:flex;gap:12px;align-items:flex-start}
+ .fil-btn{padding:5px 14px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e8eaf0;background:#fff;color:#6B7280;transition:all .15s;font-family:inherit}
+ .fil-btn.active{background:#1e2d4e;color:#fff;border-color:#1e2d4e}
+ /* Retorno cards — igual que transportista */
+ .ret-card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);margin-bottom:10px;overflow:hidden}
+ .ret-card:hover{box-shadow:0 4px 16px rgba(30,45,78,.10);border-color:#c7d0e8}
+ .ret-hdr{padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none}
+ .ret-hdr:hover{background:#f5f7fb}
+ .ret-info{flex:1;min-width:0}
+ .ret-title{font-size:14px;font-weight:600;color:#1e2d4e}
+ .ret-meta{font-size:11px;color:#6B7280;margin-top:2px}
+ .ret-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+ .ret-precio{font-size:13px;font-weight:700;color:#1e2d4e}
+ .ret-body{display:none;border-top:0.5px solid #f3f4f6;padding:16px 18px}
+ .ret-body.open{display:block}
+ .ret-arr{font-size:16px;color:#9CA3AF;transition:transform .2s;flex-shrink:0}
+ /* Modal */
+ .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px}
+ .modal-bg.open{display:flex}
+ .modal{background:#fff;border-radius:14px;padding:24px;max-width:440px;width:100%}
+ input[type=text],input[type=email]{width:100%;padding:8px 12px;border:0.5px solid #E5E7EB;border-radius:7px;font-size:13px;font-family:inherit}
+ #toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none}
+ .nav-user{font-size:13px;color:#fff;font-weight:500}
+ .nav-sub{font-size:11px;color:#93C5FD}
+ .um-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:background .15s}
+ .um-item:hover{background:#f9fafb}
+ .um-danger{color:#DC2626}.um-danger:hover{background:#FEF2F2}
+ .empty{text-align:center;padding:48px 20px;color:#9CA3AF;font-size:14px}
+ /* Calendario — mismo diseño que transportista */
+ .cal-mini{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);overflow:hidden}
+ .cal-mini-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:0.5px solid #f3f4f6}
+ .cal-mini-title{font-size:15px;font-weight:600;color:#1e2d4e}
+ .cal-mini-nav{display:flex;gap:6px}
+ .cal-mini-btn{width:28px;height:28px;border-radius:6px;border:0.5px solid #e8eaf0;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+ .cal-mini-btn:hover{background:#f5f7fb}
+ .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));padding:12px 16px;gap:2px}
+ .cal-dow{font-size:10px;font-weight:600;color:#9CA3AF;text-align:center;padding:4px 0;text-transform:uppercase}
+ .cal-day{min-height:52px;min-width:0;border-radius:7px;padding:4px;position:relative;cursor:default;overflow:hidden}
+ .cal-day.other-month .cal-day-num{color:#D1D5DB}
+ .cal-day.today .cal-day-num{background:#FF8808;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+ .cal-day-num{font-size:12px;font-weight:500;color:#374151;width:22px;height:22px;display:flex;align-items:center;justify-content:center;margin-bottom:2px}
+ .cal-evt{font-size:10px;font-weight:600;padding:2px 5px;border-radius:4px;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .cal-evt-disponible{background:#DBEAFE;color:#1e3a8a}
+ .cal-evt-pendiente{background:#FEF9C3;color:#713F12}
+ .cal-evt-aceptada{background:#DCFCE7;color:#14532D}
+ .fil-btn{padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e8eaf0;background:#fff;color:#6B7280;transition:all .15s;font-family:inherit}
+ .fil-btn:hover{border-color:#1e2d4e;color:#1e2d4e}
+ .fil-btn.active{background:#1e2d4e;color:#fff;border-color:#1e2d4e}
+
+  .nav-mobile-menu{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:6px;border-radius:6px;background:none;border:none;flex-shrink:0}
+  .nav-mobile-menu span{display:block;width:20px;height:2px;background:#fff;border-radius:2px}
+  .nav-mobile-panel{display:none;position:fixed;top:52px;left:0;right:0;background:#1e2d4e;z-index:999;padding:8px 16px 16px;border-bottom:0.5px solid rgba(255,255,255,.1)}
+  .nav-mobile-panel.open{display:block}
+  .nav-mobile-link{display:block;padding:10px 12px;color:#93C5FD;text-decoration:none;font-size:14px;border-radius:8px;margin-bottom:2px}
+  .nav-mobile-link:hover{background:rgba(255,255,255,.1);color:#fff}
+  @media(max-width:860px){
+    .nav-links,.nav-tabs{display:none!important}
+    .nav-mobile-menu{display:flex!important}.nav-mobile-menu{order:-1}.nav-logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}.nav-logo .brand-logo,.nav-logo>.brand-logo{height:22px}
+    .nav-user-name,.nav-userinfo,.nav-user,.nav-sub{display:none!important}
+    .nav-icon,.nav-name{display:none!important}
+  }
+  /* TM-MOBILE-FIX */
+  @media(max-width:600px){
+    [style*="grid-template-columns:1fr 1fr"],
+    [style*="grid-template-columns:repeat(2,1fr)"],
+    [style*="grid-template-columns:repeat(2, 1fr)"],
+    [style*="grid-template-columns:repeat(3,1fr)"],
+    [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
+    html,body{overflow-x:hidden;max-width:100%}
+    main{padding:16px 12px!important}
+    .cal-grid{padding:8px!important;gap:1px!important}
+    .cal-evt{font-size:9px!important;padding:1px 3px!important}
+    .fil-estado-botones{display:none!important}
+    .fil-estado-select{display:block!important}
+  }
+</style></head><body>
+
+<div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px"><svg style="height:32px;width:auto;display:block" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg></div><div class="spinner"></div></div></div>
+
+<div id="app">
+<nav class="nav">
+  <div class="nav-left">
+    <a href="/cliente.html" class="nav-logo"><svg class="brand-logo" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg></a>
+    <button class="nav-mobile-menu" onclick="toggleMobileNav()" aria-label="Menu"><span></span><span></span><span></span></button><div class="nav-links">
+      <a href="/cliente.html" class="nav-link">Inicio</a>
+      <a href="/cliente-licitaciones.html" class="nav-link">Licitaciones</a>
+      <a href="/cliente-retornos.html" class="nav-link active">Retornos</a>
+      <a href="/cliente-transporte.html" class="nav-link">Transportes</a>
+      <a href="/cliente-facturacion.html" class="nav-link">Facturacion</a>
+      <a href="/cliente-calendario.html" class="nav-link">Calendario</a>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="nav-userinfo" style="text-align:right"><div class="nav-user" id="nav-nombre">—</div><div class="nav-sub" id="nav-empresa">—</div></div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div id="notif-btn" onclick="toggleNotifs(event)" style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;"></span>
+      </div>
+      <div style="position:relative">
+        <div class="avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div>
+        <div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:220px;z-index:999;overflow:hidden">
+          <div style="padding:14px 16px;border-bottom:1px solid #f3f4f6"><div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div><div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div></div>
+          <a href="/cliente-perfil.html" class="um-item">Configuracion</a>
+          <a href="/ayuda.html" class="um-item">Ayuda</a>
+          <div style="border-top:1px solid #f3f4f6"><button onclick="cerrarSesion()" class="um-item um-danger">Cerrar sesion</button></div>
+        </div>
+      </div>
+    </div>
+    <div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:340px;background:#fff;border-radius:12px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.12);z-index:500;max-height:420px;overflow-y:auto">
+      <div style="padding:12px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:8px"><span style="font-size:14px;font-weight:600;color:#111827">Notificaciones</span><button onclick="event.stopPropagation();marcarTodasLeidas()" style="font-size:11px;color:#1e2d4e;background:none;border:none;cursor:pointer;white-space:nowrap;flex-shrink:0">Marcar todas leídas</button></div>
+      <div id="notif-list" style="overflow-y:auto;max-height:380px;"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div>
+    </div>
+  </div>
+</nav>
+<div id="nav-mobile-panel" class="nav-mobile-panel">
+<a href="/cliente.html" class="nav-mobile-link">Inicio</a>
+<a href="/cliente-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
+<a href="/cliente-retornos.html" class="nav-mobile-link">Retornos</a>
+<a href="/cliente-transporte.html" class="nav-mobile-link">Transportes</a>
+<a href="/cliente-facturacion.html" class="nav-mobile-link">Facturacion</a>
+<a href="/cliente-calendario.html" class="nav-mobile-link">Calendario</a>
+</div>
+
+
+<main>
+  <!-- Encabezado -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+    <div>
+      <div style="font-size:20px;font-weight:600;color:#1e2d4e">Retornos disponibles</div>
+      <div style="font-size:14px;color:#6B7280;margin-top:2px">Transportistas con disponibilidad de regreso — precios reducidos</div>
+    </div>
+  </div>
+
+  <!-- Info box -->
+  <div class="info-box" style="margin-bottom:20px">
+    <div style="font-size:20px;flex-shrink:0">↺</div>
+    <div style="font-size:13px;color:#1e2d4e;line-height:1.6">
+      <strong>¿Cómo funcionan los retornos?</strong><br>
+      Los transportistas publican su disponibilidad de viaje de regreso a precios reducidos. Puedes tomar el tramo completo o proponer un tramo parcial.
+    </div>
+  </div>
+
+  <!-- Calendario de retornos -->
+  <div class="cal-mini" style="margin-bottom:16px">
+    <div class="cal-mini-hdr">
+      <span class="cal-mini-title" id="cal-ret-titulo">—</span>
+      <div class="cal-mini-nav">
+        <button class="cal-mini-btn" onclick="calNav(-1)">‹</button>
+        <button class="cal-mini-btn" onclick="calNav(0)" style="font-size:11px;width:auto;padding:0 8px">Hoy</button>
+        <button class="cal-mini-btn" onclick="calNav(1)">›</button>
+      </div>
+    </div>
+    <div class="cal-grid" id="cal-ret-grid"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;padding:10px 16px 14px;border-top:0.5px solid #f3f4f6">
+      <span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:10px;height:10px;border-radius:3px;background:#DBEAFE;border:1px solid #93C5FD;display:inline-block"></span>Retorno disponible</span>
+      <span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:10px;height:10px;border-radius:3px;background:#FEF9C3;border:1px solid #FDE68A;display:inline-block"></span>Propuesta enviada</span>
+      <span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:10px;height:10px;border-radius:3px;background:#DCFCE7;border:1px solid #86EFAC;display:inline-block"></span>Aceptada</span>
+    </div>
+  </div>
+
+  <!-- Filtros y búsqueda -->
+  <div id="lista-retornos-wrap">
+    <div class="card">
+      <div class="card-hdr" style="flex-direction:column;align-items:flex-start;gap:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+          <span class="card-title">Retornos publicados</span>
+          <span id="retornos-count" class="badge badge-green">—</span>
+        </div>
+        <!-- Fila 1: búsqueda de texto + fecha -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;width:100%">
+          <input type="text" id="fil-ret" placeholder="Ciudad de origen o destino..." oninput="filtrarRet()" style="flex:1;min-width:180px;padding:7px 12px;border:0.5px solid #E5E7EB;border-radius:7px;font-size:13px;background:#fff"/>
+          <label style="display:flex;align-items:center;gap:6px;flex-shrink:0;font-size:12px;color:#6B7280;border:0.5px solid #E5E7EB;border-radius:7px;padding:4px 10px;background:#fff;cursor:pointer">
+            <span style="white-space:nowrap">Fecha</span>
+            <input type="date" id="fil-fecha" onchange="filtrarRet()" title="Filtrar por fecha disponible" style="border:none;font-size:13px;background:transparent;color:#374151;cursor:pointer;padding:0;font-family:inherit"/>
+          </label>
+        </div>
+        <!-- Fila 2: filtros por estado -->
+        <select id="fil-estado-mobile" class="fil-estado-select" onchange="setFiltroEstado(this.value)" style="display:none;width:100%;padding:9px 12px;border:0.5px solid #E5E7EB;border-radius:8px;font-size:13px;background:#fff;color:#374151;font-family:inherit;margin-bottom:4px">
+          <option value="todos">Estado: Todos</option>
+          <option value="sin">Sin propuesta</option>
+          <option value="pendiente">Propuesta enviada</option>
+          <option value="aceptada">Aceptadas</option>
+          <option value="rechazada">Rechazadas</option>
+        </select>
+        <div class="fil-estado-botones" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;width:100%">
+          <span style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;margin-right:2px">Estado</span>
+          <button class="fil-btn active" id="fbtn-todos"      onclick="setFiltroEstado('todos',this)">Todos</button>
+          <button class="fil-btn"        id="fbtn-sin"        onclick="setFiltroEstado('sin',this)">Sin propuesta</button>
+          <button class="fil-btn"        id="fbtn-pendiente"  onclick="setFiltroEstado('pendiente',this)">Propuesta enviada</button>
+          <button class="fil-btn"        id="fbtn-aceptada"   onclick="setFiltroEstado('aceptada',this)">Aceptadas</button>
+          <button class="fil-btn"        id="fbtn-rechazada"  onclick="setFiltroEstado('rechazada',this)">Rechazadas</button>
+          <button onclick="limpiarFiltros()" style="margin-left:auto;font-size:12px;border:0.5px solid #e8eaf0;border-radius:6px;padding:4px 10px;background:#fff;cursor:pointer;color:#6B7280">Limpiar</button>
+        </div>
+      </div>
+      <div id="lista-ret" style="padding:16px 20px"><div style="text-align:center"><div class="spinner" style="width:24px;height:24px;border-width:2px"></div></div></div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- Modal: Proponer tramo -->
+<div class="modal-bg" id="modal-propuesta">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:16px;font-weight:600;color:#111827">Proponer tramo</div>
+      <button onclick="document.getElementById('modal-propuesta').classList.remove('open')" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6B7280">×</button>
+    </div>
+    <div id="modal-ret-info" style="margin-bottom:14px"></div>
+
+    <!-- Opción 1: Tomar retorno completo -->
+    <div id="opcion-completo" style="border:2px solid #E5E7EB;border-radius:10px;padding:14px;margin-bottom:10px;cursor:pointer" onclick="seleccionarOpcion('completo')" onmouseover="this.style.borderColor='#1e2d4e'" onmouseout="if(!this.classList.contains('sel')) this.style.borderColor='#E5E7EB'">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div id="radio-completo" style="width:18px;height:18px;border-radius:50%;border:2px solid #E5E7EB;flex-shrink:0"></div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#1e2d4e">Tomar el retorno completo</div>
+          <div style="font-size:12px;color:#6B7280;margin-top:2px">Al mismo origen y destino del transportista, al precio publicado</div>
+        </div>
+      </div>
+      <!-- Fecha para tramo completo -->
+      <div id="fecha-completo-wrap" style="display:none;margin-top:12px">
+        <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:4px;font-weight:600">¿Qué fecha necesitas? <span style="color:#EF4444">*</span></label>
+        <input type="date" id="fecha-completo" style="width:100%;padding:8px 12px;border:0.5px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:inherit;color:#374151"/>
+        <div id="fecha-completo-hint" style="font-size:11px;color:#9CA3AF;margin-top:4px"></div>
+      </div>
+    </div>
+
+    <!-- Opción 2: Proponer tramo parcial -->
+    <div id="opcion-tramo" style="border:2px solid #E5E7EB;border-radius:10px;padding:14px;margin-bottom:14px;cursor:pointer" onclick="seleccionarOpcion('tramo')" onmouseover="this.style.borderColor='#FF8808'" onmouseout="if(!this.classList.contains('sel')) this.style.borderColor='#E5E7EB'">
+      <div style="display:flex;align-items:center;gap:10px" id="tramo-header">
+        <div id="radio-tramo" style="width:18px;height:18px;border-radius:50%;border:2px solid #E5E7EB;flex-shrink:0"></div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#1e2d4e">Proponer tramo parcial</div>
+          <div style="font-size:12px;color:#6B7280;margin-top:2px">Indica tu ruta específica — el precio será menor y se negocia</div>
+        </div>
+      </div>
+      <div id="tramo-fields" style="display:none;margin-top:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <div><label style="font-size:11px;color:#6B7280;display:block;margin-bottom:4px">Tu ciudad de origen</label><input type="text" id="mi-origen" placeholder="Ej: La Serena" onclick="event.stopPropagation()"/></div>
+          <div><label style="font-size:11px;color:#6B7280;display:block;margin-bottom:4px">Tu ciudad de destino</label><input type="text" id="mi-destino" placeholder="Ej: Calama" onclick="event.stopPropagation()"/></div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:#6B7280;display:block;margin-bottom:4px;font-weight:600">¿Qué fecha necesitas? <span style="color:#EF4444">*</span></label>
+          <input type="date" id="fecha-tramo" style="width:100%;padding:8px 12px;border:0.5px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:inherit;color:#374151" onclick="event.stopPropagation()"/>
+          <div id="fecha-tramo-hint" style="font-size:11px;color:#9CA3AF;margin-top:4px"></div>
+        </div>
+        <div style="font-size:11px;color:#9CA3AF;margin-top:8px">Los datos de contacto se revelan al cerrar la negociación.</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline" style="flex:1" onclick="document.getElementById('modal-propuesta').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-orange" style="flex:1" id="btn-enviar-propuesta" onclick="enviarPropuesta()" disabled>Continuar →</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <svg style="height:28px;width:auto;display:block" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg>
+      </div>
+      <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+    </div>
+    <div style="display:flex;gap:32px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <a href="/términos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Términos y condiciones</a>
+          <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Política de privacidad</a>
+          <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Centro de ayuda</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span>
+          <span style="font-size:13px;color:#CBD5E1">+56 9 6908 1098</span><span style="font-size:13px;color:#CBD5E1">Av. La Dehesa 1201</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B">© 2026 TransMatch SpA.</div>
+</footer>
+
+<script>
+ const API = 'https://transmatch.transmatchcl.workers.dev';
+
+ function peso(n){ return n ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '$0'; }
+
+ function toast(msg, tipo){
+   var el = document.getElementById('toast');
+   el.textContent = msg;
+   el.style.background = tipo==='err' ? '#EF4444' : '#1ED24E';
+   el.style.opacity = '1';
+   clearTimeout(el._t);
+   el._t = setTimeout(function(){ el.style.opacity='0'; }, 3500);
+ }
+
+ function closeAllPanels(){
+   var m=document.getElementById('user-menu');
+   var p=document.getElementById('notif-panel');
+   if(m) m.style.display='none';
+   if(p) p.style.display='none';
+ }
+ function toggleUserMenu(e){
+   e.stopPropagation();
+  var _mp=document.getElementById('nav-mobile-panel'); if(_mp) _mp.classList.remove('open');
+   var m=document.getElementById('user-menu');
+   var isOpen=m&&m.style.display==='block';
+   closeAllPanels();
+   if(!isOpen&&m) m.style.display='block';
+ }
+ function toggleNotifs(e){
+   if(e) e.stopPropagation();
+    var _mp=document.getElementById('nav-mobile-panel'); if(_mp) _mp.classList.remove('open');
+   var p=document.getElementById('notif-panel');
+   var isOpen=p&&p.style.display==='flex';
+   closeAllPanels();
+   if(!isOpen&&p){ p.style.display='flex'; cargarNotificaciones(); }
+ }
+ document.addEventListener('click',function(e){
+  if(e.target.closest('#notif-panel') || e.target.closest('#notif-btn') ||
+     e.target.closest('#user-menu') || e.target.closest('#nav-avatar')) return;
+  closeAllPanels();
+});
+ function cerrarSesion(){ localStorage.clear(); window.location.replace('/index.html'); }
+
+ /* ── Render retornos (cards estilo transportista) ── */
+ function renderRetornos(lista){
+   var el = document.getElementById('lista-ret');
+   var cnt = document.getElementById('retornos-count');
+   if(cnt) cnt.textContent = lista.length + (lista.length===1?' retorno':' retornos');
+   if(!lista||!lista.length){
+     el.innerHTML='<div class="empty"><div style="font-size:15px;font-weight:600;color:#374151;margin-bottom:6px">Sin retornos disponibles</div><div style="font-size:13px;color:#9CA3AF">No hay transportistas con retornos publicados en este momento.</div></div>';
+     return;
+   }
+   el.innerHTML = lista.map(function(r,i){
+     var fDesde=(r.fechaDesde||r.fecha)?new Date((r.fechaDesde||r.fecha)+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}):'—';
+     var fHasta=r.fechaHasta?' — '+new Date(r.fechaHasta+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}):'';
+     var dataR=JSON.stringify(r).replace(/"/g,'&quot;');
+     var detalle=
+       '<div class="ret-body" id="rdet-'+i+'">'
+       +'<div style="background:#f8f9fc;border-radius:8px;padding:12px 14px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+       +'<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Disponibilidad</div><div style="font-size:12px;color:#374151">'+fDesde+fHasta+'</div></div>'
+       +'<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Precio referencial</div><div style="font-size:13px;font-weight:700;color:#1e2d4e">'+peso(r.precio)+'</div></div>'
+       +(r.equipo?'<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Equipo</div><div style="font-size:12px;color:#374151">'+r.equipo+'</div></div>':'')
+       +(r.capacidad?'<div><div style="font-size:10px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:2px">Capacidad</div><div style="font-size:12px;color:#374151">'+r.capacidad+'</div></div>':'')
+       +'</div>'
+       +((r.descripcion)?'<div style="font-size:12px;color:#6B7280;margin-bottom:12px">'+r.descripcion+'</div>':'')
+       +'<div id="estado-prop-'+r.id+'" style="margin-bottom:12px"></div>'
+       +'<div id="accion-prop-'+r.id+'">'
+       +'<div style="background:#FFF7ED;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#92400E"><strong>¿Necesitas solo parte del tramo?</strong> Puedes proponerlo y el precio será menor.</div>'
+       +'<button onclick="event.stopPropagation();abrirPropuesta(JSON.parse(this.dataset.r))" data-r="'+dataR+'" class="btn btn-orange" style="width:auto;padding:8px 20px;font-size:13px">Me interesa este retorno</button>'
+       +'</div>'
+       +'</div>';
+     return '<div class="ret-card">'
+       +'<div class="ret-hdr" onclick="toggleRetCard('+i+',\''+r.id+'\')">'
+       +'<div class="ret-info">'
+       +'<div class="ret-title">'+r.ciudadOrigen+' → '+r.ciudadDestino+'</div>'
+       +'<div class="ret-meta">'+(r.equipo||'Sin equipo especificado')+' · '+fDesde+fHasta+'</div>'
+       +'</div>'
+       +'<div class="ret-right" style="align-items:flex-end">'
+       +'<span class="ret-precio">'+peso(r.precio)+'</span>'
+       +'<span id="badge-hdr-'+r.id+'"></span>'
+       +'</div>'
+       +'<span class="ret-arr" id="rarr-'+i+'">›</span>'
+       +'</div>'
+       +detalle
+       +'</div>';
+   }).join('');
+ }
+
+ function toggleRetCard(i, retornoId){
+   var det=document.getElementById('rdet-'+i);
+   var arr=document.getElementById('rarr-'+i);
+   if(!det) return;
+   var open=det.classList.contains('open');
+   det.classList.toggle('open',!open);
+   if(arr) arr.style.transform=open?'':'rotate(90deg)';
+   if(!open && retornoId) cargarEstadoPropuesta(retornoId);
+ }
+
+ async function cargarEstadoPropuesta(retornoId){
+   var el=document.getElementById('estado-prop-'+retornoId);
+   if(!el) return;
+   try{
+     // Endpoint correcto: GET /api/retornos/:id/mi-propuesta
+     var r=await fetch(API+'/api/retornos/'+retornoId+'/mi-propuesta',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+     if(!r.ok){ el.innerHTML=''; return; }
+     var data=await r.json();
+     var p=data.propuesta;
+     if(!p||!p.estado){ el.innerHTML=''; return; }
+     var configs={
+       pendiente:{pillBg:'#FEF9C3',pillColor:'#713F12',titulo:'Propuesta enviada',desc:'Esperando respuesta del transportista.'},
+       aceptada: {pillBg:'#DCFCE7',pillColor:'#14532D',titulo:'Aceptada',desc:''},
+       rechazada:{pillBg:'#FEE2E2',pillColor:'#991B1B',titulo:'No disponible',desc:'El transportista no puede realizar este tramo.'}
+     };
+     var cfg=configs[p.estado]||configs['pendiente'];
+
+     // Tramo info
+     var tramoTexto=p.esTramoParcial
+       ?'Tramo parcial: '+p.origenPropuesto+' → '+p.destinoPropuesto
+       :'Tramo completo';
+
+     var contactoHtml='';
+     if(p.estado==='aceptada'){
+       var precioMostrar=p.precioNegociado||p.precio;
+       var ct=p.contactoTransportista||{};
+       if(ct.nombre||ct.email){
+         contactoHtml='<div style="margin-top:10px;background:#f0fdf4;border-radius:8px;padding:10px 12px;font-size:12px;color:#166534">'
+           +'<div style="font-weight:600;margin-bottom:4px">Datos de contacto del transportista</div>'
+           +(ct.nombre?'<div>'+ct.nombre+'</div>':'')
+           +(ct.empresa?'<div>'+ct.empresa+'</div>':'')
+           +(ct.email?'<div><a href="mailto:'+ct.email+'" style="color:#14532D">'+ct.email+'</a></div>':'')
+           +(ct.telefono?'<div>'+ct.telefono+'</div>':'')
+           +(precioMostrar?'<div style="font-weight:600;margin-top:6px">Precio acordado: '+peso(precioMostrar)+'</div>':'')
+           +'</div>';
+       } else {
+         contactoHtml='<div style="margin-top:8px;font-size:12px;color:#166534">Los datos de contacto estarán disponibles en breve.'+(precioMostrar?' Precio acordado: '+peso(precioMostrar):'')+'</div>';
+       }
+     }
+     var fechaSolHtml='';
+     if(p.fechaSolicitada){
+       var fs=new Date(p.fechaSolicitada+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});
+       fechaSolHtml='<div style="font-size:11px;color:#6B7280;margin-top:2px">Fecha solicitada: '+fs+'</div>';
+     }
+     // Badge a la derecha, sin fondo completo amarillo
+     el.innerHTML='<div style="border:0.5px solid #e8eaf0;border-radius:8px;padding:12px 14px;background:#fff">'
+       +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
+       +'<div>'
+       +'<div style="font-size:13px;font-weight:600;color:#1e2d4e">Tu propuesta · '+tramoTexto+'</div>'
+       +(cfg.desc?'<div style="font-size:12px;color:#6B7280;margin-top:2px">'+cfg.desc+'</div>':'')
+       +fechaSolHtml
+       +'</div>'
+       +'<span style="background:'+cfg.pillBg+';color:'+cfg.pillColor+';font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap;flex-shrink:0">'+cfg.titulo+'</span>'
+       +'</div>'
+       +contactoHtml
+       +'</div>';
+
+     // Badge en header de card cerrada
+     var badgeHdr=document.getElementById('badge-hdr-'+retornoId);
+     if(badgeHdr){
+       var cfgH={
+         pendiente:{bg:'#FEF9C3',color:'#713F12',label:'Propuesta enviada'},
+         aceptada: {bg:'#DCFCE7',color:'#14532D',label:'Aceptada'},
+         rechazada:{bg:'#FEE2E2',color:'#991B1B',label:'No disponible'}
+       }[p.estado]||{bg:'#FEF9C3',color:'#713F12',label:'Propuesta enviada'};
+       badgeHdr.innerHTML='<span style="background:'+cfgH.bg+';color:'+cfgH.color+';font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap">'+cfgH.label+'</span>';
+     }
+
+     // Controlar zona de acción según estado
+     var accionEl=document.getElementById('accion-prop-'+retornoId);
+     if(accionEl){
+       if(p.estado==='pendiente'){
+         // Puede editar si aún no fue vista (no tenemos ese dato, pero sí podemos permitir editar en pendiente)
+         var dataRet=window._retornos?window._retornos.find(function(x){return x.id===retornoId;}):null;
+         var dataRetStr=dataRet?JSON.stringify(dataRet).replace(/"/g,'&quot;'):'{}';
+         accionEl.innerHTML='<button onclick="event.stopPropagation();editarPropuesta(\''+retornoId+'\',\''+p.id+'\')" class="btn btn-outline" style="font-size:12px;padding:6px 14px">Editar propuesta</button>';
+       } else {
+         // Aceptada o rechazada: ocultar botón
+         accionEl.innerHTML='';
+       }
+     }
+   }catch(e){ if(el) el.innerHTML=''; }
+ }
+
+ var _filtroEstadoRet = 'todos';
+
+ function setFiltroEstado(val, btn){
+   _filtroEstadoRet = val;
+   document.querySelectorAll('.fil-btn').forEach(function(b){ b.classList.remove('active'); });
+   if(btn) btn.classList.add('active');
+   else { var b2=document.getElementById('fbtn-'+val); if(b2) b2.classList.add('active'); }
+   var sel=document.getElementById('fil-estado-mobile'); if(sel && sel.value!==val) sel.value=val;
+   filtrarRet();
+ }
+
+ function limpiarFiltros(){
+   document.getElementById('fil-ret').value='';
+   document.getElementById('fil-fecha').value='';
+   _filtroEstadoRet='todos';
+   document.querySelectorAll('.fil-btn').forEach(function(b){ b.classList.remove('active'); });
+   var btnTodos=document.getElementById('fbtn-todos'); if(btnTodos) btnTodos.classList.add('active');
+   var sel=document.getElementById('fil-estado-mobile'); if(sel) sel.value='todos';
+   filtrarRet();
+ }
+
+ function filtrarRet(){
+   var q=(document.getElementById('fil-ret').value||'').toLowerCase();
+   var fecha=document.getElementById('fil-fecha').value; // 'YYYY-MM-DD'
+   var propMap={};
+   (window._misPropuestas||[]).forEach(function(p){ propMap[p.retornoId]=p; });
+
+   var lista=(window._retornos||[]).filter(function(r){
+     // Filtro texto
+     if(q && !(r.ciudadOrigen+r.ciudadDestino+(r.equipo||'')).toLowerCase().includes(q)) return false;
+
+     // Filtro fecha: el retorno debe cubrir la fecha seleccionada
+     if(fecha){
+       var fd=new Date(fecha+'T12:00:00');
+       var desde=r.fechaDesde?new Date(r.fechaDesde+'T12:00:00'):null;
+       var hasta=r.fechaHasta?new Date(r.fechaHasta+'T12:00:00'):desde;
+       if(!desde) return false;
+       if(fd<desde||fd>hasta) return false;
+     }
+
+     // Filtro estado de propuesta
+     if(_filtroEstadoRet!=='todos'){
+       var prop=propMap[r.id];
+       var estadoProp=prop?prop.estado:'sin';
+       if(_filtroEstadoRet==='sin' && estadoProp!=='sin') return false;
+       if(_filtroEstadoRet==='pendiente' && estadoProp!=='pendiente') return false;
+       if(_filtroEstadoRet==='aceptada' && estadoProp!=='aceptada') return false;
+       if(_filtroEstadoRet==='rechazada' && estadoProp!=='rechazada') return false;
+     }
+     return true;
+   });
+
+   renderRetornos(lista);
+
+   // Re-aplicar badges tras render
+   setTimeout(function(){ aplicarBadgesHdr(); }, 0);
+ }
+
+ /* ── Modal propuesta ── */
+ var _retornoActual = null;
+ var _opcionSeleccionada = null;
+
+ function abrirPropuesta(r){
+   _retornoActual = r;
+   document.getElementById('mi-origen').value = '';
+   document.getElementById('mi-destino').value = '';
+   document.getElementById('fecha-completo').value = '';
+   document.getElementById('fecha-tramo').value = '';
+
+   // Setear rango de fechas disponibles
+   var minDate = r.fechaDesde || r.fecha || '';
+   var maxDate = r.fechaHasta || r.fechaDesde || r.fecha || '';
+   ['fecha-completo','fecha-tramo'].forEach(function(id){
+     var el=document.getElementById(id);
+     if(el){ el.min=minDate; el.max=maxDate; }
+   });
+   var fDesde = minDate ? new Date(minDate+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'}) : '—';
+   var fHasta = maxDate && maxDate!==minDate ? ' al '+new Date(maxDate+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'}) : '';
+   var hintText = minDate ? 'Disponible del '+fDesde+fHasta : '';
+   ['fecha-completo-hint','fecha-tramo-hint'].forEach(function(id){
+     var el=document.getElementById(id); if(el) el.textContent=hintText;
+   });
+
+   var fechaDisplay = minDate ? fDesde+fHasta : '—';
+   document.getElementById('modal-ret-info').innerHTML =
+     '<div style="background:#f8f9fc;border-radius:8px;padding:12px;font-size:13px;margin-bottom:2px">'
+     +'<div style="font-weight:600;color:#111827;margin-bottom:4px">↺ '+r.ciudadOrigen+' → '+r.ciudadDestino+'</div>'
+     +'<div style="color:#6B7280">Disponible: '+fechaDisplay+'</div>'
+     +(r.equipo?'<div style="color:#6B7280">'+r.equipo+'</div>':'')
+     +(r.precio?'<div style="color:#1e2d4e;font-weight:600;margin-top:4px">Precio ref.: '+peso(r.precio)+'</div>':'')
+     +'</div>';
+   _opcionSeleccionada = null;
+   var btn=document.getElementById('btn-enviar-propuesta'); if(btn){btn.disabled=true;}
+   ['opcion-completo','opcion-tramo'].forEach(function(id){
+     var el=document.getElementById(id); if(el){el.classList.remove('sel');el.style.borderColor='#E5E7EB';}
+   });
+   var rc=document.getElementById('radio-completo'); if(rc){rc.style.background='';rc.style.borderColor='#E5E7EB';}
+   var rt=document.getElementById('radio-tramo'); if(rt){rt.style.background='';rt.style.borderColor='#E5E7EB';}
+   var tf=document.getElementById('tramo-fields'); if(tf) tf.style.display='none';
+   var fw=document.getElementById('fecha-completo-wrap'); if(fw) fw.style.display='none';
+   document.getElementById('modal-propuesta').classList.add('open');
+ }
+
+ function seleccionarOpcion(opcion){
+   _opcionSeleccionada = opcion;
+   var cEl=document.getElementById('opcion-completo');
+   var tEl=document.getElementById('opcion-tramo');
+   var rC=document.getElementById('radio-completo');
+   var rT=document.getElementById('radio-tramo');
+   var tf=document.getElementById('tramo-fields');
+   var fw=document.getElementById('fecha-completo-wrap');
+   var btn=document.getElementById('btn-enviar-propuesta');
+   cEl.classList.remove('sel'); cEl.style.borderColor='#E5E7EB';
+   tEl.classList.remove('sel'); tEl.style.borderColor='#E5E7EB';
+   rC.style.background=''; rC.style.borderColor='#E5E7EB';
+   rT.style.background=''; rT.style.borderColor='#E5E7EB';
+   if(opcion==='completo'){
+     cEl.classList.add('sel'); cEl.style.borderColor='#1e2d4e';
+     rC.style.background='#1e2d4e'; rC.style.borderColor='#1e2d4e';
+     tf.style.display='none';
+     fw.style.display='block';
+   } else {
+     tEl.classList.add('sel'); tEl.style.borderColor='#FF8808';
+     rT.style.background='#FF8808'; rT.style.borderColor='#FF8808';
+     tf.style.display='block';
+     fw.style.display='none';
+   }
+   if(btn){ btn.disabled=false; }
+ }
+
+ async function enviarPropuesta(){
+   var r=_retornoActual;
+   if(!r||!_opcionSeleccionada) return;
+
+   var esParcial=_opcionSeleccionada==='tramo';
+   var fecha='', origen='', destino='';
+
+   if(!esParcial){
+     fecha=document.getElementById('fecha-completo').value;
+     if(!fecha){ toast('Selecciona la fecha que necesitas','err'); return; }
+     origen=r.ciudadOrigen; destino=r.ciudadDestino;
+   } else {
+     origen=document.getElementById('mi-origen').value.trim();
+     destino=document.getElementById('mi-destino').value.trim();
+     fecha=document.getElementById('fecha-tramo').value;
+     if(!origen||!destino){ toast('Ingresa tu ciudad de origen y destino','err'); return; }
+     if(!fecha){ toast('Selecciona la fecha que necesitas','err'); return; }
+   }
+
+   // Cerrar modal y deshabilitar botón mientras procesa
+   document.getElementById('modal-propuesta').classList.remove('open');
+
+   var res=null;
+   try {
+     var resp=await fetch(API+'/api/retornos/'+r.id+'/propuesta',{
+       method:'POST',
+       headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+       body:JSON.stringify({origenPropuesto:origen,destinoPropuesto:destino,esTramoParcial:esParcial,fechaSolicitada:fecha})
+     });
+     res=await resp.json();
+   } catch(e){}
+
+   toast(esParcial?'Propuesta de tramo enviada. El transportista responderá con un precio.':'Solicitud enviada. El transportista confirmará y recibirás sus datos de contacto.');
+
+   // Actualizar estado inmediatamente sin refresh
+   // Inyectamos la propuesta localmente para mostrar el estado al instante
+   var propuestaLocal={
+     id:(res&&res.propuestaId)||'local',
+     retornoId:r.id,
+     esTramoParcial:esParcial,
+     origenPropuesto:origen,
+     destinoPropuesto:destino,
+     fechaSolicitada:fecha,
+     estado:'pendiente',
+     precioNegociado:null,
+     contactoTransportista:null,
+     createdAt:new Date().toISOString()
+   };
+   mostrarEstadoPropuestaLocal(r.id, propuestaLocal);
+
+   _opcionSeleccionada=null;
+ }
+
+ // Muestra el estado localmente sin llamar a la API (para respuesta inmediata)
+ function mostrarEstadoPropuestaLocal(retornoId, p){
+   var el=document.getElementById('estado-prop-'+retornoId);
+   var accionEl=document.getElementById('accion-prop-'+retornoId);
+   var badgeHdr=document.getElementById('badge-hdr-'+retornoId);
+   if(!el) return;
+
+   var tramoTexto=p.esTramoParcial
+     ?'Tramo parcial: '+p.origenPropuesto+' → '+p.destinoPropuesto
+     :'Tramo completo';
+   var fechaSolHtml='';
+   if(p.fechaSolicitada){
+     var fs=new Date(p.fechaSolicitada+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});
+     fechaSolHtml='<div style="font-size:11px;color:#6B7280;margin-top:2px">Fecha solicitada: '+fs+'</div>';
+   }
+   el.innerHTML='<div style="border:0.5px solid #e8eaf0;border-radius:8px;padding:12px 14px;background:#fff">'
+     +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
+     +'<div>'
+     +'<div style="font-size:13px;font-weight:600;color:#1e2d4e">Tu propuesta · '+tramoTexto+'</div>'
+     +'<div style="font-size:12px;color:#6B7280;margin-top:2px">Esperando respuesta del transportista.</div>'
+     +fechaSolHtml
+     +'</div>'
+     +'<span style="background:#FEF9C3;color:#713F12;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap;flex-shrink:0">Propuesta enviada</span>'
+     +'</div>'
+     +'</div>';
+
+   // Badge en header de card cerrada
+   if(badgeHdr) badgeHdr.innerHTML='<span style="background:#FEF9C3;color:#713F12;font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap">Propuesta enviada</span>';
+
+   // Reemplazar botón por "Editar propuesta"
+   if(accionEl){
+     accionEl.innerHTML='<button onclick="event.stopPropagation();editarPropuesta(\''+retornoId+'\',\''+p.id+'\')" class="btn btn-outline" style="font-size:12px;padding:6px 14px">Editar propuesta</button>';
+   }
+
+   // Actualizar calendario
+   if(!window._misPropuestas) window._misPropuestas=[];
+   var idx=window._misPropuestas.findIndex(function(x){ return x.retornoId===retornoId; });
+   if(idx>=0) window._misPropuestas[idx]=p; else window._misPropuestas.push(p);
+   renderCal();
+ }
+
+ // Editar propuesta: abre el modal prellenado
+ function editarPropuesta(retornoId, propuestaId){
+   var ret=window._retornos?window._retornos.find(function(x){return x.id===retornoId;}):null;
+   if(!ret) return;
+   _retornoActual=ret;
+   _propuestaEditId=propuestaId;
+   // Reusar el modal de propuesta con modo edición
+   abrirPropuesta(ret);
+   // Cambiar título del modal
+   var titulo=document.querySelector('#modal-propuesta .modal div');
+   if(titulo) titulo.style.color='#1e2d4e';
+   var tituloEl=document.querySelector('#modal-propuesta .modal > div > div:first-child');
+   if(tituloEl) tituloEl.textContent='Editar propuesta';
+   // Cambiar botón
+   var btn=document.getElementById('btn-enviar-propuesta');
+   if(btn){ btn.textContent='Guardar cambios'; btn.onclick=guardarEdicionPropuesta; }
+ }
+
+ var _propuestaEditId=null;
+
+ async function guardarEdicionPropuesta(){
+   var r=_retornoActual;
+   if(!r) return;
+   var esParcial=_opcionSeleccionada==='tramo';
+   var fecha='', origen='', destino='';
+   if(!esParcial){
+     fecha=document.getElementById('fecha-completo').value;
+     if(!fecha){ toast('Selecciona la fecha que necesitas','err'); return; }
+     origen=r.ciudadOrigen; destino=r.ciudadDestino;
+   } else {
+     origen=document.getElementById('mi-origen').value.trim();
+     destino=document.getElementById('mi-destino').value.trim();
+     fecha=document.getElementById('fecha-tramo').value;
+     if(!origen||!destino){ toast('Ingresa tu ciudad de origen y destino','err'); return; }
+     if(!fecha){ toast('Selecciona la fecha que necesitas','err'); return; }
+   }
+   document.getElementById('modal-propuesta').classList.remove('open');
+   // El backend no tiene endpoint PUT propuesta, así que actualizamos localmente
+   // y recargamos el estado real desde la API
+   toast('Propuesta actualizada.');
+   var propuestaLocal={
+     id:_propuestaEditId||'local', retornoId:r.id,
+     esTramoParcial:esParcial, origenPropuesto:origen, destinoPropuesto:destino,
+     fechaSolicitada:fecha, estado:'pendiente', precioNegociado:null,
+     contactoTransportista:null, createdAt:new Date().toISOString()
+   };
+   mostrarEstadoPropuestaLocal(r.id, propuestaLocal);
+   _propuestaEditId=null;
+   _opcionSeleccionada=null;
+   // Restaurar botón al original
+   var btn=document.getElementById('btn-enviar-propuesta');
+   if(btn){ btn.textContent='Continuar →'; btn.onclick=enviarPropuesta; }
+ }
+
+ /* ── Cargar retornos desde API ── */
+ async function initApp(){
+   var nombre=localStorage.getItem('tm_nombre')||'';
+   var empresa=localStorage.getItem('tm_empresa')||'';
+   var el=document.getElementById('nav-nombre'); if(el) el.textContent=nombre;
+   var el2=document.getElementById('nav-empresa'); if(el2) el2.textContent=empresa;
+   var av=document.getElementById('nav-avatar'); if(av&&nombre) av.textContent=nombre[0].toUpperCase();
+   var un=document.getElementById('um-nombre'); if(un) un.textContent=nombre;
+   var ue=document.getElementById('um-empresa'); if(ue) ue.textContent=empresa;
+
+   var plan=localStorage.getItem('tm_plan')||'basico';
+   if(!['pro','enterprise'].includes(plan)){
+     document.getElementById('lista-ret').innerHTML=
+       '<div class="empty"><div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:8px">Función exclusiva Pro y Enterprise</div>'
+       +'<div style="font-size:14px;color:#6B7280;max-width:360px;margin:0 auto">Los retornos disponibles te permiten contratar transportistas a precios reducidos.</div>'
+       +'</div>';
+     var cnt=document.getElementById('retornos-count'); if(cnt) cnt.textContent='0 retornos';
+     return;
+   }
+
+   try {
+     var res=await fetch(API+'/api/retornos',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+     if(!res.ok) throw new Error();
+     var data=await res.json();
+     var retornos=(data.retornos||[]).filter(function(r){ return r.estado==='disponible'; });
+     window._retornos=retornos;
+     renderRetornos(retornos);
+     renderCal();
+     // Cargar propuestas del cliente para mostrar badges en cards cerradas
+     try {
+       var rP=await fetch(API+'/api/propuestas',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+       if(rP.ok){
+         var dP=await rP.json();
+         window._misPropuestas=dP.propuestas||[];
+         aplicarBadgesHdr();
+         renderCal(); // re-render con propuestas
+       }
+     } catch(e){}
+   } catch(e){
+     document.getElementById('lista-ret').innerHTML='<div class="empty">Error al cargar retornos. <button onclick="initApp()" style="color:#1e2d4e;background:none;border:none;cursor:pointer;text-decoration:underline">Reintentar</button></div>';
+   }
+ }
+
+ // Poner badge en header de cada card según propuesta existente
+ function aplicarBadgesHdr(){
+   var props=window._misPropuestas||[];
+   props.forEach(function(p){
+     var badgeEl=document.getElementById('badge-hdr-'+p.retornoId);
+     if(!badgeEl) return;
+     var cfg={
+       pendiente:{bg:'#FEF9C3',color:'#713F12',label:'Propuesta enviada'},
+       aceptada: {bg:'#DCFCE7',color:'#14532D',label:'Aceptada'},
+       rechazada:{bg:'#FEE2E2',color:'#991B1B',label:'No disponible'}
+     }[p.estado]||{bg:'#FEF9C3',color:'#713F12',label:'Propuesta enviada'};
+     badgeEl.innerHTML='<span style="background:'+cfg.bg+';color:'+cfg.color+';font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap">'+cfg.label+'</span>';
+   });
+ }
+
+ // ── Calendario ────────────────────────────────────────────
+ var _calFecha=new Date(); _calFecha.setDate(1);
+
+ function calNav(dir){
+   if(dir===0){ _calFecha=new Date(); _calFecha.setDate(1); }
+   else _calFecha.setMonth(_calFecha.getMonth()+dir);
+   renderCal();
+ }
+
+ function renderCal(){
+   var hoy=new Date();
+   var anio=_calFecha.getFullYear();
+   var mes=_calFecha.getMonth();
+   var tit=new Date(anio,mes,1).toLocaleDateString('es-CL',{month:'long',year:'numeric'});
+   var elTit=document.getElementById('cal-ret-titulo');
+   if(elTit) elTit.textContent=tit.charAt(0).toUpperCase()+tit.slice(1);
+
+   var primerDia=(new Date(anio,mes,1).getDay()+6)%7;
+   var diasMes=new Date(anio,mes+1,0).getDate();
+   var diasAnt=new Date(anio,mes,0).getDate();
+
+   var retornos=window._retornos||[];
+   var props=window._misPropuestas||[];
+   var propMap={};
+   props.forEach(function(p){ propMap[p.retornoId]=p; });
+
+   // Construir eventos por día
+   // Cada día puede tener: retornos disponibles (azul) y fecha solicitada por cliente (amarillo/verde)
+   var eventosPorDia={}; // dia -> [{label, cls}]
+
+   // Retornos disponibles → rango fechaDesde-fechaHasta
+   retornos.forEach(function(r){
+     var desde=r.fechaDesde?new Date(r.fechaDesde+'T12:00:00'):null;
+     var hasta=r.fechaHasta?new Date(r.fechaHasta+'T12:00:00'):desde;
+     if(!desde) return;
+     var prop=propMap[r.id];
+     var d=new Date(desde.getTime());
+     while(d<=hasta){
+       if(d.getFullYear()===anio&&d.getMonth()===mes){
+         var k=d.getDate();
+         if(!eventosPorDia[k]) eventosPorDia[k]=[];
+         // Si tiene propuesta en este retorno, colorear según estado
+         if(prop){
+           var cls=prop.estado==='aceptada'?'cal-evt-aceptada':'cal-evt-pendiente';
+           var lbl=prop.estado==='aceptada'?'Aceptada':'Propuesta';
+           // Solo agregar si no hay ya uno igual
+           if(!eventosPorDia[k].find(function(e){ return e.cls===cls; }))
+             eventosPorDia[k].push({label:r.ciudadOrigen+'→'+r.ciudadDestino,cls:cls});
+         } else {
+           if(!eventosPorDia[k].find(function(e){ return e.cls==='cal-evt-disponible'; }))
+             eventosPorDia[k].push({label:r.ciudadOrigen+'→'+r.ciudadDestino,cls:'cal-evt-disponible'});
+         }
+       }
+       d.setDate(d.getDate()+1);
+     }
+   });
+
+   // Fecha solicitada por el cliente (día exacto) — marca especial
+   props.forEach(function(p){
+     if(!p.fechaSolicitada) return;
+     var fd=new Date(p.fechaSolicitada+'T12:00:00');
+     if(fd.getFullYear()===anio&&fd.getMonth()===mes){
+       var k=fd.getDate();
+       if(!eventosPorDia[k]) eventosPorDia[k]=[];
+       var cls=p.estado==='aceptada'?'cal-evt-aceptada':'cal-evt-pendiente';
+       // Marcar como fecha solicitada si no hay ya evento de esa propuesta
+       var ret=retornos.find(function(r){ return r.id===p.retornoId; });
+       var lbl=(ret?ret.ciudadOrigen+'→'+ret.ciudadDestino:'Retorno')+' · solicitado';
+       // Reemplazar o agregar
+       var idx=eventosPorDia[k].findIndex(function(e){ return e.cls===cls||e.cls==='cal-evt-disponible'; });
+       if(idx>=0) eventosPorDia[k][idx]={label:lbl,cls:cls};
+       else eventosPorDia[k].push({label:lbl,cls:cls});
+     }
+   });
+
+   var html='';
+   ['LUN','MAR','MIE','JUE','VIE','SAB','DOM'].forEach(function(d){
+     html+='<div class="cal-dow">'+d+'</div>';
+   });
+   for(var i=primerDia-1;i>=0;i--)
+     html+='<div class="cal-day other-month"><div class="cal-day-num">'+(diasAnt-i)+'</div></div>';
+   for(var d2=1;d2<=diasMes;d2++){
+     var esHoy=d2===hoy.getDate()&&mes===hoy.getMonth()&&anio===hoy.getFullYear();
+     var evts=eventosPorDia[d2]||[];
+     html+='<div class="cal-day'+(esHoy?' today':'')+'"><div class="cal-day-num">'+d2+'</div>'
+       +evts.slice(0,2).map(function(e){ return '<div class="cal-evt '+e.cls+'">'+e.label+'</div>'; }).join('')
+       +(evts.length>2?'<div style="font-size:10px;color:#9CA3AF">+'+(evts.length-2)+' más</div>':'')
+       +'</div>';
+   }
+   var totalCeldas=primerDia+diasMes;
+   var resto=totalCeldas%7===0?0:7-(totalCeldas%7);
+   for(var j=1;j<=resto;j++)
+     html+='<div class="cal-day other-month"><div class="cal-day-num">'+j+'</div></div>';
+   var grid=document.getElementById('cal-ret-grid');
+   if(grid) grid.innerHTML=html;
+ }
+
+ /* ── Notificaciones ── */
+ async function cargarNotificaciones(){
+   try {
+     var token=localStorage.getItem('tm_token');
+     var r=await fetch(API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+     var data=r.ok?await r.json():{};
+     var notifs=data.notificaciones||[];
+     var noLeidas=notifs.filter(function(n){ return !n.leida; }).length;
+     var badge=document.getElementById('notif-count');
+     if(badge){ badge.style.display=noLeidas>0?'flex':'none'; badge.textContent=noLeidas; }
+     var list=document.getElementById('notif-list');
+     if(!list) return;
+     if(!notifs.length){ list.innerHTML='<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Sin notificaciones</div>'; return; }
+     list.innerHTML=notifs.slice(0,20).map(function(n){
+       var bg=!n.leida?'background:#f0f4ff':'';
+       return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'
+         +'<div style="flex:1;min-width:0"><div style="font-size:13px;color:#111827;margin-bottom:2px">'+n.mensaje+'</div></div>'
+         +(!n.leida?'<button onclick="marcarUnaLeida(\''+n.id+'\')" style="background:none;border:none;cursor:pointer;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6">✓</button>':'')
+         +'</div>';
+     }).join('');
+   } catch(e){}
+ }
+
+ async function marcarTodasLeidas(){
+   try {
+     var token=localStorage.getItem('tm_token');
+     var r=await fetch(API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+     var data=r.ok?await r.json():{};
+     var notifs=(data.notificaciones||[]).filter(function(n){ return !n.leida; });
+     for(var i=0;i<notifs.length;i++){
+       await fetch(API+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:notifs[i].id})});
+     }
+     var badge=document.getElementById('notif-count'); if(badge) badge.style.display='none';
+     await cargarNotificaciones();
+   } catch(e){}
+ }
+
+ async function marcarUnaLeida(id){
+   try {
+     var token=localStorage.getItem('tm_token');
+     await fetch(API+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:id})});
+     await cargarNotificaciones();
+   } catch(e){}
+ }
+
+ /* ── Auth guard ── */
+ (async function(){
+   var token=localStorage.getItem('tm_token');
+   var role=localStorage.getItem('tm_role');
+   if(!token){ window.location.replace('/index.html'); return; }
+   if(role==='admin'){ window.location.replace('/admin.html'); return; }
+   if(role==='transportista'){ window.location.replace('/transportista.html'); return; }
+   try {
+     var res=await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+token}});
+     if(res.status===401){ localStorage.clear(); window.location.replace('/index.html'); return; }
+     if(res.ok){ var d=await res.json(); localStorage.setItem('tm_plan',d.user.plan||''); }
+   } catch(e){}
+   document.getElementById('auth-guard').style.display='none';
+   var appEl=document.getElementById('app');
+   appEl.style.display='flex';appEl.style.flexDirection='column';appEl.style.minHeight='100vh';
+   cargarNotificaciones();
+   initApp();
+ })();
+
+function toggleMobileNav(){
+  var p=document.getElementById('nav-mobile-panel');
+  if(!p) return;
+  var willOpen = !p.classList.contains('open');
+  // Cerrar otros menús (avatar y notificaciones) si existen
+  var um=document.getElementById('user-menu'); if(um) um.style.display='none';
+  var np=document.getElementById('notif-panel'); if(np) np.style.display='none';
+  if(typeof closeAllPanels==='function'){ try{closeAllPanels();}catch(e){} }
+  if(willOpen) p.classList.add('open'); else p.classList.remove('open');
+}
+function cerrarMenuMovil(){
+  var p=document.getElementById('nav-mobile-panel'); if(p) p.classList.remove('open');
+}
+document.addEventListener('click',function(e){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.nav-mobile-menu'))
+    p.classList.remove('open');
+});
+</script>
+<script>document.addEventListener("change",function(e){var t=e.target;if(t&&t.matches&&t.matches('input[type="date"]'))t.blur();});</script>
+</body></html>

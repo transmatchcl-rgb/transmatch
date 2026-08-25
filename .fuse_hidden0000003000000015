@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch -- Mi perfil</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Barlow,sans-serif;background:#f5f7fb;min-height:100vh;display:flex;flex-direction:column}
+#auth-guard{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:9999}
+.spinner{width:32px;height:32px;border:3px solid #e8eaf0;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#app{display:none;flex-direction:column;min-height:100vh}
+.nav{background:#1e2d4e;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+  .brand-logo{height:28px;width:auto;display:block}
+.nav-icon{background:#FF8808;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+.nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#FF8808}
+.nav-links{display:flex;gap:2px}
+.nav-link{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,.12)}
+.nav-avatar{width:30px;height:30px;border-radius:50%;background:#FF8808;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;cursor:pointer}
+.nav-user{font-size:13px;color:#fff;font-weight:500}
+.nav-sub{font-size:11px;color:#93C5FD}
+.um-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:background .15s}
+.um-item:hover{background:#f9fafb}
+.um-danger{color:#DC2626}.um-danger:hover{background:#FEF2F2}
+main{max-width:660px;margin:0 auto;padding:32px 20px;flex:1}
+.card{background:#fff;border-radius:16px;border:0.5px solid #e8eaf0;box-shadow:0 2px 12px rgba(30,45,78,.08);overflow:hidden}
+.card-hdr{padding:18px 24px;border-bottom:0.5px solid #e8eaf0;display:flex;align-items:center;justify-content:space-between}
+.card-title{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:600;color:#1e2d4e}
+.close-btn{width:32px;height:32px;border-radius:8px;border:0.5px solid #e8eaf0;background:#fff;cursor:pointer;font-size:16px;color:#6B7280;display:flex;align-items:center;justify-content:center}
+.close-btn:hover{background:#f5f7fb}
+.tabs{display:flex;border-bottom:0.5px solid #e8eaf0;padding:0}
+.tab{flex:1;padding:12px 8px;font-size:13px;font-weight:500;color:#6B7280;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;text-align:center}
+.tab.active{color:#1e2d4e;border-bottom-color:#1e2d4e}
+.tab-pane{display:none;padding:24px}
+.tab-pane.active{display:block}
+/* Barra de progreso — dentro de la card */
+.progreso-wrap{padding:16px 24px;border-bottom:0.5px solid #e8eaf0}
+.progreso-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.progreso-label{font-size:12px;font-weight:600;color:#1e2d4e}
+.progreso-pct{font-size:12px;font-weight:700}
+.progreso-track{background:#e8eaf0;border-radius:999px;height:6px;overflow:hidden}
+.progreso-fill{height:100%;border-radius:999px;transition:width .4s ease;background:#FF8808}
+.progreso-hint{font-size:11px;color:#9CA3AF;margin-top:5px}
+.prof-hdr{display:flex;align-items:center;gap:16px;margin-bottom:24px}
+.prof-av{width:60px;height:60px;border-radius:50%;background:#1e2d4e;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:22px;flex-shrink:0}
+.prof-name{font-size:17px;font-weight:600;color:#1e2d4e}
+.prof-email{font-size:13px;color:#6B7280;margin-top:2px}
+.plan-pill{display:inline-flex;align-items:center;gap:4px;margin-top:6px;background:#eef1f8;color:#1e2d4e;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:500px){.grid2{grid-template-columns:1fr}}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg.full{grid-column:span 2}
+@media(max-width:500px){.fg.full{grid-column:span 1}}
+label{font-size:12px;font-weight:500;color:#374151}
+input,textarea{padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:14px;color:#1e2d4e;font-family:inherit;width:100%}
+input:focus,textarea:focus{outline:none;border-color:#1e2d4e;box-shadow:0 0 0 3px rgba(30,45,78,.08)}
+input:disabled{background:#f8f9fc;color:#9CA3AF}
+textarea{resize:vertical;min-height:80px}
+.btn{padding:10px 20px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s}
+.btn:hover{opacity:.88}
+.btn-green{background:#1E2D4E;color:#fff}
+.btn-green:hover{background:#2A3D63}
+.btn-red{background:#FEF2F2;color:#DC2626;border:0.5px solid #FECACA}
+.btn-orange{background:#FF8808;color:#fff}
+.btn-orange:hover{background:#E67A07;opacity:1}
+.btn-outline{background:#fff;color:#1e2d4e;border:0.5px solid #e8eaf0}
+.btn-outline:hover{background:#f5f7fb;opacity:1}
+.btn-sm{padding:7px 14px;font-size:13px}
+.alert-ok{background:#F0FDF4;color:#14532D;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:12px;display:none}
+.sec-row{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:0.5px solid #f3f4f6;gap:16px}
+.sec-row:last-child{border-bottom:none}
+.sec-label{font-size:13px;font-weight:500;color:#374151}
+.sec-sub{font-size:12px;color:#9CA3AF;margin-top:3px}
+.plan-card{border:1.5px solid #e8eaf0;border-radius:10px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.plan-card.active{border-color:#1e2d4e;background:#f8f9fc}
+.plan-name{font-size:14px;font-weight:600;color:#1e2d4e}
+.plan-feat{font-size:12px;color:#6B7280;margin-top:3px}
+
+  .nav-mobile-menu{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:6px;border-radius:6px;background:none;border:none;flex-shrink:0}
+  .nav-mobile-menu span{display:block;width:20px;height:2px;background:#fff;border-radius:2px}
+  .nav-mobile-panel{display:none;position:fixed;top:52px;left:0;right:0;background:#1e2d4e;z-index:999;padding:8px 16px 16px;border-bottom:0.5px solid rgba(255,255,255,.1)}
+  .nav-mobile-panel.open{display:block}
+  .nav-mobile-link{display:block;padding:10px 12px;color:#93C5FD;text-decoration:none;font-size:14px;border-radius:8px;margin-bottom:2px}
+  .nav-mobile-link:hover{background:rgba(255,255,255,.1);color:#fff}
+  @media(max-width:860px){
+    .nav-links,.nav-tabs{display:none!important}
+    .nav-mobile-menu{display:flex!important}.nav-mobile-menu{order:-1}.nav-logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}.nav-logo .brand-logo,.nav-logo>.brand-logo{height:22px}
+    .nav-user-name,.nav-userinfo,.nav-user,.nav-sub{display:none!important}
+    .nav-icon,.nav-name{display:none!important}
+  }
+  /* TM-MOBILE-FIX */
+  @media(max-width:600px){
+    [style*="grid-template-columns:1fr 1fr"],
+    [style*="grid-template-columns:repeat(2,1fr)"],
+    [style*="grid-template-columns:repeat(2, 1fr)"],
+    [style*="grid-template-columns:repeat(3,1fr)"],
+    [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
+    body{overflow-x:hidden}
+  }
+</style>
+<script>
+var API='https://transmatch.transmatchcl.workers.dev';
+document.addEventListener('DOMContentLoaded',async function(){
+var token=localStorage.getItem('tm_token');
+var role=localStorage.getItem('tm_role');
+if(!token){window.location.replace('/index.html');return}
+if(role==='admin'){window.location.replace('/admin.html');return}
+if(role==='transportista'){window.location.replace('/transportista-perfil.html');return}
+try{
+var res=await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+token}});
+if(res.status===401){localStorage.clear();window.location.replace('/index.html');return}
+var d=await res.json();
+window._U=d.user||{};
+}catch(e){window._U={};}
+document.getElementById('auth-guard').style.display='none';
+var app=document.getElementById('app');app.style.display='flex';
+window._authOk=true;
+document.dispatchEvent(new Event('_authReady'));
+});
+</script>
+</head>
+<body>
+<div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:20px"><svg style="height:32px;width:auto;display:block" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg></div><div class="spinner" style="margin:0 auto"></div></div></div>
+
+<div id="app">
+<nav class="nav">
+<div style="display:flex;align-items:center;gap:16px">
+<a href="/cliente.html" class="nav-logo"><svg class="brand-logo" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg></a>
+<button class="nav-mobile-menu" onclick="toggleMobileNav()" aria-label="Menu"><span></span><span></span><span></span></button><div class="nav-links">
+<a href="/cliente.html" class="nav-link">Inicio</a>
+<a href="/cliente-licitaciones.html" class="nav-link">Licitaciones</a>
+<a href="/cliente-retornos.html" id="nav-retornos" class="nav-link">Retornos</a>
+<a href="/cliente-transporte.html" class="nav-link">Transportes</a>
+<a href="/cliente-facturacion.html" class="nav-link">Facturacion</a>
+<a href="/cliente-calendario.html" class="nav-link">Calendario</a>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<div class="nav-userinfo" style="text-align:right"><div class="nav-user" id="nav-nombre">--</div><div class="nav-sub" id="nav-empresa">--</div></div>
+<div style="display:flex;align-items:center;gap:8px">
+<div id="notif-btn" onclick="toggleNotifs(event)" style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+<span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center"></span>
+</div>
+<div style="position:relative">
+<div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div>
+<div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:220px;z-index:999;overflow:hidden">
+<div style="padding:14px 16px;border-bottom:1px solid #f3f4f6"><div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div><div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div></div>
+<a href="/cliente-perfil.html" class="um-item">Configuracion</a>
+<a href="/ayuda.html" class="um-item">Ayuda</a>
+<a href="/landing-servicios.html" class="um-item">Planes y precios</a>
+<div style="border-top:1px solid #f3f4f6"><button onclick="cerrarSesion()" class="um-item um-danger">Cerrar sesion</button></div>
+</div>
+</div>
+</div>
+<div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:320px;background:#fff;border-radius:12px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.12);z-index:9000;max-height:440px;overflow:hidden;flex-direction:column">
+<div style="padding:12px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:8px">
+<span style="font-size:14px;font-weight:600;color:#111827">Notificaciones</span>
+<button onclick="event.stopPropagation();marcarTodasLeidas()" style="font-size:11px;color:#1e2d4e;background:none;border:none;cursor:pointer;white-space:nowrap">Marcar todas leidas</button>
+</div>
+<div id="notif-list" style="overflow-y:auto;max-height:380px"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div>
+</div>
+</div>
+</nav>
+<div id="nav-mobile-panel" class="nav-mobile-panel">
+<a href="/cliente.html" class="nav-mobile-link">Inicio</a>
+<a href="/cliente-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
+<a href="/cliente-retornos.html" class="nav-mobile-link">Retornos</a>
+<a href="/cliente-transporte.html" class="nav-mobile-link">Transportes</a>
+<a href="/cliente-facturacion.html" class="nav-mobile-link">Facturacion</a>
+<a href="/cliente-calendario.html" class="nav-mobile-link">Calendario</a>
+</div>
+
+
+<main>
+<div class="card">
+<div class="card-hdr">
+<div class="card-title">Configuracion de cuenta</div>
+<button class="close-btn" onclick="window.location.href='/cliente.html'">x</button>
+</div>
+<div class="tabs">
+<div class="tab active" onclick="showTab('perfil',this)">Perfil</div>
+<div class="tab" onclick="showTab('empresa',this)">Empresa</div>
+<div class="tab" onclick="showTab('facturacion',this)">Facturación</div>
+<div class="tab" onclick="showTab('cuenta',this)">Seguridad</div>
+<div class="tab" id="tab-usuarios" style="display:none" onclick="showTab('usuarios',this)">Usuarios</div>
+</div>
+
+<!-- PERFIL -->
+<div class="tab-pane active" id="pane-perfil">
+<div class="prof-hdr">
+<div class="prof-av" id="prof-av">?</div>
+<div>
+<div class="prof-name" id="prof-nombre">--</div>
+<div class="prof-email" id="prof-email">--</div>
+<div class="plan-pill" id="prof-plan">Plan Activo</div>
+</div>
+</div>
+<div class="grid2">
+<div class="fg"><label>Nombre completo</label><input type="text" id="inp-nombre" placeholder="Tu nombre completo"/></div>
+<div class="fg"><label>Correo electronico</label><input type="email" id="inp-email" disabled/></div>
+<div class="fg"><label>Telefono / WhatsApp</label><input type="tel" id="inp-telefono" placeholder="+56 9 XXXX XXXX"/></div>
+<div class="fg"><label>Cargo en la empresa</label><input type="text" id="inp-cargo" placeholder="Gerente de operaciones"/></div>
+</div>
+<div id="alok-perfil" class="alert-ok">Perfil actualizado correctamente</div>
+<div style="margin-top:16px"><button class="btn btn-green" id="btn-guardar-perfil" onclick="guardarPerfil()">Guardar perfil</button></div>
+</div>
+
+<!-- EMPRESA -->
+<div class="tab-pane" id="pane-empresa">
+<div class="grid2">
+<div class="fg full"><label>Razon social</label><input type="text" id="inp-empresa" placeholder="Minera Atacama SpA"/></div>
+<div class="fg"><label>RUT empresa</label><input type="text" id="inp-rut-empresa" placeholder="76.123.456-7" oninput="formatRut(this)"/></div>
+<div class="fg"><label>Giro / Industria</label><input type="text" id="inp-giro" placeholder="Mineria, Construccion..."/></div>
+<div class="fg"><label>Telefono empresa</label><input type="tel" id="inp-tel-empresa" placeholder="+56 2 XXXX XXXX"/></div>
+<div class="fg"><label>Direccion</label><input type="text" id="inp-direccion" placeholder="Av. Apoquindo 1234, Of. 501"/></div>
+<div class="fg"><label>Comuna</label><input type="text" id="inp-comuna-empresa" placeholder="Las Condes"/></div>
+<div class="fg"><label>Ciudad</label><input type="text" id="inp-ciudad-empresa" placeholder="Santiago"/></div>
+<div class="fg full"><label>Sitio web</label><input type="text" id="inp-web" placeholder="www.miempresa.cl"/></div>
+<div class="fg full"><label>Descripcion del negocio</label><textarea id="inp-desc" placeholder="Breve descripcion de tu empresa y sus actividades..."></textarea></div>
+</div>
+<div id="alok-empresa" class="alert-ok">Empresa actualizada correctamente</div>
+<div style="margin-top:16px"><button class="btn btn-green" onclick="guardarEmpresa()">Guardar empresa</button></div>
+
+<!-- CONTACTOS DE LA EMPRESA -->
+<div style="margin-top:28px;padding-top:20px;border-top:0.5px solid #E5E7EB">
+<div style="margin-bottom:4px;font-size:14px;font-weight:600;color:#1e2d4e">Contactos de la empresa</div>
+<div class="sec-sub" style="margin-bottom:12px">Personas de contacto para coordinar licitaciones y temas comerciales.</div>
+<div id="contactos-list"></div>
+<button type="button" class="btn" style="margin-top:4px;background:#F3F4F6;color:#1e2d4e" onclick="agregarContacto()">+ Agregar contacto</button>
+<div id="alok-empresa-contactos" class="alert-ok" style="margin-top:12px">Contactos actualizados correctamente</div>
+<div id="alerr-empresa-contactos" class="alert-ok" style="background:#FEF2F2;color:#991B1B;display:none;margin-top:12px"></div>
+<div style="margin-top:16px"><button class="btn btn-green" onclick="guardarContactosEmpresa()">Guardar contactos</button></div>
+</div>
+</div>
+
+<!-- FACTURACIÓN (Etapa 2) -->
+<div class="tab-pane" id="pane-facturacion">
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;margin-bottom:14px">
+<input type="checkbox" id="chk-fact-mismos-datos" onchange="toggleFactMismosDatos()" style="width:16px;height:16px;cursor:pointer"/>
+Usar los mismos datos que en "Empresa"
+</label>
+<div class="grid2" id="fact-datos-wrap">
+<div class="fg full"><label>Razón social (facturación)</label><input type="text" id="inp-rs-fact" placeholder="Nombre legal para facturas"/></div>
+<div class="fg"><label>RUT empresa</label><input type="text" id="inp-rut-fact" placeholder="76.123.456-7" oninput="formatRut(this)"/></div>
+<div class="fg"><label>Giro tributario</label><input type="text" id="inp-giro-fact" placeholder="Ej: Servicios de minería"/></div>
+<div class="fg full"><label>Dirección fiscal</label><input type="text" id="inp-dir-fact" placeholder="Calle, número, comuna, ciudad"/></div>
+</div>
+<div class="grid2">
+<div class="fg"><label>Email de facturación</label><input type="email" id="inp-email-fact" placeholder="facturas@empresa.cl"/></div>
+<div class="fg"><label>Teléfono área facturación</label><input type="tel" id="inp-tel-fact" placeholder="+56 2 XXXX XXXX"/></div>
+<div class="fg"><label>Nombre contacto facturación</label><input type="text" id="inp-contacto-fact" placeholder="María González"/></div>
+<div class="fg"><label>Cargo contacto facturación</label><input type="text" id="inp-cargo-fact" placeholder="Jefa de finanzas"/></div>
+</div>
+<div id="alok-facturacion" class="alert-ok">Datos de facturación guardados correctamente</div>
+<div style="margin-top:16px"><button class="btn btn-green" onclick="guardarFacturacion()">Guardar datos de facturación</button></div>
+</div>
+
+<!-- MI CUENTA -->
+<div class="tab-pane" id="pane-cuenta">
+<div style="font-size:13px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px">Seguridad</div>
+<div class="sec-row" style="display:block">
+<div style="margin-bottom:12px"><div class="sec-label">Cambiar contraseña</div><div class="sec-sub">Actualiza tu contraseña sin cerrar sesión. Mínimo 8 caracteres.</div></div>
+<div style="display:flex;flex-direction:column;gap:10px;max-width:380px">
+<div style="position:relative"><input type="password" id="pwd-actual" placeholder="Contraseña actual" autocomplete="current-password" style="width:100%;padding:10px 40px 10px 12px;border:1.5px solid #e8eaf0;border-radius:8px;font-size:14px;outline:none"/><button type="button" onclick="togglePwd('pwd-actual',this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;padding:0;display:flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+<div style="position:relative"><input type="password" id="pwd-nueva" placeholder="Nueva contraseña" autocomplete="new-password" style="width:100%;padding:10px 40px 10px 12px;border:1.5px solid #e8eaf0;border-radius:8px;font-size:14px;outline:none"/><button type="button" onclick="togglePwd('pwd-nueva',this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;padding:0;display:flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+<div style="position:relative"><input type="password" id="pwd-confirma" placeholder="Repetir nueva contraseña" autocomplete="new-password" style="width:100%;padding:10px 40px 10px 12px;border:1.5px solid #e8eaf0;border-radius:8px;font-size:14px;outline:none"/><button type="button" onclick="togglePwd('pwd-confirma',this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;padding:0;display:flex"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+<div id="pwd-msg" style="display:none;font-size:13px;padding:8px 11px;border-radius:7px"></div>
+<div><button class="btn btn-green" id="btn-cambiar-pwd" onclick="cambiarPassword()">Actualizar contraseña</button></div>
+</div>
+</div>
+<div class="sec-row">
+<div><div class="sec-label">Sesion activa</div><div class="sec-sub" id="sesion-info">--</div></div>
+<button class="btn btn-red" onclick="cerrarSesion()">Cerrar sesion</button>
+</div>
+<div class="sec-row">
+<div><div class="sec-label">Eliminar cuenta</div><div class="sec-sub">Contacta a contacto@transmatch.cl para solicitar la eliminacion de tu cuenta</div></div>
+</div>
+</div>
+
+<!-- USUARIOS -->
+<div class="tab-pane" id="pane-usuarios">
+<div id="usuarios-contenido"><div style="text-align:center;padding:20px;color:#9CA3AF;font-size:13px">Cargando...</div></div>
+</div>
+</main>
+</div>
+
+<script>
+var API='https://transmatch.transmatchcl.workers.dev';
+var U={};
+
+function showTab(id,el){
+document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+document.querySelectorAll('.tab-pane').forEach(function(t){t.classList.remove('active')});
+el.classList.add('active');
+document.getElementById('pane-'+id).classList.add('active');
+}
+
+function render(){
+var nombre=U.nombre||'';
+var empresa=U.empresa||'';
+var inicial=(nombre||empresa||'?')[0].toUpperCase();
+var planRaw=(U.plan||'basico').toLowerCase();var planKey=planRaw.replace('?','a').replace('?','e').replace('?','o').replace('?','i').replace('?','u');
+var planLabels={basico:'Plan Basico',pro:'Plan Pro',enterprise:'Enterprise'};
+
+document.getElementById('nav-avatar').textContent=inicial;
+document.getElementById('prof-av').textContent=inicial;
+document.getElementById('prof-nombre').textContent=nombre||'--';
+document.getElementById('prof-email').textContent=U.email||'--';
+document.getElementById('prof-plan').textContent=planLabels[planKey]||'Plan Activo';
+document.getElementById('sesion-info').textContent='Conectado como '+(U.email||'');
+var nn=document.getElementById('nav-nombre');if(nn)nn.textContent=nombre;
+var ne=document.getElementById('nav-empresa');if(ne)ne.textContent=empresa;
+var un=document.getElementById('um-nombre');if(un)un.textContent=nombre;
+var ue=document.getElementById('um-empresa');if(ue)ue.textContent=empresa;
+
+document.getElementById('inp-nombre').value=U.nombre||'';
+document.getElementById('inp-email').value=U.email||'';
+document.getElementById('inp-telefono').value=U.telefono||U.tel||'';
+document.getElementById('inp-cargo').value=U.cargo||'';
+document.getElementById('inp-empresa').value=U.empresa||'';
+document.getElementById('inp-rut-empresa').value=U.rutEmpresa||'';
+document.getElementById('inp-giro').value=U.giro||'';
+document.getElementById('inp-tel-empresa').value=U.telEmpresa||'';
+document.getElementById('inp-ciudad-empresa').value=U.ciudadEmpresa||'';
+document.getElementById('inp-comuna-empresa').value=U.comuna||'';
+document.getElementById('inp-direccion').value=U.direccion||'';
+document.getElementById('inp-web').value=U.web||'';
+document.getElementById('inp-desc').value=U.descripcion||'';
+
+// Contactos de la empresa: usar U.contactos (nuevo) o migrar desde los campos fijos antiguos
+var contOp = U.contactoOperaciones||{};
+var contDec = U.contactoComercial||{};
+if(U.contactos && U.contactos.length){
+  _contactos = U.contactos.slice();
+}else{
+  _contactos = [];
+  if(contOp.nombre||contOp.telefono||contOp.email) _contactos.push({nombre:contOp.nombre||'',cargo:contOp.cargo||'',telefono:contOp.telefono||'',email:contOp.email||''});
+  if(contDec.nombre||contDec.telefono||contDec.email) _contactos.push({nombre:contDec.nombre||'',cargo:contDec.cargo||'',telefono:contDec.telefono||'',email:contDec.email||''});
+}
+if(!_contactos.length) _contactos=[{nombre:'',cargo:'',telefono:'',email:''}];
+renderContactos();
+
+// Facturación
+var fact = U.facturacion||{};
+document.getElementById('inp-rs-fact').value=fact.razonSocial||'';
+document.getElementById('inp-rut-fact').value=fact.rut||'';
+document.getElementById('inp-giro-fact').value=fact.giro||'';
+document.getElementById('inp-dir-fact').value=fact.direccion||'';
+document.getElementById('inp-email-fact').value=fact.email||'';
+document.getElementById('inp-tel-fact').value=fact.telefono||'';
+document.getElementById('inp-contacto-fact').value=fact.contactoNombre||'';
+document.getElementById('inp-cargo-fact').value=fact.contactoCargo||'';
+// Marca el check según el flag guardado; para registros viejos, infiere por ausencia de datos propios
+var _mismosF = (fact.mismosDatos!==undefined) ? !!fact.mismosDatos : !(fact.razonSocial||fact.rut||fact.giro||fact.direccion);
+document.getElementById('chk-fact-mismos-datos').checked=_mismosF;
+toggleFactMismosDatos();
+
+
+// Barra de progreso
+renderProgreso(U);
+
+// Mostrar tab Usuarios solo si es admin de empresa y tiene max_usuarios > 0
+var esAdminEmpresa = !U.esSubusuario;
+var maxU = U.max_usuarios||0;
+var tabU = document.getElementById('tab-usuarios');
+if(tabU && esAdminEmpresa && maxU > 0) { tabU.style.display=''; cargarUsuarios(); }
+
+// Datos de empresa por rol: dueño edita todo; gestor edita el perfil (menos razón social/RUT); miembro solo lectura.
+if(U.esSubusuario){
+  var _bloquearPane=function(pid, nota){
+    var pane=document.getElementById(pid); if(!pane) return;
+    var n=document.createElement('div'); n.style.cssText='font-size:12px;color:#92400E;background:#FFFBEB;border:0.5px solid #FDE68A;border-radius:8px;padding:9px 12px;margin-bottom:14px'; n.textContent=nota; pane.insertBefore(n, pane.firstChild);
+    pane.querySelectorAll('input,textarea,select').forEach(function(el){ el.disabled=true; el.style.background='#f8f9fc'; el.style.cursor='not-allowed'; });
+    pane.querySelectorAll('button').forEach(function(b){ b.style.display='none'; });
+  };
+  _bloquearPane('pane-facturacion','Solo el dueño de la empresa puede editar la facturación.');
+  if(U.rol==='gestor'){
+    ['inp-empresa','inp-rut-empresa'].forEach(function(id){ var el=document.getElementById(id); if(el){ el.disabled=true; el.style.background='#f8f9fc'; el.style.cursor='not-allowed'; } });
+    var _pe=document.getElementById('pane-empresa');
+    if(_pe){ var _n2=document.createElement('div'); _n2.style.cssText='font-size:12px;color:#6B7280;background:#F8FAFC;border:0.5px solid #e8eaf0;border-radius:8px;padding:9px 12px;margin-bottom:14px'; _n2.textContent='La razón social y el RUT solo los edita el dueño.'; _pe.insertBefore(_n2, _pe.firstChild); }
+  } else {
+    _bloquearPane('pane-empresa','Solo el dueño de la empresa puede editar estos datos.');
+  }
+}
+}
+
+function calcularCompletitudCliente(u){
+  var puntos = 0;
+  // Etapa 1 — datos personales (40%)
+  if(u.nombre)      puntos += 10;
+  if(u.empresa)     puntos += 10;
+  if(u.rutEmpresa)  puntos += 7;
+  if(u.cargo)       puntos += 7;
+  if(u.telefono)    puntos += 6;
+  // Etapa 2 — datos empresa (30%)
+  if(u.giro)        puntos += 10;
+  if(u.direccion)   puntos += 10;
+  if(u.ciudad||u.ciudadEmpresa) puntos += 10;
+  // Etapa 3 — facturación (30%)
+  var f = u.facturacion||{};
+  if(f.email)           puntos += 10;
+  if(f.contactoNombre)  puntos += 10;
+  if(f.rut||u.rutEmpresa) puntos += 10;
+  return Math.min(100, puntos);
+}
+
+function renderProgreso(u){
+  var pct = calcularCompletitudCliente(u);
+  var banner = document.getElementById('progreso-banner');
+  var bar = document.getElementById('progreso-bar');
+  var pctEl = document.getElementById('progreso-pct');
+  var hint = document.getElementById('progreso-hint');
+  if(!banner) return;
+  banner.style.display = pct < 100 ? 'block' : 'none';
+  bar.style.width = pct+'%';
+  bar.style.background = pct < 50 ? '#EF4444' : pct < 80 ? '#FF8808' : '#16a34a';
+  pctEl.textContent = pct+'%';
+  pctEl.style.color = pct < 50 ? '#EF4444' : pct < 80 ? '#FF8808' : '#16a34a';
+  var fact = u.facturacion||{};
+  if(pct < 40) hint.textContent = 'Completa tus datos personales y de empresa para comenzar';
+  else if(!u.giro||!u.direccion) hint.textContent = 'Siguiente: completa los datos de tu empresa en la pestaña Empresa';
+  else if(!fact.email||!fact.contactoNombre) hint.textContent = 'Siguiente: agrega tus datos de facturación en la pestaña Facturación';
+  else hint.textContent = 'Perfil casi completo';
+}
+
+async function guardarPerfil(){
+var btn=document.getElementById('btn-guardar-perfil');
+btn.disabled=true;btn.textContent='Guardando...';
+var body={nombre:document.getElementById('inp-nombre').value.trim(),telefono:document.getElementById('inp-telefono').value.trim(),cargo:document.getElementById('inp-cargo').value.trim()};
+var res=await fetch(API+'/api/perfil',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(body)});
+if(res.ok){Object.assign(U,body);localStorage.setItem('tm_nombre',body.nombre);renderProgreso(U);render();var el=document.getElementById('alok-perfil');el.style.display='block';setTimeout(function(){el.style.display='none'},3000);}
+btn.disabled=false;btn.textContent='Guardar perfil';
+}
+
+async function guardarEmpresa(){
+var body={
+empresa:document.getElementById('inp-empresa').value.trim(),
+rutEmpresa:document.getElementById('inp-rut-empresa').value.trim(),
+giro:document.getElementById('inp-giro').value.trim(),
+telEmpresa:document.getElementById('inp-tel-empresa').value.trim(),
+ciudadEmpresa:document.getElementById('inp-ciudad-empresa').value.trim(),
+ciudad:document.getElementById('inp-ciudad-empresa').value.trim(),
+comuna:document.getElementById('inp-comuna-empresa').value.trim(),
+direccion:document.getElementById('inp-direccion').value.trim(),
+web:document.getElementById('inp-web').value.trim(),
+descripcion:document.getElementById('inp-desc').value.trim()};
+var res=await fetch(API+'/api/perfil',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(body)});
+if(res.ok){Object.assign(U,body);localStorage.setItem('tm_empresa',body.empresa);renderProgreso(U);var el=document.getElementById('alok-empresa');el.style.display='block';setTimeout(function(){el.style.display='none'},3000);}
+}
+
+var _contactos=[];
+function esc(v){return (v||'').replace(/"/g,'&quot;');}
+function renderContactos(){
+var cont=document.getElementById('contactos-list');
+if(!cont)return;
+var html='';
+_contactos.forEach(function(c,idx){
+html+='<div class="grid2" data-idx="'+idx+'" style="position:relative;margin-bottom:12px;padding-bottom:12px;'+(idx<_contactos.length-1?'border-bottom:0.5px solid #f0f1f5':'')+'">'
++'<div class="fg"><label>Nombre</label><input type="text" class="contacto-nombre" value="'+esc(c.nombre)+'" placeholder="Nombre y apellido"/></div>'
++'<div class="fg"><label>Cargo (opcional)</label><input type="text" class="contacto-cargo" value="'+esc(c.cargo)+'" placeholder="Ej: Coordinador de logística"/></div>'
++'<div class="fg"><label>Teléfono</label><input type="tel" class="contacto-telefono" value="'+esc(c.telefono)+'" placeholder="+56 9 XXXX XXXX"/></div>'
++'<div class="fg"><label>Email</label><input type="email" class="contacto-email" value="'+esc(c.email)+'" placeholder="nombre@empresa.cl"/></div>'
++(_contactos.length>1?'<button type="button" onclick="quitarContacto('+idx+')" style="position:absolute;top:0;right:0;background:none;border:none;color:#EF4444;cursor:pointer;font-size:12px;font-weight:600">Quitar</button>':'')
++'</div>';
+});
+cont.innerHTML=html;
+}
+function _syncContactosDom(){
+document.querySelectorAll('#contactos-list > div[data-idx]').forEach(function(row){
+var idx=parseInt(row.getAttribute('data-idx'));
+if(!_contactos[idx])return;
+_contactos[idx].nombre=row.querySelector('.contacto-nombre').value.trim();
+_contactos[idx].cargo=row.querySelector('.contacto-cargo').value.trim();
+_contactos[idx].telefono=row.querySelector('.contacto-telefono').value.trim();
+_contactos[idx].email=row.querySelector('.contacto-email').value.trim();
+});
+}
+function agregarContacto(){
+_syncContactosDom();
+if(_contactos.length>=6)return;
+_contactos.push({nombre:'',cargo:'',telefono:'',email:''});
+renderContactos();
+}
+function quitarContacto(idx){
+_syncContactosDom();
+_contactos.splice(idx,1);
+renderContactos();
+}
+
+async function guardarContactosEmpresa(){
+_syncContactosDom();
+var body={contactos:_contactos.filter(function(c){return c.nombre||c.telefono||c.email;})};
+try{
+var res=await fetch(API+'/api/perfil',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(body)});
+if(res.ok){
+Object.assign(U,body);
+var el=document.getElementById('alok-empresa-contactos');el.style.display='block';setTimeout(function(){el.style.display='none'},3000);
+}else{
+var d=await res.json();
+var eel=document.getElementById('alerr-empresa-contactos');eel.textContent=d.error||'Error al guardar';eel.style.display='block';setTimeout(function(){eel.style.display='none'},3000);
+}
+}catch(e){
+var eel2=document.getElementById('alerr-empresa-contactos');eel2.textContent='Error de conexión';eel2.style.display='block';
+}
+}
+
+
+function initApp(){
+U=window._U||{};
+render();
+cargarNotificaciones();
+var p=localStorage.getItem('tm_plan')||'basico';
+if(p==='basico'){var nr=document.getElementById('nav-retornos');if(nr)nr.style.display='none';}
+}
+if(window._authOk)initApp();
+else document.addEventListener('_authReady',initApp);
+
+function closeAllPanels(){var m=document.getElementById('user-menu');var p=document.getElementById('notif-panel');if(m)m.style.display='none';if(p)p.style.display='none';}
+function toggleUserMenu(e){e.stopPropagation();
+  var _mp=document.getElementById('nav-mobile-panel'); if(_mp) _mp.classList.remove('open');var m=document.getElementById('user-menu');var isOpen=m.style.display==='block';closeAllPanels();if(!isOpen)m.style.display='block';}
+function toggleNotifs(e){if(e)e.stopPropagation();var p=document.getElementById('notif-panel');var isOpen=p.style.display==='flex';closeAllPanels();if(!isOpen){p.style.display='flex';cargarNotificaciones();}}
+document.addEventListener('click',function(e){
+  if(e.target.closest('#notif-panel') || e.target.closest('#notif-btn') || e.target.closest('#user-menu') || e.target.closest('#nav-avatar')) return;
+  closeAllPanels();
+});
+function cerrarSesion(){localStorage.clear();window.location.replace('/index.html');}
+
+function togglePwd(id,btn){
+  var inp=document.getElementById(id);
+  if(!inp)return;
+  inp.type = inp.type==='password' ? 'text' : 'password';
+  if(btn) btn.style.color = inp.type==='text' ? '#1e2d4e' : '#9CA3AF';
+}
+
+async function cambiarPassword(){
+  var actual=document.getElementById('pwd-actual').value;
+  var nueva=document.getElementById('pwd-nueva').value;
+  var confirma=document.getElementById('pwd-confirma').value;
+  var msg=document.getElementById('pwd-msg');
+  function showMsg(text,ok){ msg.textContent=text; msg.style.display='block'; msg.style.background=ok?'#DCFCE7':'#FEF2F2'; msg.style.color=ok?'#14532D':'#991B1B'; }
+
+  if(!actual||!nueva||!confirma){ showMsg('Completa los tres campos',false); return; }
+  if(nueva.length<8){ showMsg('La nueva contraseña debe tener al menos 8 caracteres',false); return; }
+  if(nueva!==confirma){ showMsg('La nueva contraseña y su confirmación no coinciden',false); return; }
+  if(nueva===actual){ showMsg('La nueva contraseña debe ser distinta a la actual',false); return; }
+
+  var btn=document.getElementById('btn-cambiar-pwd');
+  btn.disabled=true; var txt=btn.textContent; btn.textContent='Actualizando...';
+  try{
+    var res=await fetch(API+'/api/auth/cambiar-password',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({passwordActual:actual,passwordNueva:nueva})});
+    var data={}; try{data=await res.json();}catch(e){}
+    if(res.ok){
+      showMsg('Contraseña actualizada correctamente',true);
+      document.getElementById('pwd-actual').value='';
+      document.getElementById('pwd-nueva').value='';
+      document.getElementById('pwd-confirma').value='';
+    } else {
+      showMsg(data.error||'No se pudo actualizar la contraseña',false);
+    }
+  }catch(e){ showMsg('Error de conexión. Intenta nuevamente.',false); }
+  finally{ btn.disabled=false; btn.textContent=txt; }
+}
+
+async function cargarNotificaciones(){
+try{
+var token=localStorage.getItem('tm_token');
+var r=await fetch(API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+var data=r.ok?await r.json():{};
+var notifs=data.notificaciones||[];
+var noLeidas=notifs.filter(function(n){return !n.leida}).length;
+var badge=document.getElementById('notif-count');
+if(badge){badge.style.display=noLeidas>0?'flex':'none';badge.textContent=noLeidas;}
+var list=document.getElementById('notif-list');if(!list)return;
+if(!notifs.length){list.innerHTML='<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Sin notificaciones</div>';return;}
+list.innerHTML=notifs.slice(0,20).map(function(n){
+var bg=!n.leida?'background:#f0f4ff':'';
+var ts=n.createdAt?new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'
++'<div style="flex:1;min-width:0"><div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4">'+n.mensaje+'</div><div style="font-size:11px;color:#9CA3AF">'+ts+'</div></div>'
++(!n.leida?'<button onclick="event.stopPropagation();marcarUnaLeida(this.dataset.nid)" data-nid="'+n.id+'" style="background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6">v</button>':'')
++'</div>';
+}).join('');
+}catch(e){}
+}
+async function marcarTodasLeidas(){
+try{
+var token=localStorage.getItem('tm_token');
+var r=await fetch(API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+var data=r.ok?await r.json():{};
+var notifs=(data.notificaciones||[]).filter(function(n){return !n.leida});
+for(var i=0;i<notifs.length;i++){await fetch(API+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:notifs[i].id})})}
+var badge=document.getElementById('notif-count');
+if(badge)badge.style.display='none';
+await cargarNotificaciones();
+}catch(e){}
+}
+function togglePlanDetalle(card){
+var preview=card.querySelector('.plan-preview');
+var full=card.querySelector('.plan-full');
+var isOpen=full.style.display!=='none';
+full.style.display=isOpen?'none':'block';
+preview.style.display=isOpen?'block':'none';
+}
+
+function formatRut(input){var v=input.value.replace(/[^0-9kK]/g,"").toUpperCase();if(v.length<=1){input.value=v;return;}var dv=v.slice(-1);var num=v.slice(0,-1);var fmt="";var c=0;for(var i=num.length-1;i>=0;i--){fmt=num[i]+fmt;c++;if(c%3===0&&i!==0)fmt="."+fmt;}input.value=fmt+"-"+dv;}
+
+async function marcarUnaLeida(id){
+try{var token=localStorage.getItem('tm_token');await fetch(API+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:id})});await cargarNotificaciones();}catch(e){}
+}
+
+function toggleFactMismosDatos(){
+  // Los campos siempre quedan visibles. Al marcar el check, se autorellenan con los datos de Empresa (y quedan editables).
+  var on=document.getElementById('chk-fact-mismos-datos').checked;
+  if(on){
+    document.getElementById('inp-rs-fact').value  = document.getElementById('inp-empresa').value.trim();
+    document.getElementById('inp-rut-fact').value = document.getElementById('inp-rut-empresa').value.trim();
+    document.getElementById('inp-giro-fact').value= document.getElementById('inp-giro').value.trim();
+    document.getElementById('inp-dir-fact').value = document.getElementById('inp-direccion').value.trim();
+  }
+}
+
+async function guardarFacturacion(){
+  var usarMismos=document.getElementById('chk-fact-mismos-datos').checked;
+  var body={facturacion:{
+    mismosDatos:usarMismos,
+    razonSocial:document.getElementById('inp-rs-fact').value.trim(),
+    rut:document.getElementById('inp-rut-fact').value.trim(),
+    giro:document.getElementById('inp-giro-fact').value.trim(),
+    direccion:document.getElementById('inp-dir-fact').value.trim(),
+    email:document.getElementById('inp-email-fact').value.trim(),
+    telefono:document.getElementById('inp-tel-fact').value.trim(),
+    contactoNombre:document.getElementById('inp-contacto-fact').value.trim(),
+    contactoCargo:document.getElementById('inp-cargo-fact').value.trim(),
+  }};
+  var res=await fetch(API+'/api/perfil',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(body)});
+  if(res.ok){
+    Object.assign(U,body);
+    renderProgreso(U);
+    var el=document.getElementById('alok-facturacion');el.style.display='block';
+    setTimeout(function(){el.style.display='none'},3000);
+  }
+}
+
+// ── GESTIÓN DE USUARIOS ────────────────────────────────────────
+var _usuariosData = [];
+
+// Roles de empresa que la cuenta madre puede asignar a sus usuarios
+var ROLES_CLIENTE = [
+  {key:'miembro', label:'Miembro', desc:'Ve y gestiona únicamente las licitaciones y transportes que él mismo crea. No ve lo del resto del equipo, ni la facturación de la empresa.'},
+  {key:'gestor',  label:'Gestor',  desc:'Ve y gestiona las licitaciones y transportes de toda la empresa (los suyos y los de los demás usuarios). No accede a la facturación ni puede invitar o administrar usuarios.'},
+  {key:'visor',   label:'Visor',   desc:'Puede ver toda la información de la empresa, pero en modo solo lectura: no puede crear, editar, adjudicar ni eliminar nada. Ideal para finanzas o control.'},
+];
+function rolLabelCli(r){ return ({miembro:'Miembro',gestor:'Gestor',visor:'Visor',dueno:'Dueño'})[r]||'Miembro'; }
+function rolBadgeCli(r){ var c=({miembro:['#FAEEDA','#854F0B'],gestor:['#E1F5EE','#0F6E56'],visor:['#F1EFE8','#444441'],dueno:['#EEEDFE','#3C3489']})[r]||['#FAEEDA','#854F0B']; return '<span style="background:'+c[0]+';color:'+c[1]+';font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px">'+rolLabelCli(r)+'</span>'; }
+function rolPickerHtml(current){
+  return '<div id="rol-picker" style="display:flex;flex-direction:column;gap:8px">'+ROLES_CLIENTE.map(function(r){
+    var on=(current||'miembro')===r.key;
+    return '<label class="rol-card" data-rol="'+r.key+'" onclick="_selRol(this)" style="display:flex;align-items:flex-start;gap:12px;border:1.5px solid '+(on?'#FF8808':'#e8eaf0')+';border-radius:10px;padding:12px 14px;cursor:pointer">'
+      +'<div style="flex:1"><div style="font-size:13px;font-weight:700;color:#1e2d4e">'+r.label+'</div><div style="font-size:12px;color:#6B7280;margin-top:3px;line-height:1.5">'+r.desc+'</div></div>'
+      +'<input type="checkbox" class="rol-chk" data-rol="'+r.key+'" '+(on?'checked':'')+' style="width:18px;height:18px;accent-color:#FF8808;pointer-events:none;margin-top:2px;flex-shrink:0"/>'
+      +'</label>';
+  }).join('')+'</div>';
+}
+function _selRol(card){
+  var picker=document.getElementById('rol-picker'); if(!picker) return;
+  picker.querySelectorAll('.rol-card').forEach(function(c){ var on=(c===card); c.style.border='1.5px solid '+(on?'#FF8808':'#e8eaf0'); var chk=c.querySelector('.rol-chk'); if(chk) chk.checked=on; });
+}
+function rolPickerValue(){ var chk=document.querySelector('#rol-picker .rol-chk:checked'); return chk?chk.getAttribute('data-rol'):'miembro'; }
+
+async function cargarUsuarios(){
+  var el = document.getElementById('usuarios-contenido');
+  if(!el) return;
+  try {
+    var res = await fetch(API+'/api/mi-empresa/usuarios', {headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    if(!res.ok){ el.innerHTML='<div style="text-align:center;padding:20px;color:#9CA3AF;font-size:13px">Error al cargar usuarios</div>'; return; }
+    var data = await res.json();
+    _usuariosData = data.miembros||[];
+    var max = data.max_usuarios||0;
+    renderUsuarios(_usuariosData, max, data.invitacionesPendientes||[]);
+  } catch(e){ el.innerHTML='<div style="text-align:center;padding:20px;color:#9CA3AF;font-size:13px">Error de conexión</div>'; }
+}
+
+function renderUsuarios(miembros, max, invitaciones){
+  invitaciones = invitaciones || [];
+  var el = document.getElementById('usuarios-contenido');
+  if(!el) return;
+  var totalOcupados = miembros.length + invitaciones.length;
+  var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
+    +'<div style="font-size:13px;color:#6B7280">'+totalOcupados+' de '+max+' usuarios extra</div>'
+    +(totalOcupados < max ? '<button class="btn btn-orange btn-sm" onclick="abrirModalInvitar()">+ Invitar usuario</button>' : '<span style="font-size:12px;color:#9CA3AF">Límite alcanzado</span>')
+    +'</div>';
+  if(miembros.length === 0 && invitaciones.length === 0){
+    html += '<div style="text-align:center;padding:32px;background:#f8f9fc;border-radius:10px;border:0.5px solid #e8eaf0">'
+      +'<div style="font-size:14px;font-weight:600;color:#374151;margin-bottom:6px">Sin usuarios extra aún</div>'
+      +'<div style="font-size:13px;color:#9CA3AF">Invita a personas de tu empresa para que puedan acceder a la plataforma con el rol que definas.</div>'
+      +'</div>';
+  } else {
+    html += miembros.map(function(m){
+      return '<div style="border:0.5px solid #e8eaf0;border-radius:10px;padding:14px 16px;margin-bottom:10px;background:#fff">'
+        +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
+        +'<div>'
+        +'<div style="font-size:13px;font-weight:600;color:#1e2d4e">'+m.nombre+' <span style="display:inline-block;margin-left:6px;background:#F0FDF4;color:#14532D;font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;vertical-align:middle">Activo</span></div>'
+        +'<div style="font-size:12px;color:#6B7280;margin-top:2px">'+m.email+'</div>'
+        +'<div style="margin-top:6px">'+rolBadgeCli(m.rol||'miembro')+'</div>'
+        +'</div>'
+        +'<div style="display:flex;gap:6px;flex-shrink:0">'
+        +'<button class="btn btn-outline btn-sm" onclick="abrirModalRol(\''+m.email+'\',\''+m.nombre+'\',\''+(m.rol||'miembro')+'\')">Editar rol</button>'
+        +'<button onclick="eliminarUsuario(\''+m.email+'\',\''+m.nombre+'\')" style="padding:5px 10px;font-size:12px;border-radius:6px;border:1px solid #FECACA;background:#FEF2F2;color:#DC2626;cursor:pointer">Eliminar</button>'
+        +'</div>'
+        +'</div>'
+        +'</div>';
+    }).join('');
+    html += invitaciones.map(function(inv){
+      var vencida = inv.vencida;
+      var badgeBg = vencida ? '#FEF2F2' : '#FFFBEB';
+      var badgeColor = vencida ? '#991B1B' : '#92400E';
+      var badgeTxt = vencida ? 'Invitación vencida' : 'Invitación pendiente';
+      return '<div style="border:0.5px solid '+(vencida?'#FECACA':'#FDE68A')+';border-radius:10px;padding:14px 16px;margin-bottom:10px;background:'+(vencida?'#FEF2F2':'#FFFBEB')+'">'
+        +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
+        +'<div><div style="font-size:13px;font-weight:600;color:#1e2d4e">'+inv.emailInvitado+' <span style="display:inline-block;margin-left:6px;background:'+badgeBg+';color:'+badgeColor+';font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;vertical-align:middle">'+badgeTxt+'</span></div>'
+        +'<div style="font-size:12px;color:#6B7280;margin-top:2px">'+(vencida?'Venció el ':'Expira el ')+fechaCortaInv(inv.expiresAt)+'</div></div>'
+        +'<div style="display:flex;gap:6px;flex-shrink:0">'
+        +'<button class="btn btn-outline btn-sm" onclick="reenviarInvitacion(\''+inv.emailInvitado+'\')">Reenviar</button>'
+        +'<button onclick="cancelarInvitacion(\''+inv.emailInvitado+'\')" style="padding:5px 10px;font-size:12px;border-radius:6px;border:1px solid #FECACA;background:#FEF2F2;color:#DC2626;cursor:pointer">Cancelar</button>'
+        +'</div>'
+        +'</div>'
+        +'</div>';
+    }).join('');
+  }
+  el.innerHTML = html;
+}
+
+function fechaCortaInv(iso){
+  if(!iso) return '';
+  try{ return new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return ''; }
+}
+
+function reenviarInvitacion(email){
+  abrirModalInvitar();
+  var input=document.getElementById('inv-email');
+  if(input){ input.value=email; }
+}
+
+async function cancelarInvitacion(email){
+  if(!confirm('¿Cancelar la invitación a '+email+'? El link dejará de funcionar.')) return;
+  try{
+    var res=await fetch(API+'/api/mi-empresa/invitacion/'+encodeURIComponent(email),{method:'DELETE',headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    if(res.ok){ cargarUsuarios(); }
+    else{ var d=await res.json(); alert(d.error||'Error'); }
+  }catch(e){ alert('Error de conexión'); }
+}
+
+function abrirModalInvitar(){
+  var modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  var inner = document.createElement('div');
+  inner.style.cssText = 'background:#fff;border-radius:16px;padding:28px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto';
+  inner.innerHTML = '<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Invitar usuario</div>'
+    +'<div style="font-size:12px;color:#9CA3AF;margin-bottom:20px">El usuario recibirá un email para crear su contraseña y acceder a la plataforma.</div>'
+    +'<div style="margin-bottom:16px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Email del usuario *</label>'
+    +'<input type="email" id="inv-email" placeholder="correo@empresa.cl" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Rol</div>'
+    +rolPickerHtml('miembro')
+    +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">'
+    +'<button id="inv-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
+    +'<button id="inv-save" style="padding:9px 18px;border-radius:8px;background:#FF8808;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Enviar invitación</button>'
+    +'</div>';
+  modal.appendChild(inner); document.body.appendChild(modal);
+  document.getElementById('inv-cancel').onclick = function(){ modal.remove(); };
+  document.getElementById('inv-save').onclick = function(){ enviarInvitacion(modal); };
+  modal.onclick = function(e){ if(e.target===modal) modal.remove(); };
+}
+
+async function enviarInvitacion(modal){
+  var email = (document.getElementById('inv-email').value||'').trim();
+  if(!email){ alert('Ingresa el email'); return; }
+  var rol = rolPickerValue();
+  var btn = document.getElementById('inv-save');
+  btn.disabled=true; btn.textContent='Enviando...';
+  try{
+    var res = await fetch(API+'/api/mi-empresa/invitar',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify({emailInvitado:email, rol:rol})
+    });
+    var d = await res.json();
+    if(res.ok){ modal.remove(); alert('Invitación enviada a '+email+'. El link expira en 48 horas.'); cargarUsuarios(); }
+    else{ alert(d.error||'Error al enviar'); btn.disabled=false; btn.textContent='Enviar invitación'; }
+  }catch(e){ alert('Error de conexión'); btn.disabled=false; btn.textContent='Enviar invitación'; }
+}
+
+function abrirModalRol(emailTarget, nombreTarget, rolActual){
+  var modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  var inner = document.createElement('div');
+  inner.style.cssText = 'background:#fff;border-radius:16px;padding:28px;width:100%;max-width:440px';
+  inner.innerHTML = '<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Rol de '+nombreTarget+'</div>'
+    +'<div style="font-size:12px;color:#9CA3AF;margin-bottom:16px">'+emailTarget+'</div>'
+    +rolPickerHtml(rolActual||'miembro')
+    +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">'
+    +'<button id="rol-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
+    +'<button id="rol-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar rol</button>'
+    +'</div>';
+  modal.appendChild(inner); document.body.appendChild(modal);
+  document.getElementById('rol-cancel').onclick = function(){ modal.remove(); };
+  document.getElementById('rol-save').onclick = function(){ guardarRol(emailTarget, modal); };
+  modal.onclick = function(e){ if(e.target===modal) modal.remove(); };
+}
+
+async function guardarRol(emailTarget, modal){
+  var rol = rolPickerValue();
+  try{
+    var res = await fetch(API+'/api/mi-empresa/usuario/'+encodeURIComponent(emailTarget)+'/rol',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},
+      body:JSON.stringify({rol:rol})
+    });
+    if(res.ok){ modal.remove(); cargarUsuarios(); }
+    else{ var d=await res.json(); alert(d.error||'Error'); }
+  }catch(e){ alert('Error de conexión'); }
+}
+
+async function eliminarUsuario(emailTarget, nombre){
+  if(!confirm('¿Eliminar la cuenta de '+nombre+'? No podrá acceder a la plataforma.')) return;
+  try{
+    var res = await fetch(API+'/api/mi-empresa/usuario/'+encodeURIComponent(emailTarget),{
+      method:'DELETE',
+      headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}
+    });
+    if(res.ok) cargarUsuarios();
+    else{ var d=await res.json(); alert(d.error||'Error'); }
+  }catch(e){ alert('Error de conexión'); }
+}
+
+function toggleMobileNav(){
+  var p=document.getElementById('nav-mobile-panel');
+  if(!p) return;
+  var willOpen = !p.classList.contains('open');
+  // Cerrar otros menús (avatar y notificaciones) si existen
+  var um=document.getElementById('user-menu'); if(um) um.style.display='none';
+  var np=document.getElementById('notif-panel'); if(np) np.style.display='none';
+  if(typeof closeAllPanels==='function'){ try{closeAllPanels();}catch(e){} }
+  if(willOpen) p.classList.add('open'); else p.classList.remove('open');
+}
+function cerrarMenuMovil(){
+  var p=document.getElementById('nav-mobile-panel'); if(p) p.classList.remove('open');
+}
+document.addEventListener('click',function(e){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.nav-mobile-menu'))
+    p.classList.remove('open');
+});
+</script>
+
+<footer style="background:#1e2d4e;margin-top:40px;padding:28px 24px 20px">
+<div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><svg style="height:28px;width:auto;display:block" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg></div><div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div></div>
+<div style="display:flex;gap:32px;flex-wrap:wrap">
+<div>
+<div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<a href="/terminos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Terminos y condiciones</a>
+<a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Politica de privacidad</a>
+<a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Centro de ayuda</a>
+</div></div>
+<div>
+<div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span>
+<span style="font-size:13px;color:#CBD5E1">+56 9 6908 1098</span><span style="font-size:13px;color:#CBD5E1">Av. La Dehesa 1201</span>
+</div></div>
+</div>
+</div>
+<div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B">(c) 2026 TransMatch SpA.</div>
+</footer>
+</body></html>

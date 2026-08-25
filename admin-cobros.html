@@ -483,7 +483,7 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
 <div id="fc-menu" style="display:none;position:fixed;z-index:600;background:#fff;border:0.5px solid #E5E7EB;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:160px;overflow:hidden"></div>
 
 <script>
-var API = 'https://transmatch.transmatchcl.workers.dev';
+var API = (localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
 var allOVs = [], allFacturas = [], ovActual = null, _licCodigo = {};
 
 // ── Helpers ──

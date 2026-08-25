@@ -1,0 +1,731 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>TransMatch — Transportista</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><style>
+ *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+ body{font-family:Barlow,sans-serif;background:#ffffff;display:flex;flex-direction:column;min-height:100vh}
+ #auth-guard{position:fixed;inset:0;background:#ffffff;display:flex;align-items:center;justify-content:center;z-index:9999}
+ .spinner{width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+ @keyframes spin{to{transform:rotate(360deg)}}
+ #app{display:none}#app.shown{display:flex;flex-direction:column;min-height:100vh}
+ .nav{background:#1e2d4e;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+ .nav-left{display:flex;align-items:center;gap:16px}
+ .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+  .brand-logo{height:28px;width:auto;display:block}
+ .nav-icon{background:#FF8808;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+ .nav-name{font-weight:700;color:#fff;font-size:15px}
+ .nav-name span{color:#FF8808}
+ .nav-links{display:flex;gap:2px}
+ .nav-link{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+ .nav-link:hover,.nav-link.active{color:#fff;background:rgba(255,255,255,.18)}
+ .avatar{width:30px;height:30px;border-radius:50%;background:#FF8808;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;cursor:pointer}
+ main{max-width:1100px;margin:0 auto;padding:24px 20px;min-height:calc(100vh - 52px);flex:1}
+ .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:20px}
+ .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+ @media(max-width:768px){.grid-3{grid-template-columns:1fr 1fr}.grid-2{grid-template-columns:1fr}}
+ .stat{background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);padding:16px 18px}
+ .stat-label{font-size:12px;color:#6B7280;margin-bottom:6px}
+ .stat-val{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:600}
+ .card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);overflow:hidden;margin-bottom:14px}
+ .card-hdr{padding:14px 18px;border-bottom:0.5px solid #e8eaf0;display:flex;align-items:center;justify-content:space-between}
+ .card-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:500;color:#111827}
+ .row{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:0.5px solid #F3F4F6;cursor:pointer;transition:background .1s}
+ .row:hover{background:#f5f7fb}
+ .row:last-child{border-bottom:none}
+ .row-icon{width:36px;height:36px;border-radius:8px;background:#EFF6FF;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+ .row-body{flex:1;min-width:0}
+ .row-name{font-size:13px;font-weight:500;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .row-meta{font-size:11px;color:#6B7280;margin-top:2px}
+ .badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px}
+ .badge-orange{background:#FFF7ED;color:#92400E}
+ .badge-green{background:#F0FDF4;color:#14532D}
+ .badge-blue{background:#eef1f8;color:#1e2d4e}
+ .btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+ .btn:hover{opacity:.88}
+ .btn-orange{background:#FF8808;color:#fff}
+ .btn-outline{background:transparent;border:0.5px solid #E5E7EB;color:#374151}
+ .btn-sm{padding:5px 12px;font-size:12px}
+ .rating-bar{height:6px;background:#E5E7EB;border-radius:3px;flex:1;overflow:hidden}
+ .rating-fill{height:100%;border-radius:3px;background:#FF8808}
+
+  
+  .nav-mobile-menu{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:6px;border-radius:6px;background:none;border:none;flex-shrink:0}
+  .nav-mobile-menu span{display:block;width:20px;height:2px;background:#fff;border-radius:2px}
+  .nav-mobile-panel{display:none;position:fixed;top:52px;left:0;right:0;background:#1e2d4e;z-index:999;padding:8px 16px 16px;border-bottom:0.5px solid rgba(255,255,255,.1)}
+  .nav-mobile-panel.open{display:block}
+  .nav-mobile-link{display:block;padding:10px 12px;color:#93C5FD;text-decoration:none;font-size:14px;border-radius:8px;margin-bottom:2px}
+  .nav-mobile-link:hover{background:rgba(255,255,255,.1);color:#fff}
+  @media(max-width:860px){
+    .nav-links,.nav-tabs{display:none!important}
+    .nav-mobile-menu{display:flex!important}.nav-mobile-menu{order:-1}.nav-logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}.nav-logo .brand-logo,.nav-logo>.brand-logo{height:22px}
+    .nav-user-name,.nav-userinfo{display:none!important}
+    .nav-icon,.nav-name{display:none!important}
+  }
+  /* TM-MOBILE-FIX */
+  @media(max-width:600px){
+    [style*="grid-template-columns:1fr 1fr"],
+    [style*="grid-template-columns:repeat(2,1fr)"],
+    [style*="grid-template-columns:repeat(2, 1fr)"],
+    [style*="grid-template-columns:repeat(3,1fr)"],
+    [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
+    body{overflow-x:hidden}
+    .hdr-btns{flex-direction:column;width:100%}
+    .hdr-btns .btn{width:100%;justify-content:center}
+    .page-hdr{flex-direction:column;align-items:stretch}
+    .page-hdr>div{text-align:left;width:100%}
+  }
+</style><script>
+ const API='https://transmatch.transmatchcl.workers.dev';
+ (async function(){
+ const token=localStorage.getItem('tm_token');
+ const role=localStorage.getItem('tm_role');
+ if(!token){window.location.replace('/index.html');return}
+ if(role==='admin'){window.location.replace('/admin.html');return}
+ if(role==='cliente'){window.location.replace('/cliente.html');return}
+ try{
+ const res=await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+token}});
+ if(res.status===401){localStorage.clear();window.location.replace('/index.html');return}
+ if(res.ok){const{user}=await res.json();if(user.role!=='transportista'){window.location.replace('/index.html');return}localStorage.setItem('tm_nombre',user.nombre||'');localStorage.setItem('tm_empresa',user.empresa||'')}
+ }catch(e){}
+ document.getElementById('auth-guard').style.display='none';
+ var appEl=document.getElementById('app');appEl.style.display='flex';appEl.style.flexDirection='column';appEl.style.minHeight='100vh';
+      cargarNotificaciones();
+ initApp();
+ })();
+</script></head><body><div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px"><svg style="height:32px;width:auto;display:block" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg></div><div class="spinner"></div></div></div><div id="app"><nav class="nav"><div class="nav-left"><a href="/transportista.html" class="nav-logo"><svg class="brand-logo" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg></a><button class="nav-mobile-menu" onclick="toggleMobileNav()" aria-label="Menu"><span></span><span></span><span></span></button><div class="nav-links"><a href="/transportista.html" class="nav-link active">Inicio</a><a href="/transportista-retornos.html" class="nav-link">Retornos</a><a href="/transportista-licitaciones.html" class="nav-link">Licitaciones</a><a href="/transportista-transporte.html" class="nav-link">Transportes</a><a href="/transportista-cobros.html" class="nav-link">Facturacion</a><a href="/transportista-calendario.html" class="nav-link">Calendario</a><a href="/transportista-historial.html" class="nav-link">Historial</a></div></div><div style="display:flex;align-items:center;gap:12px;"><div class="nav-user-name" style="text-align:right"><div style="font-size:13px;color:#fff;font-weight:500" id="nav-nombre">--</div><div style="font-size:11px;color:#93C5FD" id="nav-empresa">--</div></div><div style="display:flex;align-items:center;gap:8px;"><div id="notif-btn" onclick="toggleNotifs(event)" style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;"></span></div></div><div style="position:relative">
+<div class="avatar" id="nav-avatar" onclick="toggleUserMenu(event)" style="cursor:pointer">?</div>
+<div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:240px;z-index:999;overflow:hidden">
+  <div style="padding:14px 16px;border-bottom:1px solid #f3f4f6">
+    <div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div>
+    <div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div>
+    <div id="um-plan" style="font-size:11px;color:#9CA3AF;margin-top:3px"></div>
+  </div>
+  <a href="/transportista-perfil.html" class="um-item" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Mi perfil y equipos
+  </a>
+  <a href="/transportista-historial.html" class="um-item" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4.5"/><polyline points="3 3 3 9 9 9"/></svg>
+    Historial
+  </a>
+  <a href="/ayuda.html" class="um-item" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background=''">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    Ayuda
+  </a>
+  <div style="border-top:1px solid #f3f4f6">
+    <button onclick="localStorage.clear();window.location.replace('/index.html')" style="display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#DC2626;background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:background .15s" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background=''">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Cerrar sesión
+    </button>
+  </div>
+</div>
+</div></div><div id="notif-panel" onclick="event.stopPropagation()" style="display:none;position:fixed;top:60px;right:16px;width:360px;background:#fff;border-radius:14px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.14);z-index:500;overflow:hidden;max-height:520px;flex-direction:column">
+  <!-- Header Notificaciones -->
+  <div id="notif-header-main" style="padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <span style="font-size:14px;font-weight:700;color:#1e2d4e">Notificaciones</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button onclick="event.stopPropagation();marcarTodasLeidas()" style="font-size:11px;color:#6B7280;background:none;border:none;cursor:pointer;padding:3px 6px;border-radius:5px" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">Marcar leídas</button>
+      <button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;color:#6B7280" title="Configurar notificaciones" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+  <!-- Header Configuración (oculto por defecto) -->
+  <div id="notif-header-config" style="display:none;padding:14px 16px;border-bottom:0.5px solid #E5E7EB;align-items:center;gap:10px;flex-shrink:0">
+    <button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;color:#1e2d4e;font-size:13px;font-weight:500;padding:4px 8px;border-radius:6px" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Volver
+    </button>
+    <span style="font-size:14px;font-weight:700;color:#1e2d4e">Configuración</span>
+  </div>
+  <!-- Panel de configuración (oculto por defecto) -->
+  <div id="notif-config" style="display:none;border-bottom:0.5px solid #E5E7EB;background:#f8f9fc;flex-shrink:0">
+    <div style="padding:14px 16px">
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Canal de notificaciones</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+          <span style="font-size:13px;color:#374151">Recibir por email</span>
+          <input type="checkbox" id="notif-email-chk" onchange="guardarPrefs()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/>
+        </label>
+        
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Sobre licitaciones</div>
+      <div style="display:flex;flex-direction:column;gap:0">
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer">
+          <span style="font-size:13px;color:#374151">Nueva licitación disponible</span>
+          <input type="checkbox" id="pref-nueva-licit" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/>
+        </label>
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer">
+          <span style="font-size:13px;color:#374151">Licitación cerrada sin adjudicación</span>
+          <input type="checkbox" id="pref-licit-cerrada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/>
+        </label>
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer">
+          <span style="font-size:13px;color:#374151">Licitación adjudicada a mí</span>
+          <input type="checkbox" id="pref-adjudicada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/>
+        </label>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#374151;margin:10px 0;text-transform:uppercase;letter-spacing:.06em">Sobre retornos</div>
+      <div>
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;cursor:pointer">
+          <span style="font-size:13px;color:#374151">Solicitudes en retornos publicados</span>
+          <input type="checkbox" id="pref-retornos" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/>
+        </label>
+      </div>
+    </div>
+  </div>
+  <!-- Lista de notificaciones -->
+  <div id="notif-list" style="overflow-y:auto;flex:1">
+    <div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div>
+  </div>
+</div>
+</nav>
+<div id="nav-mobile-panel" class="nav-mobile-panel">
+<a href="/transportista.html" class="nav-mobile-link">Inicio</a>
+<a href="/transportista-retornos.html" class="nav-mobile-link">Retornos</a>
+<a href="/transportista-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
+<a href="/transportista-transporte.html" class="nav-mobile-link">Transportes</a>
+<a href="/transportista-cobros.html" class="nav-mobile-link">Facturacion</a>
+<a href="/transportista-calendario.html" class="nav-mobile-link">Calendario</a>
+<a href="/transportista-historial.html" class="nav-mobile-link">Historial</a>
+</div><main>
+  <!-- Header -->
+  <div class="page-hdr" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:14px">
+    <div>
+      <h1 id="bienvenida" style="font-size:20px;font-weight:700;color:#1e2d4e">Bienvenido</h1>
+      <p style="font-size:13px;color:#6B7280;margin-top:2px">Resumen de tu actividad</p>
+    </div>
+    <div class="hdr-btns" style="display:flex;gap:10px">
+      <a href="/transportista-licitaciones.html" class="btn" style="background:#1e2d4e;color:#fff;border:none;white-space:nowrap">Ver licitaciones</a>
+      <a href="/transportista-retornos.html?action=nuevo" class="btn btn-orange" style="white-space:nowrap">+ Publicar retorno</a>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="grid-3" style="margin-bottom:20px">
+    <div class="stat"><div class="stat-label">Licitaciónes disponibles</div><div id="kpi-disponibles" class="stat-val" style="color:#1e2d4e">—</div><div style="font-size:12px;color:#9CA3AF;margin-top:3px">Para cotizar ahora</div></div>
+    <div class="stat"><div class="stat-label">Transportes completados</div><div id="kpi-ganados" class="stat-val" style="color:#1E2D4E">—</div><div style="font-size:12px;color:#9CA3AF;margin-top:3px">Total histórico</div></div>
+    <div class="stat"><div class="stat-label">Mi valoración</div><div id="kpi-rating" class="stat-val">—</div><div style="font-size:12px;color:#9CA3AF;margin-top:3px">Promedio clientes</div></div>
+  </div>
+
+  <!-- Layout principal: izquierda + derecha -->
+  <div class="grid-2">
+
+    <!-- COLUMNA IZQUIERDA -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+
+      <!-- Licitaciónes disponibles -->
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-title">Licitaciones</span>
+          <a href="/transportista-licitaciones.html" style="font-size:13px;color:#1d4ed8;text-decoration:none">Ver todas</a>
+        </div>
+        <div id="lista-disponibles">
+          <div style="padding:24px;text-align:center"><div class="spinner" style="width:24px;height:24px;border-width:2px"></div></div>
+        </div>
+      </div>
+
+      <!-- Mis adjudicaciónes (se muestra solo si hay) -->
+      <div id="card-adjudicadas" style="display:none" class="card">
+        <div class="card-hdr">
+          <span class="card-title">Mis adjudicaciónes</span>
+          <a href="/transportista-transporte.html" style="font-size:13px;color:#1d4ed8;text-decoration:none">Ver transportes</a>
+        </div>
+        <div id="lista-adjudicadas"></div>
+      </div>
+
+      <!-- Mis retornos activos -->
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-title">Mis retornos activos</span>
+          <a href="/transportista-retornos.html" style="font-size:13px;color:#1d4ed8;text-decoration:none">Ver todos</a>
+        </div>
+        <div id="lista-retornos">
+          <div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- COLUMNA DERECHA -->
+    <div>
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-title">Mi valoración detallada</span>
+        </div>
+        <div style="padding:16px 18px" id="rating-content">
+          <div style="text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main></div><script>  function nav(el){ var href=el.getAttribute('data-href'); var lid=el.getAttribute('data-lid'); if(lid) href=href+'?id='+lid; window.location.href=href; }
+
+  const nombre  = localStorage.getItem('tm_nombre') || '';
+  const empresa = localStorage.getItem('tm_empresa') || '';
+  const email   = localStorage.getItem('tm_email') || '';
+  document.getElementById('nav-avatar').textContent = (nombre[0] || '?').toUpperCase();
+  var nn=document.getElementById('nav-nombre');if(nn)nn.textContent=nombre;
+  var ne=document.getElementById('nav-empresa');if(ne)ne.textContent=empresa;
+
+  function goTo(el){ window.location.href = el.getAttribute("data-href"); }
+  function peso(n){ return n ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '$0'; }
+  function desde(iso){ if(!iso) return ''; const d=Math.floor((Date.now()-new Date(iso))/86400000); return d===0?'hoy':d===1?'hace 1d':'hace '+d+'d'; }
+  function fecha(iso){ return iso ? new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}) : '--'; }
+  // ── Cuenta regresiva para cierre de licitaciones ──
+  function formatoRestante(ms){
+    if(ms<=0) return 'Cerrada';
+    var s=Math.floor(ms/1000);
+    var d=Math.floor(s/86400); s-=d*86400;
+    var h=Math.floor(s/3600); s-=h*3600;
+    var m=Math.floor(s/60); s-=m*60;
+    if(d>0) return 'Cierra en '+d+'d '+h+'h';
+    if(h>0) return 'Cierra en '+h+'h '+m+'m';
+    if(m>0) return 'Cierra en '+m+'m '+s+'s';
+    return 'Cierra en '+s+'s';
+  }
+  var _cdTimer=null;
+  function iniciarCuentaRegresiva(){
+    if(_cdTimer) clearInterval(_cdTimer);
+    function tick(){
+      var els=document.querySelectorAll('.cuenta-regresiva');
+      var ahora=Date.now();
+      els.forEach(function(el){
+        var cierre=new Date(el.getAttribute('data-cierre')).getTime();
+        var resta=cierre-ahora;
+        el.textContent=formatoRestante(resta);
+        // Colorear según urgencia
+        if(resta<=0){ el.style.color='#9CA3AF'; }
+        else if(resta < 3600000){ el.style.color='#EF4444'; }      // < 1h rojo
+        else if(resta < 6*3600000){ el.style.color='#F59E0B'; }    // < 6h ámbar
+        else { el.style.color='#9CA3AF'; }
+      });
+    }
+    tick();
+    _cdTimer=setInterval(tick,1000);
+  }
+  function tieneBorradorGuardado(licitId){
+    try{
+      var email = localStorage.getItem('tm_email') || 'anon';
+      var raw = localStorage.getItem('tm_cotiz_draft:'+email+':'+licitId);
+      if(!raw) return false;
+      var d = JSON.parse(raw);
+      if(d.ownerEmail && d.ownerEmail !== email) return false;
+      if(d.licitId && String(d.licitId)!==String(licitId)) return false;
+      var tieneItems = (d.items||[]).some(function(it){ return (it.eq&&it.eq.trim()) || (it.tarifa&&it.tarifa.trim()); });
+      var tieneDatos = (d.ruta&&d.ruta.trim()) || (d.desc&&d.desc.trim()) || d.fechaCarga || d.fechaEntreg;
+      return tieneItems || tieneDatos;
+    }catch(e){ return false; }
+  }
+
+  async function api(path, method, body){
+    const o = {method:method||'GET', headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}};
+    if(body) o.body = JSON.stringify(body);
+    try {
+      const r = await fetch('https://transmatch.transmatchcl.workers.dev'+path, o);
+      if(r.status===401){localStorage.clear();window.location.replace('/index.html');return null;}
+      return {ok:r.ok, data:await r.json()};
+    } catch(e){ return null; }
+  }
+
+  async function initApp(){
+    var miUserId = null;
+    var miEmail = (localStorage.getItem('tm_email')||'').toLowerCase();
+    var misCotizadas = new Set();   // ids de licitaciones donde ya cotizé
+    var misGanadas = new Set();     // ids adjudicadas a mí
+
+    // Disparar las cargas principales en paralelo (evita esperas encadenadas)
+    let _meResp = null;
+    const _pMe    = api('/api/auth/me');
+    const _pLicit = api('/api/licitaciones');
+    const _pHist  = api('/api/transportista/historial');
+
+    // ── 1. Datos del usuario ─────────────────────────────────
+    try {
+      const me = await _pMe; _meResp = me;
+      if(me && me.ok){
+        const u = me.data.user;
+        miUserId = u.id;
+        if(u.email) miEmail = (u.email||'').toLowerCase();
+        const rating = u.rating || 5.0;
+        const total  = u.totalTransportes || 0;
+        document.getElementById('kpi-rating').innerHTML   = rating + '<span style="font-size:16px;font-weight:600;color:#9CA3AF"> / 5</span>';
+        document.getElementById('kpi-ganados').textContent  = total;
+        // Nombre en bienvenida
+        const bienNombre = u.nombre || localStorage.getItem('tm_nombre') || '';
+        const bienEl = document.getElementById('bienvenida');
+        if(bienEl && bienNombre) bienEl.textContent = 'Bienvenido/a, ' + bienNombre;
+        // Valoracion detallada — diseño con estrellas
+        var estrellas = function(val){
+          var s = '';
+          for(var i=1;i<=5;i++){
+            var fill = Math.max(0, Math.min(1, val - (i-1))); // 0..1 para esta estrella
+            var pct = Math.round(fill*100);
+            s += '<span style="position:relative;display:inline-block;color:#e8eaf0">★' +
+                 '<span style="position:absolute;left:0;top:0;overflow:hidden;width:'+pct+'%;color:#FF8808">★</span>' +
+                 '</span>';
+          }
+          return s;
+        };
+        document.getElementById('rating-content').innerHTML =
+          '<div style="text-align:center;margin-bottom:20px">' +
+            '<div style="font-size:32px;font-weight:800;color:#1e2d4e;line-height:1">' + rating + '<span style="font-size:16px;font-weight:600;color:#9CA3AF"> / 5</span></div>' +
+            '<div style="font-size:30px;letter-spacing:2px;margin-top:8px">' + estrellas(rating) + '</div>' +
+          '</div>' +
+          [
+            ['Comunicación', rating, 'Claridad y fluidez en la comunicación durante el proceso de transporte.'],
+            ['Cumplimiento', rating, 'Respeto de los plazos y condiciones acordadas al cotizar.'],
+            ['Seriedad', rating, 'Profesionalismo, puntualidad y compromiso con el servicio.'],
+            ['Documentación', rating, 'Entrega oportuna y correcta de todos los documentos requeridos.'],
+          ].map(function(row){
+            return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">' +
+              '<div style="font-size:12px;color:#6B7280;min-width:130px;cursor:help;border-bottom:1px dashed #D1D5DB" title="' + (row[2]||'') + '">' + row[0] + '</div>' +
+              '<div style="flex:1;height:6px;background:#e8eaf0;border-radius:3px;overflow:hidden"><div style="width:' + (row[1]/5*100) + '%;height:100%;background:#FF8808;border-radius:3px"></div></div>' +
+              '<div style="font-size:12px;font-weight:600;color:#374151;min-width:28px;text-align:right">' + row[1].toFixed(1) + '</div>' +
+            '</div>';
+          }).join('');
+      }
+    } catch(e){}
+
+    // ── 2. Verificar equipos en Mis Operaciones (tiposEquipo) ──
+    const tiposEquipo = (_meResp && _meResp.ok) ? (_meResp.data.user.tiposEquipo || []) : [];
+    const elDisp  = document.getElementById('lista-disponibles');
+    const elKpi   = document.getElementById('kpi-disponibles');
+
+    // Nota: aunque el transportista no tenga equipos en "Mis Operaciones", igual puede recibir
+    // licitaciones por el mecanismo de fallback (backend). Por eso NO bloqueamos la tarjeta aquí;
+    // las licitaciones disponibles se renderizan más abajo y, si no hay equipos, se muestra un
+    // aviso suave (no bloqueante) sobre la lista.
+
+    // ── 3. Licitaciones disponibles + transportes activos ────
+    const r = await _pLicit;
+    const todas       = (r && r.ok) ? (r.data.licitaciones || []) : [];
+
+    // Detectar en qué licitaciones ya cotizé (por ID o email, lo que esté disponible)
+    todas.forEach(function(l){
+      var mia = (l.cotizaciones||[]).some(function(c){
+        return (miUserId && c.transportistaId===miUserId) ||
+               (miEmail && (c.transportistaEmail||'').toLowerCase()===miEmail);
+      });
+      if(mia) misCotizadas.add(l.id);
+    });
+    // Confirmar con el historial (fuente confiable, incluye cotizaciones ya cerradas)
+    try {
+      const hist = await _pHist;
+      if(hist && hist.ok){
+        (hist.data.licitaciones||[]).forEach(function(lh){
+          if(lh.miCotizacion) misCotizadas.add(lh.id);
+          if(lh.gane) misGanadas.add(lh.id);
+        });
+      }
+    } catch(e){}
+
+    const disponibles = todas.filter(function(l){ return l.estado==='abierta'; });
+    const adjudicadas = todas.filter(function(l){ return l.estado==='adjudicada' || l.estado==='completada'; });
+
+    elKpi.textContent = disponibles.length;
+
+    // Transportes activos — mostrar primero si los hay
+    if(adjudicadas.length > 0){
+      document.getElementById('card-adjudicadas').style.display = 'block';
+      document.getElementById('kpi-ganados').textContent = adjudicadas.filter(function(l){ return l.estado==='completada'; }).length;
+      document.getElementById('lista-adjudicadas').innerHTML = adjudicadas.map(function(l){
+        var enCurso = l.estado === 'adjudicada';
+        return '<div class="row" onclick="nav(this)" data-href="/transportista-transporte.html" style="cursor:pointer">' +
+          '<div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;background:' + (enCurso?'#FF8808':'#1ED24E') + '"></div>' +
+          '<div class="row-body">' +
+            '<div class="row-name">' + l.tipoEquipo + (l.marca?' — '+l.marca:'') + '</div>' +
+            '<div class="row-meta">' + l.origen + ' → ' + l.destino + (l.adjudicadaA?' · '+peso(l.adjudicadaA.precio):'') + '</div>' +
+          '</div>' +
+          '<span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:' +
+            (enCurso?'#FFF7ED;color:#92400E':'#F0FDF4;color:#14532D') + '">' +
+            (enCurso?'En curso':'Completado') +
+          '</span>' +
+        '</div>';
+      }).join('');
+    }
+
+    // Licitaciones disponibles — se muestran SIEMPRE (el backend ya aplica el fallback).
+    {
+      if(disponibles.length === 0){
+        elDisp.innerHTML = '<div style="padding:24px;text-align:center;color:#9CA3AF;font-size:13px">Sin licitaciones disponibles ahora</div>';
+      } else {
+        var hintEquipos = (tiposEquipo.length === 0)
+          ? '<div style="margin:14px 8px 14px;text-align:center"><span style="display:inline-block;font-size:11px;color:#92400E;background:#FFF7ED;border:1px solid #FDE8CC;border-radius:999px;padding:4px 12px">Selecciona los <a href="/transportista-perfil.html" style="color:#1e2d4e;font-weight:500;text-decoration:underline">equipos</a> que operas para recibir licitaciones de tu interés</span></div>'
+          : '';
+        elDisp.innerHTML = hintEquipos + disponibles.slice(0,5).map(function(l){
+          return '<div class="row" onclick="nav(this)" data-href="/transportista-licitaciones.html" data-lid="'+l.id+'" style="cursor:pointer" >' +
+            '<div style="font-size:10px;font-weight:700;font-family:IBM Plex Mono,monospace;background:#eef1f8;color:#1e2d4e;padding:3px 7px;border-radius:5px;flex-shrink:0;white-space:nowrap;align-self:center">'+(l.codigo||l.codigo||'LIC')+'</div>' +
+            '<div class="row-body">' +
+              '<div class="row-name">' +
+                l.tipoEquipo + (l.marca?' — '+l.marca:'') +
+              '</div>' +
+              '<div class="row-meta">' + l.origen + ' → ' + l.destino + ' · ' + desde(l.createdAt) + '</div>' +
+            '</div>' +
+            (function(){var badge='';if(misCotizadas.has(l.id)){badge='<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#F0FDF4;color:#14532D">Cotizacion enviada</span>';}else if(tieneBorradorGuardado(l.id)){badge='<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#eef1f8;color:#1e2d4e">Borrador guardado</span>';}else{badge='<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#FFF7ED;color:#92400E">Disponible</span>';}var cd=l.cierreAt?'<div class="cuenta-regresiva" data-cierre="'+l.cierreAt+'" style="font-size:10px;color:#9CA3AF;margin-top:3px;text-align:right"></div>':'';return '<span style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:2px">'+badge+cd+'</span>';})() +
+          '</div>';
+        }).join('');
+        iniciarCuentaRegresiva();
+      }
+    }
+
+    // ── 4. Retornos activos ─────────────────────────────────
+    try {
+      const retR = await api('/api/retornos');
+      const retornos = (retR && retR.ok) ? (retR.data.retornos || []).filter(function(r){ return r.estado==='disponible'; }) : [];
+      const elRet = document.getElementById('lista-retornos');
+      if(!elRet) return;
+      if(retornos.length === 0){
+        elRet.innerHTML = '<div style="padding:16px;text-align:center;color:#9CA3AF;font-size:13px">Sin retornos activos. <a href="/transportista-retornos.html" style="color:#1e2d4e;font-weight:500">Publicar uno →</a></div>';
+      } else {
+        elRet.innerHTML = retornos.slice(0,3).map(function(rt){
+          return '<div class="row" onclick="window.location.href=\'/transportista-retornos.html?id='+rt.id+'\'" style="cursor:pointer">' +
+            '<div class="row-body">' +
+              '<div class="row-name">' + rt.ciudadOrigen + ' → ' + rt.ciudadDestino + '</div>' +
+              '<div class="row-meta">' + (rt.equipo||'') + (rt.capacidad?' · '+rt.capacidad:'') + '</div>' +
+            '</div>' +
+            '<div style="font-size:13px;font-weight:600;color:#111827">' + (rt.precio?peso(rt.precio):'A convenir') + '</div>' +
+          '</div>';
+        }).join('');
+      }
+    } catch(e){}
+
+    // ── 5. Notificaciones ───────────────────────────────────
+    cargarNotificaciones();
+  }
+
+  // Notificaciones
+  async function cargarNotificaciones(){
+    try {
+      const r = await api('/api/notificaciones');
+      if(!r || !r.ok) return;
+      const notifs = r.data.notificaciones || [];
+      const noLeidas = notifs.filter(function(n){ return !n.leida; }).length;
+      const badge = document.getElementById('notif-count');
+      if(badge){ badge.textContent = noLeidas > 9 ? '9+' : noLeidas; badge.style.display = noLeidas > 0 ? 'flex' : 'none'; }
+      const list = document.getElementById('notif-list');
+      if(!list) return;
+      if(notifs.length === 0){
+        list.innerHTML = '<div style="padding:32px 20px;text-align:center"><div style="font-size:28px;margin-bottom:8px"></div><div style="font-size:14px;font-weight:500;color:#374151;margin-bottom:4px">Sin notificaciones</div><div style="font-size:12px;color:#9CA3AF">Te avisaremos cuando haya novedades</div></div>';
+        return;
+      }
+      // Iconos por tipo
+      var iconMap = {
+        adjudicacion: '#16a34a',
+        licitacion_aprobada: '#16a34a',
+        licitacion_rechazada: '#EF4444',
+        licitacion_cerrada: '#1d4ed8',
+        cotizaciones_disponibles: '#FF8808',
+        nueva_licitacion: '#1e2d4e',
+        cobro_pendiente: '#FF8808',
+        cobro_pagado: '#16a34a',
+        cuenta_aprobada: '#16a34a',
+      };
+      list.innerHTML = notifs.slice(0,20).map(function(n){
+        var icono = iconMap[n.tipo] || '#9CA3AF';
+        var bg = !n.leida ? 'background:#f0f4ff' : '';
+        return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;' + bg + ';display:flex;gap:10px;align-items:flex-start">' +
+          '<div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;background:' + icono + '"></div>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4">' + n.mensaje + '</div>' +
+            '<div style="font-size:11px;color:#9CA3AF">' + (typeof fecha === 'function' ? fecha(n.createdAt) : n.createdAt) + '</div>' +
+          '</div>' +
+          (!n.leida
+            ? '<button onclick="event.stopPropagation();marcarUnaLeida(\'' + n.id + '\')" title="Marcar como leída" style="background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0;margin-top:2px;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">✓</button>'
+            : '') +
+        '</div>';
+      }).join('');
+      // Cargar prefs guardadas
+      cargarPrefsConfig();
+    } catch(e){ console.error('notifs:', e); }
+  }
+
+  function toggleConfigNotif(){
+    var cfg      = document.getElementById('notif-config');
+    var list     = document.getElementById('notif-list');
+    var hMain    = document.getElementById('notif-header-main');
+    var hConfig  = document.getElementById('notif-header-config');
+    var isOpen   = cfg && cfg.style.display !== 'none';
+    if(isOpen){
+      if(cfg)     cfg.style.display     = 'none';
+      if(list)    list.style.display    = 'block';
+      if(hMain)   hMain.style.display   = 'flex';
+      if(hConfig) hConfig.style.display = 'none';
+    } else {
+      if(cfg)     cfg.style.display     = 'block';
+      if(list)    list.style.display    = 'none';
+      if(hMain)   hMain.style.display   = 'none';
+      if(hConfig) hConfig.style.display = 'flex';
+      cargarPrefsConfig();
+    }
+  }
+
+  function cargarPrefsConfig(){
+    try {
+      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      var emailChk = document.getElementById('notif-email-chk');
+      var waChk    = document.getElementById('notif-wa-chk');
+      if(emailChk) emailChk.checked = prefs.notifEmail !== false;
+      if(waChk)    waChk.checked    = !!prefs.notifWhatsapp;
+      if(waChk && waChk.checked){ var wi=document.getElementById('wa-input'); if(wi) wi.style.display='block'; }
+      var waNum = document.getElementById('wa-numero');
+      if(waNum && prefs.whatsapp) waNum.value = prefs.whatsapp;
+      var prefIds = ['nueva-licit','licit-cerrada','adjudicada','retornos'];
+      prefIds.forEach(function(id){
+        var el = document.getElementById('pref-' + id);
+        if(el) el.checked = prefs['pref_' + id] !== false;
+      });
+    } catch(e){}
+  }
+
+  async function guardarPrefs(){
+    try {
+      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      var ec = document.getElementById('notif-email-chk');
+      if(ec) prefs.notifEmail = ec.checked;
+      localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+      if(typeof api === 'function'){
+        try { await api('/api/auth/me/prefs','POST',{ notifPrefs:{ email: ec?ec.checked:true } }); } catch(e){}
+      }
+    } catch(e){}
+  }
+  async function guardarPrefsDetalle(){
+    try {
+      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      ['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
+        var el = document.getElementById('pref-' + id);
+        if(el) prefs['pref_' + id] = el.checked;
+      });
+      localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+    } catch(e){}
+  }
+
+  async function marcarUnaLeida(id){
+    try {
+      await api('/api/notificaciones/leer', 'POST', { id: id });
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+  async function marcarTodasLeidas(){
+    try {
+      const r = await api('/api/notificaciones');
+      if(!r || !r.ok) return;
+      const notifs = r.data.notificaciones || [];
+      const noLeidas = notifs.filter(function(n){ return !n.leida; });
+      for(var i=0; i<noLeidas.length; i++){
+        await api('/api/notificaciones/leer', 'POST', { id: noLeidas[i].id });
+      }
+      const badge = document.getElementById('notif-count');
+      if(badge) badge.style.display = 'none';
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+  function closeAllPanels(){
+    var m=document.getElementById('user-menu');
+    var p=document.getElementById('notif-panel');
+    if(m) m.style.display='none';
+    if(p) p.style.display='none';
+  }
+
+  function toggleNotifs(e){
+    if(e) e.stopPropagation();
+    var _mp=document.getElementById('nav-mobile-panel'); if(_mp) _mp.classList.remove('open');
+    var panel=document.getElementById('notif-panel');
+    if(!panel) return;
+    var isOpen=panel.style.display==='flex';
+    closeAllPanels();
+    if(!isOpen){panel.style.display='flex';cargarNotificaciones();}
+  }
+
+  // Init
+  (function(){
+    const token = localStorage.getItem('tm_token');
+    const role  = localStorage.getItem('tm_role');
+    if(!token || role !== 'transportista'){ window.location.replace('/index.html'); return; }
+    document.getElementById('auth-guard').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';document.getElementById('app').style.flexDirection='column';document.getElementById('app').style.minHeight='100vh';
+      cargarNotificaciones();
+    initApp();
+  })();
+
+  function toggleUserMenu(e){
+    e.stopPropagation();
+  var _mp=document.getElementById('nav-mobile-panel'); if(_mp) _mp.classList.remove('open');
+    var m=document.getElementById('user-menu');
+    var isOpen=m&&m.style.display==='block';
+    closeAllPanels();
+    if(!isOpen&&m) m.style.display='block';
+  }
+  document.addEventListener('click',function(e){
+  if(e.target.closest('#notif-panel') || e.target.closest('#notif-btn') ||
+     e.target.closest('#user-menu') || e.target.closest('#nav-avatar')) return;
+  closeAllPanels();
+});
+
+function toggleMobileNav(){
+  var p=document.getElementById('nav-mobile-panel');
+  if(!p) return;
+  var willOpen = !p.classList.contains('open');
+  // Cerrar otros menús (avatar y notificaciones) si existen
+  var um=document.getElementById('user-menu'); if(um) um.style.display='none';
+  var np=document.getElementById('notif-panel'); if(np) np.style.display='none';
+  if(typeof closeAllPanels==='function'){ try{closeAllPanels();}catch(e){} }
+  if(willOpen) p.classList.add('open'); else p.classList.remove('open');
+}
+function cerrarMenuMovil(){
+  var p=document.getElementById('nav-mobile-panel'); if(p) p.classList.remove('open');
+}
+document.addEventListener('click',function(e){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.nav-mobile-menu'))
+    p.classList.remove('open');
+});
+</script>
+
+<footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <!-- Logo -->
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <svg style="height:28px;width:auto;display:block" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg>
+      </div>
+      <div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div>
+    </div>
+    <!-- Links -->
+    <div style="display:flex;gap:32px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <a href="/terminos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Términos y condiciones</a>
+          <a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Política de privacidad</a>
+          <a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#CBD5E1'">Centro de ayuda</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span>
+          <span style="font-size:13px;color:#CBD5E1">+56 9 6908 1098</span><span style="font-size:13px;color:#CBD5E1">Av. La Dehesa 1201</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <span>© 2026 TransMatch SpA. 

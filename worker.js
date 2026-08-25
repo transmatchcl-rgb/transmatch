@@ -140,6 +140,25 @@ async function dalSaveUsuario(env, u, sb){
   await env.USERS.put(email, JSON.stringify(u));
   if(u.id) await env.USERS.put("id:"+u.id, email);
 }
+// Capa de datos — EMPRESAS.
+function _empresaRow(emp){
+  return { id:emp.id, tipo:emp.tipo||null, razon_social:emp.razonSocial||null, rut:emp.rut||null, giro:emp.giro||null, direccion:emp.direccion||null, comuna:emp.comuna||null, ciudad:emp.ciudadEmpresa||null, telefono:emp.telEmpresa||null, web:emp.web||null, descripcion:emp.descripcion||null, plan:emp.plan||null, estado:emp.estado||null, dueno_email:emp.duenoEmail||null, max_usuarios:(emp.maxUsuarios==null?null:emp.maxUsuarios), industrias:(emp.industrias==null?null:emp.industrias), vigencia:(emp.vigencia==null?null:emp.vigencia), facturacion:(emp.facturacion==null?null:emp.facturacion), contactos:(emp.contactos==null?null:emp.contactos), datos_bancarios:(emp.datosBancarios==null?null:emp.datosBancarios), datos:emp };
+}
+async function dalGetEmpresaById(env, eid, sb){
+  if(!eid) return null;
+  if(sb){ const rows=await sbSelect(env,"empresas","id=eq."+encodeURIComponent(eid)+"&select=datos&limit=1"); return rows[0]?rows[0].datos:null; }
+  const raw=await env.EMPRESAS.get("empresa:"+eid); return raw?JSON.parse(raw):null;
+}
+async function dalSaveEmpresa(env, emp, sb){
+  if(sb){ await sbUpsert(env,"empresas",[_empresaRow(emp)]); return; }
+  await env.EMPRESAS.put("empresa:"+emp.id, JSON.stringify(emp));
+}
+async function dalGetAllEmpresas(env, sb){
+  if(sb){ const rows=await sbSelect(env,"empresas","select=datos&limit=5000"); return rows.map(r=>r.datos).filter(Boolean); }
+  const out=[]; let cursor;
+  do{ const list=await env.EMPRESAS.list({cursor}); for(const k of list.keys){ if(!k.name.startsWith("empresa:")) continue; const raw=await env.EMPRESAS.get(k.name); if(raw){ try{ out.push(JSON.parse(raw)); }catch(e){} } } cursor=list.list_complete?undefined:list.cursor; }while(cursor);
+  return out;
+}
 
 async function getUser(request, env) {
   const auth  = request.headers.get("Authorization") || "";
@@ -179,10 +198,9 @@ function veTodaLaEmpresa(user){ return ["dueno","gestor","visor"].includes(user.
 // ── Entidad Empresa como fuente de verdad de los datos de compañía ──
 function empresaIdDe(user){ return user.empresaId || (user.esSubusuario ? (user.empresaMadreId||user.id) : user.id); }
 async function empresaDe(env, user){
-  if(!env || !env.EMPRESAS || !user) return null;
+  if(!env || !user) return null;
   const eid = empresaIdDe(user); if(!eid) return null;
-  const raw = await env.EMPRESAS.get("empresa:"+eid);
-  return raw ? JSON.parse(raw) : null;
+  return await dalGetEmpresaById(env, eid, usarSupabase(env, null));
 }
 // Superpone los datos de perfil de la empresa sobre el objeto de usuario que se devuelve al frontend.
 function overlayPerfilEmpresa(u, emp){
@@ -194,37 +212,36 @@ function overlayPerfilEmpresa(u, emp){
 }
 // Escribe en el registro de empresa los campos de perfil que vengan en el body (fuente de verdad).
 async function guardarPerfilEnEmpresa(env, user, body){
-  if(!env.EMPRESAS) return;
+  const _sb=usarSupabase(env, null);
   const eid = empresaIdDe(user); if(!eid) return;
-  const raw = await env.EMPRESAS.get("empresa:"+eid); if(!raw) return;
-  const emp = JSON.parse(raw); let changed=false;
+  const emp = await dalGetEmpresaById(env, eid, _sb); if(!emp) return;
+  let changed=false;
   if(body.empresa!==undefined){ emp.razonSocial=body.empresa; changed=true; }
   if(body.rutEmpresa!==undefined){ emp.rut=body.rutEmpresa; changed=true; }
   ["giro","direccion","comuna","ciudadEmpresa","telEmpresa","web","descripcion","industrias","facturacion","contactos","contactoOperaciones","contactoComercial","contactoFacturacion","datosBancarios"].forEach(function(k){ if(body[k]!==undefined){ emp[k]=body[k]; changed=true; } });
-  if(changed){ emp.updatedAt=new Date().toISOString(); await env.EMPRESAS.put("empresa:"+eid, JSON.stringify(emp)); }
+  if(changed){ emp.updatedAt=new Date().toISOString(); await dalSaveEmpresa(env, emp, _sb); }
 }
 // Sincroniza miembros, cupo e invitaciones de la empresa desde el registro de la cuenta madre.
 async function syncEmpresaMiembros(env, madre){
-  if(!env.EMPRESAS || !madre || !madre.id) return;
-  const eid = madre.id;
-  const raw = await env.EMPRESAS.get("empresa:"+eid); if(!raw) return;
-  const emp = JSON.parse(raw);
+  if(!madre || !madre.id) return;
+  const _sb=usarSupabase(env, null);
+  const emp = await dalGetEmpresaById(env, madre.id, _sb); if(!emp) return;
   emp.miembros = [madre.email, ...((madre.empresaMiembros)||[])];
   emp.maxUsuarios = madre.max_usuarios||0;
   emp.invitacionesPendientes = madre.invitacionesPendientes||[];
   if(madre.plan!==undefined) emp.plan = madre.plan;
   if(madre.estado!==undefined) emp.estado = madre.estado;
   emp.updatedAt = new Date().toISOString();
-  await env.EMPRESAS.put("empresa:"+eid, JSON.stringify(emp));
+  await dalSaveEmpresa(env, emp, _sb);
 }
 // Sincroniza las facturas de suscripción en el registro de empresa desde la cuenta madre.
 async function syncEmpresaFacturas(env, madre){
-  if(!env.EMPRESAS || !madre || !madre.id) return;
-  const raw = await env.EMPRESAS.get("empresa:"+madre.id); if(!raw) return;
-  const emp = JSON.parse(raw);
+  if(!madre || !madre.id) return;
+  const _sb=usarSupabase(env, null);
+  const emp = await dalGetEmpresaById(env, madre.id, _sb); if(!emp) return;
   emp.facturasSuscripcion = madre.facturasSuscripcion||[];
   emp.updatedAt = new Date().toISOString();
-  await env.EMPRESAS.put("empresa:"+madre.id, JSON.stringify(emp));
+  await dalSaveEmpresa(env, emp, _sb);
 }
 
 function deny(user, ...roles) {
@@ -1522,19 +1539,10 @@ async function handleRequest(request, env) {
   if (path === "/api/admin/vencimientos" && method === "GET") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     const out=[];
-    if(env.EMPRESAS){
-      let cursor;
-      do {
-        const list=await env.EMPRESAS.list({ cursor });
-        for(const k of list.keys){
-          if(!k.name.startsWith("empresa:")) continue;
-          const raw=await env.EMPRESAS.get(k.name); if(!raw) continue;
-          let e; try{ e=JSON.parse(raw); }catch(err){ continue; }
-          if(e.tipo!=="cliente") continue;
-          out.push({ empresaId:e.id, razonSocial:e.razonSocial||e.duenoEmail||"", duenoEmail:e.duenoEmail||"", plan:e.plan||null, estado:e.estado||"", vigencia:e.vigencia||null });
-        }
-        cursor=list.list_complete?undefined:list.cursor;
-      } while(cursor);
+    const _empresas = await dalGetAllEmpresas(env, usarSupabase(env, url));
+    for(const e of _empresas){
+      if(!e || e.tipo!=="cliente") continue;
+      out.push({ empresaId:e.id, razonSocial:e.razonSocial||e.duenoEmail||"", duenoEmail:e.duenoEmail||"", plan:e.plan||null, estado:e.estado||"", vigencia:e.vigencia||null });
     }
     out.sort((a,b)=> ((a.vigencia&&a.vigencia.fin)||"9999").localeCompare((b.vigencia&&b.vigencia.fin)||"9999"));
     return ok({ empresas: out });
@@ -1543,15 +1551,14 @@ async function handleRequest(request, env) {
   // POST /api/admin/empresa/:empresaId/vigencia — setear o renovar la vigencia de una empresa cliente
   if (path.match(/^\/api\/admin\/empresa\/[^/]+\/vigencia$/) && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
-    if(!env.EMPRESAS) return err("Falta el binding EMPRESAS");
     const eid=path.split("/")[4];
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
-    const raw=await env.EMPRESAS.get("empresa:"+eid); if(!raw) return err("Empresa no encontrada",404);
-    const e=JSON.parse(raw);
+    const _sbV=usarSupabase(env, url);
+    const e=await dalGetEmpresaById(env, eid, _sbV); if(!e) return err("Empresa no encontrada",404);
     const tipo=(body.tipo==="prueba")?"prueba":"contrato";
     const periodicidad=["mensual","trimestral","semestral","anual","personalizado"].includes(body.periodicidad)?body.periodicidad:"personalizado";
     e.vigencia={ tipo, inicio:body.inicio||new Date().toISOString().slice(0,10), fin:body.fin||"", periodicidad, notaGestion:String(body.notaGestion||"").slice(0,300), actualizadoAt:new Date().toISOString(), avisadoPre:null, avisadoVenc:null };
-    await env.EMPRESAS.put("empresa:"+eid, JSON.stringify(e));
+    await dalSaveEmpresa(env, e, _sbV);
     return ok({ ok:true, vigencia:e.vigencia });
   }
 
@@ -2658,18 +2665,12 @@ async function handleRequest(request, env) {
       const emp = await empresaDe(env, u) || {};
       const facts = (emp.facturasSuscripcion || u.facturasSuscripcion || []);
       for (const f of facts) out.push({ ...f, empresaEmail:u.email, empresaNombre:(emp.razonSocial||u.empresa||u.nombre||u.email) });
-    } else if (env.EMPRESAS) {
-      let cursor;
-      do {
-        const list = await env.EMPRESAS.list({ cursor });
-        for (const k of list.keys) {
-          if (!k.name.startsWith("empresa:")) continue;
-          const raw = await env.EMPRESAS.get(k.name); if(!raw) continue;
-          let emp; try{ emp=JSON.parse(raw); }catch(e){ continue; }
-          for (const f of (emp.facturasSuscripcion||[])) out.push({ ...f, empresaEmail:emp.duenoEmail||"", empresaNombre:emp.razonSocial||emp.duenoEmail||"" });
-        }
-        cursor = list.list_complete ? undefined : list.cursor;
-      } while (cursor);
+    } else {
+      const _empresas = await dalGetAllEmpresas(env, usarSupabase(env, url));
+      for (const emp of _empresas) {
+        if(!emp) continue;
+        for (const f of (emp.facturasSuscripcion||[])) out.push({ ...f, empresaEmail:emp.duenoEmail||"", empresaNombre:emp.razonSocial||emp.duenoEmail||"" });
+      }
     }
     out.sort((a,b)=> (b.fechaEmision||b.creadoAt||"").localeCompare(a.fechaEmision||a.creadoAt||""));
     return ok({ facturas: out });
@@ -3247,9 +3248,9 @@ async function handleRequest(request, env) {
       // Fuente de verdad: entidad Empresa sobre-escribe el perfil de compañía
       let empresaOut=u.empresa, facturacionOut=u.facturacion||null, contactosOut=u.contactos||[], industriasOut=u.industrias||[], datosBancariosOut=u.datosBancarios||null, contactoOperacionesOut=u.contactoOperaciones||null, contactoComercialOut=u.contactoComercial||null, contactoFacturacionOut=u.contactoFacturacion||null;
       const _eidU = u.empresaId || (u.esSubusuario ? u.empresaMadreId : u.id);
-      if(env.EMPRESAS && _eidU){
+      if(_eidU){
         let _empU = empresaCache[_eidU];
-        if(_empU===undefined){ const _r=await env.EMPRESAS.get("empresa:"+_eidU); _empU=_r?JSON.parse(_r):null; empresaCache[_eidU]=_empU; }
+        if(_empU===undefined){ _empU=await dalGetEmpresaById(env, _eidU, usarSupabase(env, url)); empresaCache[_eidU]=_empU; }
         if(_empU){
           if(_empU.razonSocial!==undefined) empresaOut=_empU.razonSocial;
           if(_empU.rut!==undefined) rutEmpresaOut=_empU.rut;
@@ -4212,24 +4213,18 @@ async function procesarVencimientosEmpresas(env){
     await env.SESSIONS.put("cron:vencemp:lastrun", hoyStr);
     const hoy=new Date(hoyStr+"T00:00:00Z").getTime();
     const porVencer=[]; const vencidas=[];
-    let cursor;
-    do {
-      const list=await env.EMPRESAS.list({ cursor });
-      for(const k of list.keys){
-        if(!k.name.startsWith("empresa:")) continue;
-        const raw=await env.EMPRESAS.get(k.name); if(!raw) continue;
-        let e; try{ e=JSON.parse(raw); }catch(err){ continue; }
-        if(e.tipo!=="cliente" || !e.vigencia || !e.vigencia.fin) continue;
-        const v=e.vigencia;
-        const fin=new Date(v.fin+"T00:00:00Z").getTime();
-        const dias=Math.round((fin-hoy)/86400000);
-        let changed=false;
-        if(dias<=15 && dias>=0 && v.avisadoPre!==v.fin){ porVencer.push({e,v,dias}); v.avisadoPre=v.fin; changed=true; }
-        if(dias<0 && v.avisadoVenc!==v.fin){ vencidas.push({e,v,dias}); v.avisadoVenc=v.fin; changed=true; }
-        if(changed) await env.EMPRESAS.put(k.name, JSON.stringify(e));
-      }
-      cursor=list.list_complete?undefined:list.cursor;
-    } while(cursor);
+    const _sbC=usarSupabase(env, null);
+    const _empresas=await dalGetAllEmpresas(env, _sbC);
+    for(const e of _empresas){
+      if(!e || e.tipo!=="cliente" || !e.vigencia || !e.vigencia.fin) continue;
+      const v=e.vigencia;
+      const fin=new Date(v.fin+"T00:00:00Z").getTime();
+      const dias=Math.round((fin-hoy)/86400000);
+      let changed=false;
+      if(dias<=15 && dias>=0 && v.avisadoPre!==v.fin){ porVencer.push({e,v,dias}); v.avisadoPre=v.fin; changed=true; }
+      if(dias<0 && v.avisadoVenc!==v.fin){ vencidas.push({e,v,dias}); v.avisadoVenc=v.fin; changed=true; }
+      if(changed) await dalSaveEmpresa(env, e, _sbC);
+    }
     if(porVencer.length+vencidas.length===0) return;
     let msg="";
     if(vencidas.length) msg+=vencidas.length+" empresa(s) con vigencia vencida. ";

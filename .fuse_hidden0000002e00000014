@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransMatch -- Nueva licitacion</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Barlow,sans-serif;background:#f5f7fb;display:flex;flex-direction:column;min-height:100vh}
+#auth-guard{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:9999}
+.spinner{width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#1e2d4e;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+#app{display:none}
+.nav{background:#1e2d4e;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+  .brand-logo{height:28px;width:auto;display:block}
+.nav-icon{background:#FF8808;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px}
+.nav-name{font-weight:700;color:#fff;font-size:15px}.nav-name span{color:#FF8808}
+.nav-links{display:flex;gap:2px}
+.nav-link{padding:6px 13px;border-radius:6px;font-size:13px;text-decoration:none;color:#93C5FD;white-space:nowrap}
+.nav-link:hover,.nav-link.active{color:#fff;background:rgba(255,255,255,.18)}
+.nav-avatar{width:30px;height:30px;border-radius:50%;background:#FF8808;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;cursor:pointer}
+.nav-user{font-size:13px;color:#fff;font-weight:500}
+.nav-sub{font-size:11px;color:#93C5FD}
+.um-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:#374151;text-decoration:none;background:none;border:none;cursor:pointer;width:100%;font-family:inherit;transition:background .15s}
+.um-item:hover{background:#f9fafb}
+.um-danger{color:#DC2626}.um-danger:hover{background:#FEF2F2}
+main{max-width:860px;margin:0 auto;padding:28px 32px;flex:1}
+.tipo-selector{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;width:680px;max-width:100%}
+@media(max-width:500px){.tipo-selector{grid-template-columns:1fr}}
+.tipo-card{background:#fff;border:1.5px solid #E5E7EB;border-radius:14px;padding:28px 20px;cursor:pointer;text-align:center;transition:all .2s;user-select:none}
+.tipo-card:hover{border-color:#1e2d4e;background:#f8f9fc;transform:translateY(-2px);box-shadow:0 4px 16px rgba(30,45,78,.10)}
+.tipo-card-icon{font-size:40px;margin-bottom:12px}
+.tipo-card-title{font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:6px}
+.tipo-card-desc{font-size:12px;color:#6B7280;line-height:1.5}
+.tipo-card-tags{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:10px}
+.tipo-tag{background:#f3f4f6;color:#6B7280;font-size:10px;font-weight:500;padding:2px 8px;border-radius:999px}
+.stepper{display:flex;align-items:center;margin-bottom:24px;width:680px;max-width:100%}
+.step{display:flex;align-items:center;gap:8px}
+.step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;transition:all .2s}
+.step-num.done{background:#1e2d4e;color:#fff}
+.step-num.active{background:#FF8808;color:#fff}
+.step-num.pending{background:#E5E7EB;color:#9CA3AF}
+.step-label{font-size:12px;font-weight:500;transition:color .2s}
+.step-label.active{color:#FF8808}
+.step-label.done{color:#1e2d4e}
+.step-label.pending{color:#9CA3AF}
+.step-line{flex:1;height:2px;background:#E5E7EB;margin:0 10px;border-radius:2px;transition:background .3s}
+.form-card{background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;padding:28px;margin-bottom:16px;display:none;box-shadow:0 1px 4px rgba(30,45,78,.06);width:680px;max-width:100%}
+.form-card.active{display:block}
+.card-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:600;color:#111827;margin-bottom:18px}
+.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media(max-width:600px){.grid-2{grid-template-columns:1fr}}
+.form-group{margin-bottom:16px}
+label{display:block;font-size:13px;font-weight:500;color:#374151;margin-bottom:5px}
+.required{color:#EF4444;margin-left:2px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;color:#111827;background:#fff;transition:border-color .15s;font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#1e2d4e}
+textarea{resize:vertical;min-height:90px}
+.hint{font-size:11px;color:#9CA3AF;margin-top:4px}
+.eq-lbl{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid #E5E7EB;border-radius:8px;cursor:pointer;font-size:14px;font-weight:400;transition:background .15s}
+.eq-lbl:hover{background:#f8f9fc}
+.upload-zone{width:100%;min-height:80px;padding:14px 12px;border:1px solid #E5E7EB;border-radius:8px;background:#fff;cursor:pointer;transition:all .15s;text-align:center}
+.upload-zone:hover,.upload-zone.drag-over{border-color:#1e2d4e;background:#f8faff}
+.upload-title{font-size:14px;color:#6B7280}
+.upload-sub{font-size:12px;color:#9CA3AF;margin-top:2px}
+.file-preview{display:none;align-items:center;gap:10px;padding:10px 12px;background:#f8faff;border:1px solid #BFDBFE;border-radius:8px;margin-top:8px}
+.file-preview.show{display:flex}
+.file-name{font-size:13px;font-weight:500;color:#1e2d4e}
+.file-size{font-size:11px;color:#9CA3AF;margin-top:2px}
+.file-remove{margin-left:auto;background:none;border:none;font-size:16px;color:#9CA3AF;cursor:pointer;padding:0 4px}
+.plazo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.plazo-btn{padding:10px;border-radius:8px;border:1.5px solid #E5E7EB;cursor:pointer;text-align:center;transition:all .15s;background:#fff}
+.plazo-btn.selected{border-color:#1e2d4e;background:#eef1f8}
+.plazo-val{font-size:16px;font-weight:700;color:#111827}
+.plazo-label{font-size:10px;color:#9CA3AF;margin-top:2px}
+.info-box{background:#EFF6FF;border-radius:8px;padding:12px 14px;font-size:13px;color:#1e40af;margin-bottom:16px}
+.btn-row{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:8px}
+.btn{padding:10px 20px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.btn:hover{opacity:.88}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:#1e2d4e;color:#fff}
+.btn-orange{background:#FF8808;color:#fff}
+.btn-outline{background:transparent;border:0.5px solid #E5E7EB;color:#374151}
+.resumen-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:0.5px solid #F3F4F6;font-size:14px}
+.resumen-row:last-child{border-bottom:none}
+.resumen-key{color:#6B7280;min-width:140px}
+.resumen-val{color:#111827;font-weight:500;text-align:right;flex:1}
+.success-screen{text-align:center;padding:40px 20px;display:none}
+.success-title{font-size:22px;font-weight:600;color:#111827;margin-bottom:8px}
+.success-sub{font-size:14px;color:#6B7280;margin-bottom:28px}
+#toast{position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none}
+
+  .nav-mobile-menu{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:6px;border-radius:6px;background:none;border:none;flex-shrink:0}
+  .nav-mobile-menu span{display:block;width:20px;height:2px;background:#fff;border-radius:2px}
+  .nav-mobile-panel{display:none;position:fixed;top:52px;left:0;right:0;background:#1e2d4e;z-index:999;padding:8px 16px 16px;border-bottom:0.5px solid rgba(255,255,255,.1)}
+  .nav-mobile-panel.open{display:block}
+  .nav-mobile-link{display:block;padding:10px 12px;color:#93C5FD;text-decoration:none;font-size:14px;border-radius:8px;margin-bottom:2px}
+  .nav-mobile-link:hover{background:rgba(255,255,255,.1);color:#fff}
+  @media(max-width:860px){
+    .nav-links,.nav-tabs{display:none!important}
+    .nav-mobile-menu{display:flex!important}.nav-mobile-menu{order:-1}.nav-logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}.nav-logo .brand-logo,.nav-logo>.brand-logo{height:22px}
+    .nav-user-name,.nav-userinfo,.nav-user,.nav-sub{display:none!important}
+    .nav-icon,.nav-name{display:none!important}
+  }
+  /* TM-MOBILE-FIX */
+  @media(max-width:600px){
+    [style*="grid-template-columns:1fr 1fr"],
+    [style*="grid-template-columns:repeat(2,1fr)"],
+    [style*="grid-template-columns:repeat(2, 1fr)"],
+    [style*="grid-template-columns:repeat(3,1fr)"],
+    [style*="grid-template-columns:repeat(3, 1fr)"]{grid-template-columns:1fr!important}
+    body{overflow-x:hidden}.page-hdr-wrap{flex-direction:column;align-items:stretch!important}.page-hdr-wrap>div:last-child{width:100%;justify-content:flex-end}
+  }
+</style>
+<script>
+var API='https://transmatch.transmatchcl.workers.dev';
+var editId=new URLSearchParams(window.location.search).get('editar');
+var duplicarId=new URLSearchParams(window.location.search).get('duplicar');
+(async function(){
+var token=localStorage.getItem('tm_token');
+var role=localStorage.getItem('tm_role');
+if(!token){window.location.replace('/index.html');return}
+if(role==='admin'){window.location.replace('/admin.html');return}
+if(role==='transportista'){window.location.replace('/transportista.html');return}
+try{
+var res=await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+token}});
+if(res.status===401){localStorage.clear();window.location.replace('/index.html');return}
+if(res.ok){var d=await res.json();if(d.user.role!=='cliente'){window.location.replace('/index.html');return}localStorage.setItem('tm_plan',d.user.plan||'')}
+}catch(e){}
+document.getElementById('auth-guard').style.display='none';
+var a=document.getElementById('app');a.style.display='flex';a.style.flexDirection='column';a.style.minHeight='100vh';
+var n=localStorage.getItem('tm_nombre')||'';
+var emp=localStorage.getItem('tm_empresa')||'';
+var av=document.getElementById('nav-avatar');if(av&&n)av.textContent=n[0].toUpperCase();
+var nn=document.getElementById('nav-nombre');if(nn)nn.textContent=n;
+var ne=document.getElementById('nav-empresa');if(ne)ne.textContent=emp;
+var umn=document.getElementById('um-nombre');if(umn)umn.textContent=n;
+var ume=document.getElementById('um-empresa');if(ume)ume.textContent=emp;
+var p=localStorage.getItem('tm_plan')||'basico';
+if(p==='basico'){var nr=document.getElementById('nav-retornos');if(nr)nr.style.display='none';}
+setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
+})();
+</script>
+</head>
+<body>
+<div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:20px"><svg style="height:32px;width:auto;display:block" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg></div><div class="spinner"></div></div></div>
+
+<div id="app">
+<nav class="nav">
+<div style="display:flex;align-items:center;gap:16px">
+<a href="/cliente.html" class="nav-logo"><svg class="brand-logo" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg></a>
+<button class="nav-mobile-menu" onclick="toggleMobileNav()" aria-label="Menu"><span></span><span></span><span></span></button><div class="nav-links">
+<a href="/cliente.html" class="nav-link">Inicio</a>
+<a href="/cliente-licitaciones.html" class="nav-link active">Licitaciones</a>
+<a href="/cliente-retornos.html" id="nav-retornos" class="nav-link">Retornos</a>
+<a href="/cliente-transporte.html" class="nav-link">Transportes</a>
+<a href="/cliente-facturacion.html" class="nav-link">Facturacion</a>
+<a href="/cliente-calendario.html" class="nav-link">Calendario</a>
+<a href="/cliente-historial.html" class="nav-link">Historial</a>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:12px">
+<div class="nav-userinfo" style="text-align:right"><div class="nav-user" id="nav-nombre">--</div><div class="nav-sub" id="nav-empresa">--</div></div>
+<div style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center" id="notif-btn" onclick="toggleNotifs(event)">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+  <span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center"></span>
+</div>
+<div style="position:relative"><div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div><div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:220px;z-index:999;overflow:hidden"><div style="padding:14px 16px;border-bottom:1px solid #f3f4f6"><div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div><div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div></div><a href="/cliente-perfil.html" class="um-item">Configuracion</a><a href="/ayuda.html" class="um-item">Ayuda</a><a href="/landing-servicios.html" class="um-item">Planes y precios</a><div style="border-top:1px solid #f3f4f6"><button onclick="cerrarSesion()" class="um-item um-danger">Cerrar sesion</button></div></div></div>
+</div>
+<div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:360px;background:#fff;border-radius:14px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.14);z-index:500;overflow:hidden;max-height:520px;flex-direction:column">
+  <!-- Header dinámico: cambia entre "Notificaciones" y "← Configuración" -->
+  <div id="notif-header-main" style="padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <span style="font-size:14px;font-weight:700;color:#1e2d4e">Notificaciones</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button onclick="marcarTodasLeidas()" style="font-size:11px;color:#6B7280;background:none;border:none;cursor:pointer;padding:3px 6px;border-radius:5px" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">Marcar leídas</button>
+      <button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;color:#6B7280" title="Configurar notificaciones" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="notif-header-config" style="display:none;padding:14px 16px;border-bottom:0.5px solid #E5E7EB;display:none;align-items:center;gap:10px;flex-shrink:0">
+    <button onclick="toggleConfigNotif()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;color:#1e2d4e;font-size:13px;font-weight:500;padding:4px 8px;border-radius:6px" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Volver
+    </button>
+    <span style="font-size:14px;font-weight:700;color:#1e2d4e">Configuración</span>
+  </div>
+  <div id="notif-config" style="display:none;border-bottom:0.5px solid #E5E7EB;background:#f8f9fc;flex-shrink:0">
+    <div style="padding:14px 16px">
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Canal de notificaciones</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:13px;color:#374151">Por email</span><input type="checkbox" id="notif-email-chk" onchange="guardarPrefs()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+        
+        
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Sobre licitaciones</div>
+      <div style="display:flex;flex-direction:column;gap:0">
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Nueva licitación disponible</span><input type="checkbox" id="pref-nueva-licit" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Licitación cerrada sin adjudicación</span><input type="checkbox" id="pref-licit-cerrada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+        <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid #E5E7EB;cursor:pointer"><span style="font-size:13px;color:#374151">Licitación adjudicada a mí</span><input type="checkbox" id="pref-adjudicada" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#374151;margin:10px 0;text-transform:uppercase;letter-spacing:.06em">Sobre retornos</div>
+      <label style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;cursor:pointer"><span style="font-size:13px;color:#374151">Solicitudes en retornos publicados</span><input type="checkbox" id="pref-retornos" onchange="guardarPrefsDetalle()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+    </div>
+  </div>
+  <div id="notif-list" style="overflow-y:auto;flex:1"><div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Cargando...</div></div>
+</div>
+</nav>
+<div id="nav-mobile-panel" class="nav-mobile-panel">
+<a href="/cliente.html" class="nav-mobile-link">Inicio</a>
+<a href="/cliente-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
+<a href="/cliente-retornos.html" class="nav-mobile-link">Retornos</a>
+<a href="/cliente-transporte.html" class="nav-mobile-link">Transportes</a>
+<a href="/cliente-facturacion.html" class="nav-mobile-link">Facturacion</a>
+<a href="/cliente-calendario.html" class="nav-mobile-link">Calendario</a>
+<a href="/cliente-historial.html" class="nav-mobile-link">Historial</a>
+</div>
+
+
+<main>
+<div class="page-hdr-wrap" style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px">
+  <div>
+    <div style="font-size:22px;font-weight:700;color:#1e2d4e;margin-bottom:4px" id="page-title">Nueva licitacion</div>
+    <div style="font-size:14px;color:#6B7280" id="page-sub">Completa los datos de tu solicitud de transporte</div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <div style="position:relative" id="tipo-selector-wrap">
+      <div id="tipo-elegido" style="display:none;font-size:13px;color:#6B7280;padding:6px 12px;background:#f3f4f6;border-radius:7px;cursor:pointer" onclick="volverPaso0()">
+        <span id="tipo-elegido-label"></span> <span style="color:#1e2d4e;font-weight:600">· Cambiar</span>
+      </div>
+    </div>
+    <a href="/cliente-licitaciones.html" class="btn btn-outline" style="font-size:13px">Cancelar</a>
+  </div>
+</div>
+
+<div id="paso0">
+  <div style="background:#fff;border-radius:12px;border:0.5px solid #e8eaf0;padding:20px 24px;margin-bottom:20px;width:680px;max-width:100%">
+    <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:14px">¿Qué necesitas transportar?</div>
+    <div style="display:flex;gap:10px">
+      <button onclick="seleccionarTipo('maquinaria')" style="flex:1;padding:12px 16px;border-radius:9px;border:1.5px solid #e8eaf0;background:#fff;cursor:pointer;text-align:left;transition:all .15s;font-family:inherit" onmouseover="this.style.borderColor='#1e2d4e';this.style.background='#f8f9fc'" onmouseout="this.style.borderColor='#e8eaf0';this.style.background='#fff'">
+        <div style="font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:3px">Maquinaria pesada</div>
+        <div style="font-size:11px;color:#9CA3AF">Excavadoras, grúas, jumbos y equipos sobredimensionados</div>
+      </button>
+      <button onclick="seleccionarTipo('carga')" style="flex:1;padding:12px 16px;border-radius:9px;border:1.5px solid #e8eaf0;background:#fff;cursor:pointer;text-align:left;transition:all .15s;font-family:inherit" onmouseover="this.style.borderColor='#1e2d4e';this.style.background='#f8f9fc'" onmouseout="this.style.borderColor='#e8eaf0';this.style.background='#fff'">
+        <div style="font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:3px">Carga general</div>
+        <div style="font-size:11px;color:#9CA3AF">Maxi sacos, tambores, tubería y materiales de construcción</div>
+      </button>
+      <button onclick="seleccionarTipo('contenedor')" style="flex:1;padding:12px 16px;border-radius:9px;border:1.5px solid #e8eaf0;background:#fff;cursor:pointer;text-align:left;transition:all .15s;font-family:inherit" onmouseover="this.style.borderColor='#1e2d4e';this.style.background='#f8f9fc'" onmouseout="this.style.borderColor='#e8eaf0';this.style.background='#fff'">
+        <div style="font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:3px">Contenedores</div>
+        <div style="font-size:11px;color:#9CA3AF">20', 40', reefer, sobredimensionado y otros</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="stepper" id="stepper" style="display:none">
+<div class="step"><div class="step-num active" id="sn1">1</div><div class="step-label active" id="sl1">Detalle</div></div>
+<div class="step-line"></div>
+<div class="step"><div class="step-num pending" id="sn2">2</div><div class="step-label pending" id="sl2">Ruta y fechas</div></div>
+<div class="step-line"></div>
+<div class="step"><div class="step-num pending" id="sn3">3</div><div class="step-label pending" id="sl3">Configuracion</div></div>
+<div class="step-line"></div>
+<div class="step"><div class="step-num pending" id="sn4">4</div><div class="step-label pending" id="sl4">Confirmar</div></div>
+</div>
+
+<div class="form-card" id="paso1-maquinaria">
+<div class="form-group">
+<label style="font-size:15px;font-weight:700;color:#1e2d4e;margin-bottom:8px">Equipo requerido <span class="required">*</span></label>
+<div id="equipo-requerido-list" style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+<div id="eq-req-fijos-cont"></div>
+<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="Otro" onchange="handleEqReq(this);toggleOtroReq()" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Otro (especificar)</label>
+<div id="otro-req-wrap" style="display:none">
+<input type="text" id="otro-req-text" placeholder="Especifica el equipo" maxlength="80" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box" oninput="var e=document.getElementById('err-otro-req');if(e)e.style.display='none'"/>
+<div id="err-otro-req" style="display:none;font-size:12px;color:#DC2626;margin-top:4px">Especifica el equipo.</div>
+</div>
+</div>
+<div class="hint">Puedes seleccionar hasta 2 opciones</div>
+</div>
+<div class="form-group">
+<label style="font-size:15px;font-weight:700;color:#1e2d4e;margin-bottom:8px">Tipo de maquinaria <span class="required">*</span></label>
+<input type="text" id="tipoEquipo" placeholder="Ej: Excavadora, Cargador frontal, Motoniveladora..." autocomplete="off"/>
+</div>
+<div class="form-group"><label>Peso aprox. <span class="required">*</span></label><div style="display:flex;gap:8px"><input type="number" id="pesoMaq" placeholder="Ej: 92" min="0" step="0.1" autocomplete="off" style="flex:1"/><select id="pesoMaqUnidad" style="width:120px;flex-shrink:0"><option value="ton">toneladas</option><option value="kg">kilos</option></select></div></div>
+<div class="grid-2">
+<div class="form-group"><label>Marca <span class="required">*</span></label><input type="text" id="marca" placeholder="Ej: Caterpillar" autocomplete="off"/></div>
+<div class="form-group"><label>Modelo <span class="required">*</span></label><input type="text" id="modeloMaq" placeholder="Ej: 390F" autocomplete="off"/></div>
+</div>
+<div class="form-group"><label>Dimensiones (largo x ancho x alto en metros) <span class="required">*</span></label><input type="text" id="dimensionesMaq" placeholder="Ej: 14.5 x 4.2 x 4.8 m" autocomplete="off"/></div>
+<div class="form-group">
+<label>Descripcion y condiciones especiales</label>
+<textarea id="descripcionMaq" placeholder="Ej: Requiere escolta, permiso sobredimensionado..."></textarea>
+<div class="hint">Mientras mas detalle, mejores cotizaciones recibiras</div>
+</div>
+<div class="form-group">
+<label>Archivo de especificaciones <span class="required">*</span></label>
+<div class="upload-zone" id="upload-zone-maq" onclick="document.getElementById('archivo-input-maq').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event,'maq')">
+<div class="upload-title">Arrastra tu archivo o haz clic para seleccionar</div>
+<div class="upload-sub">Excel, PDF, Word o imagen &middot; Maximo 8 MB</div>
+</div>
+<input type="file" id="archivo-input-maq" accept=".xlsx,.xls,.pdf,.docx,.doc,.jpg,.jpeg,.png" style="display:none" onchange="handleFile(event,'maq')"/>
+<div class="file-preview" id="file-preview-maq">
+<div id="file-icon-maq" style="font-size:20px">&#128196;</div>
+<div><div class="file-name" id="file-name-maq"></div><div class="file-size" id="file-size-maq"></div></div>
+<button class="file-remove" onclick="removeFile(event,'maq')">&#10005;</button>
+</div>
+</div>
+<div class="btn-row">
+<button class="btn btn-outline" onclick="volverPaso0()">Cambiar tipo</button>
+<button class="btn btn-primary" onclick="irPaso(2)">Siguiente</button>
+</div>
+</div>
+
+<div class="form-card" id="paso1-carga">
+<div class="form-group">
+<label style="font-size:15px;font-weight:700;color:#1e2d4e;margin-bottom:8px">Equipo requerido <span class="required">*</span></label>
+<div id="equipo-requerido-carga-list" style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+<div id="eq-carga-fijos-cont"></div>
+<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="Otro" onchange="handleEqCarga(this);toggleOtroCarga()" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> Otro (especificar)</label>
+<div id="otro-carga-wrap" style="display:none">
+<input type="text" id="otro-carga-text" placeholder="Especifica el equipo" maxlength="80" style="width:100%;padding:8px 10px;border:1px solid #E5E7EB;border-radius:6px;font-size:13px;box-sizing:border-box" oninput="var e=document.getElementById('err-otro-carga');if(e)e.style.display='none'"/>
+<div id="err-otro-carga" style="display:none;font-size:12px;color:#DC2626;margin-top:4px">Especifica el equipo.</div>
+</div>
+</div>
+<div class="hint">Puedes seleccionar hasta 2 opciones</div>
+<input type="hidden" id="tipoEquipoCarga" value=""/>
+</div>
+<label style="font-size:15px;font-weight:700;color:#1e2d4e;margin:24px 0 12px;display:block">Detalle de la carga</label>
+<div class="form-group"><label>Tipo de carga</label><input type="text" id="tipoCarga" placeholder="Ej: Maxi sacos de cemento, tambores de lubricante..." autocomplete="off"/></div>
+<div class="grid-2">
+<div class="form-group"><label>Peso total aprox.</label><div style="display:flex;gap:8px"><input type="number" id="pesoCarga" placeholder="Ej: 18" min="0" step="0.1" autocomplete="off" style="flex:1"/><select id="pesoCargaUnidad" style="width:120px;flex-shrink:0"><option value="ton">toneladas</option><option value="kg">kilos</option></select></div></div>
+<div class="form-group"><label>Volumen aprox. (m&sup3;)</label><input type="number" id="volumenCarga" placeholder="Ej: 12" min="0" step="0.1" autocomplete="off"/></div>
+</div>
+<div class="grid-2">
+<div class="form-group"><label>N&deg; de bultos</label><input type="number" id="cantidadBultos" placeholder="Ej: 40" min="0" autocomplete="off"/></div>
+<div class="form-group"><label>Peso por bulto (kg)</label><input type="number" id="pesoPorBulto" placeholder="Ej: 500" min="0" autocomplete="off"/></div>
+</div>
+<div class="form-group"><label>Dimensiones por bulto (cm)</label><input type="text" id="dimensionesCarga" placeholder="Ej: 90 x 90 x 120 cm" autocomplete="off"/></div>
+<div class="form-group">
+<label>Descripcion y condiciones especiales</label>
+<textarea id="descripcionCarga" placeholder="Ej: Carga paletizada, requiere grua horquilla en destino..."></textarea>
+</div>
+<div class="form-group">
+<label>Archivo de especificaciones <span class="required">*</span></label>
+<div class="upload-zone" id="upload-zone-carga" onclick="document.getElementById('archivo-input-carga').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event,'carga')">
+<div class="upload-title">Arrastra tu archivo o haz clic para seleccionar</div>
+<div class="upload-sub">Excel, PDF, Word o imagen &middot; Maximo 8 MB</div>
+</div>
+<input type="file" id="archivo-input-carga" accept=".xlsx,.xls,.pdf,.docx,.doc,.jpg,.jpeg,.png" style="display:none" onchange="handleFile(event,'carga')"/>
+<div class="file-preview" id="file-preview-carga">
+<div style="font-size:20px">&#128196;</div>
+<div><div class="file-name" id="file-name-carga"></div><div class="file-size" id="file-size-carga"></div></div>
+<button class="file-remove" onclick="removeFile(event,'carga')">&#10005;</button>
+</div>
+</div>
+<div class="btn-row">
+<button class="btn btn-outline" onclick="volverPaso0()">Cambiar tipo</button>
+<button class="btn btn-primary" onclick="irPaso(2)">Siguiente</button>
+</div>
+</div>
+
+<div class="form-card" id="paso1-contenedor">
+<label style="font-size:15px;font-weight:700;color:#1e2d4e;margin-bottom:8px;display:block">Detalle del contenedor</label>
+<div class="grid-2">
+<div class="form-group"><label>Tipo de contenedor <span class="required">*</span></label>
+<select id="tipoContenedor" onchange="toggleOtroContenedor()">
+<option value="">Selecciona...</option>
+<option value="20' Standard">20' Standard</option>
+<option value="40' Standard">40' Standard</option>
+<option value="40' High Cube">40' High Cube</option>
+<option value="20' Reefer">20' Reefer</option>
+<option value="40' Reefer">40' Reefer</option>
+<option value="20' Open Top">20' Open Top</option>
+<option value="40' Open Top">40' Open Top</option>
+<option value="20' Flat Rack">20' Flat Rack</option>
+<option value="40' Flat Rack">40' Flat Rack</option>
+<option value="Tanque ISO">Tanque ISO</option>
+<option value="Otro">Otro</option>
+</select>
+<div id="tipoContenedor-otro-wrap" style="display:none;margin-top:8px">
+<input type="text" id="tipoContenedor-otro-text" placeholder="Especifica el tipo de contenedor" maxlength="60" autocomplete="off"/>
+</div>
+</div>
+<div class="form-group"><label>Condición <span class="required">*</span></label>
+<select id="condicionContenedor">
+<option value="">Selecciona...</option>
+<option value="Lleno (FCL)">Lleno (FCL)</option>
+<option value="Vacío">Vacío</option>
+</select>
+</div>
+</div>
+<div class="grid-2">
+<div class="form-group"><label>Peso bruto verificado - VGM (kg) <span class="required">*</span></label><input type="number" id="pesoVGM" placeholder="Ej: 24000" min="0" autocomplete="off"/></div>
+<div class="form-group"><label>N&deg; de sello / precinto</label><input type="text" id="selloContenedor" placeholder="Ej: SL204981" maxlength="30" autocomplete="off"/></div>
+</div>
+<div class="form-group"><label>N&deg; de contenedor</label><input type="text" id="numeroContenedor" placeholder="Ej: MSCU1234567" maxlength="20" autocomplete="off"/></div>
+
+<div class="form-group" style="margin-top:8px">
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;color:#1e2d4e">
+<input type="checkbox" id="mercanciaPeligrosa" onchange="toggleMercanciaPeligrosa()" style="width:17px;height:17px;cursor:pointer;accent-color:#1e2d4e"/> Contiene mercancía peligrosa (IMO)
+</label>
+<div id="peligrosa-detalle" style="display:none;margin-top:10px" class="grid-2">
+<div class="form-group"><label>Clase IMO</label>
+<select id="claseIMO">
+<option value="">Selecciona...</option>
+<option value="1">Clase 1 - Explosivos</option>
+<option value="2">Clase 2 - Gases</option>
+<option value="3">Clase 3 - Líquidos inflamables</option>
+<option value="4">Clase 4 - Sólidos inflamables</option>
+<option value="5">Clase 5 - Comburentes / peróxidos</option>
+<option value="6">Clase 6 - Tóxicos / infecciosos</option>
+<option value="7">Clase 7 - Radiactivos</option>
+<option value="8">Clase 8 - Corrosivos</option>
+<option value="9">Clase 9 - Varios</option>
+</select>
+</div>
+<div class="form-group"><label>N&deg; UN</label><input type="text" id="numeroUN" placeholder="Ej: UN1203" maxlength="10" autocomplete="off"/></div>
+</div>
+</div>
+
+<div class="form-group">
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;color:#1e2d4e">
+<input type="checkbox" id="refrigerado" onchange="toggleRefrigerado()" style="width:17px;height:17px;cursor:pointer;accent-color:#1e2d4e"/> Requiere refrigeración (reefer)
+</label>
+<div id="reefer-detalle" style="display:none;margin-top:10px">
+<div class="form-group"><label>Temperatura requerida (&deg;C)</label><input type="number" id="temperaturaReefer" placeholder="Ej: -18" autocomplete="off"/></div>
+</div>
+</div>
+
+<div class="form-group">
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;color:#1e2d4e">
+<input type="checkbox" id="contSobredimensionado" onchange="toggleContSobredimensionado()" style="width:17px;height:17px;cursor:pointer;accent-color:#1e2d4e"/> Carga sobredimensionada (excede el contenedor)
+</label>
+<div id="sobredim-detalle" style="display:none;margin-top:10px">
+<div class="form-group"><label>Detalle (cuánto excede, en qué dimensión)</label><input type="text" id="contSobredimensionadoDetalle" placeholder="Ej: Sobresale 80cm en altura" maxlength="150" autocomplete="off"/></div>
+<div class="hint">Puede requerir permiso especial de ruta, igual que la carga sobredimensionada estándar.</div>
+</div>
+</div>
+
+<div class="form-group">
+<label>Descripcion y condiciones especiales</label>
+<textarea id="descripcionContenedor" placeholder="Ej: Retiro en depósito, entrega en bodega cliente..."></textarea>
+</div>
+<div class="form-group">
+<label>Archivo de especificaciones (opcional)</label>
+<div class="upload-zone" id="upload-zone-contenedor" onclick="document.getElementById('archivo-input-contenedor').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event,'contenedor')">
+<div class="upload-title">Arrastra tu archivo o haz clic para seleccionar</div>
+<div class="upload-sub">Excel, PDF, Word o imagen &middot; Maximo 8 MB</div>
+</div>
+<input type="file" id="archivo-input-contenedor" accept=".xlsx,.xls,.pdf,.docx,.doc,.jpg,.jpeg,.png" style="display:none" onchange="handleFile(event,'contenedor')"/>
+<div class="file-preview" id="file-preview-contenedor">
+<div style="font-size:20px">&#128196;</div>
+<div><div class="file-name" id="file-name-contenedor"></div><div class="file-size" id="file-size-contenedor"></div></div>
+<button class="file-remove" onclick="removeFile(event,'contenedor')">&#10005;</button>
+</div>
+</div>
+<div class="btn-row">
+<button class="btn btn-outline" onclick="volverPaso0()">Cambiar tipo</button>
+<button class="btn btn-primary" onclick="irPaso(2)">Siguiente</button>
+</div>
+</div>
+
+<div class="form-card" id="paso2">
+<div class="card-title">Ruta y fechas</div>
+<div class="grid-2">
+<div class="form-group"><label>Ciudad de origen <span class="required">*</span></label><input type="text" id="origen" placeholder="Ej: Rancagua" autocomplete="off"/></div>
+<div class="form-group"><label>Ciudad de destino <span class="required">*</span></label><input type="text" id="destino" placeholder="Ej: Antofagasta" autocomplete="off"/></div>
+</div>
+<div class="form-group"><label>Dirección de origen</label><input type="text" id="direccionOrigen" placeholder="Ej: Faena El Teniente, sector norte" autocomplete="off"/></div>
+<div class="form-group" id="paradas-section" style="display:none">
+<label>Paradas intermedias (opcional)</label>
+<div id="paradas-list"></div>
+<button type="button" class="btn btn-outline" id="btn-agregar-parada" style="margin-top:8px" onclick="agregarParada()">+ Agregar parada</button>
+</div>
+<div class="form-group"><label>Dirección de destino</label><input type="text" id="direccionDestino" placeholder="Ej: Bodega central, acceso camiones" autocomplete="off"/></div>
+<div class="form-group" id="estandar-minero-section">
+<label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:500">
+<input type="checkbox" id="requiereEstandar" onchange="toggleEstandarMinero()" style="width:17px;height:17px;cursor:pointer;accent-color:#1e2d4e"/>
+<span>Se requiere estándar minero</span>
+</label>
+<div id="estandar-minero-detalle" style="display:none;margin-top:12px;padding:14px;background:#f8f9fc;border:0.5px solid #e8eaf0;border-radius:10px">
+<label>¿Qué estándar se requiere?</label>
+<input type="text" id="estandarDetalle" maxlength="80" placeholder="Ej: ESTÁNDAR CODELCO" autocomplete="off" style="margin-bottom:12px"/>
+<label>Documento del estándar (opcional)</label>
+<div class="upload-zone" id="upload-zone-estandar" onclick="document.getElementById('archivo-input-estandar').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event,'estandar')">
+<div class="upload-title">Arrastra el documento o haz clic para seleccionar</div>
+<div class="upload-sub">PDF, Word, Excel o imagen &middot; Maximo 8 MB</div>
+</div>
+<input type="file" id="archivo-input-estandar" accept=".xlsx,.xls,.pdf,.docx,.doc,.jpg,.jpeg,.png" style="display:none" onchange="handleFile(event,'estandar')"/>
+<div class="file-preview" id="file-preview-estandar">
+<div style="font-size:20px">&#128196;</div>
+<div><div class="file-name" id="file-name-estandar"></div><div class="file-size" id="file-size-estandar"></div></div>
+<button class="file-remove" onclick="removeFile(event,'estandar')">&#10005;</button>
+</div>
+<div id="estandar-checklist" style="margin-top:16px">
+<label>Documentos que deberá presentar el transportista (opcional)</label>
+<div id="req-list" style="margin:8px 0 0"></div>
+<div style="font-size:11.5px;color:#6B7280;margin:12px 0 7px">Sugerencias de requisitos</div>
+<div id="req-sugerencias" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px"></div>
+<div style="display:flex;gap:8px">
+<input type="text" id="req-custom-input" placeholder="+ Agregar requisito personalizado…" autocomplete="off" style="flex:1;padding:8px 11px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px" onkeydown="if(event.key==='Enter'){event.preventDefault();tmAddCustomReq();}"/>
+<button type="button" onclick="tmAddCustomReq()" style="font-size:12.5px;font-weight:500;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid #d1d5db;background:#fff;color:#1e2d4e;white-space:nowrap">Agregar</button>
+</div>
+</div>
+</div>
+</div>
+<div class="form-group" id="tipo-entrega-section" style="display:none">
+<div style="display:flex;align-items:center;flex-wrap:wrap;gap:18px">
+<label style="margin-bottom:0">Tipo de entrega en destino:</label>
+<label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:0;font-weight:400"><input type="checkbox" class="entrega-cb" value="garita" onchange="selectTipoEntregaCb(this)" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"> En garita</label>
+<label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:0;font-weight:400"><input type="checkbox" class="entrega-cb" value="mina" onchange="selectTipoEntregaCb(this)" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"> Dentro de la mina</label>
+<label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:0;font-weight:400"><input type="checkbox" class="entrega-cb" value="no_aplica" checked onchange="selectTipoEntregaCb(this)" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"> No aplica</label>
+</div>
+<input type="hidden" id="tipoEntregaDestino" value="no_aplica"/>
+</div>
+<div class="grid-2">
+<div class="form-group">
+<label>Fecha de carga <span class="required">*</span></label>
+<input type="date" id="fechaCarga" autocomplete="off"/>
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;margin-top:10px"><input type="checkbox" id="chkHoraCarga" onchange="toggleHora('carga')" style="width:16px;height:16px;cursor:pointer;accent-color:#1e2d4e"/><span>Especificar hora de carga</span></label>
+</div>
+<div class="form-group" id="hora-carga-wrap" style="display:none">
+<label>Hora de carga</label>
+<input type="time" id="horaCarga" autocomplete="off"/>
+</div>
+</div>
+<div class="grid-2">
+<div class="form-group">
+<label>Fecha de descarga <span class="required">*</span></label>
+<input type="date" id="fechaEntrega" autocomplete="off"/>
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;margin-top:10px"><input type="checkbox" id="chkHoraDescarga" onchange="toggleHora('descarga')" style="width:16px;height:16px;cursor:pointer;accent-color:#1e2d4e"/><span>Especificar hora de descarga</span></label>
+</div>
+<div class="form-group" id="hora-descarga-wrap" style="display:none">
+<label>Hora de descarga</label>
+<input type="time" id="horaDescarga" autocomplete="off"/>
+</div>
+</div>
+<div class="grid-2">
+<div class="form-group"><label>Contacto en origen</label><input type="text" id="contactoOrigenNombre" placeholder="Nombre de contacto" autocomplete="off"/></div>
+<div class="form-group"><label>Teléfono en origen</label><input type="tel" id="contactoOrigenTelefono" placeholder="+56 9 XXXX XXXX" autocomplete="off"/></div>
+</div>
+<div class="form-group"><label>Correo en origen</label><input type="email" id="contactoOrigenEmail" placeholder="correo@empresa.cl" autocomplete="off"/></div>
+<div class="grid-2">
+<div class="form-group"><label>Contacto en destino</label><input type="text" id="contactoDestinoNombre" placeholder="Nombre de contacto" autocomplete="off"/></div>
+<div class="form-group"><label>Teléfono en destino</label><input type="tel" id="contactoDestinoTelefono" placeholder="+56 9 XXXX XXXX" autocomplete="off"/></div>
+</div>
+<div class="form-group"><label>Correo en destino</label><input type="email" id="contactoDestinoEmail" placeholder="correo@empresa.cl" autocomplete="off"/></div>
+<div class="btn-row">
+<button class="btn btn-outline" onclick="irPaso(1)">Volver</button>
+<button class="btn btn-primary" onclick="irPaso(3)">Siguiente</button>
+</div>
+</div>
+
+<div class="form-card" id="paso3">
+<div class="card-title">Configuracion de la licitacion</div>
+<div class="form-group">
+<label>Valor aproximado del seguro necesario (CLP)</label>
+<input type="number" id="valorSeguro" placeholder="Ej: 50000000" min="0" step="1" autocomplete="off"/>
+</div>
+<div class="form-group">
+<label>Plazo para recibir cotizaciones <span class="required">*</span></label>
+<div class="plazo-grid" id="plazo-grid" style="display:flex;flex-wrap:wrap">
+<div class="plazo-btn" id="plazo-express" onclick="selectPlazo(this,'6')" data-val="6" style="display:none;border-color:#f97316;flex:1;min-width:90px"><div class="plazo-val" style="color:#f97316">6h</div><div class="plazo-label">Express</div></div>
+<div class="plazo-btn" onclick="selectPlazo(this,'12')" data-val="12" style="flex:1;min-width:90px"><div class="plazo-val">12h</div><div class="plazo-label">Urgente</div></div>
+<div class="plazo-btn selected" onclick="selectPlazo(this,'24')" data-val="24" style="flex:1;min-width:90px"><div class="plazo-val">24h</div><div class="plazo-label">Normal</div></div>
+<div class="plazo-btn" id="plazo-48" onclick="selectPlazo(this,'48')" data-val="48" style="flex:1;min-width:90px"><div class="plazo-val">48h</div><div class="plazo-label">Estandar</div></div>
+</div>
+<input type="hidden" id="plazo" value="24"/>
+</div>
+<div class="info-box">Un plazo mas corto significa mayor urgencia. La opcion <strong>6h Express</strong> solo esta disponible cuando la carga es para el dia siguiente. Para cargas con mas anticipacion, recomendamos <strong>24h o 48h</strong> para obtener mejores cotizaciones.</div>
+<div class="btn-row">
+<button class="btn btn-outline" onclick="irPaso(2)">Volver</button>
+<button class="btn btn-primary" onclick="irPaso(4)">Siguiente</button>
+</div>
+</div>
+
+<div class="form-card" id="paso4">
+<div class="card-title">Revisar y publicar</div>
+<label style="font-size:13px;font-weight:700;color:#1e2d4e;margin-bottom:8px;display:block">Resumen de la licitación</label>
+<div id="resumen-content"></div>
+<div class="info-box" style="margin-top:16px">Al publicar, los transportistas seran notificados y podran enviar cotizaciones dentro del plazo seleccionado.</div>
+<div class="form-group" style="background:#f8f9fb;border:1px solid #e8eaf0;border-radius:10px;padding:14px 16px;margin-top:16px">
+<a href="/Terminos_y_Condiciones_Cliente.pdf" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#1e2d4e;text-decoration:underline">Descargar Términos y Condiciones (PDF)</a>
+<label style="display:flex;align-items:flex-start;gap:10px;margin-top:12px;cursor:pointer">
+<input type="checkbox" id="acepta-tyc" style="width:18px;height:18px;accent-color:#1e2d4e;cursor:pointer;flex-shrink:0;margin-top:1px"/>
+<span style="font-size:13px;color:#374151;line-height:1.5">Acepto los <a href="/Terminos_y_Condiciones_Cliente.pdf" target="_blank" rel="noopener" style="color:#1e2d4e;font-weight:600;text-decoration:underline">Términos y Condiciones</a> de TransMatch SpA. <span class="required">*</span></span>
+</label>
+<div id="err-tyc" style="display:none;font-size:12px;color:#DC2626;margin-top:8px">Debes aceptar los Términos y Condiciones para continuar.</div>
+</div>
+<div class="btn-row">
+<button class="btn btn-outline" onclick="irPaso(3)">Editar</button>
+<button class="btn btn-orange" id="btn-publicar" onclick="publicar()">Publicar licitacion</button>
+</div>
+</div>
+
+<div class="success-screen" id="success">
+<div style="font-size:56px;margin-bottom:16px">&#10003;</div>
+<div class="success-title">Licitacion publicada!</div>
+<div class="success-sub">Los transportistas estan siendo notificados. Recibiras las mejores cotizaciones dentro del plazo que seleccionaste.</div>
+<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+<a href="/cliente-licitaciones.html" class="btn btn-primary">Ver mis licitaciones</a>
+<a href="/cliente-nueva.html" class="btn btn-outline">Publicar otra</a>
+</div>
+</div>
+</main>
+</div>
+<div id="toast"></div>
+
+<script src="/categorias-equipo.js"></script>
+<script>
+var API='https://transmatch.transmatchcl.workers.dev';
+var tipoLicitacion=null;
+var modoEdicion=null;
+var archivoMaq=null;
+var archivoCarga=null;
+var archivoContenedor=null;
+var archivoEstandar=null;
+var _estandarArchivoIdPrevio=null;
+var _estandarArchivoNombrePrevio=null;
+var currentStep=0;
+
+function showToast(msg,type){
+var el=document.getElementById('toast');
+el.textContent=msg;el.style.background=type==='err'?'#EF4444':'#1ED24E';
+el.style.opacity='1';clearTimeout(el._t);el._t=setTimeout(function(){el.style.opacity='0'},3500);
+}
+
+// ── EQUIPO REQUERIDO: render desde el listado único (categorias-equipo.js) ──
+// Cada tipo de licitación usa un subconjunto (no todas las categorías aplican a maquinaria vs carga),
+// pero los VALORES y NOMBRES salen siempre del mismo listado compartido.
+var EQUIPOS_MAQUINARIA = ["Cama baja","Camilla","Equipo modular","Palote","Rampla / plataforma","Camión pluma"];
+var EQUIPOS_CARGA = ["Rampla / plataforma","Camión pluma","Cama cuna","Furgón / Sider","Tolva","Portacontenedor","Camión plano"];
+
+function _catByValue(val){
+  if(typeof TM_CATEGORIAS_EQUIPO==='undefined') return null;
+  for(var i=0;i<TM_CATEGORIAS_EQUIPO.length;i++){ if(TM_CATEGORIAS_EQUIPO[i].value===val) return TM_CATEGORIAS_EQUIPO[i]; }
+  return null;
+}
+
+function renderEquipoRequerido(){
+  var contMaq = document.getElementById('eq-req-fijos-cont');
+  var contCarga = document.getElementById('eq-carga-fijos-cont');
+  if(contMaq && !contMaq.dataset.rendered){
+    var htmlMaq='';
+    EQUIPOS_MAQUINARIA.forEach(function(val){
+      var cat=_catByValue(val); var label=val+(cat&&cat.sub?' ('+cat.sub+')':'');
+      htmlMaq+='<label class="eq-lbl"><input type="checkbox" class="eq-req-cb" value="'+val+'" onchange="handleEqReq(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> '+label+'</label>';
+    });
+    contMaq.innerHTML=htmlMaq; contMaq.dataset.rendered='1';
+  }
+  if(contCarga && !contCarga.dataset.rendered){
+    var htmlCarga='';
+    EQUIPOS_CARGA.forEach(function(val){
+      var cat=_catByValue(val); var label=val+(cat&&cat.sub?' ('+cat.sub+')':'');
+      htmlCarga+='<label class="eq-lbl"><input type="checkbox" class="eq-carga-cb" value="'+val+'" onchange="handleEqCarga(this)" style="width:15px;height:15px;accent-color:#1e2d4e;flex-shrink:0"> '+label+'</label>';
+    });
+    contCarga.innerHTML=htmlCarga; contCarga.dataset.rendered='1';
+  }
+}
+document.addEventListener('DOMContentLoaded', renderEquipoRequerido);
+
+function handleEqCarga(cb){
+var checks=document.querySelectorAll('.eq-carga-cb:checked');
+if(checks.length>2){cb.checked=false;return;}
+document.querySelectorAll('.eq-carga-cb').forEach(function(c){
+var lbl=c.closest('label');
+if(c.checked){lbl.style.borderColor='#1e2d4e';lbl.style.background='#eef1f8';}
+else{lbl.style.borderColor='#E5E7EB';lbl.style.background='';}
+});
+var vals=[];
+document.querySelectorAll('.eq-carga-cb:checked').forEach(function(c){vals.push(c.value);});
+var hi=document.getElementById('tipoEquipoCarga');if(hi)hi.value=vals.join(' / ');
+}
+
+function getEqRequeridoCarga(){
+var vals=[];
+document.querySelectorAll('.eq-carga-cb:checked').forEach(function(c){
+if(c.value==='Otro'){var t=(document.getElementById('otro-carga-text').value||'').trim();if(t)vals.push(t);}
+else vals.push(c.value);
+});
+return vals.join(' / ');
+}
+
+function handleEqReq(cb){
+var checks=document.querySelectorAll('.eq-req-cb:checked');
+if(checks.length>2){cb.checked=false;return;}
+document.querySelectorAll('.eq-req-cb').forEach(function(c){
+var lbl=c.closest('label');
+if(c.checked){lbl.style.borderColor='#1e2d4e';lbl.style.background='#eef1f8';}
+else{lbl.style.borderColor='#E5E7EB';lbl.style.background='';}
+});
+}
+
+function getEqRequerido(){
+var vals=[];
+document.querySelectorAll('.eq-req-cb:checked').forEach(function(c){
+if(c.value==='Otro'){var t=(document.getElementById('otro-req-text').value||'').trim();if(t)vals.push(t);}
+else vals.push(c.value);
+});
+return vals.join(' / ');
+}
+function toggleOtroReq(){var cb=document.querySelector('.eq-req-cb[value="Otro"]');var w=document.getElementById('otro-req-wrap');var on=cb&&cb.checked;if(w)w.style.display=on?'block':'none';if(!on){var t=document.getElementById('otro-req-text');if(t)t.value='';}}
+function toggleOtroCarga(){var cb=document.querySelector('.eq-carga-cb[value="Otro"]');var w=document.getElementById('otro-carga-wrap');var on=cb&&cb.checked;if(w)w.style.display=on?'block':'none';if(!on){var t=document.getElementById('otro-carga-text');if(t)t.value='';}}
+
+function toggleOtroEquipo(val){
+/* ya no se usa: el tipo de maquinaria es un campo de texto libre */
+}
+
+function getTipoEquipo(){
+return (document.getElementById('tipoEquipo').value||'').trim();
+}
+
+function seleccionarTipo(tipo){
+tipoLicitacion=tipo;
+document.getElementById('paso0').style.display='none';
+document.getElementById('stepper').style.display='flex';
+document.getElementById('sl1').textContent=tipo==='maquinaria'?'Equipo':(tipo==='contenedor'?'Contenedor':'Carga');
+document.getElementById(paso1Id()).classList.add('active');
+var tel=document.getElementById('tipo-elegido');
+var tlbl=document.getElementById('tipo-elegido-label');
+if(tel&&tlbl){tlbl.textContent=tipo==='maquinaria'?'Maquinaria pesada':(tipo==='contenedor'?'Contenedores':'Carga general');tel.style.display='block';}
+toggleCamposPorTipoRuta();
+currentStep=1;updateStepper(1);
+window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function toggleCamposPorTipoRuta(){
+var esCarga=tipoLicitacion==='carga';
+var esContenedor=tipoLicitacion==='contenedor';
+var pSec=document.getElementById('paradas-section');if(pSec)pSec.style.display=esCarga?'block':'none';
+var tSec=document.getElementById('tipo-entrega-section');if(tSec)tSec.style.display=esContenedor?'none':'block';
+var eSec=document.getElementById('estandar-minero-section');if(eSec)eSec.style.display=esContenedor?'none':'block';
+if(esContenedor){
+// No aplica a contenedores: forzar valores neutros por si quedaron marcados de una selección previa
+var reCb=document.getElementById('requiereEstandar');if(reCb&&reCb.checked){reCb.checked=false;toggleEstandarMinero();}
+document.querySelectorAll('.entrega-cb').forEach(function(cb){cb.checked=(cb.value==='no_aplica');});
+var tEnt=document.getElementById('tipoEntregaDestino');if(tEnt)tEnt.value='no_aplica';
+}
+}
+
+var PARADAS_MAX=5;
+function agregarParada(data){
+data=data||{};
+var list=document.getElementById('paradas-list');
+if(!list)return;
+if(list.querySelectorAll('.parada-row').length>=PARADAS_MAX)return;
+var row=document.createElement('div');
+row.className='parada-row';
+row.style.cssText='background:#f8f9fb;border:1px solid #e8eaf0;border-radius:10px;padding:12px;margin-top:8px';
+row.innerHTML=
+'<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><button type="button" onclick="quitarParada(this)" style="background:none;border:none;color:#9CA3AF;cursor:pointer;font-size:12px">Quitar &#10005;</button></div>'+
+'<div class="form-group" style="margin-bottom:8px"><label style="font-size:12px">Dirección de la parada</label><input type="text" class="parada-direccion" placeholder="Ej: Peaje Las Lomas, Ruta 5" autocomplete="off"/></div>'+
+'<div class="grid-2">'+
+'<div class="form-group" style="margin-bottom:8px"><label style="font-size:12px">Horario aproximado</label><input type="text" class="parada-horario" placeholder="Ej: Entre 10:00 y 12:00" autocomplete="off"/></div>'+
+'<div class="form-group" style="margin-bottom:8px"><label style="font-size:12px">Contacto en el lugar</label><input type="text" class="parada-contacto" placeholder="Nombre y teléfono" autocomplete="off"/></div>'+
+'</div>'+
+'<div class="form-group" style="margin-bottom:0"><label style="font-size:12px">Descripción</label><input type="text" class="parada-descripcion" placeholder="Ej: Cargar material adicional, inspección" autocomplete="off"/></div>';
+list.appendChild(row);
+if(data.direccion)row.querySelector('.parada-direccion').value=data.direccion;
+if(data.horario)row.querySelector('.parada-horario').value=data.horario;
+if(data.contacto)row.querySelector('.parada-contacto').value=data.contacto;
+if(data.descripcion)row.querySelector('.parada-descripcion').value=data.descripcion;
+actualizarBtnAgregarParada();
+}
+
+function quitarParada(btn){
+var row=btn.closest('.parada-row');if(row)row.remove();
+actualizarBtnAgregarParada();
+}
+
+function actualizarBtnAgregarParada(){
+var list=document.getElementById('paradas-list');var btn=document.getElementById('btn-agregar-parada');
+if(!list||!btn)return;
+btn.style.display=list.querySelectorAll('.parada-row').length>=PARADAS_MAX?'none':'inline-flex';
+}
+
+function getParadas(){
+var arr=[];
+document.querySelectorAll('#paradas-list .parada-row').forEach(function(row){
+var dir=row.querySelector('.parada-direccion').value.trim();
+var hor=row.querySelector('.parada-horario').value.trim();
+var con=row.querySelector('.parada-contacto').value.trim();
+var desc=row.querySelector('.parada-descripcion')?row.querySelector('.parada-descripcion').value.trim():'';
+if(dir||hor||con||desc)arr.push({direccion:dir,horario:hor,contacto:con,descripcion:desc});
+});
+return arr;
+}
+
+function selectTipoEntregaCb(el){
+// Comportamiento de selección única: al marcar uno, se desmarcan los demás
+document.querySelectorAll('.entrega-cb').forEach(function(cb){ if(cb!==el) cb.checked=false; });
+// Si se desmarca el único activo, volver a "No aplica"
+if(!el.checked){
+  var na=document.querySelector('.entrega-cb[value="no_aplica"]');
+  if(na) na.checked=true;
+  document.getElementById('tipoEntregaDestino').value='no_aplica';
+  return;
+}
+document.getElementById('tipoEntregaDestino').value=el.value;
+}
+
+function volverPaso0(){
+document.getElementById('paso0').style.display='block';
+document.getElementById('stepper').style.display='none';
+document.getElementById('paso1-maquinaria').classList.remove('active');
+document.getElementById('paso1-carga').classList.remove('active');
+document.getElementById('paso1-contenedor').classList.remove('active');
+var tel=document.getElementById('tipo-elegido');if(tel)tel.style.display='none';
+currentStep=0;tipoLicitacion=null;
+}
+
+function updateStepper(s){
+for(var i=1;i<=4;i++){
+var n=document.getElementById('sn'+i),l=document.getElementById('sl'+i);
+if(i<s){n.className='step-num done';l.className='step-label done';n.textContent=i;}
+else if(i===s){n.className='step-num active';l.className='step-label active';n.textContent=i;}
+else{n.className='step-num pending';l.className='step-label pending';n.textContent=i;}
+}
+var lines=document.querySelectorAll('.step-line');
+lines.forEach(function(line,idx){line.style.background=(idx+1)<s?'#1e2d4e':'#E5E7EB';});
+}
+
+function selectPlazo(el,val){
+document.querySelectorAll('#plazo-grid .plazo-btn').forEach(function(b){b.classList.remove('selected')});
+el.classList.add('selected');
+document.getElementById('plazo').value=val;
+}
+
+function handleFile(e,key){
+var file=e.target.files[0];if(!file)return;
+processFile(file,key);
+}
+
+function handleDrop(e,key){
+e.preventDefault();
+document.getElementById('upload-zone-'+key).classList.remove('drag-over');
+var file=e.dataTransfer.files[0];if(!file)return;
+processFile(file,key);
+}
+
+function processFile(file,key){
+if(file.size>8*1024*1024){showToast('Archivo demasiado grande. Maximo 8 MB','err');return;}
+var reader=new FileReader();
+reader.onload=function(ev){
+var base64=ev.target.result.split(',')[1];
+var d={nombre:file.name,tipo:file.type,base64:base64};
+if(key==='maq')archivoMaq=d;else if(key==='estandar')archivoEstandar=d;else if(key==='contenedor')archivoContenedor=d;else archivoCarga=d;
+var fp=document.getElementById('file-preview-'+key);
+fp.classList.add('show');
+document.getElementById('file-name-'+key).textContent=file.name;
+document.getElementById('file-size-'+key).textContent=(file.size/1024).toFixed(0)+' KB';
+};
+reader.readAsDataURL(file);
+}
+
+function removeFile(e,key){
+e.stopPropagation();
+if(key==='maq')archivoMaq=null;else if(key==='estandar')archivoEstandar=null;else if(key==='contenedor')archivoContenedor=null;else archivoCarga=null;
+var fp=document.getElementById('file-preview-'+key);fp.classList.remove('show');
+document.getElementById('archivo-input-'+key).value='';
+}
+
+function toggleHora(tipo){
+var chk=document.getElementById(tipo==='carga'?'chkHoraCarga':'chkHoraDescarga');
+var wrap=document.getElementById(tipo==='carga'?'hora-carga-wrap':'hora-descarga-wrap');
+var campo=document.getElementById(tipo==='carga'?'horaCarga':'horaDescarga');
+if(!chk||!wrap||!campo)return;
+if(chk.checked){ wrap.style.display='block'; }
+else { wrap.style.display='none'; campo.value=''; }
+}
+
+function toggleEstandarMinero(){
+var on=document.getElementById('requiereEstandar').checked;
+document.getElementById('estandar-minero-detalle').style.display=on?'block':'none';
+if(!on){
+  document.getElementById('estandarDetalle').value='';
+  archivoEstandar=null;
+  var fp=document.getElementById('file-preview-estandar');if(fp)fp.classList.remove('show');
+  var inp=document.getElementById('archivo-input-estandar');if(inp)inp.value='';
+  TM_reqs=[];
+}
+tmRenderReqs();
+}
+
+// ── Checklist de requisitos del estándar ──
+var TM_reqs=[];
+var TM_REQ_SUG=["Revisión técnica vigente","Licencia municipal A4/A5","Hoja de vida del conductor","Certificado médico de aptitud","Examen preocupacional de salud","Examen psicosensotécnico","Salud compatible (altura geográfica)","Control de alcohol y drogas","Cinturones certificados","Cabina de seguridad ECE R66","GPS en tiempo real","Certificado de eficiencia de frenado","Inducción de seguridad minera"];
+function tmReqUid(){return 'r'+Math.random().toString(36).slice(2,9);}
+function tmEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function tmAddReq(label){label=(label||'').trim();if(!label)return;if(TM_reqs.some(function(r){return r.label.toLowerCase()===label.toLowerCase();}))return;TM_reqs.push({id:tmReqUid(),label:label});tmRenderReqs();}
+function tmRemoveReq(id){TM_reqs=TM_reqs.filter(function(r){return r.id!==id;});tmRenderReqs();}
+function tmAddCustomReq(){var inp=document.getElementById('req-custom-input');if(!inp)return;tmAddReq(inp.value);inp.value='';inp.focus();}
+function tmRenderReqs(){
+  var list=document.getElementById('req-list');
+  if(list){
+    list.innerHTML=TM_reqs.length?TM_reqs.map(function(r){
+      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#FFF9F2;border:1px solid #FBD9AE;border-radius:8px;padding:9px 12px;margin-bottom:7px;font-size:13px"><span>'+tmEsc(r.label)+'</span><button type="button" onclick="tmRemoveReq(\''+r.id+'\')" style="color:#b25f00;cursor:pointer;font-weight:700;font-size:15px;background:none;border:none;line-height:1">&#10005;</button></div>';
+    }).join(''):'<div style="font-size:12px;color:#9CA3AF;padding:2px 0 4px">Sin requisitos agregados. Toca una sugerencia o escribe uno.</div>';
+  }
+  var sug=document.getElementById('req-sugerencias');
+  if(sug){
+    var pend=TM_REQ_SUG.filter(function(s){return !TM_reqs.some(function(r){return r.label.toLowerCase()===s.toLowerCase();});});
+    sug.innerHTML=pend.map(function(s){
+      return '<span onclick="tmAddReq(\''+s.replace(/'/g,"\\'")+'\')" style="font-size:12px;color:#1e2d4e;background:#fff;border:1px solid #d1d5db;border-radius:999px;padding:5px 11px;cursor:pointer"><span style="color:#FF8808;font-weight:700">+</span> '+s+'</span>';
+    }).join('');
+  }
+}
+
+// ── Contenedor: id del paso 1 según tipoLicitacion ──
+function paso1Id(){
+  if(tipoLicitacion==='maquinaria') return 'paso1-maquinaria';
+  if(tipoLicitacion==='contenedor') return 'paso1-contenedor';
+  return 'paso1-carga';
+}
+
+function toggleMercanciaPeligrosa(){
+var on=document.getElementById('mercanciaPeligrosa').checked;
+document.getElementById('peligrosa-detalle').style.display=on?'block':'none';
+if(!on){document.getElementById('claseIMO').value='';document.getElementById('numeroUN').value='';}
+}
+function toggleRefrigerado(){
+var on=document.getElementById('refrigerado').checked;
+document.getElementById('reefer-detalle').style.display=on?'block':'none';
+if(!on){document.getElementById('temperaturaReefer').value='';}
+}
+function toggleContSobredimensionado(){
+var on=document.getElementById('contSobredimensionado').checked;
+document.getElementById('sobredim-detalle').style.display=on?'block':'none';
+if(!on){document.getElementById('contSobredimensionadoDetalle').value='';}
+}
+function toggleOtroContenedor(){
+var sel=document.getElementById('tipoContenedor');
+var w=document.getElementById('tipoContenedor-otro-wrap');
+var on=sel&&sel.value==='Otro';
+if(w)w.style.display=on?'block':'none';
+if(!on){var t=document.getElementById('tipoContenedor-otro-text');if(t)t.value='';}
+}
+
+function irPaso(paso){
+if(paso===2){
+if(tipoLicitacion==='maquinaria'){
+var _ocm=document.querySelector('.eq-req-cb[value="Otro"]');if(_ocm&&_ocm.checked&&!(document.getElementById('otro-req-text').value||'').trim()){showToast('Especifica el equipo en "Otro"','err');var _e=document.getElementById('err-otro-req');if(_e)_e.style.display='block';return;}
+if(!getEqRequerido()){showToast('Selecciona al menos un tipo de equipo requerido','err');return;}
+if(!document.getElementById('tipoEquipo').value.trim()){showToast('Indica el tipo de maquinaria','err');return;}
+if(!document.getElementById('marca').value.trim()){showToast('Indica la marca','err');return;}
+if(!document.getElementById('modeloMaq').value.trim()){showToast('Indica el modelo','err');return;}
+if(!document.getElementById('pesoMaq').value){showToast('Indica el peso aproximado','err');return;}
+if(!document.getElementById('dimensionesMaq').value.trim()){showToast('Indica las dimensiones','err');return;}
+if(!modoEdicion&&!archivoMaq){showToast('Debes adjuntar el archivo de especificaciones','err');return;}
+}else if(tipoLicitacion==='contenedor'){
+if(!document.getElementById('tipoContenedor').value){showToast('Selecciona el tipo de contenedor','err');return;}
+if(document.getElementById('tipoContenedor').value==='Otro'&&!(document.getElementById('tipoContenedor-otro-text').value||'').trim()){showToast('Especifica el tipo de contenedor','err');return;}
+if(!document.getElementById('condicionContenedor').value){showToast('Indica la condición (lleno o vacío)','err');return;}
+if(!document.getElementById('pesoVGM').value){showToast('Indica el peso bruto verificado (VGM)','err');return;}
+if(document.getElementById('mercanciaPeligrosa').checked&&!document.getElementById('claseIMO').value){showToast('Selecciona la clase IMO','err');return;}
+}else{
+var _occ=document.querySelector('.eq-carga-cb[value="Otro"]');if(_occ&&_occ.checked&&!(document.getElementById('otro-carga-text').value||'').trim()){showToast('Especifica el equipo en "Otro"','err');var _e=document.getElementById('err-otro-carga');if(_e)_e.style.display='block';return;}
+if(!getEqRequeridoCarga()){showToast('Selecciona al menos un tipo de equipo requerido','err');return;}
+if(!modoEdicion&&!archivoCarga){showToast('Debes adjuntar el archivo de especificaciones','err');return;}
+}
+}
+if(paso===3){
+if(!document.getElementById('origen').value.trim()){showToast('Ingresa la ciudad de origen','err');return;}
+if(!document.getElementById('destino').value.trim()){showToast('Ingresa la ciudad de destino','err');return;}
+var _fc=document.getElementById('fechaCarga').value;
+if(!_fc){showToast('Selecciona la fecha de carga','err');return;}
+var _min=new Date(); _min.setDate(_min.getDate()+1); _min.setHours(0,0,0,0);
+if(new Date(_fc+'T00:00:00') < _min){showToast('La fecha de carga debe ser desde mañana en adelante','err');return;}
+var _fe=document.getElementById('fechaEntrega').value;
+if(!_fe){showToast('Selecciona la fecha de descarga','err');return;}
+if(new Date(_fe+'T00:00:00') < new Date(_fc+'T00:00:00')){showToast('La fecha de entrega no puede ser anterior a la de carga','err');return;}
+actualizarPlazoExpress();
+}
+if(paso===4)buildResumen();
+document.getElementById('paso1-maquinaria').classList.remove('active');
+document.getElementById('paso1-carga').classList.remove('active');
+document.getElementById('paso1-contenedor').classList.remove('active');
+document.getElementById('paso2').classList.remove('active');
+document.getElementById('paso3').classList.remove('active');
+document.getElementById('paso4').classList.remove('active');
+if(paso===1){document.getElementById(paso1Id()).classList.add('active');}
+else{document.getElementById('paso'+paso).classList.add('active');}
+// La opción "Cambiar tipo" del encabezado solo se muestra en el paso 1
+var _tel=document.getElementById('tipo-elegido');
+if(_tel) _tel.style.display=(paso===1)?'block':'none';
+currentStep=paso;updateStepper(paso);
+window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function buildResumen(){
+var rows=[];
+function gv(id){var el=document.getElementById(id);return el?el.value:'';}
+try{
+rows.push(['Tipo',tipoLicitacion==='maquinaria'?'Maquinaria pesada':(tipoLicitacion==='contenedor'?'Contenedores':'Carga general')]);
+if(tipoLicitacion==='maquinaria'){
+rows.push(['Maquinaria',getTipoEquipo()]);
+rows.push(['Equipo requerido',getEqRequerido()||'--']);
+var marca=gv('marca').trim();var modelo=gv('modeloMaq').trim();
+if(marca||modelo)rows.push(['Marca / modelo',(marca+' '+modelo).trim()]);
+var peso=gv('pesoMaq');if(peso)rows.push(['Peso',peso+' '+(gv('pesoMaqUnidad')||'ton')]);
+var dimM=gv('dimensionesMaq').trim();if(dimM)rows.push(['Dimensiones',dimM]);
+}else if(tipoLicitacion==='contenedor'){
+var _tCont=gv('tipoContenedor');
+if(_tCont==='Otro')_tCont=gv('tipoContenedor-otro-text').trim()||'Otro';
+rows.push(['Tipo de contenedor',_tCont||'--']);
+rows.push(['Condición',gv('condicionContenedor')||'--']);
+var vgm=gv('pesoVGM');if(vgm)rows.push(['Peso VGM',vgm+' kg']);
+var nCont=gv('numeroContenedor').trim();if(nCont)rows.push(['N° contenedor',nCont]);
+var sello=gv('selloContenedor').trim();if(sello)rows.push(['N° sello',sello]);
+if(document.getElementById('mercanciaPeligrosa').checked)rows.push(['Mercancía peligrosa','Clase IMO '+gv('claseIMO')+(gv('numeroUN').trim()?' · '+gv('numeroUN').trim():'')]);
+if(document.getElementById('refrigerado').checked)rows.push(['Refrigerado',gv('temperaturaReefer')?gv('temperaturaReefer')+' °C':'Sí']);
+if(document.getElementById('contSobredimensionado').checked)rows.push(['Sobredimensionado',gv('contSobredimensionadoDetalle').trim()||'Sí']);
+}else{
+var eq=gv('tipoEquipoCarga');if(eq)rows.push(['Camion requerido',eq]);
+var tc=document.getElementById('tipoCarga').value.trim();if(tc)rows.push(['Tipo de carga',tc]);
+var pc=document.getElementById('pesoCarga').value;if(pc)rows.push(['Peso total',pc+' '+(document.getElementById('pesoCargaUnidad').value||'ton')]);
+var vol=document.getElementById('volumenCarga').value;if(vol)rows.push(['Volumen',vol+' m³']);
+var nb=document.getElementById('cantidadBultos').value;if(nb)rows.push(['N° de bultos',nb]);
+}
+rows.push(['Origen',document.getElementById('origen').value.trim()]);
+var dOrig=document.getElementById('direccionOrigen').value.trim();if(dOrig)rows.push(['Dirección origen',dOrig]);
+rows.push(['Destino',document.getElementById('destino').value.trim()]);
+var dDest=document.getElementById('direccionDestino').value.trim();if(dDest)rows.push(['Dirección destino',dDest]);
+var tEnt=document.getElementById('tipoEntregaDestino').value;
+var tEntLabel={mina:'Dentro de la mina',garita:'En garita',no_aplica:'No aplica'}[tEnt]||'No aplica';
+rows.push(['Tipo de entrega',tEntLabel]);
+if(tipoLicitacion==='carga'){
+var paradasR=getParadas();
+if(paradasR.length)rows.push(['Paradas',paradasR.length+' parada'+(paradasR.length===1?'':'s')]);
+}
+rows.push(['Fecha de carga',document.getElementById('fechaCarga').value]);
+var hc=document.getElementById('horaCarga').value;if(hc)rows.push(['Hora de carga',hc]);
+var fe=document.getElementById('fechaEntrega').value;if(fe)rows.push(['Fecha de descarga',fe]);
+var hd=document.getElementById('horaDescarga').value;if(hd)rows.push(['Hora de descarga',hd]);
+var cN=document.getElementById('contactoOrigenNombre').value.trim(),cT=document.getElementById('contactoOrigenTelefono').value.trim();
+if(cN)rows.push(['Contacto origen',cN+(cT?' · '+cT:'')]);
+var dN=document.getElementById('contactoDestinoNombre').value.trim(),dT=document.getElementById('contactoDestinoTelefono').value.trim();
+if(dN)rows.push(['Contacto destino',dN+(dT?' · '+dT:'')]);
+rows.push(['Plazo cotizaciones',gv('plazo')+'h']);
+var vSeg=gv('valorSeguro');if(vSeg)rows.push(['Valor seguro aprox.','$'+Number(vSeg).toLocaleString('es-CL')]);
+var _re=document.getElementById('requiereEstandar');
+if(_re&&_re.checked){
+var estD=gv('estandarDetalle').trim();
+rows.push(['Estándar minero',estD||'Requerido']);
+if(archivoEstandar)rows.push(['Documento estándar',archivoEstandar.nombre]);
+}
+}catch(e){console.error('Error armando resumen:',e);}
+document.getElementById('resumen-content').innerHTML=rows.map(function(r){
+return '<div class="resumen-row"><span class="resumen-key">'+r[0]+'</span><span class="resumen-val">'+r[1]+'</span></div>';
+}).join('');
+var btn=document.getElementById('btn-publicar');
+if(btn)btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';
+}
+
+async function publicar(){
+// Aceptación de Términos y Condiciones (obligatoria para publicar)
+var chkT=document.getElementById('acepta-tyc');
+var errT=document.getElementById('err-tyc');
+if(chkT && !chkT.checked){ if(errT) errT.style.display='block'; chkT.scrollIntoView({behavior:'smooth',block:'center'}); return; }
+if(errT) errT.style.display='none';
+var btn=document.getElementById('btn-publicar');
+btn.disabled=true;btn.textContent='Publicando...';
+// Red de seguridad: pase lo que pase adentro (incluso un error de programación inesperado),
+// el botón SIEMPRE se reactiva. Nunca más debería quedar pegado en "Publicando...".
+try{
+var archivo=tipoLicitacion==='maquinaria'?archivoMaq:(tipoLicitacion==='contenedor'?archivoContenedor:archivoCarga);
+var archivoId=null;
+if(archivo){
+try{
+var rA=await fetch(API+'/api/archivos/upload',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(archivo)});
+var dA=await rA.json();
+if(!rA.ok){showToast(dA.error||'Error al subir el archivo','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';return;}
+archivoId=dA.id;
+}catch(e){showToast('Error al subir el archivo','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';return;}
+}
+var payload={tipoLicitacion:tipoLicitacion,origen:document.getElementById('origen').value.trim(),destino:document.getElementById('destino').value.trim(),direccionOrigen:document.getElementById('direccionOrigen').value.trim(),direccionDestino:document.getElementById('direccionDestino').value.trim(),fechaCarga:document.getElementById('fechaCarga').value,horaCarga:document.getElementById('horaCarga').value||'',fechaEntrega:document.getElementById('fechaEntrega').value,horaDescarga:document.getElementById('horaDescarga').value||'',plazo:document.getElementById('plazo').value,valorSeguro:document.getElementById('valorSeguro').value||'',contactoOrigenNombre:document.getElementById('contactoOrigenNombre').value.trim(),contactoOrigenTelefono:document.getElementById('contactoOrigenTelefono').value.trim(),contactoOrigenEmail:document.getElementById('contactoOrigenEmail').value.trim(),contactoDestinoNombre:document.getElementById('contactoDestinoNombre').value.trim(),contactoDestinoTelefono:document.getElementById('contactoDestinoTelefono').value.trim(),contactoDestinoEmail:document.getElementById('contactoDestinoEmail').value.trim()};
+if(archivoId){payload.archivoId=archivoId;payload.archivoNombre=archivo.nombre;}
+// Estándar minero
+var reqEstandar=document.getElementById('requiereEstandar').checked;
+payload.requiereEstandar=reqEstandar;
+if(reqEstandar){
+payload.estandarDetalle=document.getElementById('estandarDetalle').value.trim();
+payload.estandarRequisitos=TM_reqs;
+if(archivoEstandar){
+try{
+var rE=await fetch(API+'/api/archivos/upload',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(archivoEstandar)});
+var dE=await rE.json();
+if(rE.ok){payload.estandarArchivoId=dE.id;payload.estandarArchivoNombre=archivoEstandar.nombre;}
+}catch(e){}
+}else if(modoEdicion&&_estandarArchivoIdPrevio){
+// Conservar el documento que ya estaba adjunto
+payload.estandarArchivoId=_estandarArchivoIdPrevio;
+payload.estandarArchivoNombre=_estandarArchivoNombrePrevio;
+}
+}
+if(tipoLicitacion==='maquinaria'){
+payload.tipoEquipo=getTipoEquipo();
+payload.tipoEquipoRequerido=getEqRequerido();
+payload.marca=document.getElementById('marca').value.trim();
+payload.modelo=document.getElementById('modeloMaq').value.trim();
+payload.peso=document.getElementById('pesoMaq').value||'';
+payload.pesoUnidad=document.getElementById('pesoMaqUnidad').value||'ton';
+payload.dimensiones=document.getElementById('dimensionesMaq').value.trim();
+payload.descripcion=document.getElementById('descripcionMaq').value.trim();
+payload.tipoEntregaDestino=document.getElementById('tipoEntregaDestino').value||'no_aplica';
+// Si se marcó "Otro": no se puede filtrar por texto libre, así que la licitación
+// debe llegar a TODOS los transportistas ("cualquiera"). El texto queda como nota.
+if(document.querySelector('.eq-req-cb[value="Otro"]:checked')){
+var _otroTxtMaq=(document.getElementById('otro-req-text').value||'').trim();
+payload.tipoEquipoRequerido='cualquiera';
+if(_otroTxtMaq) payload.descripcion=('Equipo solicitado (fuera de lista): '+_otroTxtMaq+'. '+payload.descripcion).trim();
+}
+}else if(tipoLicitacion==='contenedor'){
+// El equipo requerido siempre es Portacontenedor: no se le pide elegir al cliente.
+payload.tipoEquipoRequerido='Portacontenedor';
+var _tipoContSel=document.getElementById('tipoContenedor').value||'';
+var _tipoContFinal=_tipoContSel==='Otro'?(document.getElementById('tipoContenedor-otro-text').value||'').trim():_tipoContSel;
+payload.tipoEquipo=_tipoContFinal||'Contenedor';
+payload.tipoContenedor=_tipoContFinal;
+payload.cantidadContenedores='1';
+payload.condicionContenedor=document.getElementById('condicionContenedor').value||'';
+payload.pesoVGM=document.getElementById('pesoVGM').value||'';
+payload.numeroContenedor=document.getElementById('numeroContenedor').value.trim();
+payload.selloContenedor=document.getElementById('selloContenedor').value.trim();
+payload.mercanciaPeligrosa=document.getElementById('mercanciaPeligrosa').checked;
+if(payload.mercanciaPeligrosa){
+payload.claseIMO=document.getElementById('claseIMO').value||'';
+payload.numeroUN=document.getElementById('numeroUN').value.trim();
+}
+payload.refrigerado=document.getElementById('refrigerado').checked;
+if(payload.refrigerado){
+payload.temperaturaReefer=document.getElementById('temperaturaReefer').value||'';
+}
+payload.contSobredimensionado=document.getElementById('contSobredimensionado').checked;
+if(payload.contSobredimensionado){
+payload.contSobredimensionadoDetalle=document.getElementById('contSobredimensionadoDetalle').value.trim();
+}
+payload.descripcion=document.getElementById('descripcionContenedor').value.trim();
+payload.tipoEntregaDestino='no_aplica';
+}else{
+payload.tipoEquipoRequerido=getEqRequeridoCarga();
+payload.tipoCarga=document.getElementById('tipoCarga').value.trim();
+payload.peso=document.getElementById('pesoCarga').value||'';
+payload.pesoUnidad=document.getElementById('pesoCargaUnidad').value||'ton';
+payload.volumen=document.getElementById('volumenCarga').value||'';
+payload.cantidadBultos=document.getElementById('cantidadBultos').value||'';
+payload.pesoPorBulto=document.getElementById('pesoPorBulto').value||'';
+payload.dimensiones=document.getElementById('dimensionesCarga').value.trim();
+payload.descripcion=document.getElementById('descripcionCarga').value.trim();
+payload.tipoEntregaDestino=document.getElementById('tipoEntregaDestino').value||'no_aplica';
+payload.paradas=getParadas();
+// Si se marcó "Otro": no se puede filtrar por texto libre, así que la licitación
+// debe llegar a TODOS los transportistas ("cualquiera"). El texto queda como nota.
+if(document.querySelector('.eq-carga-cb[value="Otro"]:checked')){
+var _otroTxtCarga=(document.getElementById('otro-carga-text').value||'').trim();
+payload.tipoEquipoRequerido='cualquiera';
+if(_otroTxtCarga) payload.descripcion=('Equipo solicitado (fuera de lista): '+_otroTxtCarga+'. '+payload.descripcion).trim();
+}
+}
+try{
+var url=modoEdicion?API+'/api/licitaciones/'+modoEdicion:API+'/api/licitaciones';
+var method=modoEdicion?'PUT':'POST';
+var res=await fetch(url,{method:method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(payload)});
+var data=await res.json();
+if(!res.ok){showToast(data.error||'Error al publicar','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';return;}
+document.getElementById('paso4').classList.remove('active');
+document.getElementById('success').style.display='block';
+document.getElementById('stepper').style.display='none';
+var tsw=document.getElementById('tipo-selector-wrap');if(tsw)tsw.style.display='none';
+var th=document.getElementById('tipo-elegido');if(th)th.style.display='none';
+document.querySelectorAll('a.btn.btn-outline').forEach(function(b){b.style.display='none';});
+window.scrollTo({top:0,behavior:'smooth'});
+}catch(e){showToast('Error de conexion. Intenta nuevamente.','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';}
+}catch(eGeneral){
+// Red de seguridad: cualquier error no previsto (ej. un elemento del formulario que falte)
+// libera el botón en vez de dejarlo pegado para siempre, y avisa para que se pueda reportar.
+console.error('Error inesperado al publicar:', eGeneral);
+showToast('Ocurrió un error inesperado. Si persiste, contacta a soporte.','err');
+btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';
+}
+}
+
+async function cargarEdicion(id, esDuplicado){
+try{
+var res=await fetch(API+'/api/licitaciones/'+id,{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+if(!res.ok)return;
+var data=await res.json();
+var l=data.licitacion;if(!l)return;
+if(!esDuplicado) modoEdicion=id;
+var _chkT=document.getElementById('acepta-tyc'); if(_chkT) _chkT.checked=true;
+tipoLicitacion=l.tipoLicitacion||(l.tipoCarga?'carga':'maquinaria');
+toggleCamposPorTipoRuta();
+document.getElementById('paso0').style.display='none';
+document.getElementById('stepper').style.display='flex';
+document.getElementById('sl1').textContent=tipoLicitacion==='maquinaria'?'Equipo':(tipoLicitacion==='contenedor'?'Contenedor':'Carga');
+document.getElementById('page-title').textContent=esDuplicado?'Duplicar licitación':'Editar licitacion';
+document.getElementById('page-sub').textContent=esDuplicado?'Revisa los datos, ajusta lo necesario y elige nuevas fechas':'Modifica los datos que necesites';
+document.getElementById(paso1Id()).classList.add('active');
+currentStep=1;updateStepper(1);
+if(l.origen)document.getElementById('origen').value=l.origen;
+if(l.destino)document.getElementById('destino').value=l.destino;
+if(l.direccionOrigen)document.getElementById('direccionOrigen').value=l.direccionOrigen;
+if(l.direccionDestino)document.getElementById('direccionDestino').value=l.direccionDestino;
+// Fechas y horas: al duplicar, NO se copian — son de un despacho distinto y deben elegirse de nuevo
+if(!esDuplicado){
+if(l.fechaCarga)document.getElementById('fechaCarga').value=l.fechaCarga;
+if(l.horaCarga){document.getElementById('horaCarga').value=l.horaCarga;document.getElementById('chkHoraCarga').checked=true;toggleHora('carga');}
+if(l.fechaEntrega)document.getElementById('fechaEntrega').value=l.fechaEntrega;
+if(l.horaDescarga){document.getElementById('horaDescarga').value=l.horaDescarga;document.getElementById('chkHoraDescarga').checked=true;toggleHora('descarga');}
+}
+if(l.contactoOrigenNombre)document.getElementById('contactoOrigenNombre').value=l.contactoOrigenNombre;
+if(l.contactoOrigenTelefono)document.getElementById('contactoOrigenTelefono').value=l.contactoOrigenTelefono;
+if(l.contactoOrigenEmail)document.getElementById('contactoOrigenEmail').value=l.contactoOrigenEmail;
+if(l.contactoDestinoNombre)document.getElementById('contactoDestinoNombre').value=l.contactoDestinoNombre;
+if(l.contactoDestinoTelefono)document.getElementById('contactoDestinoTelefono').value=l.contactoDestinoTelefono;
+if(l.contactoDestinoEmail)document.getElementById('contactoDestinoEmail').value=l.contactoDestinoEmail;
+if(l.plazo){
+document.getElementById('plazo').value=l.plazo;
+document.querySelectorAll('#plazo-grid .plazo-btn').forEach(function(b){b.classList.toggle('selected',b.getAttribute('data-val')===String(l.plazo));});
+}
+if(typeof actualizarPlazoExpress==='function')actualizarPlazoExpress();
+if(l.valorSeguro)document.getElementById('valorSeguro').value=l.valorSeguro;
+if(l.requiereEstandar){
+document.getElementById('requiereEstandar').checked=true;
+toggleEstandarMinero();
+if(l.estandarDetalle)document.getElementById('estandarDetalle').value=l.estandarDetalle;
+if(Array.isArray(l.estandarRequisitos)){TM_reqs=l.estandarRequisitos.map(function(r){return {id:r.id||tmReqUid(),label:r.label};});tmRenderReqs();}
+if(l.estandarArchivoId&&l.estandarArchivoNombre){
+_estandarArchivoIdPrevio=l.estandarArchivoId;
+_estandarArchivoNombrePrevio=l.estandarArchivoNombre;
+var fpE=document.getElementById('file-preview-estandar');
+if(fpE){fpE.classList.add('show');document.getElementById('file-name-estandar').textContent=l.estandarArchivoNombre;document.getElementById('file-size-estandar').textContent='Documento ya adjunto';}
+}
+}
+if(tipoLicitacion==='maquinaria'){
+document.getElementById('tipoEquipo').value=l.tipoEquipo||'';
+if(l.tipoEquipoRequerido){
+var vals=l.tipoEquipoRequerido.split(' / ');
+document.querySelectorAll('.eq-req-cb').forEach(function(cb){
+if(vals.indexOf(cb.value)>=0){cb.checked=true;var lbl=cb.closest('label');if(lbl){lbl.style.borderColor='#1e2d4e';lbl.style.background='#eef1f8';}}
+});
+var _known=[];document.querySelectorAll('.eq-req-cb').forEach(function(cb){if(cb.value!=='Otro')_known.push(cb.value);});
+var _custom=vals.filter(function(v){return v&&_known.indexOf(v)<0;});
+if(_custom.length){var _oc=document.querySelector('.eq-req-cb[value="Otro"]');if(_oc){_oc.checked=true;var _l=_oc.closest('label');if(_l){_l.style.borderColor='#1e2d4e';_l.style.background='#eef1f8';}}document.getElementById('otro-req-text').value=_custom.join(' / ');toggleOtroReq();}
+}
+if(l.marca)document.getElementById('marca').value=l.marca;
+if(l.modelo)document.getElementById('modeloMaq').value=l.modelo;
+if(l.peso)document.getElementById('pesoMaq').value=l.peso;
+if(l.pesoUnidad)document.getElementById('pesoMaqUnidad').value=l.pesoUnidad;
+if(l.dimensiones)document.getElementById('dimensionesMaq').value=l.dimensiones;
+if(l.descripcion)document.getElementById('descripcionMaq').value=l.descripcion;
+// Mostrar archivo previo maquinaria (no aplica al duplicar: hay que adjuntar uno nuevo)
+if(l.archivoNombre&&!esDuplicado){
+var fp=document.getElementById('file-preview-maq');fp.classList.add('show');
+document.getElementById('file-name-maq').textContent=l.archivoNombre;
+document.getElementById('file-size-maq').textContent='Archivo existente';
+}
+}else if(tipoLicitacion==='contenedor'){
+if(l.tipoContenedor){
+var _selCont=document.getElementById('tipoContenedor');
+var _opts=[];_selCont.querySelectorAll('option').forEach(function(o){_opts.push(o.value);});
+if(_opts.indexOf(l.tipoContenedor)>=0){
+_selCont.value=l.tipoContenedor;
+}else{
+_selCont.value='Otro';
+toggleOtroContenedor();
+document.getElementById('tipoContenedor-otro-text').value=l.tipoContenedor;
+}
+}
+if(l.condicionContenedor)document.getElementById('condicionContenedor').value=l.condicionContenedor;
+if(l.pesoVGM)document.getElementById('pesoVGM').value=l.pesoVGM;
+// N° de contenedor y sello son de una unidad física puntual: no se copian al duplicar
+if(!esDuplicado){
+if(l.numeroContenedor)document.getElementById('numeroContenedor').value=l.numeroContenedor;
+if(l.selloContenedor)document.getElementById('selloContenedor').value=l.selloContenedor;
+}
+if(l.mercanciaPeligrosa){
+document.getElementById('mercanciaPeligrosa').checked=true;
+toggleMercanciaPeligrosa();
+if(l.claseIMO)document.getElementById('claseIMO').value=l.claseIMO;
+if(l.numeroUN)document.getElementById('numeroUN').value=l.numeroUN;
+}
+if(l.refrigerado){
+document.getElementById('refrigerado').checked=true;
+toggleRefrigerado();
+if(l.temperaturaReefer)document.getElementById('temperaturaReefer').value=l.temperaturaReefer;
+}
+if(l.contSobredimensionado){
+document.getElementById('contSobredimensionado').checked=true;
+toggleContSobredimensionado();
+if(l.contSobredimensionadoDetalle)document.getElementById('contSobredimensionadoDetalle').value=l.contSobredimensionadoDetalle;
+}
+if(l.descripcion)document.getElementById('descripcionContenedor').value=l.descripcion;
+// Mostrar archivo previo contenedor (no aplica al duplicar)
+if(l.archivoNombre&&!esDuplicado){
+var fpC=document.getElementById('file-preview-contenedor');fpC.classList.add('show');
+document.getElementById('file-name-contenedor').textContent=l.archivoNombre;
+document.getElementById('file-size-contenedor').textContent='Archivo existente';
+}
+}else{
+if(l.tipoEquipoRequerido){
+document.getElementById('tipoEquipoCarga').value=l.tipoEquipoRequerido;
+var valsC=l.tipoEquipoRequerido.split(' / ');
+document.querySelectorAll('.eq-carga-cb').forEach(function(cb){
+if(valsC.indexOf(cb.value)>=0){cb.checked=true;var lblC=cb.closest('label');if(lblC){lblC.style.borderColor='#1e2d4e';lblC.style.background='#eef1f8';}}
+});
+var _knownC=[];document.querySelectorAll('.eq-carga-cb').forEach(function(cb){if(cb.value!=='Otro')_knownC.push(cb.value);});
+var _customC=valsC.filter(function(v){return v&&_knownC.indexOf(v)<0;});
+if(_customC.length){var _ocC=document.querySelector('.eq-carga-cb[value="Otro"]');if(_ocC){_ocC.checked=true;var _lC=_ocC.closest('label');if(_lC){_lC.style.borderColor='#1e2d4e';_lC.style.background='#eef1f8';}}document.getElementById('otro-carga-text').value=_customC.join(' / ');toggleOtroCarga();}
+}
+if(l.tipoCarga)document.getElementById('tipoCarga').value=l.tipoCarga;
+if(l.peso)document.getElementById('pesoCarga').value=l.peso;
+if(l.pesoUnidad)document.getElementById('pesoCargaUnidad').value=l.pesoUnidad;
+if(l.volumen)document.getElementById('volumenCarga').value=l.volumen;
+if(l.cantidadBultos)document.getElementById('cantidadBultos').value=l.cantidadBultos;
+if(l.pesoPorBulto)document.getElementById('pesoPorBulto').value=l.pesoPorBulto;
+if(l.dimensiones)document.getElementById('dimensionesCarga').value=l.dimensiones;
+if(l.descripcion)document.getElementById('descripcionCarga').value=l.descripcion;
+if(Array.isArray(l.paradas)){
+l.paradas.forEach(function(p){agregarParada(p);});
+}
+// Mostrar archivo previo carga (no aplica al duplicar)
+if(l.archivoNombre&&!esDuplicado){
+var fp2=document.getElementById('file-preview-carga');fp2.classList.add('show');
+document.getElementById('file-name-carga').textContent=l.archivoNombre;
+document.getElementById('file-size-carga').textContent='Archivo existente';
+}
+}
+// Tipo de entrega en destino (aplica a ambos tipos)
+var tEntVal=l.tipoEntregaDestino||'no_aplica';
+document.querySelectorAll('.entrega-cb').forEach(function(cb){cb.checked=(cb.value===tEntVal)});
+document.getElementById('tipoEntregaDestino').value=tEntVal;
+}catch(e){console.error('Error cargando edicion:',e);}
+}
+
+function cerrarSesion(){localStorage.clear();window.location.replace('/index.html');}
+
+async function cargarNotificaciones(){
+    try {
+      var token = localStorage.getItem('tm_token');
+      var r = await fetch(API + '/api/notificaciones', { headers: {'Authorization':'Bearer '+token} });
+      var data = await r.json();
+      var notifs = data.notificaciones || [];
+      var noLeidas = notifs.filter(function(n){ return !n.leida; }).length;
+      var badge = document.getElementById('notif-count');
+      if(badge){ badge.textContent = noLeidas > 9 ? '9+' : noLeidas; badge.style.display = noLeidas > 0 ? 'flex' : 'none'; }
+      var list = document.getElementById('notif-list');
+      if(!list) return;
+      if(notifs.length === 0){
+        list.innerHTML = '<div style="padding:32px 20px;text-align:center"><div style="font-size:28px;margin-bottom:8px"></div><div style="font-size:14px;font-weight:500;color:#374151;margin-bottom:4px">Sin notificaciones</div><div style="font-size:12px;color:#9CA3AF">Te avisaremos cuando haya novedades</div></div>';
+        return;
+      }
+      var iconMap = {
+        adjudicacion: '#16a34a',
+        licitacion_aprobada: '#16a34a',
+        licitacion_rechazada: '#EF4444',
+        licitacion_cerrada: '#1d4ed8',
+        cotizaciones_disponibles: '#FF8808',
+        nueva_licitacion: '#1e2d4e',
+        cobro_pendiente: '#FF8808',
+        cobro_pagado: '#16a34a',
+        cuenta_aprobada: '#16a34a',
+      };
+      list.innerHTML = notifs.slice(0,20).map(function(n){
+        var icono = iconMap[n.tipo] || '#9CA3AF';
+        var bg = !n.leida ? 'background:#f0f4ff' : '';
+        var ts = n.createdAt ? new Date(n.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+        return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;'+bg+';display:flex;gap:10px;align-items:flex-start">'+
+          '<div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;background:'+icono+'"></div>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-size:13px;color:#111827;margin-bottom:2px;line-height:1.4">'+n.mensaje+'</div>'+
+            '<div style="font-size:11px;color:#9CA3AF">'+ts+'</div>'+
+          '</div>'+
+          (!n.leida
+            ? '<button onclick="marcarUnaLeida(\'' + n.id + '\')" title="Marcar como leída" style="background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0;margin-top:2px;color:#1e2d4e;font-size:15px;font-weight:700;opacity:0.6" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">✓</button>'
+            : '') +
+        '</div>';
+      }).join('');
+      cargarPrefsConfig();
+    } catch(e){}
+  }
+
+function cargarPrefsConfig(){
+    try {
+      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      var ec = document.getElementById('notif-email-chk');
+      if(ec) ec.checked = prefs.notifEmail !== false;
+      ['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
+        var el = document.getElementById('pref-'+id);
+        if(el) el.checked = prefs['pref_'+id] !== false;
+      });
+    } catch(e){}
+  }
+  function guardarPrefs(){
+    try {
+      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      var ec = document.getElementById('notif-email-chk');
+      if(ec) prefs.notifEmail = ec.checked;
+      localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+    } catch(e){}
+  }
+  function guardarPrefsDetalle(){
+    try {
+      var prefs = JSON.parse(localStorage.getItem('tm_notif_prefs') || '{}');
+      ['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
+        var el = document.getElementById('pref-'+id);
+        if(el) prefs['pref_'+id] = el.checked;
+      });
+      localStorage.setItem('tm_notif_prefs', JSON.stringify(prefs));
+    } catch(e){}
+  }
+
+async function marcarUnaLeida(id){
+    try {
+      await api('/api/notificaciones/leer', 'POST', { id: id });
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+async function marcarTodasLeidas(){
+    try {
+      const r = await api('/api/notificaciones');
+      if(!r || !r.ok) return;
+      const notifs = r.data.notificaciones || [];
+      const noLeidas = notifs.filter(function(n){ return !n.leida; });
+      for(var i=0; i<noLeidas.length; i++){
+        await api('/api/notificaciones/leer', 'POST', { id: noLeidas[i].id });
+      }
+      const badge = document.getElementById('notif-count');
+      if(badge) badge.style.display = 'none';
+      await cargarNotificaciones();
+    } catch(e){}
+  }
+
+function toggleConfigNotif(){
+    var cfg      = document.getElementById('notif-config');
+    var list     = document.getElementById('notif-list');
+    var hMain    = document.getElementById('notif-header-main');
+    var hConfig  = document.getElementById('notif-header-config');
+    var isOpen   = cfg && cfg.style.display !== 'none';
+    if(isOpen){
+      if(cfg)     cfg.style.display     = 'none';
+      if(list)    list.style.display    = 'block';
+      if(hMain)   hMain.style.display   = 'flex';
+      if(hConfig) hConfig.style.display = 'none';
+    } else {
+      if(cfg)     cfg.style.display     = 'block';
+      if(list)    list.style.display    = 'none';
+      if(hMain)   hMain.style.display   = 'none';
+      if(hConfig) hConfig.style.display = 'flex';
+      cargarPrefsConfig();
+    }
+  }
+
+if(editId) document.addEventListener('DOMContentLoaded', function(){ cargarEdicion(editId); });
+if(duplicarId) document.addEventListener('DOMContentLoaded', function(){ cargarEdicion(duplicarId, true); });
+
+// Fecha mínima de carga: hoy + 2 días (se bloquea hoy y el día siguiente; mínimo = pasado mañana)
+function aplicarFechaMinima(){
+  var d=new Date(); d.setDate(d.getDate()+1);
+  // Construir YYYY-MM-DD en hora LOCAL (no UTC) para evitar corrimiento de día en Chile.
+  var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+  var min=y+'-'+m+'-'+dd;
+  var fc=document.getElementById('fechaCarga'); if(fc) fc.min=min;
+  var fe=document.getElementById('fechaEntrega'); if(fe) fe.min=min;
+}
+document.addEventListener('DOMContentLoaded', aplicarFechaMinima);
+// La fecha de entrega no puede ser anterior a la fecha de carga elegida; y mostrar/ocultar plazo express según urgencia
+document.addEventListener('DOMContentLoaded', function(){
+  var fc=document.getElementById('fechaCarga');
+  if(fc) fc.addEventListener('change', function(){
+    var fe=document.getElementById('fechaEntrega');
+    if(fe && fc.value) fe.min=fc.value;
+    actualizarPlazoExpress();
+  });
+});
+
+// Muestra la opción express de 6h SOLO si la fecha de carga es mañana (día siguiente a hoy)
+// Cuando el express está visible, se oculta el plazo estándar de 48h.
+function actualizarPlazoExpress(){
+  var fcEl=document.getElementById('fechaCarga');
+  var expressBtn=document.getElementById('plazo-express');
+  var btn48=document.getElementById('plazo-48');
+  if(!fcEl||!expressBtn) return;
+  var hoy=new Date(); hoy.setHours(0,0,0,0);
+  var manana=new Date(hoy); manana.setDate(manana.getDate()+1);
+  var esManana=false;
+  if(fcEl.value){
+    var partes=fcEl.value.split('-');
+    var fcDate=new Date(parseInt(partes[0]),parseInt(partes[1])-1,parseInt(partes[2]));
+    fcDate.setHours(0,0,0,0);
+    esManana=(fcDate.getTime()===manana.getTime());
+  }
+  if(esManana){
+    expressBtn.style.display='';
+    if(btn48) btn48.style.display='none';
+    // Si estaba seleccionado el 48h y deja de estar disponible, volver a 24h
+    if(document.getElementById('plazo').value==='48'){
+      var btn24a=document.querySelector('#plazo-grid .plazo-btn[data-val="24"]');
+      if(btn24a) selectPlazo(btn24a,'24');
+    }
+  } else {
+    expressBtn.style.display='none';
+    if(btn48) btn48.style.display='';
+    // Si estaba seleccionado el express y deja de aplicar, volver a 24h
+    if(document.getElementById('plazo').value==='6'){
+      var btn24b=document.querySelector('#plazo-grid .plazo-btn[data-val="24"]');
+      if(btn24b) selectPlazo(btn24b,'24');
+    }
+  }
+}
+
+var _API='https://transmatch.transmatchcl.workers.dev';
+function closeAllPanels(){var p=document.getElementById('notif-panel');if(p)p.style.display='none';var m=document.getElementById('user-menu');if(m)m.style.display='none';}
+function toggleUserMenu(e){if(e)e.stopPropagation();var m=document.getElementById('user-menu');var open=m&&m.style.display==='block';closeAllPanels();if(!open&&m)m.style.display='block';}
+function toggleNotifs(e){if(e)e.stopPropagation();var p=document.getElementById('notif-panel');var open=p&&p.style.display==='flex';closeAllPanels();if(!open&&p){p.style.display='flex';_cargarNotif();}}
+document.addEventListener('click',closeAllPanels);
+function _cargarNotif(){
+  var token=localStorage.getItem('tm_token');
+  fetch(_API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    var notifs=d.notificaciones||[];
+    var badge=document.getElementById('notif-count');
+    var n=notifs.filter(function(x){return !x.leida;}).length;
+    if(badge){badge.textContent=n>9?'9+':n;badge.style.display=n>0?'flex':'none';}
+    var list=document.getElementById('notif-list');if(!list)return;
+    if(!notifs.length){list.innerHTML='<div style="padding:20px;text-align:center;color:#9CA3AF;font-size:13px">Sin notificaciones</div>';return;}
+    list.innerHTML=notifs.slice(0,20).map(function(no){
+      var ts=no.createdAt?new Date(no.createdAt).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+      return '<div style="padding:12px 16px;border-bottom:0.5px solid #f3f4f6;display:flex;align-items:flex-start;gap:8px;'+(no.leida?'':'background:#f0f4ff')+'"><div style="flex:1"><div style="font-size:13px;color:#111827;margin-bottom:2px">'+no.mensaje+'</div><div style="font-size:11px;color:#9CA3AF">'+ts+'</div></div>'+(!no.leida?'<button onclick="_marcarLeida(\''+no.id+'\');" style="background:none;border:none;cursor:pointer;color:#1e2d4e;font-size:15px;font-weight:700;flex-shrink:0" title="Marcar leída">✓</button>':'')+'</div>';
+    }).join('');
+  }).catch(function(){});
+}
+function _marcarLeida(id){
+  fetch(_API+'/api/notificaciones/leer',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({id:id})})
+  .then(function(){_cargarNotif();}).catch(function(){});
+}
+function marcarTodasLeidas(){
+  fetch(_API+'/api/notificaciones',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    var ps=(d.notificaciones||[]).filter(function(x){return !x.leida;}).map(function(x){
+      return fetch(_API+'/api/notificaciones/leer',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({id:x.id})});
+    });
+    return Promise.all(ps);
+  })
+  .then(function(){_cargarNotif();}).catch(function(){});
+}
+
+function toggleMobileNav(){
+  var p=document.getElementById('nav-mobile-panel');
+  if(!p) return;
+  var willOpen = !p.classList.contains('open');
+  // Cerrar otros menús (avatar y notificaciones) si existen
+  var um=document.getElementById('user-menu'); if(um) um.style.display='none';
+  var np=document.getElementById('notif-panel'); if(np) np.style.display='none';
+  if(typeof closeAllPanels==='function'){ try{closeAllPanels();}catch(e){} }
+  if(willOpen) p.classList.add('open'); else p.classList.remove('open');
+}
+function cerrarMenuMovil(){
+  var p=document.getElementById('nav-mobile-panel'); if(p) p.classList.remove('open');
+}
+document.addEventListener('click',function(e){
+  var p=document.getElementById('nav-mobile-panel');
+  if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.nav-mobile-menu'))
+    p.classList.remove('open');
+});
+</script>
+
+<footer style="background:#1e2d4e;margin-top:40px;padding:28px 24px 20px">
+<div style="max-width:1100px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">
+<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><svg style="height:28px;width:auto;display:block" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
+<path d="M64.1394 125.047V59.8869H38.3394V41.0469H113.579V59.8869H87.8994V125.047H64.1394ZM120.062 125.047V60.0069H141.782V78.9669L138.542 73.5669C140.462 68.6869 143.582 65.0469 147.902 62.6469C152.222 60.1669 157.462 58.9269 163.622 58.9269V79.4469C162.582 79.2869 161.662 79.2069 160.862 79.2069C160.142 79.1269 159.342 79.0869 158.462 79.0869C153.822 79.0869 150.062 80.3669 147.182 82.9269C144.302 85.4069 142.862 89.4869 142.862 95.1669V125.047H120.062ZM208.767 125.047V112.927L207.207 109.927V87.6069C207.207 84.0069 206.087 81.2469 203.847 79.3269C201.687 77.3269 198.207 76.3269 193.407 76.3269C190.287 76.3269 187.127 76.8469 183.927 77.8869C180.727 78.8469 178.007 80.2069 175.767 81.9669L168.087 66.4869C171.767 64.0869 176.167 62.2469 181.287 60.9669C186.487 59.6069 191.647 58.9269 196.767 58.9269C207.327 58.9269 215.487 61.3669 221.247 66.2469C227.087 71.0469 230.007 78.6069 230.007 88.9269V125.047H208.767ZM189.567 126.127C184.367 126.127 179.967 125.247 176.367 123.487C172.767 121.727 170.007 119.327 168.087 116.287C166.247 113.247 165.327 109.847 165.327 106.087C165.327 102.087 166.327 98.6469 168.327 95.7669C170.407 92.8069 173.567 90.5669 177.807 89.0469C182.047 87.4469 187.527 86.6469 194.247 86.6469H209.607V98.5269H197.367C193.687 98.5269 191.087 99.1269 189.567 100.327C188.127 101.527 187.407 103.127 187.407 105.127C187.407 107.127 188.167 108.727 189.687 109.927C191.207 111.127 193.287 111.727 195.927 111.727C198.407 111.727 200.647 111.127 202.647 109.927C204.727 108.647 206.247 106.727 207.207 104.167L210.327 112.567C209.127 117.047 206.767 120.447 203.247 122.767C199.807 125.007 195.247 126.127 189.567 126.127ZM244.398 125.047V60.0069H266.118V78.4869L261.918 73.0869C264.398 68.3669 267.798 64.8469 272.118 62.5269C276.438 60.1269 281.318 58.9269 286.758 58.9269C291.798 58.9269 296.358 59.9669 300.438 62.0469C304.518 64.0469 307.718 67.1669 310.038 71.4069C312.438 75.6469 313.638 81.1269 313.638 87.8469V125.047H290.838V91.5669C290.838 86.9269 289.878 83.5669 287.958 81.4869C286.118 79.3269 283.518 78.2469 280.158 78.2469C277.758 78.2469 275.558 78.8069 273.558 79.9269C271.558 80.9669 269.998 82.6069 268.878 84.8469C267.758 87.0869 267.198 90.0069 267.198 93.6069V125.047H244.398ZM351.593 126.127C346.073 126.127 340.673 125.487 335.393 124.207C330.193 122.927 325.993 121.327 322.793 119.407L329.633 103.807C332.673 105.647 336.233 107.127 340.313 108.247C344.393 109.287 348.393 109.807 352.313 109.807C356.153 109.807 358.793 109.407 360.233 108.607C361.753 107.807 362.513 106.727 362.513 105.367C362.513 104.087 361.793 103.167 360.353 102.607C358.993 101.967 357.153 101.487 354.833 101.167C352.593 100.847 350.113 100.487 347.393 100.087C344.673 99.6869 341.913 99.1669 339.113 98.5269C336.393 97.8069 333.873 96.7669 331.553 95.4069C329.313 93.9669 327.513 92.0469 326.153 89.6469C324.793 87.2469 324.113 84.2069 324.113 80.5269C324.113 76.3669 325.313 72.6869 327.713 69.4869C330.193 66.2069 333.793 63.6469 338.513 61.8069C343.233 59.8869 348.993 58.9269 355.793 58.9269C360.353 58.9269 364.953 59.4069 369.593 60.3669C374.313 61.2469 378.273 62.6069 381.473 64.4469L374.633 79.9269C371.433 78.0869 368.233 76.8469 365.033 76.2069C361.833 75.4869 358.793 75.1269 355.913 75.1269C352.073 75.1269 349.353 75.5669 347.753 76.4469C346.233 77.3269 345.473 78.4069 345.473 79.6869C345.473 80.9669 346.153 81.9669 347.513 82.6869C348.873 83.3269 350.673 83.8469 352.913 84.2469C355.233 84.5669 357.753 84.9269 360.473 85.3269C363.193 85.6469 365.913 86.1669 368.633 86.8869C371.433 87.6069 373.953 88.6869 376.193 90.1269C378.513 91.4869 380.353 93.3669 381.713 95.7669C383.073 98.0869 383.753 101.087 383.753 104.767C383.753 108.767 382.513 112.367 380.033 115.567C377.633 118.767 374.033 121.327 369.233 123.247C364.513 125.167 358.633 126.127 351.593 126.127Z" fill="white"/>
+<path d="M443.259 125.047V41.0469H462.819L497.619 98.1669H487.299L521.139 41.0469H540.699L540.939 125.047H519.099L518.859 74.2869H522.579L497.259 116.767H486.699L460.659 74.2869H465.219V125.047H443.259ZM596.392 125.047V112.927L594.832 109.927V87.6069C594.832 84.0069 593.712 81.2469 591.472 79.3269C589.312 77.3269 585.832 76.3269 581.032 76.3269C577.912 76.3269 574.752 76.8469 571.552 77.8869C568.352 78.8469 565.632 80.2069 563.392 81.9669L555.712 66.4869C559.392 64.0869 563.792 62.2469 568.912 60.9669C574.112 59.6069 579.272 58.9269 584.392 58.9269C594.952 58.9269 603.112 61.3669 608.872 66.2469C614.712 71.0469 617.632 78.6069 617.632 88.9269V125.047H596.392ZM577.192 126.127C571.992 126.127 567.592 125.247 563.992 123.487C560.392 121.727 557.632 119.327 555.712 116.287C553.872 113.247 552.952 109.847 552.952 106.087C552.952 102.087 553.952 98.6469 555.952 95.7669C558.032 92.8069 561.192 90.5669 565.432 89.0469C569.672 87.4469 575.152 86.6469 581.872 86.6469H597.232V98.5269H584.992C581.312 98.5269 578.712 99.1269 577.192 100.327C575.752 101.527 575.032 103.127 575.032 105.127C575.032 107.127 575.792 108.727 577.312 109.927C578.832 111.127 580.912 111.727 583.552 111.727C586.032 111.727 588.272 111.127 590.272 109.927C592.352 108.647 593.872 106.727 594.832 104.167L597.952 112.567C596.752 117.047 594.392 120.447 590.872 122.767C587.432 125.007 582.872 126.127 577.192 126.127ZM661.063 126.127C652.743 126.127 646.263 124.087 641.623 120.007C636.983 115.847 634.663 109.607 634.663 101.287V45.4869H657.463V101.047C657.463 103.367 658.103 105.207 659.383 106.567C660.663 107.847 662.303 108.487 664.303 108.487C667.023 108.487 669.343 107.807 671.263 106.447L676.903 122.407C674.983 123.687 672.623 124.607 669.823 125.167C667.023 125.807 664.103 126.127 661.063 126.127ZM625.183 76.9269V60.0069H672.343V76.9269H625.183ZM717.06 126.127C709.86 126.127 703.42 124.687 697.74 121.807C692.14 118.927 687.74 114.967 684.54 109.927C681.34 104.807 679.74 98.9669 679.74 92.4069C679.74 85.8469 681.34 80.0469 684.54 75.0069C687.74 69.9669 692.14 66.0469 697.74 63.2469C703.42 60.3669 709.86 58.9269 717.06 58.9269C724.42 58.9269 730.78 60.4869 736.14 63.6069C741.5 66.7269 745.3 71.1269 747.54 76.8069L729.9 85.8069C728.38 82.7669 726.5 80.5669 724.26 79.2069C722.02 77.7669 719.58 77.0469 716.94 77.0469C714.3 77.0469 711.9 77.6469 709.74 78.8469C707.58 80.0469 705.86 81.8069 704.58 84.1269C703.38 86.3669 702.78 89.1269 702.78 92.4069C702.78 95.7669 703.38 98.6069 704.58 100.927C705.86 103.247 707.58 105.007 709.74 106.207C711.9 107.407 714.3 108.007 716.94 108.007C719.58 108.007 722.02 107.327 724.26 105.967C726.5 104.527 728.38 102.287 729.9 99.2469L747.54 108.247C745.3 113.927 741.5 118.327 736.14 121.447C730.78 124.567 724.42 126.127 717.06 126.127ZM755.89 125.047V36.0069H778.69V78.4869L773.41 73.0869C775.89 68.3669 779.29 64.8469 783.61 62.5269C787.93 60.1269 792.81 58.9269 798.25 58.9269C803.29 58.9269 807.85 59.9669 811.93 62.0469C816.01 64.0469 819.21 67.1669 821.53 71.4069C823.93 75.6469 825.13 81.1269 825.13 87.8469V125.047H802.33V91.5669C802.33 86.9269 801.37 83.5669 799.45 81.4869C797.61 79.3269 795.01 78.2469 791.65 78.2469C789.25 78.2469 787.05 78.8069 785.05 79.9269C783.05 80.9669 781.49 82.6069 780.37 84.8469C779.25 87.0869 778.69 90.0069 778.69 93.6069V125.047H755.89Z" fill="#FF8808"/>
+<path d="M872.552 15.0301C869.247 11.7256 863.89 11.7257 860.585 15.0301L848.489 27.1262C845.185 30.4306 845.185 35.7882 848.489 39.0926L889.46 80.0637C892.765 83.3681 892.765 88.7257 889.46 92.0301L848.489 133.001C845.185 136.306 845.185 141.663 848.489 144.968L860.585 157.064C863.89 160.368 869.247 160.368 872.552 157.064L937.585 92.0301C940.89 88.7256 940.89 83.3681 937.585 80.0637L872.552 15.0301Z" fill="#FF8808"/>
+<path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
+</svg></div><div style="font-size:12px;color:#93C5FD">Plataforma B2B de transporte especializado</div></div>
+<div style="display:flex;gap:32px;flex-wrap:wrap">
+<div><div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Legal</div><div style="display:flex;flex-direction:column;gap:6px"><a href="/terminos.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Terminos y condiciones</a><a href="/privacidad.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Politica de privacidad</a><a href="/ayuda.html" style="font-size:13px;color:#CBD5E1;text-decoration:none">Centro de ayuda</a></div></div>
+<div><div style="font-size:11px;font-weight:600;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Contacto</div><div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:#CBD5E1">contacto@transmatch.cl</span><span style="font-size:13px;color:#CBD5E1">+56 9 6908 1098</span><span style="font-size:13px;color:#CBD5E1">Av. La Dehesa 1201</span></div></div>
+</div>
+</div>
+<div style="max-width:1100px;margin:20px auto 0;padding-top:16px;border-top:0.5px solid rgba(255,255,255,.1);font-size:12px;color:#64748B">(c) 2026 TransMatch SpA.</div>
+</footer>
+<script>document.addEventListener("change",function(e){var t=e.target;if(t&&t.matches&&t.matches('input[type="date"]'))t.blur();});</script>
+</body></html>

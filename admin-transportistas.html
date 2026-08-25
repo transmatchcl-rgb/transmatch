@@ -172,7 +172,7 @@
 <div id="toast"></div>
 
 <script>
-  const API = 'https://transmatch.transmatchcl.workers.dev';
+  const API = (localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
   let allT = [], grupos = [], selEmail = '';
 
   function rolBadge(rol){ var m={dueno:'<span class="badge" style="background:#EEEDFE;color:#3C3489">Dueño</span>',gestor:'<span class="badge" style="background:#E1F5EE;color:#0F6E56">Gestor</span>',miembro:'<span class="badge" style="background:#FAEEDA;color:#854F0B">Miembro</span>',visor:'<span class="badge" style="background:#F1EFE8;color:#444441">Visor</span>'}; return m[rol]||m.miembro; }
