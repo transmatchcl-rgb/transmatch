@@ -367,6 +367,25 @@ create table if not exists invitaciones (
 );
 
 -- ────────────────────────────────────────────────────────────────────────────
+-- PROPUESTAS DE RETORNO  (hoy: RETORNOS "propuesta:<id>" + índices)
+-- ────────────────────────────────────────────────────────────────────────────
+create table if not exists propuestas (
+  id                text primary key,
+  retorno_id        text,
+  cliente_id        text,
+  cliente_email     text,
+  transportista_id  text,
+  estado            text,   -- 'pendiente' | 'aceptada' | 'rechazada'
+  precio_negociado  numeric,
+  datos             jsonb,
+  created_at        timestamptz default now()
+);
+create index if not exists idx_prop_retorno on propuestas(retorno_id);
+create index if not exists idx_prop_cliente on propuestas(cliente_id);
+create index if not exists idx_prop_transportista on propuestas(transportista_id);
+alter table propuestas enable row level security;
+
+-- ────────────────────────────────────────────────────────────────────────────
 -- ARCHIVOS  (hoy: namespace ARCHIVOS — PDFs/imágenes en base64)
 -- Nota: guardar base64 en la tabla funciona, pero pesa. Más adelante conviene
 -- moverlos a Supabase Storage. Por ahora se migran tal cual para no perder nada.
