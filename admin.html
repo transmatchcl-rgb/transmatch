@@ -171,7 +171,7 @@
 <a href="/admin-cobros.html" class="nav-mobile-link">Facturación</a>
 <a href="/admin-reportes.html" class="nav-mobile-link">Reportes</a>
 </div>
-<main><!-- ── DASHBOARD ─────────────────────────────────────── --><div id="s-dashboard" class="section active"><div class="page-hdr"><div><div class="page-title">Dashboard</div><div class="page-sub" id="dash-fecha">Cargando...</div></div><div style="display:flex;gap:8px"><button class="btn btn-primary btn-sm" onclick="crearUsuarioModal()">Crear usuario</button><button class="btn btn-outline btn-sm" onclick="generarAcceso()">Generar link de acceso</button><button class="btn btn-outline btn-sm" onclick="exportarTodo()">Exportar CSV</button><button class="btn btn-outline btn-sm" onclick="migrarSupabase(false)">Migrar Supabase (real)</button><button class="btn btn-outline btn-sm" onclick="migrarSupabaseArchivos()">Migrar archivos</button><button class="btn btn-outline btn-sm" onclick="probarUsuariosSB()">Probar usuarios (SB)</button></div></div><div class="card-title" style="font-size:15px;margin-bottom:12px">Requiere tu acción</div><div style="display:flex;gap:14px;flex-wrap:wrap" id="dash-accion"><div class="stat" style="flex:0 0 280px;cursor:pointer" onclick="location.href='/admin-clientes.html#vencimientos'"><div class="stat-label">Contratos por vencer</div><div class="stat-val" id="acc-vencer" style="color:#FF8808">—</div></div></div><div class="card" style="margin-top:18px"><div class="card-hdr"><div class="card-title">Licitaciones pendientes de aprobación <span id="pend-count" class="badge badge-red" style="margin-left:6px">0</span></div><button class="btn btn-outline btn-sm" onclick="location.href='/admin-licitaciones.html'">Ver todas →</button></div><div id="dash-pendientes"><div class="spinner-wrap"><div class="spinner"></div></div></div></div><div class="card-title" style="font-size:15px;margin:24px 0 12px">Salud del negocio</div><div class="grid-4" id="dash-salud"><div class="stat"><div class="stat-label">Licitaciones activas</div><div class="stat-val" id="sal-activas" style="color:#FF8808">—</div></div><div class="stat"><div class="stat-label">Clientes activos</div><div class="stat-val" id="sal-clientes" style="color:#1e2d4e">—</div></div><div class="stat"><div class="stat-label">Transportistas activos</div><div class="stat-val" id="sal-transp" style="color:#1e2d4e">—</div></div><div class="stat"><div class="stat-label">Completadas</div><div class="stat-val" id="sal-completadas" style="color:#16a34a">—</div></div></div></div><!-- ── LICITACIONES ───────────────────────────────────── --><div id="s-licitaciones" class="section"><div class="page-hdr"><div class="page-title">Licitaciones</div><div class="page-sub">Todas las licitaciones en tiempo real</div></div><div class="filter-bar"><select class="select" id="fil-estado" onchange="filtrarLicitaciones()"><option value="">Todos los estados</option><option value="pendiente_admin">Pendientes aprobación</option><option value="abierta">Abiertas (cotizando)</option><option value="cerrada">En revisión cliente</option><option value="adjudicada">Adjudicadas</option><option value="completada">Completadas</option><option value="rechazada">Rechazadas</option></select><input class="input" style="max-width:280px;" placeholder=" Buscar empresa, equipo o ruta..." id="fil-buscar" oninput="filtrarLicitaciones()"/><button class="btn btn-outline btn-sm" onclick="exportarLicitaciones()">CSV</button></div><div class="card"><div id="lista-licitaciones"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── TRANSPORTISTAS ─────────────────────────────────── --><div id="s-transportistas" class="section"><div class="page-hdr"><div class="page-title">Transportistas</div><div class="page-sub">Gestión de proveedores de la red</div></div><div class="filter-bar"><select class="select" id="fil-t-estado" onchange="filtrarTransportistas()"><option value="">Todos</option><option value="pendiente">Pendientes</option><option value="activo">Activos</option><option value="suspendido">Suspendidos</option><option value="rechazado">Rechazados</option></select><input class="input" style="max-width:240px;" placeholder="Buscar nombre o empresa..." id="fil-t-buscar" oninput="filtrarTransportistas()"/></div><div class="card"><div id="lista-transportistas"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── CLIENTES ───────────────────────────────────────── --><div id="s-clientes" class="section"><div class="page-hdr"><div class="page-title">Clientes</div><div class="page-sub">Empresas registradas en la plataforma</div></div><div class="filter-bar"><select class="select" id="fil-c-plan" onchange="filtrarClientes()"><option value="">Todos los planes</option><option value="básico">Básico</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select><input class="input" style="max-width:240px;" placeholder="Buscar empresa o email..." id="fil-c-buscar" oninput="filtrarClientes()"/></div><div class="card"><div id="lista-clientes"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── ALERTAS ────────────────────────────────────────── --><div id="s-alertas" class="section"><div class="page-hdr"><div class="page-title">Alertas y posibles fraudes</div><div class="page-sub">Licitaciónes adjudicadas sin confirmar por más de 7 días</div></div><div class="card"><div id="lista-alertas"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── RETORNOS ─────────────────────────────────────── -->
+<main><!-- ── DASHBOARD ─────────────────────────────────────── --><div id="s-dashboard" class="section active"><div class="page-hdr"><div><div class="page-title">Dashboard</div><div class="page-sub" id="dash-fecha">Cargando...</div></div><div style="display:flex;gap:8px"><button class="btn btn-primary btn-sm" onclick="crearUsuarioModal()">Crear usuario</button><button class="btn btn-outline btn-sm" onclick="generarAcceso()">Generar link de acceso</button><button class="btn btn-outline btn-sm" onclick="exportarTodo()">Exportar CSV</button></div></div><div class="card-title" style="font-size:15px;margin-bottom:12px">Requiere tu acción</div><div style="display:flex;gap:14px;flex-wrap:wrap" id="dash-accion"><div class="stat" style="flex:0 0 280px;cursor:pointer" onclick="location.href='/admin-clientes.html#vencimientos'"><div class="stat-label">Contratos por vencer</div><div class="stat-val" id="acc-vencer" style="color:#FF8808">—</div></div></div><div class="card" style="margin-top:18px"><div class="card-hdr"><div class="card-title">Licitaciones pendientes de aprobación <span id="pend-count" class="badge badge-red" style="margin-left:6px">0</span></div><button class="btn btn-outline btn-sm" onclick="location.href='/admin-licitaciones.html'">Ver todas →</button></div><div id="dash-pendientes"><div class="spinner-wrap"><div class="spinner"></div></div></div></div><div class="card-title" style="font-size:15px;margin:24px 0 12px">Salud del negocio</div><div class="grid-4" id="dash-salud"><div class="stat"><div class="stat-label">Licitaciones activas</div><div class="stat-val" id="sal-activas" style="color:#FF8808">—</div></div><div class="stat"><div class="stat-label">Clientes activos</div><div class="stat-val" id="sal-clientes" style="color:#1e2d4e">—</div></div><div class="stat"><div class="stat-label">Transportistas activos</div><div class="stat-val" id="sal-transp" style="color:#1e2d4e">—</div></div><div class="stat"><div class="stat-label">Completadas</div><div class="stat-val" id="sal-completadas" style="color:#16a34a">—</div></div></div></div><!-- ── LICITACIONES ───────────────────────────────────── --><div id="s-licitaciones" class="section"><div class="page-hdr"><div class="page-title">Licitaciones</div><div class="page-sub">Todas las licitaciones en tiempo real</div></div><div class="filter-bar"><select class="select" id="fil-estado" onchange="filtrarLicitaciones()"><option value="">Todos los estados</option><option value="pendiente_admin">Pendientes aprobación</option><option value="abierta">Abiertas (cotizando)</option><option value="cerrada">En revisión cliente</option><option value="adjudicada">Adjudicadas</option><option value="completada">Completadas</option><option value="rechazada">Rechazadas</option></select><input class="input" style="max-width:280px;" placeholder=" Buscar empresa, equipo o ruta..." id="fil-buscar" oninput="filtrarLicitaciones()"/><button class="btn btn-outline btn-sm" onclick="exportarLicitaciones()">CSV</button></div><div class="card"><div id="lista-licitaciones"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── TRANSPORTISTAS ─────────────────────────────────── --><div id="s-transportistas" class="section"><div class="page-hdr"><div class="page-title">Transportistas</div><div class="page-sub">Gestión de proveedores de la red</div></div><div class="filter-bar"><select class="select" id="fil-t-estado" onchange="filtrarTransportistas()"><option value="">Todos</option><option value="pendiente">Pendientes</option><option value="activo">Activos</option><option value="suspendido">Suspendidos</option><option value="rechazado">Rechazados</option></select><input class="input" style="max-width:240px;" placeholder="Buscar nombre o empresa..." id="fil-t-buscar" oninput="filtrarTransportistas()"/></div><div class="card"><div id="lista-transportistas"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── CLIENTES ───────────────────────────────────────── --><div id="s-clientes" class="section"><div class="page-hdr"><div class="page-title">Clientes</div><div class="page-sub">Empresas registradas en la plataforma</div></div><div class="filter-bar"><select class="select" id="fil-c-plan" onchange="filtrarClientes()"><option value="">Todos los planes</option><option value="básico">Básico</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select><input class="input" style="max-width:240px;" placeholder="Buscar empresa o email..." id="fil-c-buscar" oninput="filtrarClientes()"/></div><div class="card"><div id="lista-clientes"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── ALERTAS ────────────────────────────────────────── --><div id="s-alertas" class="section"><div class="page-hdr"><div class="page-title">Alertas y posibles fraudes</div><div class="page-sub">Licitaciónes adjudicadas sin confirmar por más de 7 días</div></div><div class="card"><div id="lista-alertas"><div class="spinner-wrap"><div class="spinner"></div></div></div></div></div><!-- ── RETORNOS ─────────────────────────────────────── -->
 <div id="s-retornos" class="section">
   <div class="page-hdr">
     <div class="page-title">Retornos disponibles</div>
@@ -699,107 +699,7 @@
     toast('Licitaciones exportadas');
   }
 
-  var _TABLAS_SB=['empresas','facturas_suscripcion','usuarios','equipos','licitaciones','cotizaciones','preguntas','transportes','ordenes_venta','facturas_consolidado','retornos','propuestas','notificaciones','actividad','secuencias'];
-  function _sbBox(titulo){
-    var prev=document.getElementById('sb-result'); if(prev) prev.remove();
-    var box=document.createElement('div'); box.id='sb-result';
-    box.style.cssText='position:fixed;inset:0;background:rgba(17,24,39,.5);display:flex;align-items:center;justify-content:center;z-index:99999;padding:20px';
-    box.innerHTML='<div style="background:#fff;border-radius:12px;padding:20px;max-width:480px;width:100%;max-height:80vh;overflow:auto">'
-      +'<div style="font-size:15px;font-weight:700;color:#1e2d4e;margin-bottom:10px">'+titulo+'</div>'
-      +'<pre id="sb-log" style="white-space:pre-wrap;font-size:13px;color:#374151;font-family:inherit;margin:0 0 14px">Iniciando…</pre>'
-      +'<button onclick="document.getElementById(\'sb-result\').remove()" style="padding:9px 16px;border-radius:8px;border:none;background:#1e2d4e;color:#fff;font-weight:600;cursor:pointer">Cerrar</button></div>';
-    box.addEventListener('click',function(e){ if(e.target===box) box.remove(); });
-    document.body.appendChild(box);
-    return document.getElementById('sb-log');
-  }
-  async function migrarSupabase(dryRun){
-    if(!dryRun && !confirm('Vas a CARGAR todos los datos a Supabase (modo real). Es seguro re-ejecutarlo (actualiza, no duplica). ¿Continuar?')) return;
-    var log=_sbBox(dryRun?'Prueba de migración (no escribe nada)':'Migración a Supabase (real)');
-    log.textContent='';
-    var add=function(s){ log.textContent+=s+'\n'; };
-    for(var i=0;i<_TABLAS_SB.length;i++){
-      var t=_TABLAS_SB[i];
-      try{
-        var r=await api('/api/admin/migrar-supabase','POST',{ tabla:t, dryRun:!!dryRun });
-        if(r && r.ok){
-          var n=(r.data && r.data.insertados && r.data.insertados[t]); if(n===undefined||n===null) n=0;
-          var e=(r.data && r.data.errores && r.data.errores.length)?('  ⚠ '+r.data.errores.join('; ')):'';
-          add('• '+t+': '+n+e);
-        } else {
-          add('• '+t+': ERROR '+((r&&r.data&&r.data.error)||'sin respuesta'));
-        }
-      }catch(err){
-        add('• '+t+': ERROR '+((err&&err.message)?err.message:String(err)));
-      }
-    }
-    add('\n— Fin —');
-  }
-  async function probarUsuariosSB(){
-    var log=_sbBox('Prueba de usuarios en Supabase (crear → login → limpiar)'); log.textContent='Probando…';
-    try{
-      var r=await api('/api/admin/test-usuario-login','POST',{});
-      if(!r || !r.ok){ log.textContent='ERROR: '+((r&&r.data&&(r.data.error||(r.data.pasos&&r.data.pasos.join('\n'))))||'sin respuesta'); return; }
-      var d=r.data;
-      var txt=(d.pasos||[]).map(function(p){ return '• '+p; }).join('\n');
-      txt+='\n\n'+(d.exito?'✅ El ciclo de usuarios (crear, leer, verificar clave, limpiar) funcionó en Supabase.':'⚠ Algo falló — revisar arriba.');
-      log.textContent=txt;
-    }catch(err){ log.textContent='ERROR: '+((err&&err.message)?err.message:String(err)); }
-  }
-  async function probarEscrituraRetorno(){
-    var log=_sbBox('Prueba de escritura en Supabase'); log.textContent='Escribiendo, leyendo y limpiando…';
-    try{
-      var r=await api('/api/admin/test-escritura-retorno','POST',{});
-      if(!r || !r.ok){ log.textContent='ERROR: '+((r&&r.data&&(r.data.error||(r.data.pasos&&r.data.pasos.join('\n'))))||'sin respuesta'); return; }
-      var d=r.data;
-      var txt=(d.pasos||[]).map(function(p){ return '• '+p; }).join('\n');
-      txt+='\n\n'+(d.encontrado?'✅ El ciclo escribir→leer→limpiar funcionó en Supabase.':'⚠ Se escribió pero no se leyó de vuelta — revisar.');
-      log.textContent=txt;
-    }catch(err){ log.textContent='ERROR: '+((err&&err.message)?err.message:String(err)); }
-  }
-  async function probarRetornosSB(){
-    var log=_sbBox('Retornos: KV vs Supabase'); log.textContent='Comparando…';
-    try{
-      var kv=await api('/api/retornos');
-      var sb=await api('/api/retornos?_sb=1');
-      var nkv=(kv&&kv.ok&&kv.data.retornos)?kv.data.retornos.length:'error';
-      var nsb=(sb&&sb.ok&&sb.data.retornos)?sb.data.retornos.length:'error';
-      var txt='Fuente KV:       '+nkv+' retornos  (_fuente: '+((kv&&kv.data&&kv.data._fuente)||'?')+')\n'
-             +'Fuente Supabase: '+nsb+' retornos  (_fuente: '+((sb&&sb.data&&sb.data._fuente)||'?')+')\n\n';
-      txt+=(nkv===nsb)?'✅ Coinciden — la lectura desde Supabase funciona igual que la actual.':'⚠ No coinciden — revisar.';
-      if(sb&&!sb.ok) txt+='\n\nError Supabase: '+((sb.data&&sb.data.error)||'');
-      log.textContent=txt;
-    }catch(err){ log.textContent='ERROR: '+((err&&err.message)?err.message:String(err)); }
-  }
-  async function probarLecturaSupabase(){
-    var log=_sbBox('Prueba de lectura desde Supabase (solo lectura)'); log.textContent='Leyendo…';
-    try{
-      var r=await api('/api/admin/supabase-test','GET');
-      if(!r || !r.ok){ log.textContent='ERROR: '+((r&&r.data&&r.data.error)||'sin respuesta'); return; }
-      var d=r.data, txt='Latencia total: '+d.ms+' ms\n\nFilas en Supabase:\n';
-      Object.keys(d.counts||{}).forEach(function(k){ txt+='• '+k+': '+d.counts[k]+'\n'; });
-      if(d.muestra&&d.muestra.length){ txt+='\nMuestra (empresas):\n'+d.muestra.map(function(e){ return '  - '+(e.razon_social||'?')+' ('+(e.plan||'-')+', '+(e.estado||'-')+')'; }).join('\n'); }
-      if(d.errores&&d.errores.length){ txt+='\n\nERRORES:\n'+d.errores.join('\n'); }
-      log.textContent=txt;
-    }catch(err){ log.textContent='ERROR: '+((err&&err.message)?err.message:String(err)); }
-  }
-  async function migrarSupabaseArchivos(){
-    if(!confirm('Migrar los ARCHIVOS (PDFs/imágenes) a Supabase. Va por lotes; deja la pestaña abierta. ¿Continuar?')) return;
-    var log=_sbBox('Migración de archivos'); log.textContent='Iniciando…\n';
-    var offset=0, cargados=0, total=null, errs='', guard=0;
-    while(guard++ < 2000){
-      try{
-        var r=await api('/api/admin/migrar-supabase','POST',{ tabla:'archivos', dryRun:false, offset:offset, limit:6 });
-        if(!r || !r.ok){ errs+='ERROR: '+((r&&r.data&&r.data.error)||'sin respuesta')+'\n'; break; }
-        var d=r.data;
-        total=(d.total!=null?d.total:total);
-        cargados+=((d.insertados&&d.insertados.archivos)||0);
-        if(d.errores&&d.errores.length) errs+='⚠ '+d.errores.join('; ')+'\n';
-        offset=d.procesadosHasta;
-        log.textContent='Cargados '+cargados+' de '+(total!=null?total:'?')+' archivos…\n'+errs;
-        if(d.done) { log.textContent+='\n— Fin —'; break; }
-      }catch(err){ errs+='ERROR: '+((err&&err.message)?err.message:String(err))+'\n'; log.textContent+=errs; break; }
-    }
-  }
+  // (Herramientas temporales de migración a Supabase eliminadas tras completar el cutover — jul 2026)
   async function exportarTodo() {
     await exportarLicitaciones();
     const ru = await api('/api/admin/usuarios');
