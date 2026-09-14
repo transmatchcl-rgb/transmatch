@@ -262,6 +262,7 @@
 const API = (localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
 let allLicit = [];
 let filtroEstado = '';
+let transpMap = {};
 
 function peso(n){ return n ? new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n) : '--'; }
 function formatoRestante(ms){if(ms<=0)return 'Cerrada';var s=Math.floor(ms/1000);var h=Math.floor(s/3600);s-=h*3600;var m=Math.floor(s/60);s-=m*60;if(h>0)return 'Cierra en '+h+'h '+m+'m';if(m>0)return 'Cierra en '+m+'m '+s+'s';return 'Cierra en '+s+'s';}
@@ -454,6 +455,17 @@ async function cargar(){
       return;
     }
     allLicit=r.data.licitaciones||[];
+    try{
+      const ru=await api('/api/admin/usuarios');
+      if(ru&&ru.ok&&ru.data&&Array.isArray(ru.data.usuarios)){
+        transpMap={};
+        ru.data.usuarios.forEach(function(u){
+          var info={empresa:u.empresa||'',nombre:u.nombre||''};
+          if(u.id)transpMap[u.id]=info;
+          if(u.empresaId)transpMap[u.empresaId]=info;
+        });
+      }
+    }catch(e){}
     renderStats();
     filtrar();
   }catch(e){
@@ -501,6 +513,7 @@ function filtrar(){
 function renderCard(l){
   const codigo=l.codigo||l.codigo||'—';
   const nCotiz=(l.cotizaciones||[]).length;
+  const nPregSinResp=(l.preguntas||[]).filter(function(p){return !(p.respuesta&&String(p.respuesta).trim());}).length;
   const detalleId='det-'+l.id;
   return '<div class="licit-card" id="licit-card-'+l.id+'">'+
     '<div class="licit-hdr" onclick="toggleCard(\''+l.id+'\')">'+
@@ -515,6 +528,7 @@ function renderCard(l){
       '</div>'+
       '<div class="li-right">'+
         '<div class="li-cotiz">'+nCotiz+' cotiz.</div>'+
+        (nPregSinResp?'<span style="background:#FEF3C7;color:#92400E;font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;margin-bottom:2px;display:inline-block">'+nPregSinResp+(nPregSinResp==1?' pregunta':' preguntas')+' sin responder</span>':'')+
         (l.esPrueba?'<span class="badge" style="background:#EDE9FE;color:#5B21B6;margin-bottom:2px">PRUEBA</span>':'')+
         estadoBadge(l.estado, l)+
         (l.estado==='abierta'&&l.cierreAt?'<div class="cuenta-regresiva" data-cierre="'+l.cierreAt+'" style="font-size:10px;color:#9CA3AF;margin-top:2px;text-align:right"></div>':'')+
@@ -751,6 +765,32 @@ function renderDetalle(l){
   }
   if(acc.length>0){
     html+='<div class="det-actions">'+acc.join('')+'</div>';
+  }
+
+  // Preguntas de transportistas
+  var pregs=Array.isArray(l.preguntas)?l.preguntas:[];
+  if(pregs.length){
+    html+='<div style="margin:14px 18px 4px"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Preguntas de transportistas ('+pregs.length+')</div>';
+    html+=pregs.slice().sort(function(a,b){return new Date(a.createdAt)-new Date(b.createdAt);}).map(function(p){
+      var t=transpMap[p.transportistaId]||{};
+      var quien=(t.empresa||t.nombre)?((t.empresa||'')+(t.nombre?' \u00b7 '+t.nombre:'')):'Transportista';
+      var respondida=!!(p.respuesta&&String(p.respuesta).trim());
+      var badge=respondida
+        ? '<span style="background:#DCFCE7;color:#166534;font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px">Respondida</span>'
+        : '<span style="background:#FEF3C7;color:#92400E;font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px">Sin responder</span>';
+      var block='<div style="background:#F8F9FC;border:0.5px solid #e8eaf0;border-radius:8px;padding:10px 12px;margin-bottom:8px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px">'+
+          '<span style="font-size:12px;font-weight:600;color:#1e2d4e">'+quien+'</span>'+badge+
+        '</div>'+
+        '<div style="font-size:13px;color:#374151">'+(p.texto||'')+'</div>'+
+        '<div style="font-size:11px;color:#9CA3AF;margin-top:4px">'+(p.createdAt?new Date(p.createdAt).toLocaleString('es-CL'):'')+'</div>';
+      if(respondida){
+        block+='<div style="margin-top:8px;border-top:1px solid #eef1f6;padding-top:8px"><div style="font-size:11px;color:#9CA3AF;text-transform:uppercase;margin-bottom:2px">Respuesta del cliente</div><div style="font-size:13px;color:#166534">'+p.respuesta+'</div>'+(p.respondidaAt?'<div style="font-size:11px;color:#9CA3AF;margin-top:4px">'+new Date(p.respondidaAt).toLocaleString('es-CL')+'</div>':'')+'</div>';
+      }
+      block+='</div>';
+      return block;
+    }).join('');
+    html+='<div style="font-size:11px;color:#9CA3AF">Las responde el cliente desde su panel. Para una aclaraci\u00f3n visible a todos, usa "Comentarios del administrador".</div></div>';
   }
 
   // Comentarios del administrador (post-aprobación) — visibles para transportistas y cliente
