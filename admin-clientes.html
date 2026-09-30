@@ -193,6 +193,8 @@
   async function asignarRol(email,rol){ var r=await apiFetch('/api/admin/asignar-rol','POST',{email:email,rol:rol}); if(r&&r.ok) toast('Rol actualizado. Aplica cuando la persona reinicie sesión.'); else toast((r&&r.data&&r.data.error)||'Error al asignar rol','err'); }
   function detalleEmpresa(g){
     var html='<div class="card-detalle" style="display:none;width:100%;margin-top:12px;padding-top:14px;border-top:0.5px solid #E5E7EB" onclick="event.stopPropagation()">';
+    var _ref=g.madre||(g.miembros||[])[0]||{}; var _eidX=_ref.empresaEntId||g.id;
+    html+='<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#1e2d4e;margin-bottom:14px;cursor:pointer"><input type="checkbox" '+(_ref.licitacionExpress?'checked':'')+' onchange="toggleExpress(\''+_eidX+'\',this)"> <span><b>Licitación exprés (6h)</b> <span style="color:#6B7280">— carga para hoy o mañana, publicando antes de las 13:00. Se publica sin aprobación.</span></span></label>';
     html+='<div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Usuarios de la empresa</div>';
     var filas=[]; if(g.madre) filas.push(g.madre); filas=filas.concat(g.miembros||[]);
     html+=filas.map(function(u){
@@ -212,6 +214,7 @@
     return html;
   }
 
+  async function toggleExpress(eid,cb){ var r=await apiFetch('/api/admin/empresa/'+encodeURIComponent(eid)+'/licitacion-express','PUT',{activo:cb.checked}); if(r&&r.ok){ (grupos||[]).forEach(function(g){ [g.madre].concat(g.miembros||[]).forEach(function(u){ if(u&&(u.empresaEntId||g.id)===eid) u.licitacionExpress=cb.checked; }); }); toast(cb.checked?'Licitación exprés activada':'Licitación exprés desactivada'); } else { cb.checked=!cb.checked; toast((r&&r.data&&r.data.error)||'Error al guardar','err'); } }
   async function apiFetch(path,method,body){
     const o={method:method||'GET',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}};
     if(body) o.body=JSON.stringify(body);

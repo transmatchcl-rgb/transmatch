@@ -126,9 +126,10 @@ if(role==='transportista'){window.location.replace('/transportista.html');return
 try{
 var res=await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+token}});
 if(res.status===401){localStorage.clear();window.location.replace('/index.html');return}
-if(res.ok){var d=await res.json();if(d.user.role!=='cliente'){window.location.replace('/index.html');return}localStorage.setItem('tm_plan',d.user.plan||'')}
+if(res.ok){var d=await res.json();if(d.user.role!=='cliente'){window.location.replace('/index.html');return}localStorage.setItem('tm_plan',d.user.plan||'');window._tmExpress=!!d.user.licitacionExpress;}
 }catch(e){}
 document.getElementById('auth-guard').style.display='none';
+try{aplicarFechaMinima();actualizarPlazoExpress();}catch(e){}
 var a=document.getElementById('app');a.style.display='flex';a.style.flexDirection='column';a.style.minHeight='100vh';
 var n=localStorage.getItem('tm_nombre')||'';
 var emp=localStorage.getItem('tm_empresa')||'';
@@ -581,7 +582,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 </div>
 <input type="hidden" id="plazo" value="24"/>
 </div>
-<div class="info-box">Un plazo mas corto significa mayor urgencia. La opcion <strong>6h Express</strong> solo esta disponible cuando la carga es para el dia siguiente. Para cargas con mas anticipacion, recomendamos <strong>24h o 48h</strong> para obtener mejores cotizaciones.</div>
+<div class="info-box">Un plazo mas corto significa mayor urgencia. Para cargas con mas anticipacion, recomendamos <strong>24h o 48h</strong> para obtener mejores cotizaciones.<span id="info-express" style="display:none"> La opcion <strong>6h Express</strong> esta disponible para cargas de hoy o mañana, publicando antes de las 13:00.</span></div>
 <div class="btn-row">
 <button class="btn btn-outline" onclick="irPaso(2)">Volver</button>
 <button class="btn btn-primary" onclick="irPaso(4)">Siguiente</button>
@@ -982,8 +983,8 @@ if(!document.getElementById('origen').value.trim()){showToast('Ingresa la ciudad
 if(!document.getElementById('destino').value.trim()){showToast('Ingresa la ciudad de destino','err');return;}
 var _fc=document.getElementById('fechaCarga').value;
 if(!_fc){showToast('Selecciona la fecha de carga','err');return;}
-var _min=new Date(); _min.setDate(_min.getDate()+1); _min.setHours(0,0,0,0);
-if(new Date(_fc+'T00:00:00') < _min){showToast('La fecha de carga debe ser desde mañana en adelante','err');return;}
+var _hc=_hoyChile();
+if(_fc < (_puedeExpress()?_hc.fecha:_hc.manana)){showToast(_puedeExpress()?'La fecha de carga debe ser desde hoy en adelante':'La fecha de carga debe ser desde mañana en adelante','err');return;}
 var _fe=document.getElementById('fechaEntrega').value;
 if(!_fe){showToast('Selecciona la fecha de descarga','err');return;}
 if(new Date(_fe+'T00:00:00') < new Date(_fc+'T00:00:00')){showToast('La fecha de entrega no puede ser anterior a la de carga','err');return;}
@@ -1480,8 +1481,21 @@ if(editId) document.addEventListener('DOMContentLoaded', function(){ cargarEdici
 if(duplicarId) document.addEventListener('DOMContentLoaded', function(){ cargarEdicion(duplicarId, true); });
 
 // Fecha mínima de carga: hoy + 2 días (se bloquea hoy y el día siguiente; mínimo = pasado mañana)
+// Fecha/hora actual en Chile
+function _hoyChile(){
+  try{
+    var p=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Santiago',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date());
+    var g=function(t){return p.find(function(x){return x.type===t;}).value;};
+    var f=g('year')+'-'+g('month')+'-'+g('day');
+    var d=new Date(f+'T12:00:00Z'); d.setUTCDate(d.getUTCDate()+1);
+    return {fecha:f, manana:d.toISOString().slice(0,10), hora:(parseInt(g('hour'))%24)+parseInt(g('minute'))/60};
+  }catch(e){ var n=new Date(),m=new Date(); m.setDate(m.getDate()+1); var fm=function(x){return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');}; return {fecha:fm(n),manana:fm(m),hora:n.getHours()+n.getMinutes()/60}; }
+}
+// Licitación exprés: solo cuentas habilitadas por el admin y antes de las 13:00 (hora Chile)
+function _puedeExpress(){ return !!window._tmExpress && _hoyChile().hora<13; }
 function aplicarFechaMinima(){
   var d=new Date(); d.setDate(d.getDate()+1);
+  if(_puedeExpress()){ var _h=_hoyChile(); var fc0=document.getElementById('fechaCarga'); if(fc0) fc0.min=_h.fecha; var fe0=document.getElementById('fechaEntrega'); if(fe0) fe0.min=_h.fecha; return; }
   // Construir YYYY-MM-DD en hora LOCAL (no UTC) para evitar corrimiento de día en Chile.
   var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
   var min=y+'-'+m+'-'+dd;
@@ -1506,15 +1520,13 @@ function actualizarPlazoExpress(){
   var expressBtn=document.getElementById('plazo-express');
   var btn48=document.getElementById('plazo-48');
   if(!fcEl||!expressBtn) return;
-  var hoy=new Date(); hoy.setHours(0,0,0,0);
-  var manana=new Date(hoy); manana.setDate(manana.getDate()+1);
-  var esManana=false;
-  if(fcEl.value){
-    var partes=fcEl.value.split('-');
-    var fcDate=new Date(parseInt(partes[0]),parseInt(partes[1])-1,parseInt(partes[2]));
-    fcDate.setHours(0,0,0,0);
-    esManana=(fcDate.getTime()===manana.getTime());
-  }
+  var _h=_hoyChile();
+  var esHoy=fcEl.value===_h.fecha;
+  var esManana=_puedeExpress() && (esHoy || fcEl.value===_h.manana);
+  // Carga para hoy: solo se permite el plazo exprés de 6h
+  ['12','24'].forEach(function(v){ var b=document.querySelector('#plazo-grid .plazo-btn[data-val="'+v+'"]'); if(b) b.style.display=(esManana&&esHoy)?'none':''; });
+  if(esManana&&esHoy&&document.getElementById('plazo').value!=='6') selectPlazo(expressBtn,'6');
+  var _ie=document.getElementById('info-express'); if(_ie) _ie.style.display=window._tmExpress?'':'none';
   if(esManana){
     expressBtn.style.display='';
     if(btn48) btn48.style.display='none';

@@ -885,6 +885,15 @@ function anonimizarTransportista(c, revelar) {
   return base;
 }
 
+// Ubicación en Google Maps (link de Google Maps o Plus Code). Devuelve "" si no es válida.
+function limpiarUbicacion(v) {
+  v = String(v || "").trim(); if (!v) return "";
+  if (/^http:\/\//i.test(v)) v = "https://" + v.slice(7);
+  if (v.length <= 500 && /^https:\/\/(www\.)?(google\.[a-z.]{2,6}\/maps|maps\.google\.[a-z.]{2,6}|maps\.app\.goo\.gl|goo\.gl\/maps)(\/|\?|$)/i.test(v)) return v;
+  if (/^[23456789CFGHJMPQRVWX]{2,8}\+[23456789CFGHJMPQRVWX]{0,3}(\s+[^<>"']{1,80})?$/i.test(v)) return v;
+  return "";
+}
+
 // Quita del formulario cualquier dato que pueda identificar al transportista o su empresa.
 function sanitizarFormularioCotiz(f) {
   if (!f || typeof f !== "object") return null;
@@ -938,7 +947,7 @@ function emailBase(contenido, titulo) {
         <tr><td style="background:#ffffff;padding:0 32px 28px">
           <div style="border-top:1px solid #EEF1F6;padding-top:20px;text-align:center;font-size:12px;color:#9CA3AF;line-height:1.6">
             Este es un correo automático de TransMatch.<br/>
-            <a href="https://transmatch.cl" style="color:#1e2d4e;text-decoration:none;font-weight:500">transmatch.cl</a> · <a href="https://transmatch.cl/transportista-perfil.html" style="color:#9CA3AF;text-decoration:underline">Preferencias de notificación</a>
+            <a href="https://transmatch.cl" style="color:#1e2d4e;text-decoration:none;font-weight:500">transmatch.cl</a> · <a href="https://transmatch.cl/preferencias.html" style="color:#9CA3AF;text-decoration:underline">Preferencias de notificación</a>
           </div>
         </td></tr>
       </table>
@@ -999,7 +1008,7 @@ function emailCredenciales(nombre, email, pass) {
       <tr><td style="padding:11px 0;border-bottom:1px solid #F1F3F8;font-size:13px;color:#8A93A6;width:150px">Email</td><td style="padding:11px 0;border-bottom:1px solid #F1F3F8;font-size:14px;color:#1e2d4e;font-weight:600">${email}</td></tr>
       <tr><td style="padding:11px 0;font-size:13px;color:#8A93A6">Contraseña provisoria</td><td style="padding:11px 0;font-size:15px;color:#1e2d4e;font-weight:700;font-family:'Courier New',monospace;letter-spacing:1px">${pass}</td></tr>
     </table>
-    ${btnEmail('https://transmatch.cl/login.html','Iniciar sesión','#FF8808')}
+    ${btnEmail('https://transmatch.cl/login.html?nueva=1','Iniciar sesión','#FF8808')}
     <p style="font-size:12px;color:#9CA3AF;text-align:center;margin:14px 0 0">Recomendación: cambia tu contraseña después de tu primer ingreso, en tu perfil.</p>`,
     "Tu cuenta TransMatch está lista");
 }
@@ -1024,15 +1033,15 @@ function emailNuevaLicitacionTransportista(l) {
 }
 
 function emailNuevaLicitacionAdmin(l) {
-  return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Nueva licitación pendiente de aprobación</h2>
-    <p style="font-size:14px;color:#6B7280;margin:0 0 20px">Un cliente publicó una licitación. El plazo para los transportistas ya está corriendo, apruébala lo antes posible.</p>
+  return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">${l.express?'Licitación exprés publicada':'Nueva licitación pendiente de aprobación'}</h2>
+    <p style="font-size:14px;color:#6B7280;margin:0 0 20px">${l.express?'Un cliente con licitación exprés habilitada publicó una licitación de 6h. Ya está visible para los transportistas, no requiere aprobación.':'Un cliente publicó una licitación. El plazo para los transportistas ya está corriendo, apruébala lo antes posible.'}</p>
     <div style="background:#F9FAFB;border-radius:8px;padding:16px;margin-bottom:20px">
       <div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>Cliente:</strong> ${l.clienteEmpresa||l.clienteNombre||'--'}</div>
       <div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>Carga:</strong> ${l.tipoEquipo}${l.marca?' - '+l.marca:''}</div>
       <div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>Ruta:</strong> ${l.origen} - ${l.destino}</div>
-      <div style="font-size:13px;color:#374151"><strong>Plazo:</strong> ${l.plazo||'24'} horas (cierra ${new Date(l.cierreAt).toLocaleString('es-CL')})</div>
+      <div style="font-size:13px;color:#374151"><strong>Plazo:</strong> ${l.plazo||'24'} horas (cierra ${new Date(l.cierreAt).toLocaleString('es-CL',{timeZone:'America/Santiago'})})</div>
     </div>
-    ${btnEmail('https://transmatch.cl/admin-licitaciones.html','Revisar y aprobar','#1e2d4e')}`, "Nueva licitación pendiente - TransMatch");
+    ${btnEmail('https://transmatch.cl/admin-licitaciones.html',l.express?'Ver licitación':'Revisar y aprobar','#1e2d4e')}`, "Nueva licitación pendiente - TransMatch");
 }
 
 // Notifica por email a los transportistas elegibles para esta licitación.
@@ -1095,6 +1104,122 @@ function emailAdjudicacionGanada(l, cotiz) {
       <strong>Comision estimada TransMatch:</strong> ${formatCLP(Math.round(cotiz.precio*0.05))} (5% aprox, tope 10 UF).
     </div>
     ${btnEmail('https://transmatch.cl/transportista-transporte.html','Ver en mi panel')}`, "Ganaste! - TransMatch");
+}
+
+// ── INFORME MENSUAL PARA CLIENTES ──────────────────────────────
+const MESES_ES=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+function mesChile(iso){
+  if(!iso) return "";
+  try{ const p=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Santiago",year:"numeric",month:"2-digit"}).formatToParts(new Date(iso)); return p.find(x=>x.type==="year").value+"-"+p.find(x=>x.type==="month").value; }
+  catch(e){ return new Date(new Date(iso).getTime()-3*3600000).toISOString().slice(0,7); }
+}
+// Fecha (YYYY-MM-DD) y hora decimal actuales en Chile
+function ahoraChile(){
+  const p=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Santiago",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date());
+  const g=t=>p.find(x=>x.type===t).value;
+  const fecha=g("year")+"-"+g("month")+"-"+g("day");
+  const d=new Date(fecha+"T12:00:00Z"); d.setUTCDate(d.getUTCDate()+1);
+  return { fecha, manana:d.toISOString().slice(0,10), hora:(parseInt(g("hour"))%24)+parseInt(g("minute"))/60 };
+}
+function periodoAnterior(fecha){
+  const hoy=mesChile((fecha||new Date()).toISOString()); let [y,m]=hoy.split("-").map(Number); m-=1; if(m===0){ m=12; y-=1; }
+  return y+"-"+String(m).padStart(2,"0");
+}
+function nombrePeriodo(periodo){ const [y,m]=String(periodo).split("-").map(Number); return (MESES_ES[m-1]||"")+" "+y; }
+// Calcula el informe de una empresa cliente a partir de todas las licitaciones y transportes (ya cargados).
+function calcularInformeMensual(empresaId, periodo, lics, trans){
+  const deEmp=l=>l&&!l.esPrueba&&(l.empresaId||l.clienteId)===empresaId;
+  const misLics=(lics||[]).filter(deEmp);
+  const publicadas=misLics.filter(l=>mesChile(l.createdAt)===periodo && l.estado!=="rechazada");
+  const conCotiz=publicadas.filter(l=>l.estado!=="pendiente_admin");
+  const cotizPromedio=conCotiz.length?Math.round(conCotiz.reduce((a,l)=>a+((l.cotizaciones||[]).length),0)/conCotiz.length*10)/10:0;
+  const adjudicadas=misLics.filter(l=>l.adjudicadaA&&(l.estado==="adjudicada"||l.estado==="completada")&&mesChile(l.adjudicadaAt)===periodo)
+    .sort((a,b)=>String(a.adjudicadaAt).localeCompare(String(b.adjudicadaAt)));
+  const monto=adjudicadas.reduce((a,l)=>a+(Number(l.adjudicadaA.precio)||0),0);
+  const completados=(trans||[]).filter(t=>t&&(t.empresaId||t.clienteId)===empresaId&&(t.estado==="entregado"||t.estado==="completado")&&mesChile(t.completadoAt||t.entregadoAt)===periodo).length;
+  const valoradas=misLics.filter(l=>l.valoracion&&mesChile(l.valoracion.createdAt)===periodo);
+  const valoracionPromedio=valoradas.length?Math.round(valoradas.reduce((a,l)=>a+(Number(l.valoracion.promedio)||0),0)/valoradas.length*10)/10:null;
+  const rutasMap={};
+  publicadas.forEach(l=>{ const k=(l.origen||"—")+" → "+(l.destino||"—"); rutasMap[k]=(rutasMap[k]||0)+1; });
+  const rutas=Object.keys(rutasMap).map(k=>({ ruta:k, cantidad:rutasMap[k] })).sort((a,b)=>b.cantidad-a.cantidad).slice(0,5);
+  const detalle=adjudicadas.map(l=>({ codigo:l.codigo||"", equipo:(l.tipoEquipo||"")+(l.marca?" "+l.marca:""), origen:l.origen||"", destino:l.destino||"", cotizaciones:(l.cotizaciones||[]).length, precio:Number(l.adjudicadaA.precio)||0, adjudicadaAt:l.adjudicadaAt }));
+  return { periodo, publicadas:publicadas.length, cotizacionesPromedio:cotizPromedio, adjudicadas:adjudicadas.length, montoAdjudicado:monto, completados, valoracionPromedio, rutas, detalle,
+    conActividad:(publicadas.length+adjudicadas.length+completados)>0 };
+}
+function fmtMontoCorto(n){ n=Number(n)||0; if(n>=1000000) return "$"+(Math.round(n/100000)/10).toLocaleString("es-CL")+"M"; return formatCLP(n); }
+function emailInformeMensual(inf, empresaNombre, nombreDestinatario){
+  const esc = v => String(v==null?"":v).replace(/[<>&"']/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;","'":"&#39;"}[c]));
+  const kpi=(v,l)=>`<td width="33%" style="padding:6px" valign="top"><div style="border:1px solid #E5E7EB;border-radius:10px;padding:14px 12px;text-align:center;height:104px;box-sizing:border-box"><div style="font-size:26px;font-weight:700;color:#1e2d4e;line-height:1.1">${v}</div><div style="font-size:12px;color:#6B7280;margin-top:4px;line-height:1.35">${l}</div></div></td>`;
+  const mes=nombrePeriodo(inf.periodo); const mesSolo=mes.split(" ")[0];
+  const val=inf.valoracionPromedio==null?"—":String(inf.valoracionPromedio).replace(".",",");
+  const maxR=inf.rutas.length?inf.rutas[0].cantidad:1;
+  const rutas=inf.rutas.length?`<p style="font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin:22px 0 8px">Rutas más usadas</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${inf.rutas.map(r=>`<tr><td style="font-size:13px;color:#1e2d4e;padding:5px 0">${esc(r.ruta)}</td><td width="40%" style="padding:5px 8px"><div style="height:8px;background:#EEF1F6;border-radius:999px"><div style="height:8px;width:${Math.round(r.cantidad/maxR*100)}%;background:#1e2d4e;border-radius:999px"></div></div></td><td width="24" align="right" style="font-size:13px;color:#1e2d4e">${r.cantidad}</td></tr>`).join("")}</table>`:"";
+  const det=inf.detalle.length?`<p style="font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin:22px 0 8px">Transportes adjudicados</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:12.5px;color:#1e2d4e;border:1px solid #E5E7EB;border-radius:8px">
+    <tr style="background:#F9FAFB"><td style="padding:8px 10px;color:#6B7280;font-weight:600">Licitación</td><td style="padding:8px 10px;color:#6B7280;font-weight:600">Equipo · Ruta</td><td align="right" style="padding:8px 10px;color:#6B7280;font-weight:600">Cotiz.</td><td align="right" style="padding:8px 10px;color:#6B7280;font-weight:600">Adjudicado</td></tr>
+    ${inf.detalle.map(d=>`<tr><td style="padding:8px 10px;border-top:1px solid #F1F2F6;font-family:monospace;font-size:11.5px">${esc(d.codigo)}</td><td style="padding:8px 10px;border-top:1px solid #F1F2F6">${esc(d.equipo)} · ${esc(d.origen)} → ${esc(d.destino)}</td><td align="right" style="padding:8px 10px;border-top:1px solid #F1F2F6">${d.cotizaciones}</td><td align="right" style="padding:8px 10px;border-top:1px solid #F1F2F6;white-space:nowrap">${formatCLP(d.precio)}</td></tr>`).join("")}
+    </table><p style="font-size:11.5px;color:#9CA3AF;margin:6px 0 0">Montos netos, sin IVA.</p>`:"";
+  return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Tu informe de ${esc(mes)}</h2>
+    <p style="font-size:14px;color:#6B7280;margin:0 0 18px">Hola${nombreDestinatario?" "+esc(nombreDestinatario):""}, este es el resumen de la actividad de <strong>${esc(empresaNombre)}</strong> en TransMatch durante ${esc(mesSolo)}.</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 4px">
+      <tr>${kpi(inf.publicadas,"Licitaciones publicadas")}${kpi(inf.adjudicadas,"Transportes adjudicados")}${kpi(fmtMontoCorto(inf.montoAdjudicado),"Monto adjudicado")}</tr>
+      <tr>${kpi(String(inf.cotizacionesPromedio).replace(".",","),"Cotizaciones promedio por licitación")}${kpi(inf.completados,"Transportes completados")}${kpi(val,"Valoración promedio que diste")}</tr>
+    </table>
+    ${rutas}${det}
+    <div style="height:18px"></div>
+    ${btnEmail('https://transmatch.cl/cliente.html','Ir a mi panel')}`, "Informe mensual - TransMatch");
+}
+// Envía el informe de una empresa a sus destinatarios y registra el envío en la empresa.
+async function enviarInformeEmpresa(env, emp, inf, modo){
+  const sb=usarSupabase(env, null);
+  const cfg=emp.informeMensual||{};
+  let dest=(Array.isArray(cfg.destinatarios)&&cfg.destinatarios.length)?cfg.destinatarios:[emp.duenoEmail].filter(Boolean);
+  dest=[...new Set(dest.map(e=>String(e).toLowerCase()))];
+  if(!dest.length) return { ok:false, error:"Sin destinatarios" };
+  const empresaNombre=emp.razonSocial||emp.duenoEmail||"tu empresa";
+  const enviados=[];
+  for(const email of dest){
+    let nombre=""; try{ const u=await dalGetUsuarioByEmail(env, email, sb); nombre=(u&&u.nombre)?String(u.nombre).split(" ")[0]:""; }catch(e){}
+    const r=await enviarEmail(env,{ to:email, subject:`Tu informe de ${nombrePeriodo(inf.periodo)} · TransMatch`, html:emailInformeMensual(inf, empresaNombre, nombre) });
+    if(r&&r.ok!==false) enviados.push(email);
+  }
+  emp.informesEnviados=emp.informesEnviados||{};
+  emp.informesEnviados[inf.periodo]={ fecha:new Date().toISOString(), destinatarios:enviados, modo };
+  await dalSaveEmpresa(env, emp, sb);
+  return { ok:enviados.length>0, enviados };
+}
+// Cron: el día 1 de cada mes (desde las 9:00 hora Chile) envía el informe del mes anterior a las empresas con envío automático.
+async function procesarInformesMensuales(env){
+  try{
+    const ahora=new Date();
+    const partes=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Santiago",day:"2-digit",hour:"2-digit",hour12:false}).formatToParts(ahora);
+    const dia=Number(partes.find(x=>x.type==="day").value), hora=Number(partes.find(x=>x.type==="hour").value);
+    if(dia!==1||hora<9) return;
+    const periodo=periodoAnterior(ahora);
+    const flag="cron:informes:"+periodo;
+    if(await env.SESSIONS.get(flag)) return;
+    await env.SESSIONS.put(flag, ahora.toISOString());
+    const sb=usarSupabase(env, null);
+    const [emps, lics, trans]=await Promise.all([dalGetAllEmpresas(env, sb), dalGetAllLicitaciones(env, sb), dalGetAllTransportes(env, sb)]);
+    for(const emp of emps){
+      if(!emp||emp.tipo!=="cliente") continue;
+      if(!(emp.informeMensual&&emp.informeMensual.auto)) continue;
+      if(emp.informesEnviados&&emp.informesEnviados[periodo]) continue;
+      const inf=calcularInformeMensual(emp.id, periodo, lics, trans);
+      if(!inf.conActividad) continue;
+      try{ await enviarInformeEmpresa(env, emp, inf, "auto"); }catch(e){ console.error("informe mensual", emp.id, e); }
+    }
+  }catch(e){ console.error("procesarInformesMensuales", e); }
+}
+
+function emailDocumentosSolicitados(t, docs) {
+  const esc = v => String(v||"").replace(/[<>&"']/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;","'":"&#39;"}[c]));
+  const lista = docs.map(d => `<li style="margin:0 0 8px">${esc(d.label)}${d.indicaciones?`<br><span style="font-size:13px;color:#6B7280">${esc(d.indicaciones)}</span>`:""}</li>`).join("");
+  return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Se solicitaron los siguientes documentos</h2>
+    <p style="font-size:14px;color:#6B7280;margin:0 0 14px">Para el transporte <strong>${esc(t.codigo||"")}</strong> (${esc(t.origen||"")} → ${esc(t.destino||"")}):</p>
+    <ul style="font-size:14px;color:#1e2d4e;margin:0 0 14px;padding-left:20px">${lista}</ul>
+    ${btnEmail('https://transmatch.cl/transportista-transporte.html','Subir documentos','#FF8808')}`, "Documentos solicitados - TransMatch");
 }
 
 function emailCuentaAprobada(nombre) {
@@ -1320,6 +1445,93 @@ async function registrarActividad(env, tipo, mensaje, datos={}) {
     feed.unshift(evento);
     await env.SESSIONS.put("actividad:index", JSON.stringify(feed.slice(0,50))); // últimos 50 eventos
   } catch(e) {}
+}
+
+// ── Integración WhatsApp vía Kapso (proxy de la API oficial de Meta) ──
+// Todo queda "apagado" hasta que existan KAPSO_API_KEY + KAPSO_PHONE_NUMBER_ID en el worker.
+// En pruebas (Etapa 0): definir KAPSO_TEST_TO con TU número → solo a ti te llegan los WhatsApp.
+function usarKapso(env){ return !!(env.KAPSO_API_KEY && env.KAPSO_PHONE_NUMBER_ID); }
+function _telWa(t){
+  let s=String(t||"").replace(/[^0-9]/g,"");
+  if(!s) return null;
+  if(s.startsWith("56")) return s;              // ya viene con código país
+  if(s.length===9 && s.startsWith("9")) return "56"+s;  // 9XXXXXXXX
+  if(s.length===8) return "569"+s;              // XXXXXXXX (celular sin 9)
+  return s;
+}
+async function kapsoEnviar(env, msg){
+  if(!usarKapso(env)) return { skipped:true };
+  const base=(env.KAPSO_API_BASE||"https://api.kapso.ai/meta/whatsapp/v24.0").replace(/\/+$/,"");
+  const url=base+"/"+env.KAPSO_PHONE_NUMBER_ID+"/messages";
+  try{
+    const r=await fetch(url,{ method:"POST", headers:{ "X-API-Key":env.KAPSO_API_KEY, "Content-Type":"application/json" }, body: JSON.stringify({ messaging_product:"whatsapp", ...msg }) });
+    if(!r.ok){ const t=await r.text().catch(()=>""); console.error("Kapso send "+r.status, t.slice(0,300)); return { ok:false, status:r.status, error:t }; }
+    return { ok:true, data: await r.json().catch(()=>({})) };
+  }catch(e){ console.error("Kapso excepción", e&&e.message); return { ok:false, error:String(e&&e.message||e) }; }
+}
+// Teléfonos de transportistas activos (para el envío masivo en producción).
+async function dalTelefonosTransportistasActivos(env, sb){
+  let users=[];
+  if(sb){ const rows=await sbSelect(env,"usuarios","role=eq.transportista&estado=eq.activo&select=datos&limit=5000"); users=rows.map(r=>r.datos).filter(Boolean); }
+  else { let cursor; do{ const l=await env.USERS.list({cursor}); for(const k of l.keys){ if(k.name.startsWith("id:")||k.name.startsWith("contador:")) continue; const raw=await env.USERS.get(k.name); if(!raw) continue; try{ const u=JSON.parse(raw); if(u.role==="transportista"&&u.estado==="activo") users.push(u); }catch(e){} } cursor=l.list_complete?undefined:l.cursor; }while(cursor); }
+  return [...new Set(users.map(u=>u.telefono||u.whatsapp).filter(Boolean))];
+}
+// Al aprobar una licitación: manda el WhatsApp con botones Sí/No.
+async function notificarLicitacionWhatsapp(env, l){
+  if(!usarKapso(env)) return;
+  if(l.esPrueba && !env.KAPSO_TEST_TO) return; // no molestar a transportistas reales con una licitación de prueba
+  const cuerpo="🚚 *Nueva licitación en TransMatch*\n\n"+
+    (l.tipoEquipo||"Carga")+(l.marca?(" - "+l.marca):"")+"\n"+
+    "Ruta: "+(l.origen||"")+" → "+(l.destino||"")+"\n"+
+    "Fecha de carga: "+(l.fechaCarga||"—")+"\n"+
+    (l.peso?("Peso: "+l.peso+" "+(l.pesoUnidad||"")+"\n"):"")+
+    "\n¿Deseas cotizar?";
+  const interactive={ type:"button", body:{ text:cuerpo.slice(0,1024) }, action:{ buttons:[
+    { type:"reply", reply:{ id:"cotizar_si:"+l.id, title:"Sí, cotizar" } },
+    { type:"reply", reply:{ id:"cotizar_no:"+l.id, title:"No, gracias" } }
+  ] } };
+  let destinos=[];
+  if(env.KAPSO_TEST_TO){ destinos=[_telWa(env.KAPSO_TEST_TO)].filter(Boolean); }
+  else { destinos=(await dalTelefonosTransportistasActivos(env, usarSupabase(env,null))).map(_telWa).filter(Boolean); }
+  for(const to of destinos){ try{ await kapsoEnviar(env, { to, type:"interactive", interactive }); }catch(e){} }
+}
+// Extrae los mensajes entrantes de un webhook de Kapso (formato Meta, con respaldos).
+function _kapsoExtraerMensajes(body){
+  const out=[];
+  const push=(m)=>{ if(m) out.push(m); };
+  try{
+    if(body && Array.isArray(body.entry)){
+      for(const e of body.entry){ for(const c of (e.changes||[])){ const v=c.value||{}; for(const m of (v.messages||[])) push(m); } }
+    }
+  }catch(e){}
+  if(!out.length && body && Array.isArray(body.messages)) for(const m of body.messages) push(m);
+  if(!out.length && body && body.message) push(body.message);
+  return out;
+}
+function _kapsoLeerMensaje(m){
+  const from=m.from||m.wa_id||m.sender||null;
+  let botonId=null, texto=null, flujo=null;
+  if(m.interactive){
+    if(m.interactive.button_reply) botonId=m.interactive.button_reply.id;
+    else if(m.interactive.list_reply) botonId=m.interactive.list_reply.id;
+    else if(m.interactive.nfm_reply){ try{ flujo=JSON.parse(m.interactive.nfm_reply.response_json||"{}"); }catch(e){ flujo=m.interactive.nfm_reply; } }
+    if(m.interactive.type==="nfm_reply" && !flujo && m.interactive.nfm_reply){ try{ flujo=JSON.parse(m.interactive.nfm_reply.response_json||"{}"); }catch(e){} }
+  }
+  if(m.button && m.button.payload) botonId=botonId||m.button.payload;
+  if(m.text && m.text.body) texto=m.text.body;
+  return { from, botonId, texto, flujo };
+}
+// Procesa un mensaje entrante: si tocan "Sí, cotizar" → manda el enlace para cotizar esa licitación.
+async function kapsoProcesarMensaje(env, m){
+  const { from, botonId } = _kapsoLeerMensaje(m);
+  if(!from || !botonId) return;
+  const base=env.TM_BASE||"https://transmatch.cl";
+  if(botonId.startsWith("cotizar_si:")){
+    const licId=botonId.slice("cotizar_si:".length);
+    await kapsoEnviar(env, { to:from, type:"interactive", interactive:{ type:"cta_url", body:{ text:"¡Perfecto! 🙌 Cotiza esta licitación aquí. Tu oferta aparece al instante en la plataforma." }, action:{ name:"cta_url", parameters:{ display_text:"Cotizar ahora", url: base+"/transportista-licitaciones.html?lic="+encodeURIComponent(licId) } } } });
+  } else if(botonId.startsWith("cotizar_no:")){
+    await kapsoEnviar(env, { to:from, type:"text", text:{ body:"¡Gracias por avisar! Te seguiremos enviando las próximas licitaciones. 🚚" } });
+  }
 }
 
 async function handleRequest(request, env) {
@@ -1819,6 +2031,18 @@ async function handleRequest(request, env) {
     return ok({ empresas: out });
   }
 
+  // PUT /api/admin/empresa/:empresaId/licitacion-express — habilita licitaciones exprés (6h, hoy o mañana, antes de las 13:00)
+  if (path.match(/^\/api\/admin\/empresa\/[^/]+\/licitacion-express$/) && method === "PUT") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    const eid=path.split("/")[4];
+    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    const _sbX=usarSupabase(env, url);
+    const e=await dalGetEmpresaById(env, eid, _sbX); if(!e) return err("Empresa no encontrada",404);
+    e.licitacionExpress = body.activo===true;
+    await dalSaveEmpresa(env, e, _sbX);
+    return ok({ ok:true, licitacionExpress:e.licitacionExpress });
+  }
+
   // POST /api/admin/empresa/:empresaId/vigencia — setear o renovar la vigencia de una empresa cliente
   if (path.match(/^\/api\/admin\/empresa\/[^/]+\/vigencia$/) && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
@@ -1890,16 +2114,22 @@ async function handleRequest(request, env) {
   if (path === "/api/auth/cambiar-password" && method === "POST") {
     const user = await getUser(request, env);
     if (!user) return err("No autenticado", 401);
+    let body = {}; try { body = await request.json(); } catch(e) { return err("Formato invalido"); }
     const { passwordActual, passwordNueva } = body;
     if (!passwordActual || !passwordNueva) return err("Faltan campos");
-    if (passwordNueva.length < 8) return err("La nueva contraseña debe tener al menos 8 caracteres");
-    const raw = await env.USERS.get(user.email);
-    if (!raw) return err("Usuario no encontrado", 404);
-    const u = JSON.parse(raw);
+    if (String(passwordNueva).length < 8) return err("La nueva contraseña debe tener al menos 8 caracteres");
+    const _sbP = usarSupabase(env, url);
+    let u = await dalGetUsuarioByEmail(env, user.email, _sbP);
+    if (!u) { const raw = await env.USERS.get(String(user.email).toLowerCase()); u = raw ? JSON.parse(raw) : null; }
+    if (!u) return err("Usuario no encontrado", 404);
     const hashActual = await hashPassword(passwordActual);
     if (hashActual !== u.password) return err("La contraseña actual es incorrecta");
+    if (passwordActual === passwordNueva) return err("La nueva contraseña debe ser distinta de la actual");
     u.password = await hashPassword(passwordNueva);
-    await env.USERS.put(user.email, JSON.stringify(u));
+    u.passwordProvisorio = false;
+    u.passwordCambiadaAt = new Date().toISOString();
+    await env.USERS.put(String(u.email).toLowerCase(), JSON.stringify(u));
+    if (_sbP) { try { await dalSaveUsuario(env, u, _sbP); } catch(e) {} }
     return ok({ ok: true, mensaje: "Contraseña actualizada" });
   }
 
@@ -1923,7 +2153,7 @@ async function handleRequest(request, env) {
     if (ef.estado==="rechazado")  return err("Registro rechazado. Contacta al administrador",403);
     if (ef.estado==="suspendido") return err(user.esSubusuario && user.desactivadoManual ? "Tu acceso fue desactivado por tu empresa" : "Cuenta suspendida",403);
     const token = await signToken({ id:user.id, email:emailLower, role:user.role, nombre:user.nombre, empresa:user.empresa, plan:ef.plan, esSubusuario:user.esSubusuario||false, empresaMadreId:user.empresaMadreId||null, rol:(user.rol || (user.esSubusuario?"miembro":"dueno")), empresaId:(user.empresaId || (user.esSubusuario?(user.empresaMadreId||user.id):user.id)) }, env.JWT_SECRET);
-    return ok({ token, role:user.role, nombre:user.nombre, empresa:user.empresa, plan:ef.plan, email:user.email||emailLower, telefono:user.telefono||"" });
+    return ok({ token, role:user.role, nombre:user.nombre, empresa:user.empresa, plan:ef.plan, email:user.email||emailLower, telefono:user.telefono||"", passwordProvisorio:!!user.passwordProvisorio });
   }
 
   if (path === "/api/auth/me" && method === "GET") {
@@ -1943,7 +2173,7 @@ async function handleRequest(request, env) {
       }
     }
     const _empMe = await empresaDe(env, u); if(_empMe) overlayPerfilEmpresa(u, _empMe);
-    return ok({ user:{ id:u.id, email:u.email, role:u.role, nombre:u.nombre, empresa:u.empresa, comuna:u.comuna||'', plan:planOut, rating:u.rating, totalTransportes:u.totalTransportes, estado:estadoOut, desactivadoManual:u.desactivadoManual||false, notifEmail:u.notifEmail, notifWhatsapp:u.notifWhatsapp, whatsapp:u.whatsapp, telefono:u.telefono, ciudad:u.ciudad, rut:u.rut, rutEmpresa:u.rutEmpresa, cargo:u.cargo, giro:u.giro, telEmpresa:u.telEmpresa, ciudadEmpresa:u.ciudadEmpresa, direccion:u.direccion, web:u.web, descripcion:u.descripcion, anosExperiencia:u.anosExperiencia, zonas:u.zonas||[], equipos:u.equipos||[], tiposEquipo:u.tiposEquipo||[], facturacion:u.facturacion||{}, contactoOperaciones:u.contactoOperaciones, contactoComercial:u.contactoComercial, contactoFacturacion:u.contactoFacturacion, contactos:u.contactos||[], datosBancarios:u.datosBancarios||{}, industrias:u.industrias||[], max_usuarios:u.max_usuarios||0, esSubusuario:u.esSubusuario||false, empresaMadreId:u.empresaMadreId||null, rol:u.rol||(u.esSubusuario?'miembro':'dueno'), empresaId:u.empresaId||null, empresaMiembros:u.empresaMiembros||[], permisos:u.permisos||{}, perfilCompletitud:u.perfilCompletitud||0, totalCotizaciones:u.totalCotizaciones||0, notifPrefs:u.notifPrefs||{} } });
+    return ok({ user:{ id:u.id, email:u.email, role:u.role, nombre:u.nombre, empresa:u.empresa, comuna:u.comuna||'', licitacionExpress:!!(_empMe&&_empMe.licitacionExpress), plan:planOut, rating:u.rating, totalTransportes:u.totalTransportes, estado:estadoOut, desactivadoManual:u.desactivadoManual||false, notifEmail:u.notifEmail, notifWhatsapp:u.notifWhatsapp, whatsapp:u.whatsapp, telefono:u.telefono, ciudad:u.ciudad, rut:u.rut, rutEmpresa:u.rutEmpresa, cargo:u.cargo, giro:u.giro, telEmpresa:u.telEmpresa, ciudadEmpresa:u.ciudadEmpresa, direccion:u.direccion, web:u.web, descripcion:u.descripcion, anosExperiencia:u.anosExperiencia, zonas:u.zonas||[], equipos:u.equipos||[], tiposEquipo:u.tiposEquipo||[], facturacion:u.facturacion||{}, contactoOperaciones:u.contactoOperaciones, contactoComercial:u.contactoComercial, contactoFacturacion:u.contactoFacturacion, contactos:u.contactos||[], datosBancarios:u.datosBancarios||{}, industrias:u.industrias||[], max_usuarios:u.max_usuarios||0, esSubusuario:u.esSubusuario||false, empresaMadreId:u.empresaMadreId||null, rol:u.rol||(u.esSubusuario?'miembro':'dueno'), empresaId:u.empresaId||null, empresaMiembros:u.empresaMiembros||[], permisos:u.permisos||{}, perfilCompletitud:u.perfilCompletitud||0, totalCotizaciones:u.totalCotizaciones||0, notifPrefs:u.notifPrefs||{} } });
   }
 
   if (path === "/api/licitaciones" && method === "POST") {
@@ -1952,12 +2182,31 @@ async function handleRequest(request, env) {
     let body = {}; try { body = await request.json(); } catch(e) { return err("Formato invalido"); }
     const { tipoEquipo, marca, peso, dimensiones, descripcion, origen, destino, fechaCarga, fechaEntrega, plazo, archivoId, archivoNombre, tipoLicitacion, tipoCarga, cantidadBultos, pesoPorBulto, modelo, cantidadEquipos, direccionOrigen, direccionDestino, contactoOrigenNombre, contactoOrigenTelefono, contactoOrigenEmail, contactoDestinoNombre, contactoDestinoTelefono, contactoDestinoEmail, volumen, horaCarga, horaDescarga, paradas, tipoEntregaDestino, valorSeguro, requiereEstandar, estandarDetalle, estandarArchivoId, estandarArchivoNombre, tipoContenedor, cantidadContenedores, condicionContenedor, pesoVGM, mercanciaPeligrosa, claseIMO, numeroUN, refrigerado, temperaturaReefer, contSobredimensionado, contSobredimensionadoDetalle, numeroContenedor, selloContenedor } = body;
     if (!origen||!destino||!fechaCarga) return err("Faltan campos requeridos");
-    const paradasNorm = Array.isArray(paradas) ? paradas.filter(p=>p&&typeof p==="object").map(p=>({direccion:String(p.direccion||"").slice(0,200),horario:String(p.horario||"").slice(0,100),contacto:String(p.contacto||"").slice(0,200),descripcion:String(p.descripcion||"").slice(0,300)})).slice(0,5) : [];
+    // Licitación exprés (6h): solo empresas habilitadas, carga hoy o mañana, publicada antes de las 13:00 (hora Chile)
+    let _esExpress=false;
+    if (user.role==="cliente") {
+      const _hc=ahoraChile();
+      const _empX=await empresaDe(env, user);
+      const _puedeExpress=!!(_empX&&_empX.licitacionExpress) && _hc.hora<13;
+      if (fechaCarga < _hc.fecha) return err("La fecha de carga no puede ser anterior a hoy");
+      if (fechaCarga===_hc.fecha && !_puedeExpress) return err("La fecha de carga debe ser desde mañana en adelante");
+      if (String(plazo)==="6") {
+        if (!_puedeExpress || (fechaCarga!==_hc.fecha && fechaCarga!==_hc.manana)) return err("El plazo exprés de 6h no está disponible para esta licitación");
+        _esExpress=true;
+      }
+      if (fechaCarga===_hc.fecha && String(plazo)!=="6") return err("Para cargas de hoy el plazo debe ser 6h");
+    }
+    const paradasNorm = Array.isArray(paradas) ? paradas.filter(p=>p&&typeof p==="object").map(p=>({direccion:String(p.direccion||"").slice(0,200),horario:String(p.horario||"").slice(0,100),contacto:String(p.contacto||"").slice(0,200),descripcion:String(p.descripcion||"").slice(0,300),ubicacion:limpiarUbicacion(p.ubicacion)})).slice(0,5) : [];
     const id = uid(); const codigo = await generarCodigo(env,'LIC');
-    const licitacion = { id, codigo, clienteId:user.id, clienteEmail:user.email, clienteEmpresa:user.empresa||"", clienteNombre:user.nombre||"", clienteTelefono:user.telefono||"", empresaId:user.esSubusuario?(user.empresaMadreId||user.id):user.id, creadoPorEmail:user.email, creadoPorNombre:user.nombre||"", esCreadoPorSubusuario:user.esSubusuario||false, tipoLicitacion:tipoLicitacion||"maquinaria", tipoEquipo:tipoEquipo||tipoCarga||"Carga general", tipoEquipoRequerido:body.tipoEquipoRequerido||"cualquiera", marca:marca||"", modelo:modelo||"", cantidadEquipos:cantidadEquipos||"", tipoCarga:tipoCarga||"", cantidadBultos:cantidadBultos||"", pesoPorBulto:pesoPorBulto||"", peso:peso||"", pesoUnidad:body.pesoUnidad||"ton", volumen:volumen||"", dimensiones:dimensiones||"", descripcion:descripcion||"", origen, destino, direccionOrigen:direccionOrigen||"", direccionDestino:direccionDestino||"", paradas:paradasNorm, tipoEntregaDestino:tipoEntregaDestino||"no_aplica", contactoOrigenNombre:contactoOrigenNombre||"", contactoOrigenTelefono:contactoOrigenTelefono||"", contactoOrigenEmail:contactoOrigenEmail||"", contactoDestinoNombre:contactoDestinoNombre||"", contactoDestinoTelefono:contactoDestinoTelefono||"", contactoDestinoEmail:contactoDestinoEmail||"", fechaCarga, horaCarga:horaCarga||"", fechaEntrega:fechaEntrega||"", horaDescarga:horaDescarga||"", plazo:plazo||"24", valorSeguro:valorSeguro||"", requiereEstandar:!!requiereEstandar, estandarDetalle:requiereEstandar?(estandarDetalle||""):"", estandarArchivoId:requiereEstandar?(estandarArchivoId||null):null, estandarArchivoNombre:requiereEstandar?(estandarArchivoNombre||null):null, estandarRequisitos:(requiereEstandar&&Array.isArray(body.estandarRequisitos))?body.estandarRequisitos.filter(r=>r&&r.label).map(r=>({id:String(r.id||uid()),label:String(r.label).slice(0,120)})).slice(0,30):[], tipoContenedor:tipoContenedor||"", cantidadContenedores:cantidadContenedores||"", condicionContenedor:condicionContenedor||"", pesoVGM:pesoVGM||"", mercanciaPeligrosa:!!mercanciaPeligrosa, claseIMO:mercanciaPeligrosa?(claseIMO||""):"", numeroUN:mercanciaPeligrosa?(numeroUN||""):"", refrigerado:!!refrigerado, temperaturaReefer:refrigerado?(temperaturaReefer||""):"", contSobredimensionado:!!contSobredimensionado, contSobredimensionadoDetalle:contSobredimensionado?(contSobredimensionadoDetalle||""):"", numeroContenedor:numeroContenedor||"", selloContenedor:selloContenedor||"", archivoId:archivoId||null, archivoNombre:archivoNombre||null, esPrueba:(body.esPrueba===true), estado:"pendiente_admin", cotizaciones:[], cotizacionesEnviadas:[], preguntas:[], ronda:0, createdAt:new Date().toISOString(), cierreAt:new Date(Date.now()+parseInt(plazo||"24")*3600000).toISOString() };
+    const licitacion = { id, codigo, clienteId:user.id, clienteEmail:user.email, clienteEmpresa:user.empresa||"", clienteNombre:user.nombre||"", clienteTelefono:user.telefono||"", empresaId:user.esSubusuario?(user.empresaMadreId||user.id):user.id, creadoPorEmail:user.email, creadoPorNombre:user.nombre||"", esCreadoPorSubusuario:user.esSubusuario||false, tipoLicitacion:tipoLicitacion||"maquinaria", tipoEquipo:tipoEquipo||tipoCarga||"Carga general", tipoEquipoRequerido:body.tipoEquipoRequerido||"cualquiera", marca:marca||"", modelo:modelo||"", cantidadEquipos:cantidadEquipos||"", tipoCarga:tipoCarga||"", cantidadBultos:cantidadBultos||"", pesoPorBulto:pesoPorBulto||"", peso:peso||"", pesoUnidad:body.pesoUnidad||"ton", volumen:volumen||"", dimensiones:dimensiones||"", descripcion:descripcion||"", origen, destino, direccionOrigen:direccionOrigen||"", direccionDestino:direccionDestino||"", ubicacionOrigen:limpiarUbicacion(body.ubicacionOrigen), ubicacionDestino:limpiarUbicacion(body.ubicacionDestino), paradas:paradasNorm, tipoEntregaDestino:tipoEntregaDestino||"no_aplica", contactoOrigenNombre:contactoOrigenNombre||"", contactoOrigenTelefono:contactoOrigenTelefono||"", contactoOrigenEmail:contactoOrigenEmail||"", contactoDestinoNombre:contactoDestinoNombre||"", contactoDestinoTelefono:contactoDestinoTelefono||"", contactoDestinoEmail:contactoDestinoEmail||"", fechaCarga, horaCarga:horaCarga||"", fechaEntrega:fechaEntrega||"", horaDescarga:horaDescarga||"", plazo:plazo||"24", valorSeguro:valorSeguro||"", requiereEstandar:!!requiereEstandar, estandarDetalle:requiereEstandar?(estandarDetalle||""):"", estandarArchivoId:requiereEstandar?(estandarArchivoId||null):null, estandarArchivoNombre:requiereEstandar?(estandarArchivoNombre||null):null, estandarRequisitos:(requiereEstandar&&Array.isArray(body.estandarRequisitos))?body.estandarRequisitos.filter(r=>r&&r.label).map(r=>({id:String(r.id||uid()),label:String(r.label).slice(0,120)})).slice(0,30):[], tipoContenedor:tipoContenedor||"", cantidadContenedores:cantidadContenedores||"", condicionContenedor:condicionContenedor||"", pesoVGM:pesoVGM||"", mercanciaPeligrosa:!!mercanciaPeligrosa, claseIMO:mercanciaPeligrosa?(claseIMO||""):"", numeroUN:mercanciaPeligrosa?(numeroUN||""):"", refrigerado:!!refrigerado, temperaturaReefer:refrigerado?(temperaturaReefer||""):"", contSobredimensionado:!!contSobredimensionado, contSobredimensionadoDetalle:contSobredimensionado?(contSobredimensionadoDetalle||""):"", numeroContenedor:numeroContenedor||"", selloContenedor:selloContenedor||"", archivoId:archivoId||null, archivoNombre:archivoNombre||null, esPrueba:(body.esPrueba===true), estado:"pendiente_admin", cotizaciones:[], cotizacionesEnviadas:[], preguntas:[], ronda:0, createdAt:new Date().toISOString(), cierreAt:new Date(Date.now()+parseInt(plazo||"24")*3600000).toISOString() };
+    if (_esExpress) { licitacion.estado="abierta"; licitacion.aprobadaAt=licitacion.createdAt; licitacion.express=true; licitacion.autoAprobada=true; }
     await dalSaveLicitacion(env, licitacion, usarSupabase(env, url), { isNew:true, clienteIndexId:user.id });
-    await crearNotificacion(env,"admin","nueva_licitacion",`Nueva licitacion: ${licitacion.tipoEquipo} - ${origen} - ${destino}`,{ licitacionId:id });
-    if(env.ADMIN_EMAIL){ try{ await enviarEmail(env,{ to:env.ADMIN_EMAIL, subject:"Nueva licitación pendiente de aprobación - TransMatch", html:emailNuevaLicitacionAdmin(licitacion) }); }catch(e){} }
+    await crearNotificacion(env,"admin","nueva_licitacion",`${_esExpress?"Licitación exprés publicada":"Nueva licitacion"}: ${licitacion.tipoEquipo} - ${origen} - ${destino}`,{ licitacionId:id });
+    if(env.ADMIN_EMAIL){ try{ await enviarEmail(env,{ to:env.ADMIN_EMAIL, subject:_esExpress?"Licitación exprés publicada (6h) - TransMatch":"Nueva licitación pendiente de aprobación - TransMatch", html:emailNuevaLicitacionAdmin(licitacion) }); }catch(e){} }
+    if (_esExpress) {
+      if(!licitacion.esPrueba) { try{ await notificarNuevaLicitacionTransportistas(env, licitacion); }catch(e){} }
+      try{ await notificarLicitacionWhatsapp(env, licitacion); }catch(e){}
+    }
     await registrarActividad(env,"licitacion_creada",`${user.empresa||user.nombre||'Cliente'} publicó una licitación: ${licitacion.tipoEquipo} (${origen} → ${destino})`,{ licitacionId:id, codigo, empresa:user.empresa });
     return ok({ ok:true, id, mensaje:"Licitacion enviada." });
   }
@@ -2065,6 +2314,7 @@ async function handleRequest(request, env) {
     // Notificar a los transportistas elegibles (in-app + email según preferencia).
     // Las licitaciones de prueba NO se notifican ni se muestran a los transportistas.
     if(!l.esPrueba) await notificarNuevaLicitacionTransportistas(env, l);
+    try{ await notificarLicitacionWhatsapp(env, l); }catch(e){}  // WhatsApp vía Kapso (no-op si no está configurado)
     await registrarActividad(env,"licitacion_aprobada",`Licitación aprobada y publicada: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo });
     return ok({ ok:true });
   }
@@ -2153,7 +2403,9 @@ async function handleRequest(request, env) {
     if(l.estado!=="pendiente_admin" && !(l.estado==="abierta" && (!l.cotizaciones||l.cotizaciones.length===0))) return err("Ya hay cotizaciones basadas en esta información — solo puedes editar los datos de contacto");
     const campos=["tipoEquipo","tipoEquipoRequerido","marca","modelo","cantidadEquipos","peso","pesoUnidad","volumen","dimensiones","descripcion","origen","destino","direccionOrigen","direccionDestino","tipoEntregaDestino","valorSeguro","contactoOrigenNombre","contactoOrigenTelefono","contactoOrigenEmail","contactoDestinoNombre","contactoDestinoTelefono","contactoDestinoEmail","fechaCarga","horaCarga","fechaEntrega","horaDescarga","plazo","tipoCarga","cantidadBultos","pesoPorBulto","tipoContenedor","cantidadContenedores","condicionContenedor","pesoVGM","mercanciaPeligrosa","claseIMO","numeroUN","refrigerado","temperaturaReefer","contSobredimensionado","contSobredimensionadoDetalle","numeroContenedor","selloContenedor"];
     for(const k of campos){ if(body[k]!==undefined) l[k]=body[k]; }
-    if(Array.isArray(body.paradas)) l.paradas=body.paradas.filter(p=>p&&typeof p==="object").map(p=>({direccion:String(p.direccion||"").slice(0,200),horario:String(p.horario||"").slice(0,100),contacto:String(p.contacto||"").slice(0,200),descripcion:String(p.descripcion||"").slice(0,300)})).slice(0,5);
+    if(body.ubicacionOrigen!==undefined) l.ubicacionOrigen=limpiarUbicacion(body.ubicacionOrigen);
+    if(body.ubicacionDestino!==undefined) l.ubicacionDestino=limpiarUbicacion(body.ubicacionDestino);
+    if(Array.isArray(body.paradas)) l.paradas=body.paradas.filter(p=>p&&typeof p==="object").map(p=>({direccion:String(p.direccion||"").slice(0,200),horario:String(p.horario||"").slice(0,100),contacto:String(p.contacto||"").slice(0,200),descripcion:String(p.descripcion||"").slice(0,300),ubicacion:limpiarUbicacion(p.ubicacion)})).slice(0,5);
     if(body.archivoId) { l.archivoId=body.archivoId; l.archivoNombre=body.archivoNombre; }
     // Estándar minero
     if(body.requiereEstandar!==undefined){
@@ -2386,7 +2638,7 @@ async function handleRequest(request, env) {
         };
       }
     } catch(e){}
-    const transporte={ id:transporteId, codigo:codigoTRN, licitacionId:id, empresaId:l.empresaId||l.clienteId, creadoPorEmail:l.creadoPorEmail||l.clienteEmail, creadoPorNombre:l.creadoPorNombre||l.clienteNombre||'', licitacionCodigo:l.codigo||"", tipoEquipo:l.tipoEquipo+(l.marca?" - "+l.marca:""), origen:l.origen, destino:l.destino, precio:cotiz.precio, clienteEmail:l.clienteEmail, clienteEmpresa:l.clienteEmpresa, clienteNombre:l.clienteNombre||"", clienteTelefono:l.clienteTelefono||"", clienteFacturacion:clienteFacturacion, requisitosEstandar:(Array.isArray(l.estandarRequisitos)?l.estandarRequisitos.map(r=>({id:r.id,label:r.label,archivoId:null,archivoNombre:null,subidoAt:null})):[]), transportistaEmail:cotiz.transportistaEmail, transportistaNombre:cotiz.transportistaNombre, transportistaEmpresa:cotiz.transportistaEmpresa, transportistaTelefono:cotiz.transportistaTelefono||"", contactoEncargado:cotiz.contactoEncargado||null, estado:"preparacion", estadoDocumentos:"pendiente", historial:[{ estado:"preparacion", nota:"Transporte creado al adjudicar", fecha:new Date().toISOString(), actor:"Sistema" }], oc:null, factura:null, adjudicadoAt:new Date().toISOString() };
+    const transporte={ id:transporteId, codigo:codigoTRN, licitacionId:id, empresaId:l.empresaId||l.clienteId, creadoPorEmail:l.creadoPorEmail||l.clienteEmail, creadoPorNombre:l.creadoPorNombre||l.clienteNombre||'', licitacionCodigo:l.codigo||"", tipoEquipo:l.tipoEquipo+(l.marca?" - "+l.marca:""), origen:l.origen, destino:l.destino, ubicacionOrigen:l.ubicacionOrigen||"", ubicacionDestino:l.ubicacionDestino||"", precio:cotiz.precio, clienteEmail:l.clienteEmail, clienteEmpresa:l.clienteEmpresa, clienteNombre:l.clienteNombre||"", clienteTelefono:l.clienteTelefono||"", clienteFacturacion:clienteFacturacion, requisitosEstandar:(Array.isArray(l.estandarRequisitos)?l.estandarRequisitos.map(r=>({id:r.id,label:r.label,archivoId:null,archivoNombre:null,subidoAt:null})):[]), transportistaEmail:cotiz.transportistaEmail, transportistaNombre:cotiz.transportistaNombre, transportistaEmpresa:cotiz.transportistaEmpresa, transportistaTelefono:cotiz.transportistaTelefono||"", contactoEncargado:cotiz.contactoEncargado||null, estado:"preparacion", estadoDocumentos:"pendiente", historial:[{ estado:"preparacion", nota:"Transporte creado al adjudicar", fecha:new Date().toISOString(), actor:"Sistema" }], oc:null, factura:null, adjudicadoAt:new Date().toISOString() };
     await dalSaveTransporte(env, transporte, usarSupabase(env, url), { isNew:true });
     const ov = await crearOV(env, { transporteId, licitacion:l, cotizacion:cotiz });
     await crearNotificacion(env,cotiz.transportistaId,"adjudicacion",`Ganaste: ${l.tipoEquipo} - ${l.origen} - ${l.destino} - ${formatCLP(cotiz.precio)}`,{ licitacionId:id, clienteEmpresa:l.clienteEmpresa, clienteEmail:l.clienteEmail, ovId:ov.id_ov });
@@ -3086,6 +3338,20 @@ async function handleRequest(request, env) {
 
 
   // ── CONTACTO: formulario público (sin auth) + Resend ──
+  // Webhook de Kapso (WhatsApp): recibe mensajes entrantes (respuestas Sí/No, y a futuro las cotizaciones por flow).
+  if (path === "/api/kapso/webhook" && method === "POST") {
+    // Seguridad opcional: si defines KAPSO_WEBHOOK_SECRET, exígelo como ?secret= en la URL del webhook.
+    if(env.KAPSO_WEBHOOK_SECRET && url.searchParams.get("secret")!==env.KAPSO_WEBHOOK_SECRET) return err("no autorizado",401);
+    let body={}; try{ body=await request.json(); }catch(e){}
+    const mensajes=_kapsoExtraerMensajes(body);
+    for(const m of mensajes){ try{ await kapsoProcesarMensaje(env, m); }catch(e){ console.error("kapso webhook", e&&e.message); } }
+    return ok({ ok:true, procesados:mensajes.length });
+  }
+  // Verificación del webhook (algunos proveedores hacen un GET de handshake)
+  if (path === "/api/kapso/webhook" && method === "GET") {
+    return ok({ ok:true, service:"transmatch-kapso-webhook" });
+  }
+
   if (path === "/api/contacto" && method === "POST") {
     let body = {}; try { body = await request.json(); } catch(e) {}
     const { nombre, empresa, email, telefono, tipo } = body;
@@ -3113,7 +3379,10 @@ async function handleRequest(request, env) {
         </div>
       </div>`;
 
-    // Email de confirmación al solicitante
+    // Email de confirmación al solicitante — el mensaje depende de si es transportista o mandante.
+    const _cuerpoConfirm = (tipo === 'transportista')
+      ? `<p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 16px">Gracias por tu interés en sumar a <strong>${empresa}</strong> a la red de transportistas de TransMatch. Pronto nos pondremos en contacto para conocer tu operación (equipos, rutas y zonas) y explicarte cómo funciona la plataforma.</p>`
+      : `<p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 16px">Gracias por escribirnos. Recibimos tu solicitud y pronto nos pondremos en contacto para entender bien las necesidades de transporte de <strong>${empresa}</strong> y explicarte cómo funciona TransMatch.</p>`;
     const htmlConfirm = `
       <div style="font-family:Arial,sans-serif;max-width:540px;margin:0 auto">
         <div style="background:#1e2d4e;padding:20px 28px;border-radius:10px 10px 0 0">
@@ -3121,40 +3390,35 @@ async function handleRequest(request, env) {
         </div>
         <div style="background:#fff;padding:32px;border-radius:0 0 10px 10px;border:1px solid #e8eaf0">
           <h2 style="color:#1e2d4e;margin:0 0 12px">Hola ${nombre},</h2>
-          <p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 16px">Recibimos tu solicitud. En breve nos pondremos en contacto contigo para coordinar la cotización correspondiente a <strong>${empresa}</strong>.</p>
+          ${_cuerpoConfirm}
           <p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 24px">Si tienes alguna consulta urgente, puedes escribirnos directamente a <a href="mailto:contacto@transmatch.cl" style="color:#ff8904">contacto@transmatch.cl</a>.</p>
           <p style="color:#6B7280;font-size:13px;margin:0">El equipo TransMatch</p>
         </div>
       </div>`;
 
+    const RESEND_KEY = env.RESEND_API_KEY;
+    const _enviarResend = async (to) => {
+      try {
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + RESEND_KEY, "Content-Type": "application/json" },
+          body: JSON.stringify({ from: "TransMatch <contacto@transmatch.cl>", to:[to], reply_to: email, subject: "Nueva solicitud de contacto — " + nombre + " / " + empresa, html: htmlEquipo })
+        });
+        if(!res.ok){ const t=await res.text().catch(()=>""); console.error("Resend contacto->"+to, res.status, t); }
+      } catch(e){ console.error("Resend contacto excepción ->"+to, e&&e.message); }
+    };
+    // Notificación al equipo: a tu casilla real (ADMIN_EMAIL, con respaldo) y a contacto@, cada una por separado
+    // para que si un destinatario falla no bloquee al otro.
+    const _destinos = [...new Set([ (env.ADMIN_EMAIL||"transmatchcl@gmail.com"), "contacto@transmatch.cl" ].filter(Boolean))];
+    for(const d of _destinos){ await _enviarResend(d); }
+    // Confirmación al solicitante
     try {
-      const RESEND_KEY = env.RESEND_API_KEY;
-      // Email al equipo
       await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { "Authorization": "Bearer " + RESEND_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          from: "TransMatch <contacto@transmatch.cl>",
-          to: ["contacto@transmatch.cl"],
-          reply_to: email,
-          subject: "Nueva solicitud de contacto — " + nombre + " / " + empresa,
-          html: htmlEquipo
-        })
+        body: JSON.stringify({ from: "TransMatch <contacto@transmatch.cl>", to: [email], subject: "Recibimos tu solicitud — TransMatch", html: htmlConfirm })
       });
-      // Confirmación al solicitante
-      await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { "Authorization": "Bearer " + RESEND_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          from: "TransMatch <contacto@transmatch.cl>",
-          to: [email],
-          subject: "Recibimos tu solicitud — TransMatch",
-          html: htmlConfirm
-        })
-      });
-    } catch(e) {
-      // Si falla Resend, igual guardamos y retornamos OK
-    }
+    } catch(e) { /* si falla la confirmación igual guardamos y retornamos OK */ }
 
     // Guardar en KV como respaldo
     const contactId = uid();
@@ -3471,7 +3735,7 @@ async function handleRequest(request, env) {
           if(_empU.contactoFacturacion!==undefined) contactoFacturacionOut=_empU.contactoFacturacion;
         }
       }
-      usuarios.push({ id:u.id,email:u.email,nombre:u.nombre,empresa:empresaOut,role:u.role,estado:u.estado,plan:u.plan,createdAt:u.createdAt,rating:u.rating,totalTransportes:u.totalTransportes,telefono:u.telefono||'',rut:u.rut||'',cargo:u.cargo||'',rutEmpresa:rutEmpresaOut,giro:giroOut,direccion:direccionOut,telEmpresa:telEmpresaOut,ciudadEmpresa:ciudadEmpresaOut,web:webOut,descripcion:descripcionOut,max_usuarios:u.max_usuarios||0,empresaMiembros:u.empresaMiembros||[],esSubusuario:u.esSubusuario||false,empresaMadreId:u.empresaMadreId||null,rol:u.rol||(u.esSubusuario?'miembro':'dueno'),empresaId:u.empresaId||null,desactivadoManual:u.desactivadoManual||false,notasAdmin:u.notasAdmin||'',equipos:u.equipos||[],tiposEquipo:u.tiposEquipo||[],zonas:u.zonas||[],rutRepresentante:u.rutRepresentante||'',ciudad:u.ciudad||'',whatsapp:u.whatsapp||'',industrias:industriasOut,anosExperiencia:u.anosExperiencia||'',perfilCompletitud:u.perfilCompletitud||0,totalCotizaciones:u.totalCotizaciones||0,facturacion:facturacionOut,contactoOperaciones:contactoOperacionesOut,contactoComercial:contactoComercialOut,contactoFacturacion:contactoFacturacionOut,contactos:contactosOut,datosBancarios:datosBancariosOut,notifEmail:u.notifEmail||false,notifWhatsapp:u.notifWhatsapp||false });
+      usuarios.push({ licitacionExpress:!!(_eidU&&empresaCache[_eidU]&&empresaCache[_eidU].licitacionExpress), empresaEntId:_eidU||null, id:u.id,email:u.email,nombre:u.nombre,empresa:empresaOut,role:u.role,estado:u.estado,plan:u.plan,createdAt:u.createdAt,rating:u.rating,totalTransportes:u.totalTransportes,telefono:u.telefono||'',rut:u.rut||'',cargo:u.cargo||'',rutEmpresa:rutEmpresaOut,giro:giroOut,direccion:direccionOut,telEmpresa:telEmpresaOut,ciudadEmpresa:ciudadEmpresaOut,web:webOut,descripcion:descripcionOut,max_usuarios:u.max_usuarios||0,empresaMiembros:u.empresaMiembros||[],esSubusuario:u.esSubusuario||false,empresaMadreId:u.empresaMadreId||null,rol:u.rol||(u.esSubusuario?'miembro':'dueno'),empresaId:u.empresaId||null,desactivadoManual:u.desactivadoManual||false,notasAdmin:u.notasAdmin||'',equipos:u.equipos||[],tiposEquipo:u.tiposEquipo||[],zonas:u.zonas||[],rutRepresentante:u.rutRepresentante||'',ciudad:u.ciudad||'',whatsapp:u.whatsapp||'',industrias:industriasOut,anosExperiencia:u.anosExperiencia||'',perfilCompletitud:u.perfilCompletitud||0,totalCotizaciones:u.totalCotizaciones||0,facturacion:facturacionOut,contactoOperaciones:contactoOperacionesOut,contactoComercial:contactoComercialOut,contactoFacturacion:contactoFacturacionOut,contactos:contactosOut,datosBancarios:datosBancariosOut,notifEmail:u.notifEmail||false,notifWhatsapp:u.notifWhatsapp||false,comuna:u.comuna||'',region:u.region||'',ciudadesOperacion:u.ciudadesOperacion||[],altaExcel:u.altaExcel||null });
     }
     return ok({ usuarios });
   }
@@ -3823,7 +4087,7 @@ async function handleRequest(request, env) {
       for(const ov of grupo.ovs){ ov.estado="FACTURADA"; ov.id_factura_transmatch=facturaId; ov.fecha_facturacion=new Date().toISOString(); ov.fecha_vencimiento=new Date(Date.now()+30*24*60*60*1000).toISOString(); ov.historial=ov.historial||[]; ov.historial.push({ estado:"FACTURADA", fecha:new Date().toISOString(), actor:"admin", nota:"Incluida en factura mensual "+periodo }); await dalSaveOV(env, ov, _sbBatch); }
       facturaIds.push(facturaId);
       await crearNotificacion(env,tid,"factura_mensual",`Factura mensual ${periodo}: ${formatCLP(totalComision)} por ${grupo.ovs.length} transporte(s)`,{ facturaId });
-      await enviarEmail(env,{ to:grupo.transportistaEmail, subject:`Factura mensual ${periodo} - TransMatch`, html:emailFacturaMensual(factura) });
+      // Sin correo al generar: el transportista recibe correo solo cuando se sube la factura SII.
     }
     // (los índices facturas:all y facturas:transportista ya los mantiene dalSaveFacturaCons con isNew)
     return ok({ ok:true, facturas_generadas:facturaIds.length, transportistas:Object.keys(porTransportista).length });
@@ -4328,6 +4592,173 @@ async function handleRequest(request, env) {
     return ok({ ok:true });
   }
 
+  // GET /api/mis-informes — el cliente descarga sus informes mensuales (últimos 12 meses con actividad)
+  if (path === "/api/mis-informes" && method === "GET") {
+    const user=await getUser(request,env); const d=deny(user,"cliente"); if(d) return d;
+    if(user.esSubusuario && !veTodaLaEmpresa(user)) return err("Tu perfil no tiene acceso a los informes de la empresa",403);
+    const eid=empresaIdDe(user); const sb=usarSupabase(env, url);
+    const [emp, lics, trans]=await Promise.all([dalGetEmpresaById(env, eid, sb), dalGetAllLicitaciones(env, sb), dalGetAllTransportes(env, sb)]);
+    const razonSocial=(emp&&emp.razonSocial)||user.empresa||"";
+    const informes=[]; let p=periodoAnterior();
+    for(let i=0;i<12;i++){
+      const inf=calcularInformeMensual(eid, p, lics, trans);
+      if(inf.conActividad) informes.push({ periodo:p, nombrePeriodo:nombrePeriodo(p), informe:inf });
+      let [y,m]=p.split("-").map(Number); m-=1; if(m===0){ m=12; y-=1; } p=y+"-"+String(m).padStart(2,"0");
+    }
+    return ok({ razonSocial, informes });
+  }
+
+  // POST /api/admin/alta-transportista — guarda los datos del Excel "Alta de cuenta" (ya revisados por el admin)
+  if (path === "/api/admin/alta-transportista" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    const sb=usarSupabase(env, url);
+    const cargar=async em=>{ em=String(em||"").toLowerCase(); if(!em) return null; const x=await dalGetUsuarioByEmail(env, em, sb); if(x) return x; const r=await env.USERS.get(em); return r?JSON.parse(r):null; };
+    const guardar=async u=>{ await env.USERS.put(String(u.email).toLowerCase(), JSON.stringify(u)); if(sb){ try{ await dalSaveUsuario(env, u, sb); }catch(e){} } };
+    const madre=await cargar(body.madreEmail);
+    if(!madre||madre.role!=="transportista"||madre.esSubusuario) return err("Cuenta de transportista no encontrada",404);
+    const limpio=v=>String(v==null?"":v).replace(/[<>"'`]/g,"").replace(/\s+/g," ").trim().slice(0,200);
+    const lista=v=>(Array.isArray(v)?v:String(v||"").split(",")).map(limpio).filter(Boolean).slice(0,30);
+    const c=body.campos||{}; const emp={}; const cambios=[];
+    ["empresa","rutEmpresa","giro","direccion","comuna","region"].forEach(k=>{ if(c[k]!==undefined){ madre[k]=limpio(c[k]); emp[k]=madre[k]; cambios.push(k); } });
+    ["zonas","ciudadesOperacion","tiposEquipo"].forEach(k=>{ if(c[k]!==undefined){ madre[k]=lista(c[k]); cambios.push(k); } });
+    if(c.facturacionEmail!==undefined||c.facturacionContacto!==undefined){
+      const cf=Object.assign({}, madre.contactoFacturacion||{});
+      if(c.facturacionEmail!==undefined) cf.email=limpio(c.facturacionEmail);
+      if(c.facturacionContacto!==undefined) cf.nombre=limpio(c.facturacionContacto);
+      madre.contactoFacturacion=cf; emp.contactoFacturacion=cf; cambios.push("contactoFacturacion");
+    }
+    const ct=body.contacto;
+    if(ct&&typeof ct==="object"&&Object.keys(ct).length){
+      const ce=String(body.contactoEmail||"").toLowerCase();
+      let uc=null;
+      if(ce===String(madre.email).toLowerCase()) uc=madre;
+      else if(ce){ const x=await cargar(ce); if(x&&x.esSubusuario&&x.empresaMadreId===madre.id) uc=x; }
+      if(uc){
+        ["nombre","cargo","telefono"].forEach(k=>{ if(ct[k]!==undefined) uc[k]=limpio(ct[k]); });
+        if(uc!==madre){ uc.updatedAt=new Date().toISOString(); await guardar(uc); }
+      } else {
+        madre.contactoComercial=Object.assign({}, madre.contactoComercial||{}, { nombre:limpio(ct.nombre!==undefined?ct.nombre:(madre.contactoComercial||{}).nombre), cargo:limpio(ct.cargo!==undefined?ct.cargo:(madre.contactoComercial||{}).cargo), telefono:limpio(ct.telefono!==undefined?ct.telefono:(madre.contactoComercial||{}).telefono), email:ce||(madre.contactoComercial||{}).email||"" });
+        emp.contactoComercial=madre.contactoComercial;
+      }
+      cambios.push("contacto");
+    }
+    if(body.archivo&&body.archivo.base64){
+      if(String(body.archivo.base64).length>4*1024*1024) return err("El archivo es demasiado grande (máx. 3 MB)");
+      const aid=uid(); const nombreArch=limpio(body.archivo.nombre||"alta_de_cuenta.xlsx")||"alta_de_cuenta.xlsx";
+      await dalSaveArchivo(env, aid, { base64:body.archivo.base64, mimeType:body.archivo.mimeType||"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", nombre:nombreArch, createdAt:new Date().toISOString() }, sb);
+      madre.altaExcel={ archivoId:aid, nombre:nombreArch, subidoAt:new Date().toISOString() };
+    }
+    madre.updatedAt=new Date().toISOString();
+    await guardar(madre);
+    try{ await guardarPerfilEnEmpresa(env, madre, emp); }catch(e){}
+    try{ await registrarActividad(env,"alta_transportista",`Datos de alta cargados desde Excel: ${madre.empresa||madre.email}`,{ email:madre.email }); }catch(e){}
+    return ok({ ok:true, cambios });
+  }
+
+  // ── ADMIN: INFORMES MENSUALES ──────────────────────────────────
+  if (path === "/api/admin/informes" && method === "GET") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    const periodo=/^\d{4}-\d{2}$/.test(url.searchParams.get("periodo")||"")?url.searchParams.get("periodo"):periodoAnterior();
+    const sb=usarSupabase(env, url);
+    const [emps, lics, trans]=await Promise.all([dalGetAllEmpresas(env, sb), dalGetAllLicitaciones(env, sb), dalGetAllTransportes(env, sb)]);
+    const out=[];
+    for(const emp of emps){
+      if(!emp||emp.tipo!=="cliente") continue;
+      const inf=calcularInformeMensual(emp.id, periodo, lics, trans);
+      const cfg=emp.informeMensual||{};
+      out.push({ empresaId:emp.id, razonSocial:emp.razonSocial||emp.duenoEmail||"", duenoEmail:emp.duenoEmail||"", miembros:(emp.miembros||[]).filter(Boolean),
+        auto:!!cfg.auto, destinatarios:(Array.isArray(cfg.destinatarios)&&cfg.destinatarios.length)?cfg.destinatarios:[emp.duenoEmail].filter(Boolean),
+        enviado:(emp.informesEnviados||{})[periodo]||null, informe:inf });
+    }
+    out.sort((a,b)=> (b.informe.publicadas+b.informe.adjudicadas)-(a.informe.publicadas+a.informe.adjudicadas) || a.razonSocial.localeCompare(b.razonSocial));
+    return ok({ periodo, nombrePeriodo:nombrePeriodo(periodo), empresas:out });
+  }
+  if (path.match(/^\/api\/admin\/informes\/[^/]+\/config$/) && method === "PUT") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    const eid=path.split("/")[4]; const sb=usarSupabase(env, url);
+    const emp=await dalGetEmpresaById(env, eid, sb); if(!emp) return err("Empresa no encontrada",404);
+    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    const cfg=emp.informeMensual||{};
+    if(body.auto!==undefined) cfg.auto=!!body.auto;
+    if(Array.isArray(body.destinatarios)){
+      const validos=new Set([emp.duenoEmail,...(emp.miembros||[])].filter(Boolean).map(e=>e.toLowerCase()));
+      cfg.destinatarios=[...new Set(body.destinatarios.map(e=>String(e).toLowerCase()).filter(e=>validos.has(e)))];
+      if(!cfg.destinatarios.length) return err("Selecciona al menos un destinatario");
+    }
+    emp.informeMensual=cfg; await dalSaveEmpresa(env, emp, sb);
+    return ok({ ok:true, config:cfg });
+  }
+  if (path === "/api/admin/informes/enviar" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    const periodo=String(body.periodo||""); if(!/^\d{4}-\d{2}$/.test(periodo)) return err("Periodo inválido");
+    const ids=Array.isArray(body.empresaIds)?body.empresaIds.slice(0,50):[]; if(!ids.length) return err("Selecciona al menos un cliente");
+    const sb=usarSupabase(env, url);
+    const [lics, trans]=await Promise.all([dalGetAllLicitaciones(env, sb), dalGetAllTransportes(env, sb)]);
+    const resultados=[];
+    for(const eid of ids){
+      const emp=await dalGetEmpresaById(env, eid, sb);
+      if(!emp){ resultados.push({ empresaId:eid, ok:false, error:"No encontrada" }); continue; }
+      const inf=calcularInformeMensual(emp.id, periodo, lics, trans);
+      if(!inf.conActividad){ resultados.push({ empresaId:eid, ok:false, error:"Sin actividad en el mes" }); continue; }
+      try{ const r=await enviarInformeEmpresa(env, emp, inf, "manual"); resultados.push({ empresaId:eid, ...r }); }
+      catch(e){ resultados.push({ empresaId:eid, ok:false, error:"Error al enviar" }); }
+    }
+    return ok({ ok:true, resultados });
+  }
+
+  // POST /api/transportes/:id/solicitar-documentos — el cliente pide documentos después de adjudicar
+  if (path.match(/^\/api\/transportes\/[^/]+\/solicitar-documentos$/) && method === "POST") {
+    const user = await getUser(request, env); if(!user) return err("No autenticado",401);
+    if(user.role !== "cliente") return err("Solo clientes",403);
+    const id = path.split("/")[3];
+    const raw = await dalGetTransporteById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrado",404);
+    const t = raw; if((t.empresaId||t.clienteId)!==(user.esSubusuario?(user.empresaMadreId||user.id):user.id)) return err("Sin acceso",403);
+    if(t.valoracion) return err("Este transporte ya fue valorado; no se pueden solicitar más documentos");
+    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    const limpiar = v => String(v||"").replace(/[<>"'`]/g,"").replace(/\s+/g," ").trim();
+    const indicaciones = limpiar(body.indicaciones).slice(0,300);
+    const reqs = t.requisitosEstandar||[];
+    const existentes = new Set(reqs.map(r => String(r.label||"").toLowerCase()));
+    const nuevos = [];
+    for (const d of (Array.isArray(body.documentos)?body.documentos:[]).slice(0,20)) {
+      const label = limpiar(typeof d==="string"?d:(d&&d.label)).slice(0,80);
+      if(!label || existentes.has(label.toLowerCase())) continue;
+      existentes.add(label.toLowerCase());
+      const r = { id:uid(), label, indicaciones:(d&&typeof d==="object"&&d.indicaciones!==undefined)?limpiar(d.indicaciones).slice(0,300):indicaciones, archivoId:null, archivoNombre:null, subidoAt:null, solicitadoAt:new Date().toISOString(), solicitadoPor:user.nombre||user.email, origen:"cliente" };
+      reqs.push(r); nuevos.push(r);
+    }
+    if(!nuevos.length) return err("Esos documentos ya están solicitados");
+    t.requisitosEstandar = reqs;
+    t.historial = t.historial||[];
+    t.historial.push({ estado:t.estado, fecha:new Date().toISOString(), actor:user.nombre||user.email, nota:"Documentos solicitados por el cliente: "+nuevos.map(r=>r.label).join(", ") });
+    await dalSaveTransporte(env, t, usarSupabase(env, url));
+    try {
+      const tRaw = t.transportistaEmail ? await env.USERS.get(t.transportistaEmail) : null;
+      const tId = tRaw ? JSON.parse(tRaw).id : "";
+      if(tId) await crearNotificacion(env, tId, "documentos_solicitados", `El cliente solicitó ${nuevos.length===1?"un documento":nuevos.length+" documentos"} para el transporte ${t.codigo}: ${nuevos.map(r=>r.label).join(", ")}`, { transporteId:id });
+      if(t.transportistaEmail) await enviarEmail(env, { to:t.transportistaEmail, subject:`Documentos solicitados - ${t.codigo||"Transporte"} - TransMatch`, html:emailDocumentosSolicitados(t, nuevos) });
+    } catch(e) {}
+    return ok({ ok:true, requisitos:reqs, agregados:nuevos.length });
+  }
+
+  // DELETE /api/transportes/:id/requisito/:reqId — el cliente quita una solicitud aún pendiente
+  if (path.match(/^\/api\/transportes\/[^/]+\/requisito\/[^/]+$/) && method === "DELETE") {
+    const user = await getUser(request, env); if(!user) return err("No autenticado",401);
+    if(user.role !== "cliente") return err("Solo clientes",403);
+    const parts = path.split("/"); const id = parts[3]; const reqId = parts[5];
+    const raw = await dalGetTransporteById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrado",404);
+    const t = raw; if((t.empresaId||t.clienteId)!==(user.esSubusuario?(user.empresaMadreId||user.id):user.id)) return err("Sin acceso",403);
+    const req = (t.requisitosEstandar||[]).find(r => r.id===reqId); if(!req) return err("Solicitud no encontrada",404);
+    if(req.archivoId) return err("El transportista ya subió este documento; no se puede quitar");
+    t.requisitosEstandar = (t.requisitosEstandar||[]).filter(r => r.id!==reqId);
+    t.historial = t.historial||[];
+    t.historial.push({ estado:t.estado, fecha:new Date().toISOString(), actor:user.nombre||user.email, nota:"Solicitud de documento quitada: "+(req.label||"") });
+    await dalSaveTransporte(env, t, usarSupabase(env, url));
+    return ok({ ok:true });
+  }
+
   // POST /api/transportes/:id/requisito/:reqId — subir archivo de un requisito del estandar
   if (path.match(/^\/api\/transportes\/[^/]+\/requisito\/[^/]+$/) && method === "POST") {
     const user = await getUser(request, env); if(!user) return err("No autenticado",401);
@@ -4394,6 +4825,7 @@ async function handleRequest(request, env) {
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
     if(!body.direcciones) return err("direcciones requerido");
     t.direcciones = body.direcciones;
+    ["carga","descarga"].forEach(function(k){ if(t.direcciones && t.direcciones[k] && typeof t.direcciones[k]==="object") { const d=t.direcciones[k]; d.ubicacion = limpiarUbicacion(d.ubicacion); const u=d.ubicacion; d.mapsUrl = u ? (/^https:/i.test(u) ? u : "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(u)) : (d.direccion ? "https://www.google.com/maps/search/"+encodeURIComponent(String(d.direccion)) : ""); } });
     await dalSaveTransporte(env, t, usarSupabase(env, url));
     // Notificar al transportista
     await crearNotificacion(env, t.transportistaEmail ? (await env.USERS.get(t.transportistaEmail) ? JSON.parse(await env.USERS.get(t.transportistaEmail)).id : "") : "", "direcciones_actualizadas", `El cliente actualizó las direcciones de carga y descarga del transporte ${t.codigo}.`, { transporteId: id });
@@ -4447,5 +4879,7 @@ export default {
     ctx.waitUntil(procesarVencimientosDocumentos(env));
     // Barrido de vigencias de empresas cliente (1 vez al día)
     ctx.waitUntil(procesarVencimientosEmpresas(env));
+    // Informe mensual a clientes con envío automático (día 1, desde las 9:00 hora Chile; 1 vez por mes)
+    ctx.waitUntil(procesarInformesMensuales(env));
   }
 };
