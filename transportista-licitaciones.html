@@ -1035,7 +1035,6 @@ function descargarLicitacionPDF(licId, ocultarSensible){
   if(l.tipoLicitacion==='maquinaria'){
     if(l.tipoEquipo)rows.push(['Tipo de maquinaria',l.tipoEquipo]);
     if(l.tipoEquipoRequerido&&l.tipoEquipoRequerido!=='cualquiera')rows.push(['Equipo requerido',l.tipoEquipoRequerido]);
-    if(l.cantidadEquipos)rows.push(['Cantidad de equipos',String(l.cantidadEquipos)]);
     if(l.marca)rows.push(['Marca',l.marca]);
     if(l.modelo)rows.push(['Modelo',l.modelo]);
     if(l.peso)rows.push(['Peso aprox.',l.peso+' '+(l.pesoUnidad||'ton')]);
@@ -1043,7 +1042,6 @@ function descargarLicitacionPDF(licId, ocultarSensible){
   }else{
     if(l.tipoEquipoRequerido&&l.tipoEquipoRequerido!=='cualquiera')rows.push(['Equipo requerido',l.tipoEquipoRequerido]);
     if(l.tipoCarga)rows.push(['Tipo de carga',l.tipoCarga]);
-    if(l.cantidadEquipos)rows.push(['Cantidad de equipos',String(l.cantidadEquipos)]);
     if(l.peso)rows.push(['Peso total',l.peso+' '+(l.pesoUnidad||'ton')]);
     if(l.volumen)rows.push(['Volumen',l.volumen+' m3']);
     if(l.cantidadBultos)rows.push(['N de bultos',String(l.cantidadBultos)]);
