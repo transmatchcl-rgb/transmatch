@@ -620,7 +620,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 </div>
 <div id="toast"></div>
 
-<script src="/categorias-equipo.js"></script><script src="/ubicacion-maps.js"></script><script>TMUbic.bind(document);TMUbic.vincular(document.getElementById('direccionOrigen'),document.getElementById('ubicacionOrigen'));TMUbic.vincular(document.getElementById('direccionDestino'),document.getElementById('ubicacionDestino'));</script>
+<script src="/categorias-equipo.js"></script><script src="/ubicacion-maps.js"></script><script>TMUbic.bind(document);TMUbic.plegar(document);TMUbic.vincular(document.getElementById('direccionOrigen'),document.getElementById('ubicacionOrigen'));TMUbic.vincular(document.getElementById('direccionDestino'),document.getElementById('ubicacionDestino'));</script>
 <script>
 var API=(localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
 var tipoLicitacion=null;
@@ -775,7 +775,7 @@ if(data.direccion)row.querySelector('.parada-direccion').value=data.direccion;
 if(data.horario)row.querySelector('.parada-horario').value=data.horario;
 if(data.contacto)row.querySelector('.parada-contacto').value=data.contacto;
 if(data.descripcion)row.querySelector('.parada-descripcion').value=data.descripcion;
-TMUbic.bind(row);
+TMUbic.bind(row);TMUbic.plegar(row);
 TMUbic.vincular(row.querySelector('.parada-direccion'),row.querySelector('.tm-ubic'));
 actualizarBtnAgregarParada();
 }
@@ -1223,6 +1223,7 @@ if(l.direccionOrigen)document.getElementById('direccionOrigen').value=l.direccio
 if(l.direccionDestino)document.getElementById('direccionDestino').value=l.direccionDestino;
 if(l.ubicacionOrigen)document.getElementById('ubicacionOrigen').value=l.ubicacionOrigen;
 if(l.ubicacionDestino)document.getElementById('ubicacionDestino').value=l.ubicacionDestino;
+['ubicacionOrigen','ubicacionDestino'].forEach(function(id){var e=document.getElementById(id);if(e&&e.value)e.dispatchEvent(new Event('input'));});
 TMUbic.bind(document);
 // Fechas y horas: al duplicar, NO se copian — son de un despacho distinto y deben elegirse de nuevo
 if(!esDuplicado){

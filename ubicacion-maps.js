@@ -52,5 +52,23 @@
     dirEl.addEventListener('paste',function(){ setTimeout(revisar,0); });
     dirEl.addEventListener('blur',revisar);
   }
-  window.TMUbic={ tipo:tipo, valida:valida, url:url, boton:boton, campo:campo, bind:bind, vincular:vincular };
+  // Oculta cada campo de ubicación tras un checkbox "Agregar ubicación de Google Maps".
+  // Se abre solo si ya tiene valor; al desmarcar se vacía para que no se envíe.
+  function plegar(root){
+    (root||document).querySelectorAll('.tm-ubic-wrap').forEach(function(w){
+      if(w._tmPleg) return; w._tmPleg=true;
+      var inp=w.querySelector('input.tm-ubic'); if(!inp) return;
+      var lbl=w.querySelector('label'); if(lbl) lbl.style.display='none';
+      var cb=document.createElement('label');
+      cb.style.cssText='display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500;font-size:13px;margin:-4px 0 14px';
+      cb.innerHTML='<input type="checkbox" style="width:16px;height:16px;cursor:pointer;accent-color:#1e2d4e"/><span>Agregar ubicación de Google Maps <span style="font-weight:400;color:#6B7280">(link o Plus Code)</span></span>';
+      w.parentNode.insertBefore(cb,w);
+      var chk=cb.querySelector('input');
+      function sync(){ w.style.display=chk.checked?'':'none'; }
+      chk.addEventListener('change',function(){ if(!chk.checked){ inp.value=''; inp.dispatchEvent(new Event('input')); } sync(); if(chk.checked) inp.focus(); });
+      inp.addEventListener('input',function(){ if(inp.value.trim()&&!chk.checked){ chk.checked=true; sync(); } });
+      chk.checked=!!inp.value.trim(); sync();
+    });
+  }
+  window.TMUbic={ tipo:tipo, valida:valida, url:url, boton:boton, campo:campo, bind:bind, vincular:vincular, plegar:plegar };
 })();
