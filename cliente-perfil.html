@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8"/><script src="/demo-mock.js"></script>
+<meta charset="UTF-8"/><script src="/demo-mock.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script><script src="/informe-pdf.js" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>TransMatch -- Mi perfil</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
@@ -199,6 +199,7 @@ document.dispatchEvent(new Event('_authReady'));
 <div class="tab" onclick="showTab('facturacion',this)">Facturación</div>
 <div class="tab" onclick="showTab('cuenta',this)">Seguridad</div>
 <div class="tab" id="tab-usuarios" style="display:none" onclick="showTab('usuarios',this)">Usuarios</div>
+<div class="tab" id="tab-informes" style="display:none" onclick="showTab('informes',this);cargarMisInformes()">Informes</div>
 </div>
 
 <!-- PERFIL -->
@@ -297,12 +298,39 @@ Usar los mismos datos que en "Empresa"
 <div class="tab-pane" id="pane-usuarios">
 <div id="usuarios-contenido"><div style="text-align:center;padding:20px;color:#9CA3AF;font-size:13px">Cargando...</div></div>
 </div>
+<div class="tab-pane" id="pane-informes">
+<div style="font-size:13px;color:#6B7280;margin-bottom:14px;line-height:1.5">Resumen mensual de la actividad de tu empresa en TransMatch: licitaciones, transportes adjudicados, montos y rutas. Descárgalo en PDF.</div>
+<div id="informes-contenido"><div style="text-align:center;padding:20px;color:#9CA3AF;font-size:13px">Cargando...</div></div>
+</div>
 </main>
 </div>
 
 <script>
 var API=(localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
 var U={};
+
+var _misInformes=null, _misInfRS='';
+async function cargarMisInformes(){
+  var box=document.getElementById('informes-contenido');
+  if(_misInformes){ renderMisInformes(); return; }
+  try{
+    var r=await fetch(API+'/api/mis-informes',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    var d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+    _misInformes=d.informes||[]; _misInfRS=d.razonSocial||U.empresa||''; renderMisInformes();
+  }catch(e){ box.innerHTML='<div style="text-align:center;padding:20px;color:#EF4444;font-size:13px">'+(e.message||'No se pudieron cargar los informes')+'</div>'; }
+}
+function renderMisInformes(){
+  var box=document.getElementById('informes-contenido');
+  if(!_misInformes.length){ box.innerHTML='<div style="text-align:center;padding:24px;color:#9CA3AF;font-size:13px">Aún no hay informes. Aparecen aquí a partir del mes siguiente a tu primera licitación.</div>'; return; }
+  var clp=function(n){ n=Number(n)||0; return n>=1000000?'$'+(Math.round(n/100000)/10).toLocaleString('es-CL')+'M':new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n); };
+  box.innerHTML=_misInformes.map(function(x,i){
+    var inf=x.informe, mes=x.nombrePeriodo.replace(/^./,function(c){return c.toUpperCase();});
+    return '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;'+(i?'border-top:1px solid #F1F2F6;':'')+'">'
+      +'<div><div style="font-size:14px;font-weight:600;color:#1e2d4e">'+mes+'</div><div style="font-size:12.5px;color:#6B7280;margin-top:2px">'+inf.publicadas+' licitaci'+(inf.publicadas===1?'ón':'ones')+' · '+inf.adjudicadas+' adjudicada'+(inf.adjudicadas===1?'':'s')+' · '+clp(inf.montoAdjudicado)+'</div></div>'
+      +'<button class="btn btn-outline" style="white-space:nowrap" onclick="descargarMiInforme('+i+')">Descargar PDF</button></div>';
+  }).join('');
+}
+function descargarMiInforme(i){ var x=_misInformes[i]; if(window.TMInformePDF) TMInformePDF(x.informe, _misInfRS, x.nombrePeriodo); }
 
 function showTab(id,el){
 document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
@@ -378,6 +406,7 @@ renderProgreso(U);
 // Mostrar tab Usuarios solo si es admin de empresa y tiene max_usuarios > 0
 var esAdminEmpresa = !U.esSubusuario;
 var maxU = U.max_usuarios||0;
+var tabInf=document.getElementById('tab-informes'); if(tabInf&&(!U.esSubusuario||['dueno','gestor','visor'].indexOf(U.rol)>=0)) tabInf.style.display='';
 var tabU = document.getElementById('tab-usuarios');
 if(tabU && esAdminEmpresa && maxU > 0) { tabU.style.display=''; cargarUsuarios(); }
 

@@ -333,6 +333,18 @@
       { id:'demo_r2', estado:'disponible', ciudadOrigen:'Concepción', ciudadDestino:'Santiago', fechaDesde:fecha(1*D), fechaHasta:fecha(3*D), fecha:fecha(1*D), equipo:'Rampla plana', capacidad:'Hasta 25 ton', precio:650000, descripcion:'Disponible para carga general o maquinaria liviana.' } ] };
     if(path==='/api/propuestas') return { propuestas:[] };
     if(/^\/api\/retornos\/[^/]+\/mi-propuesta$/.test(path)) return { propuesta:null };
+    if(path==='/api/mis-informes'){
+      var mk=function(back){ var d=new Date(NOW); d.setDate(1); d.setMonth(d.getMonth()-back); var per=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+        var MES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][d.getMonth()]+' '+d.getFullYear(); return { per:per, nom:MES }; };
+      var m1=mk(1), m2=mk(2);
+      return { razonSocial:CLI.empresa, informes:[
+        { periodo:m1.per, nombrePeriodo:m1.nom, informe:{ periodo:m1.per, publicadas:6, cotizacionesPromedio:4.2, adjudicadas:4, montoAdjudicado:9230000, completados:3, valoracionPromedio:4.8,
+          rutas:[{ruta:'Santiago → Antofagasta',cantidad:2},{ruta:'Santiago → Copiapó',cantidad:2},{ruta:'Rancagua → Talca',cantidad:1}],
+          detalle:[{codigo:'LIC-D006',equipo:'Cargador frontal Komatsu',origen:'Santiago',destino:'Antofagasta',cotizaciones:4,precio:3450000},{codigo:'LIC-D008',equipo:'Minicargador Bobcat',origen:'Rancagua',destino:'Talca',cotizaciones:3,precio:780000},{codigo:'LIC-D009',equipo:'Motoniveladora Caterpillar',origen:'Santiago',destino:'La Serena',cotizaciones:5,precio:2100000},{codigo:'LIC-D011',equipo:'Excavadora',origen:'Santiago',destino:'Rancagua',cotizaciones:4,precio:2900000}], conActividad:true } },
+        { periodo:m2.per, nombrePeriodo:m2.nom, informe:{ periodo:m2.per, publicadas:3, cotizacionesPromedio:3.7, adjudicadas:2, montoAdjudicado:1700000, completados:2, valoracionPromedio:4.7,
+          rutas:[{ruta:'Talca → Chillán',cantidad:1},{ruta:'Santiago → Rancagua',cantidad:1}],
+          detalle:[{codigo:'LIC-D012',equipo:'Rodillo compactador',origen:'Talca',destino:'Chillán',cotizaciones:4,precio:720000},{codigo:'LIC-D011',equipo:'Excavadora',origen:'Santiago',destino:'Rancagua',cotizaciones:3,precio:980000}], conActividad:true } } ] };
+    }
 
     // ── Archivos
     if(path==='/api/archivos/upload'){ var aid='demo_arch_'+(++S.seq); return { ok:true, id:aid, archivoId:aid }; }

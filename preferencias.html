@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>TransMatch · Preferencias</title>
+<link rel="icon" href="/favicon.svg">
+<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F5F6F9;font-family:Barlow,system-ui,sans-serif;color:#1E2D4E}</style>
+</head>
+<body>
+<div>Redirigiendo…</div>
+<script>
+/* Link del pie de los emails: lleva al perfil correcto según el tipo de cuenta. */
+(function(){
+  var rol=''; try{ if(localStorage.getItem('tm_token')) rol=localStorage.getItem('tm_role')||''; }catch(e){}
+  var destino = rol==='cliente' ? '/cliente-perfil.html' : rol==='transportista' ? '/transportista-perfil.html' : rol==='admin' ? '/admin.html' : '/login.html';
+  location.replace(destino);
+})();
+</script>
+</body>
+</html>

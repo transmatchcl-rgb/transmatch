@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>TransMatch — Reportes</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script><style>
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>TransMatch — Informes mensuales</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script><script src="/informe-pdf.js"></script><style>
  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
  body{font-family:'Barlow',sans-serif;background:#ffffff}
  #auth-guard{position:fixed;inset:0;background:#1e2d4e;display:flex;align-items:center;justify-content:center;z-index:9999}
@@ -94,7 +94,7 @@
  }catch(e){}
  document.getElementById('auth-guard').style.display='none';
  document.getElementById('app').style.display='block';
- initReportes();
+ initInformes();
  })();
 </script></head><body><div id="auth-guard"><div style="text-align:center"><div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:24px"><svg style="height:30px;width:auto;display:block" width="1012" height="164" viewBox="0 0 1012 164" fill="none" xmlns="http://www.w3.org/2000/svg">
 <rect width="425.281" height="163.188" rx="26.9749" fill="#FF8808"/>
@@ -139,206 +139,157 @@
 <a href="/admin-cobros.html" class="nav-mobile-link">Facturación</a>
 <a href="/admin-reportes.html" class="nav-mobile-link">Reportes</a>
 </div>
-<main><div class="page-hdr"><div><div class="page-title">Reportes y métricas</div><div class="page-sub" id="reporte-fecha">Cargando datos...</div></div><div style="display:flex;gap:8px;align-items:center"><a href="/admin-informes.html" class="btn btn-outline btn-sm" style="text-decoration:none">Informes mensuales</a><button class="btn btn-outline btn-sm" onclick="exportarCSV()">Exportar CSV</button></div></div><!-- KPIs principales --><div class="grid-4" id="kpis-grid"><div class="kpi"><div class="kpi-label">Cargando...</div></div></div><!-- Gráficos --><div class="grid-2"><div class="card"><div class="card-hdr"><span class="card-title">Licitaciónes por estado</span></div><div class="card-body"><div class="chart-wrap"><canvas id="chart-estados"></canvas></div></div></div><div class="card"><div class="card-hdr"><span class="card-title">Distribución de tipos de equipo</span></div><div class="card-body"><div class="chart-wrap"><canvas id="chart-equipos"></canvas></div></div></div></div><!-- Métricas de rendimiento --><div class="grid-3"><div class="card"><div class="card-hdr"><span class="card-title">Tasa de conversión</span></div><div class="card-body" id="métricas-conversion"><div class="empty">Cargando...</div></div></div><div class="card"><div class="card-hdr"><span class="card-title">Top rutas</span></div><div class="card-body" id="métricas-rutas"><div class="empty">Cargando...</div></div></div><div class="card"><div class="card-hdr"><span class="card-title">Top equipos solicitados</span></div><div class="card-body" id="métricas-equipos-top"><div class="empty">Cargando...</div></div></div></div><!-- Tabla transportistas --><div class="card"><div class="card-hdr"><span class="card-title">Ranking de transportistas</span><span style="font-size:12px;color:#9CA3AF">Por transportes completados y valoración</span></div><div style="overflow-x:auto"><table class="table" id="tabla-transportistas"><thead><tr><th>#</th><th>Transportista</th><th>Empresa</th><th>Transportes</th><th>Valoración</th><th>Estado</th></tr></thead><tbody id="tbody-transportistas"><tr><td colspan="6" class="empty">Cargando...</td></tr></tbody></table></div></div><!-- Tabla clientes --><div class="card"><div class="card-hdr"><span class="card-title">Actividad de clientes</span><span style="font-size:12px;color:#9CA3AF">Por licitaciónes publicadas</span></div><div style="overflow-x:auto"><table class="table"><thead><tr><th>#</th><th>Empresa</th><th>Plan</th><th>Licitaciones</th><th>Completadas</th><th>Gasto total</th></tr></thead><tbody id="tbody-clientes"><tr><td colspan="6" class="empty">Cargando...</td></tr></tbody></table></div></div><!-- Licitaciónes recientes --><div class="card"><div class="card-hdr"><span class="card-title">Últimas licitaciónes</span><a href="/admin.html" style="font-size:13px;color:#1d4ed8;text-decoration:none">Ver todas →</a></div><div style="overflow-x:auto"><table class="table"><thead><tr><th>Equipo</th><th>Ruta</th><th>Cliente</th><th>Cotizaciones</th><th>Valor adj.</th><th>Estado</th></tr></thead><tbody id="tbody-licitaciónes"><tr><td colspan="6" class="empty">Cargando...</td></tr></tbody></table></div></div></main></div><script>
- let chartEstados=null, chartEquipos=null;
- let _licitaciones=[], _usuarios=[];
-
- function peso(n){if(!n)return'—';return new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n)}
- function since(iso){const d=(Date.now()-new Date(iso).getTime())/86400000;if(d<1)return'Hoy';if(d<2)return'Ayer';return`Hace ${Math.floor(d)} días`}
-
- function estadoBadge(e){
- const m={pendiente_admin:'<span class="badge badge-warn">Pendiente</span>',abierta:'<span class="badge badge-warn">Abierta</span>',cerrada:'<span class="badge badge-info">En revisión</span>',adjudicada:'<span class="badge badge-success">Adjudicada</span>',completada:'<span class="badge badge-success">Completada</span>',rechazada:'<span class="badge badge-error">Rechazada</span>'};
- return m[e]||`<span class="badge badge-gray">${e}</span>`;
+<main><style>
+.inf-card{background:#fff;border:1px solid #e8eaf0;border-radius:12px;box-shadow:0 1px 4px rgba(30,45,78,.05);overflow:hidden}
+.inf-top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid #e8eaf0;flex-wrap:wrap}
+.inf-sel{font:600 13px Barlow,sans-serif;padding:8px 12px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;color:#1e2d4e}
+.inf-tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.inf-tbl th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#6B7280;font-weight:700;padding:10px 14px;border-bottom:1px solid #e8eaf0;background:#FAFBFC}
+.inf-tbl td{padding:12px 14px;border-bottom:1px solid #F1F2F6;vertical-align:middle}
+.inf-tbl tr:last-child td{border-bottom:none}
+.inf-emp{font-weight:600;color:#1e2d4e}.inf-emp small{display:block;font-weight:400;color:#6B7280;font-size:12px}
+.inf-pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap;display:inline-block}
+.inf-env{background:#F0FDF4;color:#14532D}.inf-pen{background:#FFF7ED;color:#9A3412}.inf-sin{background:#F3F4F6;color:#6B7280}
+.inf-sw{position:relative;display:inline-block;width:38px;height:22px;vertical-align:middle}
+.inf-sw input{display:none}
+.inf-sl{position:absolute;inset:0;background:#D1D5DB;border-radius:999px;cursor:pointer;transition:.15s}
+.inf-sl::before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s}
+.inf-sw input:checked+.inf-sl{background:#16A34A}
+.inf-sw input:checked+.inf-sl::before{transform:translateX(16px)}
+.inf-acts{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.inf-b{font:600 12px Barlow,sans-serif;padding:6px 10px;border-radius:7px;border:1px solid #e8eaf0;background:#fff;color:#1e2d4e;cursor:pointer;white-space:nowrap}
+.inf-b:disabled{opacity:.5;cursor:default}
+.inf-bn{background:#1e2d4e;border-color:#1e2d4e;color:#fff}.inf-bo{background:#FF8808;border-color:#FF8808;color:#fff}
+.inf-foot{padding:12px 16px;font-size:12px;color:#6B7280;border-top:1px solid #e8eaf0;line-height:1.55}
+.inf-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px}
+.inf-kpi{border:1px solid #e8eaf0;border-radius:10px;padding:12px 14px}
+.inf-kpi .v{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;color:#1e2d4e;line-height:1.1}
+.inf-kpi .l{font-size:12px;color:#6B7280}
+.inf-h4{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:#6B7280;margin:18px 0 8px;font-weight:700}
+.inf-bar{height:8px;background:#EEF1F6;border-radius:999px;overflow:hidden}.inf-bar i{display:block;height:100%;background:#1e2d4e}
+#inf-toast{position:fixed;bottom:24px;right:24px;padding:12px 18px;border-radius:10px;color:#fff;font-weight:600;font-size:14px;z-index:3000;display:none}
+@media(max-width:700px){.inf-hide-m{display:none}.inf-kpis{grid-template-columns:repeat(2,1fr)}}
+</style>
+<div class="page-hdr"><div><div class="page-title">Informes mensuales</div><div class="page-sub">Resumen de actividad para cada cliente · <a href="/admin-reportes.html" style="color:#1e2d4e">← Volver a Reportes</a></div></div></div>
+<div class="inf-card">
+  <div class="inf-top">
+    <select id="inf-periodo" class="inf-sel" onchange="cargarInformes()"></select>
+    <button id="inf-enviar-sel" class="inf-b inf-bn" style="padding:8px 14px;font-size:13px" onclick="enviarSeleccionados()" disabled>Enviar seleccionados</button>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="inf-tbl">
+      <thead><tr><th style="width:30px"><input type="checkbox" id="inf-all" onchange="toggleTodos(this)"></th><th>Cliente</th><th class="inf-hide-m">Actividad del mes</th><th>Estado</th><th>Envío automático</th><th></th></tr></thead>
+      <tbody id="inf-body"><tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:30px">Cargando...</td></tr></tbody>
+    </table>
+  </div>
+  <div class="inf-foot"><b>Envío automático:</b> si está activado, el informe del mes anterior se envía solo el día 1 de cada mes desde las 9:00. Si está desactivado, queda "Listo para enviar" y tú decides. Los clientes sin actividad en el mes no reciben informe.<br><b>Destinatarios:</b> por defecto el dueño de la cuenta; en "Ver" puedes sumar a otros usuarios de la empresa.</div>
+</div>
+<div id="inf-toast"></div>
+</main></div><script>
+ var _inf={ periodo:'', nombre:'', empresas:[] };
+ var _MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+ function infEsc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+ function infCLP(n){ return new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n||0); }
+ function infCorto(n){ n=Number(n)||0; if(n>=1000000) return '$'+(Math.round(n/100000)/10).toLocaleString('es-CL')+'M'; return infCLP(n); }
+ function infDec(n){ return n==null?'—':String(n).replace('.',','); }
+ function infToast(msg,err){ var t=document.getElementById('inf-toast'); t.textContent=msg; t.style.background=err?'#EF4444':'#16A34A'; t.style.display='block'; clearTimeout(t._t); t._t=setTimeout(function(){t.style.display='none';},3500); }
+ async function infApi(path,method,body){
+   var o={method:method||'GET',headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}};
+   if(body){ o.headers['Content-Type']='application/json'; o.body=JSON.stringify(body); }
+   var r=await fetch(API+path,o); var d={}; try{ d=await r.json(); }catch(e){}
+   if(!r.ok) throw new Error(d.error||'Error');
+   return d;
  }
-
- function planBadge(p){
- const m={basico:'<span class="badge badge-gray">Básico</span>',pro:'<span class="badge badge-blue">Pro</span>',enterprise:'<span class="badge badge-orange">Enterprise</span>'};
- return m[p]||'—';
+ function initInformes(){
+   var sel=document.getElementById('inf-periodo'); var hoy=new Date(); var opts='';
+   for(var i=0;i<=12;i++){ var d=new Date(hoy.getFullYear(),hoy.getMonth()-i,1); var v=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); opts+='<option value="'+v+'"'+(i===1?' selected':'')+'>'+_MESES[d.getMonth()].replace(/^./,function(c){return c.toUpperCase();})+' '+d.getFullYear()+(i===0?' (en curso)':'')+'</option>'; }
+   sel.innerHTML=opts; cargarInformes();
  }
-
- async function apiFetch(path){
- const res=await fetch(API+path,{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
- if(!res.ok)return null;
- return res.json();
+ async function cargarInformes(){
+   var periodo=document.getElementById('inf-periodo').value;
+   document.getElementById('inf-body').innerHTML='<tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:30px">Cargando...</td></tr>';
+   try{
+     var d=await infApi('/api/admin/informes?periodo='+periodo);
+     _inf.periodo=d.periodo; _inf.nombre=d.nombrePeriodo; _inf.empresas=d.empresas||[];
+     renderInformes();
+   }catch(e){ document.getElementById('inf-body').innerHTML='<tr><td colspan="6" style="text-align:center;color:#EF4444;padding:30px">'+infEsc(e.message)+'</td></tr>'; }
  }
-
- async function initReportes(){
- document.getElementById('reporte-fecha').textContent='Actualizado: '+new Date().toLocaleString('es-CL');
-
- // Cargar datos en paralelo
- const [statsData, usuariosData, licitData] = await Promise.all([
- apiFetch('/api/admin/stats'),
- apiFetch('/api/admin/usuarios'),
- apiFetch('/api/licitaciones'),
- ]);
-
- _licitaciones = licitData?.licitaciones || [];
- _usuarios = usuariosData?.usuarios || [];
- const stats = statsData || {};
-
- renderKPIs(stats);
- renderGraficos(_licitaciones);
- renderMetricas(_licitaciones);
- renderTablaTransportistas(_usuarios);
- renderTablaClientes(_usuarios, _licitaciones);
- renderTablaLicitaciones(_licitaciones);
+ function renderInformes(){
+   var body=document.getElementById('inf-body');
+   if(!_inf.empresas.length){ body.innerHTML='<tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:30px">No hay clientes registrados.</td></tr>'; actualizarSel(); return; }
+   body.innerHTML=_inf.empresas.map(function(e,i){
+     var inf=e.informe, act=inf.conActividad;
+     var estado=e.enviado?'<span class="inf-pill inf-env">Enviado '+new Date(e.enviado.fecha).toLocaleDateString('es-CL',{day:'numeric',month:'short'})+(e.enviado.modo==='auto'?' · auto':'')+'</span>'
+       :(act?'<span class="inf-pill inf-pen">Listo para enviar</span>':'<span class="inf-pill inf-sin">Sin actividad</span>');
+     var resumen=act?(inf.publicadas+' licitaci'+(inf.publicadas===1?'ón':'ones')+' · '+inf.adjudicadas+' adjudicada'+(inf.adjudicadas===1?'':'s')):'Sin actividad';
+     var nd=(e.destinatarios||[]).length;
+     return '<tr><td><input type="checkbox" class="inf-chk" data-i="'+i+'" '+(act?'':'disabled')+' onchange="actualizarSel()"></td>'
+       +'<td class="inf-emp">'+infEsc(e.razonSocial)+'<small>'+nd+' destinatario'+(nd===1?'':'s')+'</small></td>'
+       +'<td class="inf-hide-m">'+resumen+'</td><td>'+estado+'</td>'
+       +'<td><label class="inf-sw"><input type="checkbox" '+(e.auto?'checked':'')+' onchange="cambiarAuto('+i+',this)"><span class="inf-sl"></span></label></td>'
+       +'<td><div class="inf-acts"><button class="inf-b" onclick="verInforme('+i+')">Ver</button>'
+       +(act?'<button class="inf-b" onclick="descargarPDFInforme('+i+')">PDF</button><button class="inf-b '+(e.enviado?'':'inf-bo')+'" onclick="enviarUno('+i+')">'+(e.enviado?'Reenviar':'Enviar')+'</button>':'')
+       +'</div></td></tr>';
+   }).join('');
+   document.getElementById('inf-all').checked=false; actualizarSel();
  }
-
- function renderKPIs(stats){
- const total = _licitaciones.length;
- const completadas = _licitaciones.filter(l=>l.estado==='completada').length;
- const tasa = total>0?Math.round((completadas/total)*100):0;
- const ingresos = stats.ingresoTotal||0;
- const transportistas = _usuarios.filter(u=>u.role==='transportista'&&u.estado==='activo').length;
- const clientes = _usuarios.filter(u=>u.role==='cliente').length;
- const pendientes = stats.pendiente_admin||0;
-
- document.getElementById('kpis-grid').innerHTML=`
- <div class="kpi"><div class="kpi-label">$ Ingresos acumulados (4%)</div><div class="kpi-val" style="color:#1e2d4e;font-size:22px">${peso(ingresos)}</div><div class="kpi-sub">${completadas} licitaciones completadas</div></div><div class="kpi"><div class="kpi-label"> Total licitaciones</div><div class="kpi-val" style="color:#111827">${total}</div><div class="kpi-sub">Tasa conversión: ${tasa}%</div></div><div class="kpi"><div class="kpi-label"> Transportistas activos</div><div class="kpi-val" style="color:#1ED24E">${transportistas}</div><div class="kpi-sub">${_usuarios.filter(u=>u.role==='transportista'&&u.estado==='pendiente').length} pendientes aprobación</div></div><div class="kpi"><div class="kpi-label"> Clientes registrados</div><div class="kpi-val" style="color:#FF8808">${clientes}</div><div class="kpi-sub">${pendientes} licitacion${pendientes!==1?'es':''} pendiente${pendientes!==1?'s':''}</div></div>`;
+ function actualizarSel(){
+   var n=document.querySelectorAll('.inf-chk:checked').length; var b=document.getElementById('inf-enviar-sel');
+   b.disabled=!n; b.textContent='Enviar seleccionados'+(n?' ('+n+')':'');
  }
-
- function renderGraficos(licitaciones){
- const estados={pendiente_admin:0,abierta:0,cerrada:0,adjudicada:0,completada:0,rechazada:0};
- const equipos={};
- licitaciones.forEach(l=>{
- if(estados[l.estado]!==undefined) estados[l.estado]++;
- const te=l.tipoEquipo||'Otro';
- equipos[te]=(equipos[te]||0)+1;
- });
-
- // Gráfico estados (dona)
- if(chartEstados)chartEstados.destroy();
- const ctxE=document.getElementById('chart-estados').getContext('2d');
- chartEstados=new Chart(ctxE,{
- type:'doughnut',
- data:{
- labels:['Pendiente admin','Abierta','En revisión','Adjudicada','Completada','Rechazada'],
- datasets:[{
- data:[estados.pendiente_admin,estados.abierta,estados.cerrada,estados.adjudicada,estados.completada,estados.rechazada],
- backgroundColor:['#F59E0B','#F59E0B','#1D4ED8','#16A34A','#16A34A','#DC2626'],
- borderWidth:2,borderColor:'#fff'
- }]
- },
- options:{
- responsive:true,maintainAspectRatio:false,
- plugins:{
- legend:{position:'bottom',labels:{font:{size:11},padding:10}},
- tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw} (${Math.round(ctx.raw/(licitaciones.length||1)*100)}%)`}}
+ function toggleTodos(el){ document.querySelectorAll('.inf-chk:not(:disabled)').forEach(function(c){ c.checked=el.checked; }); actualizarSel(); }
+ async function cambiarAuto(i,el){
+   var e=_inf.empresas[i];
+   try{ await infApi('/api/admin/informes/'+encodeURIComponent(e.empresaId)+'/config','PUT',{auto:el.checked}); e.auto=el.checked; infToast(el.checked?'Envío automático activado para '+e.razonSocial:'Envío automático desactivado para '+e.razonSocial); }
+   catch(err){ el.checked=!el.checked; infToast(err.message,true); }
  }
+ async function enviarIds(ids){
+   var nombres=ids.map(function(id){ return (_inf.empresas.find(function(x){return x.empresaId===id;})||{}).razonSocial; });
+   if(!confirm('¿Enviar el informe de '+_inf.nombre+' a '+(ids.length===1?nombres[0]:ids.length+' clientes')+'?')) return;
+   try{
+     var d=await infApi('/api/admin/informes/enviar','POST',{periodo:_inf.periodo,empresaIds:ids});
+     var ok=(d.resultados||[]).filter(function(r){return r.ok;}).length, fail=(d.resultados||[]).length-ok;
+     infToast(ok+' informe'+(ok===1?'':'s')+' enviado'+(ok===1?'':'s')+(fail?' · '+fail+' con error':''), fail>0&&ok===0);
+     cargarInformes();
+   }catch(err){ infToast(err.message,true); }
  }
- });
+ function enviarUno(i){ enviarIds([_inf.empresas[i].empresaId]); }
+ function enviarSeleccionados(){ var ids=[].slice.call(document.querySelectorAll('.inf-chk:checked')).map(function(c){ return _inf.empresas[+c.getAttribute('data-i')].empresaId; }); if(ids.length) enviarIds(ids); }
 
- // Gráfico equipos (barras horizontales)
- if(chartEquipos)chartEquipos.destroy();
- const equiposSorted=Object.entries(equipos).sort((a,b)=>b[1]-a[1]).slice(0,7);
- const ctxQ=document.getElementById('chart-equipos').getContext('2d');
- chartEquipos=new Chart(ctxQ,{
- type:'bar',
- data:{
- labels:equiposSorted.map(([k])=>k),
- datasets:[{
- label:'Solicitudes',
- data:equiposSorted.map(([,v])=>v),
- backgroundColor:'#1e2d4e',borderRadius:6,
- }]
- },
- options:{
- indexAxis:'y',responsive:true,maintainAspectRatio:false,
- plugins:{legend:{display:false}},
- scales:{x:{grid:{color:'#F3F4F6'},ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}
+ function htmlInforme(e){
+   var inf=e.informe;
+   var k=function(v,l){ return '<div class="inf-kpi"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>'; };
+   var h='<div class="inf-kpis">'+k(inf.publicadas,'Licitaciones publicadas')+k(inf.adjudicadas,'Transportes adjudicados')+k(infCorto(inf.montoAdjudicado),'Monto adjudicado')+'</div>'
+     +'<div class="inf-kpis">'+k(infDec(inf.cotizacionesPromedio),'Cotizaciones promedio por licitación')+k(inf.completados,'Transportes completados')+k(infDec(inf.valoracionPromedio),'Valoración promedio que dio')+'</div>';
+   if(inf.rutas.length){ var mx=inf.rutas[0].cantidad; h+='<div class="inf-h4">Rutas más usadas</div>'+inf.rutas.map(function(r){ return '<div style="display:flex;align-items:center;gap:10px;padding:4px 0;font-size:13px"><span style="flex:1">'+infEsc(r.ruta)+'</span><span class="inf-bar" style="width:40%"><i style="width:'+Math.round(r.cantidad/mx*100)+'%"></i></span><span style="width:20px;text-align:right">'+r.cantidad+'</span></div>'; }).join(''); }
+   if(inf.detalle.length){ h+='<div class="inf-h4">Transportes adjudicados</div><div style="overflow-x:auto"><table class="inf-tbl" style="font-size:12.5px"><thead><tr><th>Licitación</th><th>Equipo · Ruta</th><th style="text-align:right">Cotiz.</th><th style="text-align:right">Adjudicado</th></tr></thead><tbody>'
+     +inf.detalle.map(function(d){ return '<tr><td style="font-family:IBM Plex Mono,monospace;font-size:11.5px">'+infEsc(d.codigo)+'</td><td>'+infEsc(d.equipo)+' · '+infEsc(d.origen)+' → '+infEsc(d.destino)+'</td><td style="text-align:right">'+d.cotizaciones+'</td><td style="text-align:right;white-space:nowrap">'+infCLP(d.precio)+'</td></tr>'; }).join('')+'</tbody></table></div><div style="font-size:11.5px;color:#9CA3AF;margin-top:6px">Montos netos, sin IVA.</div>'; }
+   if(!inf.conActividad) h+='<div style="text-align:center;color:#9CA3AF;padding:16px">Este cliente no tuvo actividad en '+infEsc(_inf.nombre)+'.</div>';
+   return h;
  }
- });
+ function verInforme(i){
+   var e=_inf.empresas[i];
+   var todos=[e.duenoEmail].concat(e.miembros||[]).filter(function(x,j,a){ return x&&a.indexOf(x)===j; });
+   var m=document.createElement('div');
+   m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:flex;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto';
+   m.innerHTML='<div style="background:#fff;border-radius:16px;width:100%;max-width:760px;overflow:hidden">'
+     +'<div style="background:#1e2d4e;color:#fff;padding:20px 24px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><div><div style="font-family:Barlow Condensed,sans-serif;font-size:22px;font-weight:700">Informe mensual · '+infEsc(_inf.nombre.replace(/^./,function(c){return c.toUpperCase();}))+'</div><div style="color:#AEB7CC;font-size:13.5px">'+infEsc(e.razonSocial)+'</div></div><button id="inf-x" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1">×</button></div>'
+     +'<div style="padding:20px 24px">'+htmlInforme(e)
+     +'<div class="inf-h4" style="margin-top:24px">Destinatarios</div><div id="inf-dest">'+todos.map(function(em){ return '<label style="display:flex;align-items:center;gap:8px;font-size:13.5px;padding:4px 0;cursor:pointer"><input type="checkbox" value="'+infEsc(em)+'" '+((e.destinatarios||[]).indexOf(em)>=0?'checked':'')+' style="accent-color:#1e2d4e;width:16px;height:16px">'+infEsc(em)+(em===e.duenoEmail?' <span style="color:#6B7280;font-size:12px">(dueño de la cuenta)</span>':'')+'</label>'; }).join('')+'</div>'
+     +'<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;flex-wrap:wrap"><button class="inf-b" id="inf-guardar">Guardar destinatarios</button>'+(e.informe.conActividad?'<button class="inf-b" id="inf-pdf">Descargar PDF</button>':'')+'</div>'
+     +'</div></div>';
+   document.body.appendChild(m);
+   m.onclick=function(ev){ if(ev.target===m) m.remove(); };
+   m.querySelector('#inf-x').onclick=function(){ m.remove(); };
+   var bp=m.querySelector('#inf-pdf'); if(bp) bp.onclick=function(){ descargarPDFInforme(i); };
+   m.querySelector('#inf-guardar').onclick=async function(){
+     var sel=[].slice.call(m.querySelectorAll('#inf-dest input:checked')).map(function(c){ return c.value; });
+     if(!sel.length){ infToast('Selecciona al menos un destinatario',true); return; }
+     try{ await infApi('/api/admin/informes/'+encodeURIComponent(e.empresaId)+'/config','PUT',{destinatarios:sel}); e.destinatarios=sel; infToast('Destinatarios guardados'); renderInformes(); }
+     catch(err){ infToast(err.message,true); }
+   };
  }
-
- function renderMetricas(licitaciones){
- const total=licitaciones.length||1;
- const completadas=licitaciones.filter(l=>l.estado==='completada').length;
- const adjudicadas=licitaciones.filter(l=>['adjudicada','completada'].includes(l.estado)).length;
- const conCotiz=licitaciones.filter(l=>(l.cotizaciones||[]).length>0).length;
-
- // Conversión
- const convMetricas=[
- ['Publicadas → Abiertas',licitaciones.filter(l=>l.estado!=='pendiente_admin'&&l.estado!=='rechazada').length,total],
- ['Abiertas → Cotizaciones',conCotiz,total],
- ['Cotizaciones → Adjudicadas',adjudicadas,total],
- ['Adjudicadas → Completadas',completadas,Math.max(adjudicadas,1)],
- ];
- document.getElementById('metricas-conversion').innerHTML=convMetricas.map(([lbl,n,d])=>{
- const pct=Math.round((n/d)*100);
- return`<div class="metric-row"><div style="min-width:0;flex:1"><div class="metric-label">${lbl}</div><div style="display:flex;align-items:center;margin-top:4px"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:#1e2d4e"></div></div><div class="metric-val" style="min-width:40px;text-align:right">${pct}%</div></div></div></div>`;
- }).join('');
-
- // Top rutas
- const rutas={};
- licitaciones.forEach(l=>{
- if(l.origen&&l.destino){const k=`${l.origen} → ${l.destino}`;rutas[k]=(rutas[k]||0)+1;}
- });
- const rutasSorted=Object.entries(rutas).sort((a,b)=>b[1]-a[1]).slice(0,5);
- document.getElementById('metricas-rutas').innerHTML=rutasSorted.length===0
- ?'<div class="empty">Sin datos</div>'
- :rutasSorted.map(([ruta,n],i)=>`
- <div class="metric-row"><div style="font-size:11px;font-weight:700;color:#9CA3AF;min-width:18px">${i+1}</div><div class="metric-label" style="flex:1;margin:0 8px;font-size:12px">${ruta}</div><div class="metric-val">${n}</div></div>`).join('');
-
- // Top equipos
- const tiposCount={};
- licitaciones.forEach(l=>{const t=l.tipoEquipo||'Otro';tiposCount[t]=(tiposCount[t]||0)+1;});
- const tiposSorted=Object.entries(tiposCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
- document.getElementById('metricas-equipos-top').innerHTML=tiposSorted.length===0
- ?'<div class="empty">Sin datos</div>'
- :tiposSorted.map(([tipo,n],i)=>`
- <div class="metric-row"><div style="font-size:11px;font-weight:700;color:#9CA3AF;min-width:18px">${i+1}</div><div class="metric-label" style="flex:1;margin:0 8px;font-size:12px">${tipo}</div><div style="display:flex;align-items:center;gap:6px"><div class="progress-bar" style="width:60px"><div class="progress-fill" style="width:${Math.round(n/total*100)}%;background:#FF8808"></div></div><div class="metric-val">${n}</div></div></div>`).join('');
- }
-
- function renderTablaTransportistas(usuarios){
- const transportistas=usuarios
- .filter(u=>u.role==='transportista'&&u.estado==='activo')
- .sort((a,b)=>(b.totalTransportes||0)-(a.totalTransportes||0))
- .slice(0,10);
-
- document.getElementById('tbody-transportistas').innerHTML=transportistas.length===0
- ?'<tr><td colspan="6" class="empty">Sin transportistas activos</td></tr>'
- :transportistas.map((t,i)=>`
- <tr><td style="font-weight:700;color:#9CA3AF">${i+1}</td><td style="font-weight:500;color:#111827">${t.nombre}</td><td>${t.empresa||'—'}</td><td><span style="font-weight:600;color:#1ED24E">${t.totalTransportes||0}</span></td><td><span style="color:#FF8808;font-weight:600"> ${t.rating||5.0}</span></td><td>${t.estado==='activo'?'<span class="badge badge-green">Activo</span>':'<span class="badge badge-gray">'+t.estado+'</span>'}</td></tr>`).join('');
- }
-
- function renderTablaClientes(usuarios, licitaciones){
- const clientes=usuarios.filter(u=>u.role==='cliente');
- const clienteStats=clientes.map(c=>{
- const lics=licitaciones.filter(l=>l.clienteEmail===c.email||l.clienteId===c.id);
- const completadas=lics.filter(l=>l.estado==='completada').length;
- const gasto=lics.filter(l=>l.adjudicadaA).reduce((s,l)=>s+(l.adjudicadaA?.precio||0),0);
- return{...c,totalLics:lics.length,completadas,gasto};
- }).sort((a,b)=>b.totalLics-a.totalLics).slice(0,10);
-
- document.getElementById('tbody-clientes').innerHTML=clienteStats.length===0
- ?'<tr><td colspan="6" class="empty">Sin clientes registrados</td></tr>'
- :clienteStats.map((c,i)=>`
- <tr><td style="font-weight:700;color:#9CA3AF">${i+1}</td><td style="font-weight:500;color:#111827">${c.empresa||c.nombre}</td><td>${planBadge(c.plan)}</td><td style="font-weight:600">${c.totalLics}</td><td>${c.completadas}</td><td style="font-weight:600;color:#1e2d4e">${peso(c.gasto)}</td></tr>`).join('');
- }
-
- function renderTablaLicitaciones(licitaciones){
- document.getElementById('tbody-licitaciones').innerHTML=licitaciones.length===0
- ?'<tr><td colspan="6" class="empty">Sin licitaciones</td></tr>'
- :licitaciones.slice(0,15).map(l=>`
- <tr><td style="font-weight:500;color:#111827;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.codigo?'<span style="font-size:11px;font-weight:600;color:#9CA3AF;font-family:IBM Plex Mono,monospace;background:#f5f7fb;padding:1px 5px;border-radius:4px;margin-right:6px">'+ l.codigo +'</span>':''}${l.tipoEquipo}${l.marca?' — '+l.marca:''}</div></td><td style="font-size:12px;color:#6B7280;white-space:nowrap">${l.origen} → ${l.destino}</td><td style="font-size:12px">${l.clienteEmpresa||'—'}</td><td style="text-align:center;font-weight:600;color:#FF8808">${(l.cotizaciones||[]).length}</td><td style="font-weight:600;color:#1e2d4e">${l.adjudicadaA?peso(l.adjudicadaA.precio):'—'}</td><td>${estadoBadge(l.estado)}</td></tr>`).join('');
- }
-
- function exportarCSV(){
- const rows=[
- ['Tipo equipo','Marca','Origen','Destino','Fecha carga','Estado','Cotizaciones','Valor adjudicado','Cliente'],
- ..._licitaciones.map(l=>[
- l.tipoEquipo||'',l.marca||'',l.origen||'',l.destino||'',
- l.fechaCarga||'',l.estado||'',(l.cotizaciones||[]).length,
- l.adjudicadaA?.precio||'',l.clienteEmpresa||''
- ])
- ];
- const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
- const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
- const url=URL.createObjectURL(blob);
- const a=document.createElement('a');
- a.href=url;a.download=`TransMatch_Reporte_${new Date().toISOString().split('T')[0]}.csv`;
- a.click();URL.revokeObjectURL(url);
- }
+ function descargarPDFInforme(i){ var e=_inf.empresas[i]; TMInformePDF(e.informe, e.razonSocial, _inf.nombre); }
 
 function toggleMobileNav(){
   var p=document.getElementById('nav-mobile-panel');
