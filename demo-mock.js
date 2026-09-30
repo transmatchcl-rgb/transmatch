@@ -288,8 +288,8 @@
       if(acc==='solicitar-documentos'){
         tr.requisitosEstandar=tr.requisitosEstandar||[];
         var ya={}; tr.requisitosEstandar.forEach(function(r){ ya[String(r.label).toLowerCase()]=1; });
-        var n=0; (b.documentos||[]).forEach(function(lb){ lb=String(lb||'').trim(); if(!lb||ya[lb.toLowerCase()]) return; ya[lb.toLowerCase()]=1; n++;
-          tr.requisitosEstandar.push({ id:'demo_req_'+(++S.seq), label:lb, indicaciones:b.indicaciones||'', archivoId:null, solicitadoAt:ahora(), origen:'cliente' }); });
+        var n=0; (b.documentos||[]).forEach(function(dd){ var lb=String((dd&&dd.label)||dd||'').trim(); if(!lb||ya[lb.toLowerCase()]) return; ya[lb.toLowerCase()]=1; n++;
+          tr.requisitosEstandar.push({ id:'demo_req_'+(++S.seq), label:lb, indicaciones:(dd&&dd.indicaciones)||b.indicaciones||'', archivoId:null, solicitadoAt:ahora(), origen:'cliente' }); });
         if(!n) return { __status:400, error:'Esos documentos ya están solicitados' };
         return { ok:true, agregados:n };
       }

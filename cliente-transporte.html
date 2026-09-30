@@ -657,7 +657,7 @@ function _docsRecientes(){
 function abrirModalSolicitarDocs(transporteId){
   var t=transportes.find(function(x){return x.id===transporteId;}); if(!t) return;
   var ya={}; (t.requisitosEstandar||[]).forEach(function(r){ ya[String(r.label||'').toLowerCase()]=1; });
-  var sel={}; DOCS_MARCADOS_DEFAULT.forEach(function(x){ if(!ya[x.toLowerCase()]) sel[x]=1; });
+  var sel={}; DOCS_MARCADOS_DEFAULT.forEach(function(x){ if(!ya[x.toLowerCase()]) sel[x]=''; });
   var esc=function(v){return String(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
   var modal=document.createElement('div');
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto';
@@ -668,7 +668,7 @@ function abrirModalSolicitarDocs(transporteId){
     if(!lista.length) return '<div style="font-size:12px;color:#9CA3AF;font-style:italic">Aún no hay</div>';
     return lista.map(function(n){
       if(ya[n.toLowerCase()]) return '<span style="font-size:12.5px;padding:5px 11px;border-radius:999px;background:#F5F6F9;color:#9CA3AF;border:1.5px dashed #e8eaf0" title="Ya solicitado">'+esc(n)+' · ya solicitado</span>';
-      var on=!!sel[n];
+      var on=(n in sel);
       return '<span data-doc="'+esc(n)+'" style="font-size:12.5px;padding:5px 11px;border-radius:999px;cursor:pointer;user-select:none;border:1.5px solid '+(on?'#1e2d4e':'#EEF1F6')+';background:'+(on?'#1e2d4e':'#EEF1F6')+';color:'+(on?'#fff':'#1e2d4e')+'">'+(on?'✓ ':'')+esc(n)+'</span>';
     }).join('');
   }
@@ -684,24 +684,24 @@ function abrirModalSolicitarDocs(transporteId){
       +(function(){ var enLista={}; DOCS_FRECUENTES.concat(rec).forEach(function(x){enLista[x]=1;}); var otros=Object.keys(sel).filter(function(x){return !enLista[x];}); return otros.length?'<div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px">Agregados por ti</div><div style="display:flex;flex-wrap:wrap;gap:6px">'+pills(otros)+'</div>':''; })()
       +'<label style="font-size:12px;font-weight:500;color:#374151;display:block;margin:16px 0 4px">…o escribe otro documento</label>'
       +'<div style="display:flex;gap:8px"><input type="text" id="sd-otro" maxlength="80" placeholder="Ej: Certificado de inducción en faena" style="flex:1;padding:9px 11px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"><button id="sd-add" class="btn btn-outline btn-sm">Agregar</button></div>'
-      +'<label style="font-size:12px;font-weight:500;color:#374151;display:block;margin:14px 0 4px">Indicaciones <span style="font-weight:400;color:#6B7280">(opcional)</span></label>'
-      +'<textarea id="sd-ind" rows="2" maxlength="300" placeholder="Ej: Lo pide prevención de riesgos de la faena" style="width:100%;padding:9px 11px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical"></textarea>'
+      +(n?'<div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin:18px 0 6px">Documentos a solicitar · indicaciones opcionales</div><div style="border:1px solid #e8eaf0;border-radius:10px;overflow:hidden">'+Object.keys(sel).map(function(k,i){ return '<div style="padding:9px 12px;'+(i?'border-top:1px solid #F1F2F6;':'')+'"><div style="font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:5px">'+esc(k)+'</div><input type="text" data-ind="'+esc(k)+'" value="'+esc(sel[k])+'" maxlength="300" placeholder="Indicación para este documento (opcional)" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid #e8eaf0;border-radius:7px;font-size:12.5px"></div>'; }).join('')+'</div>':'')
       +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px"><span style="font-size:12.5px;color:#6B7280">'+n+' seleccionado'+(n!==1?'s':'')+'</span><span style="display:flex;gap:8px">'
       +'<button id="sd-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
       +'<button id="sd-ok" '+(n?'':'disabled ')+'style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;opacity:'+(n?1:.5)+'">Solicitar'+(n?' ('+n+')':'')+'</button></span></div>';
-    inner.querySelectorAll('[data-doc]').forEach(function(p){ p.onclick=function(){ var d=p.getAttribute('data-doc'); if(sel[d]) delete sel[d]; else sel[d]=1; render(); }; });
+    inner.querySelectorAll('[data-ind]').forEach(function(inp){ inp.oninput=function(){ sel[inp.getAttribute('data-ind')]=inp.value; }; });
+    inner.querySelectorAll('[data-doc]').forEach(function(p){ p.onclick=function(){ var d=p.getAttribute('data-doc'); if(d in sel) delete sel[d]; else sel[d]=''; render(); }; });
     var otro=inner.querySelector('#sd-otro');
-    function agregarOtro(){ var v=otro.value.replace(/[<>"'`]/g,'').replace(/\s+/g,' ').trim(); if(!v) return; if(ya[v.toLowerCase()]){ toast('Ese documento ya está solicitado','err'); return; } sel[v]=1; render(); }
+    function agregarOtro(){ var v=otro.value.replace(/[<>"'`]/g,'').replace(/\s+/g,' ').trim(); if(!v) return; if(ya[v.toLowerCase()]){ toast('Ese documento ya está solicitado','err'); return; } if(!(v in sel)) sel[v]=''; render(); }
     inner.querySelector('#sd-add').onclick=agregarOtro;
     otro.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); agregarOtro(); } };
     inner.querySelector('#sd-cancel').onclick=function(){ modal.remove(); };
     inner.querySelector('#sd-ok').onclick=async function(){
-      var btn=this; var ind=(inner.querySelector('#sd-ind').value||'').trim();
-      var pend=(otro.value||'').trim(); if(pend&&!ya[pend.toLowerCase()]) sel[pend.replace(/[<>"'`]/g,'').replace(/\s+/g,' ').trim()]=1;
+      var btn=this;
+      var pend=(otro.value||'').replace(/[<>"'`]/g,'').replace(/\s+/g,' ').trim(); if(pend&&!ya[pend.toLowerCase()]&&!(pend in sel)) sel[pend]='';
       var docs=Object.keys(sel); if(!docs.length) return;
       btn.disabled=true; btn.textContent='Solicitando...';
       try{
-        var res=await fetch(API+'/api/transportes/'+transporteId+'/solicitar-documentos',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({documentos:docs,indicaciones:ind})});
+        var res=await fetch(API+'/api/transportes/'+transporteId+'/solicitar-documentos',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({documentos:docs.map(function(k){ return { label:k, indicaciones:String(sel[k]||'').trim() }; })})});
         var d=await res.json();
         if(res.ok){ toast(docs.length===1?'Documento solicitado':'Documentos solicitados'); modal.remove(); await cargar(); setTimeout(function(){ toggleCard(transporteId); },100); }
         else { toast(d.error||'Error','err'); btn.disabled=false; render(); }
