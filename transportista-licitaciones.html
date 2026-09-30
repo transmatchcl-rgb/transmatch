@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>TransMatch — Licitaciónes disponibles</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><style>
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><script src="/ubicacion-maps.js"></script><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>TransMatch — Licitaciónes disponibles</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Barlow,sans-serif;background:#ffffff;display:flex;flex-direction:column;min-height:100vh}
 #auth-guard{position:fixed;inset:0;background:#ffffff;display:flex;align-items:center;justify-content:center;z-index:9999}
@@ -616,8 +616,10 @@ var tEntMap={mina:'Dentro de la mina',garita:'En garita',no_aplica:'No aplica'};
 var rutaRows=[];
 rutaRows.push(['Origen',l.origen||'—']);
 if(l.direccionOrigen)rutaRows.push(['Dirección de origen',l.direccionOrigen]);
+if(l.ubicacionOrigen&&window.TMUbic)rutaRows.push(['Ubicación origen',TMUbic.boton(l.ubicacionOrigen)]);
 rutaRows.push(['Destino',l.destino||'—']);
 if(l.direccionDestino)rutaRows.push(['Dirección de destino',l.direccionDestino]);
+if(l.ubicacionDestino&&window.TMUbic)rutaRows.push(['Ubicación destino',TMUbic.boton(l.ubicacionDestino)]);
 if(l.tipoEntregaDestino&&l.tipoEntregaDestino!=='no_aplica')rutaRows.push(['Tipo de entrega',tEntMap[l.tipoEntregaDestino]||'—']);
 if(l.fechaCarga)rutaRows.push(['Fecha de carga',new Date(l.fechaCarga+'T12:00:00').toLocaleDateString('es-CL')+(l.horaCarga?' · '+l.horaCarga:'')]);
 if(l.fechaEntrega)rutaRows.push(['Fecha de descarga',new Date(l.fechaEntrega+'T12:00:00').toLocaleDateString('es-CL')+(l.horaDescarga?' · '+l.horaDescarga:'')]);
@@ -630,7 +632,7 @@ ${rutaRows.map(function(r){return `<div style="display:flex;justify-content:spac
 if(Array.isArray(l.paradas) && l.paradas.length>0){
 h+=`<div style="padding:12px 18px;border-bottom:0.5px solid #E5E7EB">
 <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Paradas intermedias</div>
-${l.paradas.map(function(p,i){return `<div style="font-size:13px;color:#374151;margin-bottom:6px">${i+1}. ${p.direccion||'—'}${p.horario?' · '+p.horario:''}${(p.contacto&&_ganada)?' · '+p.contacto:''}${p.descripcion?'<br><span style="color:#6B7280;margin-left:14px">'+p.descripcion+'</span>':''}</div>`;}).join('')}
+${l.paradas.map(function(p,i){return `<div style="font-size:13px;color:#374151;margin-bottom:6px">${i+1}. ${p.direccion||'—'}${(p.ubicacion&&window.TMUbic?' '+TMUbic.boton(p.ubicacion):'')}${p.horario?' · '+p.horario:''}${(p.contacto&&_ganada)?' · '+p.contacto:''}${p.descripcion?'<br><span style="color:#6B7280;margin-left:14px">'+p.descripcion+'</span>':''}</div>`;}).join('')}
 </div>`;
 }
 

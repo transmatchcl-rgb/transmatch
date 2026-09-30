@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8"/>
+<meta charset="UTF-8"/><script src="/ubicacion-maps.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>TransMatch — Mis transportes</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
@@ -438,9 +438,10 @@ function renderDetalle(t){
     if(dirs.carga.horario) h+='<div style="font-size:12px;color:#6B7280">Horario: '+dirs.carga.horario+'</div>';
     if(dirs.carga.restricciones) h+='<div style="font-size:12px;color:#92400E">Restricciones: '+dirs.carga.restricciones+'</div>';
     if(dirs.carga.notas) h+='<div style="font-size:12px;color:#6B7280">'+dirs.carga.notas+'</div>';
-    if(dirs.carga.mapsUrl) h+='<a href="'+dirs.carga.mapsUrl+'" target="_blank" style="font-size:12px;color:#1e2d4e;font-weight:500">Ver en Google Maps →</a>';
+    var _ucarga=dirs.carga.ubicacion||t.ubicacionOrigen||''; if(window.TMUbic&&TMUbic.url(_ucarga)) h+='<div style="margin-top:6px">'+TMUbic.boton(_ucarga)+'</div>'; else h+='<a href="https://www.google.com/maps/search/'+encodeURIComponent(dirs.carga.direccion)+'" target="_blank" style="font-size:12px;color:#1e2d4e;font-weight:500">Ver en Google Maps →</a>';
   } else {
     h+='<div style="font-size:12px;color:#9CA3AF">El cliente aún no ha ingresado la dirección exacta.</div>';
+    if(window.TMUbic&&TMUbic.url(t.ubicacionOrigen)) h+='<div style="margin-top:6px">'+TMUbic.boton(t.ubicacionOrigen)+'</div>';
   }
   h+='</div>';
   // Descarga
@@ -450,9 +451,10 @@ function renderDetalle(t){
     if(dirs.descarga.horario) h+='<div style="font-size:12px;color:#6B7280">Horario: '+dirs.descarga.horario+'</div>';
     if(dirs.descarga.restricciones) h+='<div style="font-size:12px;color:#92400E">Restricciones: '+dirs.descarga.restricciones+'</div>';
     if(dirs.descarga.notas) h+='<div style="font-size:12px;color:#6B7280">'+dirs.descarga.notas+'</div>';
-    if(dirs.descarga.mapsUrl) h+='<a href="'+dirs.descarga.mapsUrl+'" target="_blank" style="font-size:12px;color:#1e2d4e;font-weight:500">Ver en Google Maps →</a>';
+    var _udescarga=dirs.descarga.ubicacion||t.ubicacionDestino||''; if(window.TMUbic&&TMUbic.url(_udescarga)) h+='<div style="margin-top:6px">'+TMUbic.boton(_udescarga)+'</div>'; else h+='<a href="https://www.google.com/maps/search/'+encodeURIComponent(dirs.descarga.direccion)+'" target="_blank" style="font-size:12px;color:#1e2d4e;font-weight:500">Ver en Google Maps →</a>';
   } else {
     h+='<div style="font-size:12px;color:#9CA3AF">El cliente aún no ha ingresado la dirección exacta.</div>';
+    if(window.TMUbic&&TMUbic.url(t.ubicacionDestino)) h+='<div style="margin-top:6px">'+TMUbic.boton(t.ubicacionDestino)+'</div>';
   }
   h+='</div></div>';
 

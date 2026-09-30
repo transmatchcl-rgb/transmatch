@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8"/><script src="/demo-mock.js"></script>
+<meta charset="UTF-8"/><script src="/demo-mock.js"></script><script src="/ubicacion-maps.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>TransMatch — Mis transportes</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
@@ -358,7 +358,7 @@ function renderDetalle(t){
     if(dirs.carga.horario) h+='<div style="font-size:12px;color:#6B7280">Horario: '+dirs.carga.horario+'</div>';
     if(dirs.carga.restricciones) h+='<div style="font-size:12px;color:#92400E">Restricciones: '+dirs.carga.restricciones+'</div>';
     if(dirs.carga.notas) h+='<div style="font-size:12px;color:#6B7280">'+dirs.carga.notas+'</div>';
-    h+='<a href="https://www.google.com/maps/search/'+encodeURIComponent(dirs.carga.direccion)+'" target="_blank" style="font-size:12px;color:#1e2d4e;font-weight:500">Ver en Google Maps →</a>';
+    var _ucarga=dirs.carga.ubicacion||t.ubicacionOrigen||''; if(window.TMUbic&&TMUbic.url(_ucarga)) h+='<div style="margin-top:6px">'+TMUbic.boton(_ucarga)+'</div>'; else h+='<a href="https://www.google.com/maps/search/'+encodeURIComponent(dirs.carga.direccion)+'" target="_blank" style="font-size:12px;color:#1e2d4e;font-weight:500">Ver en Google Maps →</a>';
   } else {
     h+='<div style="font-size:12px;color:#9CA3AF">Dirección exacta pendiente.</div>';
   }
@@ -370,7 +370,7 @@ function renderDetalle(t){
     if(dirs.descarga.horario) h+='<div style="font-size:12px;color:#6B7280">Horario: '+dirs.descarga.horario+'</div>';
     if(dirs.descarga.restricciones) h+='<div style="font-size:12px;color:#92400E">Restricciones: '+dirs.descarga.restricciones+'</div>';
     if(dirs.descarga.notas) h+='<div style="font-size:12px;color:#6B7280">'+dirs.descarga.notas+'</div>';
-    h+='<a href="https://www.google.com/maps/search/'+encodeURIComponent(dirs.descarga.direccion)+'" target="_blank" style="font-size:12px;color:#1e2d4e;font-weight:500">Ver en Google Maps →</a>';
+    var _udescarga=dirs.descarga.ubicacion||t.ubicacionDestino||''; if(window.TMUbic&&TMUbic.url(_udescarga)) h+='<div style="margin-top:6px">'+TMUbic.boton(_udescarga)+'</div>'; else h+='<a href="https://www.google.com/maps/search/'+encodeURIComponent(dirs.descarga.direccion)+'" target="_blank" style="font-size:12px;color:#1e2d4e;font-weight:500">Ver en Google Maps →</a>';
   } else {
     h+='<div style="font-size:12px;color:#9CA3AF">Dirección exacta pendiente.</div>';
   }
@@ -612,6 +612,7 @@ function abrirModalDirecciones(transporteId){
     +'<div style="font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid #f3f4f6">Punto de carga · '+t.origen+'</div>'
     +'<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">'
     +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Dirección exacta *</label><input type="text" id="dir-carga" value="'+(c.direccion||'')+'" placeholder="Ej: Av. Apoquindo 1234, Las Condes, Santiago" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Ubicación en Google Maps <span style="font-weight:400;color:#6B7280">(opcional)</span></label><input type="text" id="dir-carga-ubic" class="tm-ubic" value="'+((c.ubicacion||t.ubicacionOrigen||'').replace(/"/g,'&quot;'))+'" placeholder="Pega un link de Google Maps o un Plus Code" style="width:100%;padding:9px 11px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"><div class="tm-ubic-res" style="font-size:12px;margin-top:4px"></div></div>'
     +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Horario de atención</label><input type="text" id="dir-carga-horario" value="'+(c.horario||'')+'" placeholder="Ej: Lun-Vie 08:00-17:00" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
     +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Restricciones de acceso</label><input type="text" id="dir-carga-rest" value="'+(c.restricciones||'')+'" placeholder="Ej: No pasan camiones de más de 8m, requiere permiso" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
     +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Instrucciones adicionales</label><textarea id="dir-carga-notas" placeholder="Ej: Preguntar por Juan en portería, usar acceso lateral" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px;min-height:60px;resize:vertical;font-family:inherit">'+(c.notas||'')+'</textarea></div>'
@@ -619,6 +620,7 @@ function abrirModalDirecciones(transporteId){
     +'<div style="font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid #f3f4f6">Punto de descarga · '+t.destino+'</div>'
     +'<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">'
     +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Dirección exacta *</label><input type="text" id="dir-desc" value="'+(d2.direccion||'')+'" placeholder="Ej: Ruta 5 Norte Km 1200, Antofagasta" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
+    +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Ubicación en Google Maps <span style="font-weight:400;color:#6B7280">(opcional)</span></label><input type="text" id="dir-desc-ubic" class="tm-ubic" value="'+((d2.ubicacion||t.ubicacionDestino||'').replace(/"/g,'&quot;'))+'" placeholder="Pega un link de Google Maps o un Plus Code" style="width:100%;padding:9px 11px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"><div class="tm-ubic-res" style="font-size:12px;margin-top:4px"></div></div>'
     +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Horario de atención</label><input type="text" id="dir-desc-horario" value="'+(d2.horario||'')+'" placeholder="Ej: 24/7" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
     +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Restricciones de acceso</label><input type="text" id="dir-desc-rest" value="'+(d2.restricciones||'')+'" placeholder="Ej: Solo acceso con pase de seguridad" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
     +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Instrucciones adicionales</label><textarea id="dir-desc-notas" placeholder="Ej: Coordinar con operaciones antes de llegar" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px;min-height:60px;resize:vertical;font-family:inherit">'+(d2.notas||'')+'</textarea></div>'
@@ -628,6 +630,7 @@ function abrirModalDirecciones(transporteId){
     +'<button id="dir-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar direcciones</button>'
     +'</div>';
   modal.appendChild(inner); document.body.appendChild(modal);
+  if(window.TMUbic){ TMUbic.bind(modal); TMUbic.vincular(document.getElementById('dir-carga'),document.getElementById('dir-carga-ubic')); TMUbic.vincular(document.getElementById('dir-desc'),document.getElementById('dir-desc-ubic')); }
   document.getElementById('dir-cancel').onclick=function(){ modal.remove(); };
   document.getElementById('dir-save').onclick=function(){ guardarDirecciones(transporteId,modal); };
   modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
@@ -637,6 +640,9 @@ async function guardarDirecciones(transporteId, modal){
   var cargaDir=(document.getElementById('dir-carga').value||'').trim();
   var descDir=(document.getElementById('dir-desc').value||'').trim();
   if(!cargaDir||!descDir){ toast('Ingresa ambas direcciones','err'); return; }
+  var ubC=(document.getElementById('dir-carga-ubic').value||'').trim(), ubD=(document.getElementById('dir-desc-ubic').value||'').trim();
+  if(TMUbic.tipo(ubC)==='bad'||TMUbic.tipo(ubD)==='bad'){ toast('Revisa la ubicación de Google Maps: debe ser un link de Maps o un Plus Code','err'); return; }
+  ubC=TMUbic.valida(ubC); ubD=TMUbic.valida(ubD);
   var payload={
     direcciones:{
       carga:{
@@ -644,14 +650,16 @@ async function guardarDirecciones(transporteId, modal){
         horario:(document.getElementById('dir-carga-horario').value||'').trim(),
         restricciones:(document.getElementById('dir-carga-rest').value||'').trim(),
         notas:(document.getElementById('dir-carga-notas').value||'').trim(),
-        mapsUrl:'https://www.google.com/maps/search/'+encodeURIComponent(cargaDir)
+        ubicacion:ubC,
+        mapsUrl:TMUbic.url(ubC)||('https://www.google.com/maps/search/'+encodeURIComponent(cargaDir))
       },
       descarga:{
         direccion:descDir,
         horario:(document.getElementById('dir-desc-horario').value||'').trim(),
         restricciones:(document.getElementById('dir-desc-rest').value||'').trim(),
         notas:(document.getElementById('dir-desc-notas').value||'').trim(),
-        mapsUrl:'https://www.google.com/maps/search/'+encodeURIComponent(descDir)
+        ubicacion:ubD,
+        mapsUrl:TMUbic.url(ubD)||('https://www.google.com/maps/search/'+encodeURIComponent(descDir))
       }
     }
   };

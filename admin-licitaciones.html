@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8"/>
+<meta charset="UTF-8"/><script src="/ubicacion-maps.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>TransMatch — Admin Licitaciones</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
@@ -574,8 +574,10 @@ function renderDetalle(l){
   }
   items.push(['Origen',l.origen||'—']);
   if(l.direccionOrigen) items.push(['Dirección de origen',l.direccionOrigen]);
+  if(l.ubicacionOrigen&&window.TMUbic) items.push(['Ubicación origen',TMUbic.boton(l.ubicacionOrigen)]);
   items.push(['Destino',l.destino||'—']);
   if(l.direccionDestino) items.push(['Dirección de destino',l.direccionDestino]);
+  if(l.ubicacionDestino&&window.TMUbic) items.push(['Ubicación destino',TMUbic.boton(l.ubicacionDestino)]);
   if(tipoLic==='maquinaria'){
     var tEntMap={mina:'Dentro de la mina',garita:'En garita',no_aplica:'No aplica'};
     items.push(['Tipo de entrega',tEntMap[l.tipoEntregaDestino]||'No aplica']);
@@ -602,7 +604,7 @@ function renderDetalle(l){
   if(tipoLic!=='maquinaria' && Array.isArray(l.paradas) && l.paradas.length>0){
     html+='<div class="det-desc"><strong style="font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.05em">Paradas intermedias</strong>'+
     l.paradas.map(function(p,i){
-      return '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #f3f4f6"><strong>Parada '+(i+1)+':</strong> '+(p.direccion||'—')+
+      return '<div style="margin-top:8px;padding-top:8px;border-top:1px solid #f3f4f6"><strong>Parada '+(i+1)+':</strong> '+(p.direccion||'—')+(p.ubicacion&&window.TMUbic?' '+TMUbic.boton(p.ubicacion):'')+
         (p.horario?' · '+p.horario:'')+
         (p.contacto?' · '+p.contacto:'')+
         (p.descripcion?'<br><span style="color:#6B7280">'+p.descripcion+'</span>':'')+

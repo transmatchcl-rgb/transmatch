@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8"/><script src="/demo-mock.js"></script>
+<meta charset="UTF-8"/><script src="/demo-mock.js"></script><script src="/ubicacion-maps.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>TransMatch -- Mis licitaciones</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
@@ -702,8 +702,10 @@ if(l.tipoLicitacion==='maquinaria'){
 // Ruta y fechas
 infoRows.push(['Origen',l.origen||'--']);
 if(l.direccionOrigen)infoRows.push(['Dirección de origen',l.direccionOrigen]);
+if(l.ubicacionOrigen&&window.TMUbic)infoRows.push(['Ubicación origen',TMUbic.boton(l.ubicacionOrigen)]);
 infoRows.push(['Destino',l.destino||'--']);
 if(l.direccionDestino)infoRows.push(['Dirección de destino',l.direccionDestino]);
+if(l.ubicacionDestino&&window.TMUbic)infoRows.push(['Ubicación destino',TMUbic.boton(l.ubicacionDestino)]);
 if(l.tipoEntregaDestino&&l.tipoEntregaDestino!=='no_aplica')infoRows.push(['Tipo de entrega',tEntMap[l.tipoEntregaDestino]||'--']);
 if(l.fechaCarga)infoRows.push(['Fecha de carga',l.fechaCarga+(l.horaCarga?' · '+l.horaCarga:'')]);
 if(l.fechaEntrega)infoRows.push(['Fecha de descarga',l.fechaEntrega+(l.horaDescarga?' · '+l.horaDescarga:'')]);
@@ -719,7 +721,7 @@ h+='<button onclick="descargarLicitacionPDF(\''+l.id+'\')" style="width:fit-cont
 // Paradas intermedias
 if(Array.isArray(l.paradas)&&l.paradas.length>0){
 h+='<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Paradas intermedias</div>';
-h+=l.paradas.map(function(p,i){return '<div style="font-size:13px;color:#374151;padding:6px 0;border-bottom:0.5px solid #f0f0f0">'+(i+1)+'. '+(p.direccion||'--')+(p.horario?' · '+p.horario:'')+(p.contacto?' · '+p.contacto:'')+(p.descripcion?'<br><span style="color:#6B7280;margin-left:14px">'+p.descripcion+'</span>':'')+'</div>';}).join('');
+h+=l.paradas.map(function(p,i){return '<div style="font-size:13px;color:#374151;padding:6px 0;border-bottom:0.5px solid #f0f0f0">'+(i+1)+'. '+(p.direccion||'--')+(p.ubicacion&&window.TMUbic?' '+TMUbic.boton(p.ubicacion):'')+(p.horario?' · '+p.horario:'')+(p.contacto?' · '+p.contacto:'')+(p.descripcion?'<br><span style="color:#6B7280;margin-left:14px">'+p.descripcion+'</span>':'')+'</div>';}).join('');
 h+='</div>';
 }
 

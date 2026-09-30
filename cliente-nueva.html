@@ -479,12 +479,14 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <div class="form-group"><label>Ciudad de destino <span class="required">*</span></label><input type="text" id="destino" placeholder="Ej: Antofagasta" autocomplete="off"/></div>
 </div>
 <div class="form-group"><label>Dirección de origen</label><input type="text" id="direccionOrigen" placeholder="Ej: Faena El Teniente, sector norte" autocomplete="off"/></div>
+<div class="form-group tm-ubic-wrap"><label>Ubicación en Google Maps <span style="font-weight:400;color:#6B7280">(opcional)</span></label><input type="text" id="ubicacionOrigen" class="tm-ubic" placeholder="Pega un link de Google Maps o un Plus Code" autocomplete="off"/><div class="tm-ubic-res" style="font-size:12px;margin-top:4px"></div><div style="font-size:11.5px;color:#6B7280;margin-top:4px">En Google Maps: mantén presionado el punto → Compartir → copiar link. O copia el Plus Code (ej: 47RV+HX Pudahuel).</div></div>
 <div class="form-group" id="paradas-section" style="display:none">
 <label>Paradas intermedias (opcional)</label>
 <div id="paradas-list"></div>
 <button type="button" class="btn btn-outline" id="btn-agregar-parada" style="margin-top:8px" onclick="agregarParada()">+ Agregar parada</button>
 </div>
 <div class="form-group"><label>Dirección de destino</label><input type="text" id="direccionDestino" placeholder="Ej: Bodega central, acceso camiones" autocomplete="off"/></div>
+<div class="form-group tm-ubic-wrap"><label>Ubicación en Google Maps <span style="font-weight:400;color:#6B7280">(opcional)</span></label><input type="text" id="ubicacionDestino" class="tm-ubic" placeholder="Pega un link de Google Maps o un Plus Code" autocomplete="off"/><div class="tm-ubic-res" style="font-size:12px;margin-top:4px"></div><div style="font-size:11.5px;color:#6B7280;margin-top:4px">En Google Maps: mantén presionado el punto → Compartir → copiar link. O copia el Plus Code (ej: 47RV+HX Pudahuel).</div></div>
 <div class="form-group" id="estandar-minero-section">
 <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:500">
 <input type="checkbox" id="requiereEstandar" onchange="toggleEstandarMinero()" style="width:17px;height:17px;cursor:pointer;accent-color:#1e2d4e"/>
@@ -618,7 +620,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 </div>
 <div id="toast"></div>
 
-<script src="/categorias-equipo.js"></script>
+<script src="/categorias-equipo.js"></script><script src="/ubicacion-maps.js"></script><script>TMUbic.bind(document);TMUbic.vincular(document.getElementById('direccionOrigen'),document.getElementById('ubicacionOrigen'));TMUbic.vincular(document.getElementById('direccionDestino'),document.getElementById('ubicacionDestino'));</script>
 <script>
 var API=(localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
 var tipoLicitacion=null;
@@ -762,6 +764,7 @@ row.style.cssText='background:#f8f9fb;border:1px solid #e8eaf0;border-radius:10p
 row.innerHTML=
 '<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><button type="button" onclick="quitarParada(this)" style="background:none;border:none;color:#9CA3AF;cursor:pointer;font-size:12px">Quitar &#10005;</button></div>'+
 '<div class="form-group" style="margin-bottom:8px"><label style="font-size:12px">Dirección de la parada</label><input type="text" class="parada-direccion" placeholder="Ej: Peaje Las Lomas, Ruta 5" autocomplete="off"/></div>'+
+TMUbic.campo('',data.ubicacion||'')+
 '<div class="grid-2">'+
 '<div class="form-group" style="margin-bottom:8px"><label style="font-size:12px">Horario aproximado</label><input type="text" class="parada-horario" placeholder="Ej: Entre 10:00 y 12:00" autocomplete="off"/></div>'+
 '<div class="form-group" style="margin-bottom:8px"><label style="font-size:12px">Contacto en el lugar</label><input type="text" class="parada-contacto" placeholder="Nombre y teléfono" autocomplete="off"/></div>'+
@@ -772,6 +775,8 @@ if(data.direccion)row.querySelector('.parada-direccion').value=data.direccion;
 if(data.horario)row.querySelector('.parada-horario').value=data.horario;
 if(data.contacto)row.querySelector('.parada-contacto').value=data.contacto;
 if(data.descripcion)row.querySelector('.parada-descripcion').value=data.descripcion;
+TMUbic.bind(row);
+TMUbic.vincular(row.querySelector('.parada-direccion'),row.querySelector('.tm-ubic'));
 actualizarBtnAgregarParada();
 }
 
@@ -793,7 +798,8 @@ var dir=row.querySelector('.parada-direccion').value.trim();
 var hor=row.querySelector('.parada-horario').value.trim();
 var con=row.querySelector('.parada-contacto').value.trim();
 var desc=row.querySelector('.parada-descripcion')?row.querySelector('.parada-descripcion').value.trim():'';
-if(dir||hor||con||desc)arr.push({direccion:dir,horario:hor,contacto:con,descripcion:desc});
+var ub=row.querySelector('.tm-ubic')?TMUbic.valida(row.querySelector('.tm-ubic').value):'';
+if(dir||hor||con||desc||ub)arr.push({direccion:dir,horario:hor,contacto:con,descripcion:desc,ubicacion:ub});
 });
 return arr;
 }
@@ -1072,6 +1078,8 @@ if(chkT && !chkT.checked){ if(errT) errT.style.display='block'; chkT.scrollIntoV
 if(errT) errT.style.display='none';
 var btn=document.getElementById('btn-publicar');
 btn.disabled=true;btn.textContent='Publicando...';
+var _ubMal=[].slice.call(document.querySelectorAll('input.tm-ubic')).some(function(i){return TMUbic.tipo(i.value)==='bad';});
+if(_ubMal){showToast('Revisa la ubicación de Google Maps: debe ser un link de Maps o un Plus Code','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';return;}
 // Red de seguridad: pase lo que pase adentro (incluso un error de programación inesperado),
 // el botón SIEMPRE se reactiva. Nunca más debería quedar pegado en "Publicando...".
 try{
@@ -1085,7 +1093,7 @@ if(!rA.ok){showToast(dA.error||'Error al subir el archivo','err');btn.disabled=f
 archivoId=dA.id;
 }catch(e){showToast('Error al subir el archivo','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';return;}
 }
-var payload={tipoLicitacion:tipoLicitacion,origen:document.getElementById('origen').value.trim(),destino:document.getElementById('destino').value.trim(),direccionOrigen:document.getElementById('direccionOrigen').value.trim(),direccionDestino:document.getElementById('direccionDestino').value.trim(),fechaCarga:document.getElementById('fechaCarga').value,horaCarga:document.getElementById('horaCarga').value||'',fechaEntrega:document.getElementById('fechaEntrega').value,horaDescarga:document.getElementById('horaDescarga').value||'',plazo:document.getElementById('plazo').value,valorSeguro:document.getElementById('valorSeguro').value||'',contactoOrigenNombre:document.getElementById('contactoOrigenNombre').value.trim(),contactoOrigenTelefono:document.getElementById('contactoOrigenTelefono').value.trim(),contactoOrigenEmail:document.getElementById('contactoOrigenEmail').value.trim(),contactoDestinoNombre:document.getElementById('contactoDestinoNombre').value.trim(),contactoDestinoTelefono:document.getElementById('contactoDestinoTelefono').value.trim(),contactoDestinoEmail:document.getElementById('contactoDestinoEmail').value.trim()};
+var payload={tipoLicitacion:tipoLicitacion,ubicacionOrigen:TMUbic.valida(document.getElementById('ubicacionOrigen').value),ubicacionDestino:TMUbic.valida(document.getElementById('ubicacionDestino').value),origen:document.getElementById('origen').value.trim(),destino:document.getElementById('destino').value.trim(),direccionOrigen:document.getElementById('direccionOrigen').value.trim(),direccionDestino:document.getElementById('direccionDestino').value.trim(),fechaCarga:document.getElementById('fechaCarga').value,horaCarga:document.getElementById('horaCarga').value||'',fechaEntrega:document.getElementById('fechaEntrega').value,horaDescarga:document.getElementById('horaDescarga').value||'',plazo:document.getElementById('plazo').value,valorSeguro:document.getElementById('valorSeguro').value||'',contactoOrigenNombre:document.getElementById('contactoOrigenNombre').value.trim(),contactoOrigenTelefono:document.getElementById('contactoOrigenTelefono').value.trim(),contactoOrigenEmail:document.getElementById('contactoOrigenEmail').value.trim(),contactoDestinoNombre:document.getElementById('contactoDestinoNombre').value.trim(),contactoDestinoTelefono:document.getElementById('contactoDestinoTelefono').value.trim(),contactoDestinoEmail:document.getElementById('contactoDestinoEmail').value.trim()};
 if(archivoId){payload.archivoId=archivoId;payload.archivoNombre=archivo.nombre;}
 // Estándar minero
 var reqEstandar=document.getElementById('requiereEstandar').checked;
@@ -1213,6 +1221,9 @@ if(l.origen)document.getElementById('origen').value=l.origen;
 if(l.destino)document.getElementById('destino').value=l.destino;
 if(l.direccionOrigen)document.getElementById('direccionOrigen').value=l.direccionOrigen;
 if(l.direccionDestino)document.getElementById('direccionDestino').value=l.direccionDestino;
+if(l.ubicacionOrigen)document.getElementById('ubicacionOrigen').value=l.ubicacionOrigen;
+if(l.ubicacionDestino)document.getElementById('ubicacionDestino').value=l.ubicacionDestino;
+TMUbic.bind(document);
 // Fechas y horas: al duplicar, NO se copian — son de un despacho distinto y deben elegirse de nuevo
 if(!esDuplicado){
 if(l.fechaCarga)document.getElementById('fechaCarga').value=l.fechaCarga;

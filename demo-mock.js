@@ -85,7 +85,7 @@
 
     // 2) Abierta, cotizaciones llegando + pregunta sin responder
     L.push(lic({ id:'demo_l2', codigo:'LIC-D002', estado:'abierta', tipoEquipo:'Excavadora', marca:'Caterpillar', modelo:'320 GC', peso:'22', dimensiones:'9,5 x 3,0 x 3,1 m',
-      descripcion:'Excavadora sobre orugas. Requiere cama baja y permiso de sobredimensión.', origen:'Santiago', destino:'Los Andes', direccionOrigen:'Camino a Noviciado 2300, Pudahuel', direccionDestino:'Ruta 60 CH km 12, Los Andes',
+      descripcion:'Excavadora sobre orugas. Requiere cama baja y permiso de sobredimensión.', origen:'Santiago', destino:'Los Andes', direccionOrigen:'Camino a Noviciado 2300, Pudahuel', direccionDestino:'Ruta 60 CH km 12, Los Andes', ubicacionOrigen:'https://maps.app.goo.gl/demoPudahuel', ubicacionDestino:'5FQ2+7M Los Andes',
       fechaCarga:fecha(3*D), fechaEntrega:fecha(3*D), createdAt:iso(-6*H), aprobadaAt:iso(-5*H), cierreAt:iso(18*H), totalCotizaciones:2,
       preguntas:[{ id:'demo_p1', texto:'¿El punto de carga tiene acceso para cama baja de 3 ejes? ¿Hay restricción de horario?', respuesta:null, createdAt:iso(-3*H), respondidaAt:null, esTuya:false }] }));
 
@@ -124,7 +124,7 @@
       origen:'Santiago', destino:'Antofagasta', fechaCarga:fecha(-1*D), fechaEntrega:fecha(1*D), createdAt:iso(-6*D), aprobadaAt:iso(-6*D+H), cierreAt:iso(-5*D), adjudicadaAt:iso(-4*D),
       cotizaciones:[c6], totalCotizaciones:4, adjudicadaA:adj(TR.c,'demo_c61',3450000,fmtFecha(1*D)) }));
     T.push(trn(Object.assign({ id:'demo_t6', codigo:'TRN-D006', licitacionId:'demo_l6', licitacionCodigo:'LIC-D006', tipoEquipo:'Cargador frontal - Komatsu', origen:'Santiago', destino:'Antofagasta', precio:3450000,
-      estado:'en_ruta', adjudicadoAt:iso(-4*D), oc:doc('OC-4501-demo.pdf',-3*D),
+      estado:'en_ruta', adjudicadoAt:iso(-4*D), ubicacionOrigen:'47RV+HX Pudahuel', oc:doc('OC-4501-demo.pdf',-3*D),
       equipoAsignado:{ patente:'KXTR-45', tipo:'Cama baja 4 ejes', marca:'Volvo', modelo:'FH 540' },
       conductorAsignado:{ nombre:'Luis Contreras', rut:'12.345.678-9', telefono:'+56 9 5555 0404' },
       direcciones:{ carga:{ direccion:'Camino a Noviciado 2300, Pudahuel', horario:'08:00 a 17:00', restricciones:'Ingreso por portón 2' }, descarga:{ direccion:'Av. Pedro Aguirre Cerda 9500, Antofagasta', horario:'08:00 a 18:00', notas:'Avisar 1 hora antes de llegar' } },
