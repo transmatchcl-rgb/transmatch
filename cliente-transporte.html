@@ -327,21 +327,26 @@ function renderDetalle(t){
 
   // -- DOCUMENTOS REQUERIDOS POR LA FAENA (estandar) --
   var _reqs=t.requisitosEstandar||[];
-  if(_reqs.length){
+  var _puedeSolicitar=!t.valoracion;
+  if(_reqs.length||_puedeSolicitar){
     var _carg=_reqs.filter(function(r){return r.archivoId;}).length;
+    var _escD=function(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
     h+='<div style="background:#fff;border:1px solid #e8eaf0;border-radius:12px;overflow:hidden;margin-bottom:16px;box-shadow:0 1px 4px rgba(30,45,78,.05)">';
-    h+='<div style="background:#1e2d4e;padding:12px 16px;display:flex;justify-content:space-between;align-items:center"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px">DOCUMENTOS REQUERIDOS POR LA FAENA</div><div style="font-size:11.5px;color:#AEB7CC">'+_carg+' de '+_reqs.length+'</div></div>';
+    h+='<div style="background:#1e2d4e;padding:12px 16px;display:flex;justify-content:space-between;align-items:center"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px">DOCUMENTOS REQUERIDOS</div>'+(_reqs.length?'<div style="font-size:11.5px;color:#AEB7CC">'+_carg+' de '+_reqs.length+' cargados</div>':'')+'</div>';
     h+='<div style="padding:14px 16px">';
+    if(!_reqs.length) h+='<div style="font-size:13px;color:#6B7280">Aún no has solicitado documentos al transportista.</div>';
     _reqs.forEach(function(r,ri){
       var _bb=ri<_reqs.length-1?'border-bottom:1px solid #F1F2F6':'';
       var _nom=((r.archivoNombre||r.label||'documento')+'').split("'").join('').split('"').join('');
+      var _meta=r.origen==='cliente'?('Solicitado el '+new Date(r.solicitadoAt).toLocaleDateString('es-CL',{day:'numeric',month:'short'})+(r.indicaciones?' · "'+_escD(r.indicaciones)+'"':'')):'Pedido al crear la licitación';
       h+='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;'+_bb+'">';
-      h+='<span style="font-size:13.5px;font-weight:600;color:#1e2d4e">'+(r.label||'Documento')+'</span>';
-      if(r.archivoId){ h+='<span style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;font-weight:600;background:#F0FDF4;color:#14532D;border:1px solid #BBF7D0;padding:3px 10px;border-radius:999px">Cargado</span><button class="btn btn-outline btn-sm" onclick="descargar(\''+r.archivoId+'\',\''+_nom+'\')">Descargar</button></span>'; }
-      else { h+='<span style="font-size:11px;font-weight:500;background:#F5F6F9;color:#6B7280;border:1px dashed #e8eaf0;padding:3px 10px;border-radius:999px">Pendiente</span>'; }
+      h+='<div><div style="font-size:13.5px;font-weight:600;color:#1e2d4e">'+_escD(r.label||'Documento')+'</div><div style="font-size:11.5px;color:#6B7280;margin-top:2px">'+_meta+'</div></div>';
+      if(r.archivoId){ h+='<span style="display:flex;align-items:center;gap:8px;flex-shrink:0"><span style="font-size:11px;font-weight:600;background:#F0FDF4;color:#14532D;border:1px solid #BBF7D0;padding:3px 10px;border-radius:999px">Cargado</span><button class="btn btn-outline btn-sm" onclick="descargar(\''+r.archivoId+'\',\''+_nom+'\')">Descargar</button></span>'; }
+      else { h+='<span style="display:flex;align-items:center;gap:8px;flex-shrink:0"><span style="font-size:11px;font-weight:500;background:#F5F6F9;color:#6B7280;border:1px dashed #e8eaf0;padding:3px 10px;border-radius:999px">Pendiente</span>'+(_puedeSolicitar?'<button class="btn btn-outline btn-sm" title="Quitar solicitud" style="color:#DC2626;border-color:#FECACA" onclick="quitarSolicitudDoc(\''+t.id+'\',\''+r.id+'\')">✕</button>':'')+'</span>'; }
       h+='</div>';
     });
-    h+='<div style="font-size:11.5px;color:#6B7280;margin-top:12px;line-height:1.5">Documentos que el transportista debe presentar para esta faena.</div>';
+    if(_puedeSolicitar) h+='<button onclick="abrirModalSolicitarDocs(\''+t.id+'\')" style="margin-top:12px;width:100%;padding:9px;border:1.5px dashed #FF8808;background:#FFF8F0;color:#B45309;font-weight:600;font-size:13px;border-radius:8px;cursor:pointer">+ Solicitar documento al transportista</button>';
+    h+='<div style="font-size:11.5px;color:#6B7280;margin-top:12px;line-height:1.5">El transportista recibe una notificación y un email cada vez que solicitas un documento. Solo puedes quitar solicitudes pendientes.</div>';
     h+='</div></div>';
   }
   // ── DIRECCIONES ──────────────────────────────────────────────
@@ -634,6 +639,85 @@ function abrirModalDirecciones(transporteId){
   document.getElementById('dir-cancel').onclick=function(){ modal.remove(); };
   document.getElementById('dir-save').onclick=function(){ guardarDirecciones(transporteId,modal); };
   modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
+}
+
+// ── SOLICITAR DOCUMENTOS AL TRANSPORTISTA ─────────────────────
+var DOCS_FRECUENTES=['Revisión técnica','Permiso de circulación','Seguro de carga','Licencia del conductor','Certificado de antecedentes','Hoja de vida del conductor'];
+var DOCS_MARCADOS_DEFAULT=['Revisión técnica','Permiso de circulación','Seguro de carga','Licencia del conductor'];
+function _docsRecientes(){
+  var todos=[];
+  (transportes||[]).forEach(function(tr){ (tr.requisitosEstandar||[]).forEach(function(r){ if(r.origen==='cliente'&&r.label) todos.push(r); }); });
+  todos.sort(function(a,b){ return String(b.solicitadoAt||'').localeCompare(String(a.solicitadoAt||'')); });
+  var vistos={}, out=[];
+  DOCS_FRECUENTES.forEach(function(x){ vistos[x.toLowerCase()]=1; });
+  todos.forEach(function(r){ var k=r.label.toLowerCase(); if(!vistos[k]&&out.length<6){ vistos[k]=1; out.push(r.label); } });
+  return out;
+}
+function abrirModalSolicitarDocs(transporteId){
+  var t=transportes.find(function(x){return x.id===transporteId;}); if(!t) return;
+  var ya={}; (t.requisitosEstandar||[]).forEach(function(r){ ya[String(r.label||'').toLowerCase()]=1; });
+  var sel={}; DOCS_MARCADOS_DEFAULT.forEach(function(x){ if(!ya[x.toLowerCase()]) sel[x]=1; });
+  var esc=function(v){return String(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+  var modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto';
+  var inner=document.createElement('div');
+  inner.style.cssText='background:#fff;border-radius:16px;padding:26px;width:100%;max-width:560px';
+  modal.appendChild(inner); document.body.appendChild(modal);
+  function pills(lista){
+    if(!lista.length) return '<div style="font-size:12px;color:#9CA3AF;font-style:italic">Aún no hay</div>';
+    return lista.map(function(n){
+      if(ya[n.toLowerCase()]) return '<span style="font-size:12.5px;padding:5px 11px;border-radius:999px;background:#F5F6F9;color:#9CA3AF;border:1.5px dashed #e8eaf0" title="Ya solicitado">'+esc(n)+' · ya solicitado</span>';
+      var on=!!sel[n];
+      return '<span data-doc="'+esc(n)+'" style="font-size:12.5px;padding:5px 11px;border-radius:999px;cursor:pointer;user-select:none;border:1.5px solid '+(on?'#1e2d4e':'#EEF1F6')+';background:'+(on?'#1e2d4e':'#EEF1F6')+';color:'+(on?'#fff':'#1e2d4e')+'">'+(on?'✓ ':'')+esc(n)+'</span>';
+    }).join('');
+  }
+  function render(){
+    var rec=_docsRecientes();
+    var n=Object.keys(sel).length;
+    inner.innerHTML='<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Solicitar documentos</div>'
+      +'<div style="font-size:13px;color:#6B7280;margin-bottom:14px">Se los pediremos al transportista de '+esc(t.codigo||'este transporte')+'. Marca o desmarca los que necesites.</div>'
+      +'<div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin:6px 0 6px">Frecuentes</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px">'+pills(DOCS_FRECUENTES)+'</div>'
+      +'<div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px">Usados recientemente</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px">'+pills(rec)+'</div>'
+      +(function(){ var enLista={}; DOCS_FRECUENTES.concat(rec).forEach(function(x){enLista[x]=1;}); var otros=Object.keys(sel).filter(function(x){return !enLista[x];}); return otros.length?'<div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px">Agregados por ti</div><div style="display:flex;flex-wrap:wrap;gap:6px">'+pills(otros)+'</div>':''; })()
+      +'<label style="font-size:12px;font-weight:500;color:#374151;display:block;margin:16px 0 4px">…o escribe otro documento</label>'
+      +'<div style="display:flex;gap:8px"><input type="text" id="sd-otro" maxlength="80" placeholder="Ej: Certificado de inducción en faena" style="flex:1;padding:9px 11px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"><button id="sd-add" class="btn btn-outline btn-sm">Agregar</button></div>'
+      +'<label style="font-size:12px;font-weight:500;color:#374151;display:block;margin:14px 0 4px">Indicaciones <span style="font-weight:400;color:#6B7280">(opcional)</span></label>'
+      +'<textarea id="sd-ind" rows="2" maxlength="300" placeholder="Ej: Lo pide prevención de riesgos de la faena" style="width:100%;padding:9px 11px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical"></textarea>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px"><span style="font-size:12.5px;color:#6B7280">'+n+' seleccionado'+(n!==1?'s':'')+'</span><span style="display:flex;gap:8px">'
+      +'<button id="sd-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
+      +'<button id="sd-ok" '+(n?'':'disabled ')+'style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;opacity:'+(n?1:.5)+'">Solicitar'+(n?' ('+n+')':'')+'</button></span></div>';
+    inner.querySelectorAll('[data-doc]').forEach(function(p){ p.onclick=function(){ var d=p.getAttribute('data-doc'); if(sel[d]) delete sel[d]; else sel[d]=1; render(); }; });
+    var otro=inner.querySelector('#sd-otro');
+    function agregarOtro(){ var v=otro.value.replace(/[<>"'`]/g,'').replace(/\s+/g,' ').trim(); if(!v) return; if(ya[v.toLowerCase()]){ toast('Ese documento ya está solicitado','err'); return; } sel[v]=1; render(); }
+    inner.querySelector('#sd-add').onclick=agregarOtro;
+    otro.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); agregarOtro(); } };
+    inner.querySelector('#sd-cancel').onclick=function(){ modal.remove(); };
+    inner.querySelector('#sd-ok').onclick=async function(){
+      var btn=this; var ind=(inner.querySelector('#sd-ind').value||'').trim();
+      var pend=(otro.value||'').trim(); if(pend&&!ya[pend.toLowerCase()]) sel[pend.replace(/[<>"'`]/g,'').replace(/\s+/g,' ').trim()]=1;
+      var docs=Object.keys(sel); if(!docs.length) return;
+      btn.disabled=true; btn.textContent='Solicitando...';
+      try{
+        var res=await fetch(API+'/api/transportes/'+transporteId+'/solicitar-documentos',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({documentos:docs,indicaciones:ind})});
+        var d=await res.json();
+        if(res.ok){ toast(docs.length===1?'Documento solicitado':'Documentos solicitados'); modal.remove(); await cargar(); setTimeout(function(){ toggleCard(transporteId); },100); }
+        else { toast(d.error||'Error','err'); btn.disabled=false; render(); }
+      }catch(e){ toast('Error de conexión','err'); btn.disabled=false; render(); }
+    };
+  }
+  render();
+  modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
+}
+async function quitarSolicitudDoc(transporteId, reqId){
+  if(!confirm('¿Quitar esta solicitud de documento?')) return;
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/requisito/'+reqId,{method:'DELETE',headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    var d=await res.json();
+    if(res.ok){ toast('Solicitud quitada'); await cargar(); setTimeout(function(){ toggleCard(transporteId); },100); }
+    else toast(d.error||'Error','err');
+  }catch(e){ toast('Error de conexión','err'); }
 }
 
 async function guardarDirecciones(transporteId, modal){

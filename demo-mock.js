@@ -9,7 +9,8 @@
     if(localStorage.getItem('tm_demo')!=='1' || localStorage.getItem('tm_token')!=='demo_token') return;
   }catch(e){ return; }
 
-  var KEY='tm_demo_state_v1';
+  var ROL=(localStorage.getItem('tm_role')==='transportista')?'transportista':'cliente';
+  var KEY=ROL==='transportista'?'tm_demo_state_t_v1':'tm_demo_state_v1';
   var H=3600000, D=24*H, NOW=Date.now();
   function iso(ms){ return new Date(NOW+ms).toISOString(); }
   function fecha(ms){ return iso(ms).slice(0,10); }
@@ -27,7 +28,7 @@
     return Object.assign({
       clienteId:CLI.id, empresaId:CLI.id, clienteEmpresa:CLI.empresa, clienteNombre:CLI.nombre,
       creadoPorEmail:CLI.email, creadoPorNombre:CLI.nombre, esCreadoPorSubusuario:false,
-      tipoLicitacion:'maquinaria', tipoEquipoRequerido:'cualquiera', marca:'', modelo:'', cantidadEquipos:'1',
+      tipoLicitacion:'maquinaria', tipoEquipoRequerido:'cualquiera', marca:'', modelo:'', cantidadEquipos:'',
       pesoUnidad:'ton', volumen:'', paradas:[], tipoEntregaDestino:'no_aplica', plazo:'24', valorSeguro:'',
       contactoOrigenNombre:'Pedro Soto', contactoOrigenTelefono:'+56 9 5555 1111', contactoOrigenEmail:'bodega@demo.cl',
       contactoDestinoNombre:'Andrea Rojas', contactoDestinoTelefono:'+56 9 5555 2222', contactoDestinoEmail:'obra@demo.cl',
@@ -203,7 +204,7 @@
 
   var S;
   try{ S=JSON.parse(sessionStorage.getItem(KEY)||'null'); }catch(e){ S=null; }
-  if(!S||!S.lics) S=seed();
+  if(!S||!S.lics) S=(ROL==='transportista'?seedT():seed());
   function save(){ try{ sessionStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
   save();
 
@@ -284,6 +285,16 @@
     if((m=path.match(/^\/api\/transportes\/([^/]+)\/(.+)$/))){
       var tr=findT(m[1]); if(!tr) return { __status:404, error:'No encontrado' };
       var acc=m[2];
+      if(acc==='solicitar-documentos'){
+        tr.requisitosEstandar=tr.requisitosEstandar||[];
+        var ya={}; tr.requisitosEstandar.forEach(function(r){ ya[String(r.label).toLowerCase()]=1; });
+        var n=0; (b.documentos||[]).forEach(function(lb){ lb=String(lb||'').trim(); if(!lb||ya[lb.toLowerCase()]) return; ya[lb.toLowerCase()]=1; n++;
+          tr.requisitosEstandar.push({ id:'demo_req_'+(++S.seq), label:lb, indicaciones:b.indicaciones||'', archivoId:null, solicitadoAt:ahora(), origen:'cliente' }); });
+        if(!n) return { __status:400, error:'Esos documentos ya están solicitados' };
+        return { ok:true, agregados:n };
+      }
+      var mq=acc.match(/^requisito\/(.+)$/);
+      if(mq&&method==='DELETE'){ tr.requisitosEstandar=(tr.requisitosEstandar||[]).filter(function(r){ return r.id!==mq[1]||r.archivoId; }); return { ok:true }; }
       if(acc==='incidencia'){ tr.incidenciasCliente=tr.incidenciasCliente||[]; tr.incidenciasCliente.push({ tipo:b.tipo||'Otro', descripcion:b.descripcion||'', createdAt:ahora() }); }
       else if(acc==='direcciones'){ tr.direcciones=Object.assign({}, tr.direcciones||{}, b.direcciones||b); }
       else if(acc==='subir-oc'){ tr.oc={ archivoId:'demo_doc', nombre:b.nombre||b.archivoNombre||'OC.pdf', subidoAt:ahora() }; }
@@ -330,6 +341,239 @@
     return { ok:true };
   }
 
+  // ══════════════════════════════════════════════════════════════
+  //  PORTAL TRANSPORTISTA (demo.html?rol=transportista)
+  //  El usuario demo es "Transportes Altiplano (Demo)" = TR.a
+  // ══════════════════════════════════════════════════════════════
+  function yoT(){ return { id:'demo_transp', email:TR.a.email, nombre:TR.a.nombre, empresa:TR.a.empresa, tel:TR.a.tel, rating:TR.a.rating, total:TR.a.total }; }
+  function cotMia(id, licId, precio, fCarga, fEntrega, equipo, ruta, minResp){
+    var c=cot(id, licId, TR.a, precio, 0.8, fCarga, fEntrega, equipo, ruta, ['Seguro de carga','Permiso MOP'], 'Incluye amarre y aseguramiento de carga.', minResp);
+    var y=yoT(); c.transportistaId=y.id; c.transportistaEmail=y.email; c.transportistaNombre=y.nombre; c.transportistaEmpresa=y.empresa; c.transportistaTelefono=y.tel;
+    c.codigo='COT-'+id.slice(-4).toUpperCase(); delete c._t; return c;
+  }
+  function cotOtro(id, licId, t, precio, fEntrega){
+    var c=cot(id, licId, t, precio, 0.7, fEntrega, fEntrega, 'Cama baja', '', ['Seguro de carga'], '', 120);
+    c.transportistaId='demo_'+t.email; c.transportistaEmail=t.email; delete c._t; return c;
+  }
+  function seedT(){
+    var L=[], T=[], O=[];
+    var yo=yoT();
+    // Abiertas (para cotizar)
+    L.push(lic({ id:'demo_tl1', codigo:'LIC-D021', estado:'abierta', tipoEquipo:'Excavadora', marca:'Caterpillar', modelo:'320 GC', peso:'22', dimensiones:'9,5 x 3,0 x 3,1 m',
+      descripcion:'Excavadora sobre orugas. Requiere cama baja y permiso de sobredimensión.', origen:'Santiago', destino:'Los Andes', direccionOrigen:'Camino a Noviciado 2300, Pudahuel', direccionDestino:'Ruta 60 CH km 12, Los Andes',
+      ubicacionOrigen:'https://maps.app.goo.gl/demoPudahuel', ubicacionDestino:'5FQ2+7M Los Andes',
+      fechaCarga:fecha(3*D), fechaEntrega:fecha(3*D), createdAt:iso(-6*H), aprobadaAt:iso(-5*H), cierreAt:iso(18*H),
+      cotizaciones:[cotOtro('demo_tc1x','demo_tl1',TR.b,1850000,fmtFecha(3*D))],
+      preguntas:[{ id:'demo_tp1', texto:'¿El punto de carga tiene acceso para cama baja de 3 ejes?', respuesta:'Sí, acceso por portón 2, sin restricción de altura.', createdAt:iso(-4*H), respondidaAt:iso(-3*H), transportistaId:'otro' }] }));
+    L.push(lic({ id:'demo_tl2', codigo:'LIC-D022', estado:'abierta', tipoLicitacion:'carga', tipoEquipo:'Generador eléctrico', tipoCarga:'Carga general', peso:'6,5', dimensiones:'4,8 x 1,6 x 2,2 m',
+      descripcion:'Generador 500 kVA en skid, con puntos de izaje.', origen:'Antofagasta', destino:'Calama', direccionOrigen:'Av. Pedro Aguirre Cerda 9500, Antofagasta', direccionDestino:'Faena Demo, km 1350 Ruta 25',
+      fechaCarga:fecha(5*D), fechaEntrega:fecha(5*D), createdAt:iso(-20*H), aprobadaAt:iso(-19*H), cierreAt:iso(28*H), plazo:'48',
+      requiereEstandar:true, estandarDetalle:'Ingreso a faena minera', estandarRequisitos:[{id:'r1',label:'Certificado de revisión técnica'},{id:'r2',label:'Seguro de carga vigente'},{id:'r3',label:'Licencia A5 del conductor'}],
+      cotizaciones:[cotMia('demo_tc2','demo_tl2',1320000,fmtFecha(5*D),fmtFecha(5*D),'Rampla plana','Antofagasta → Calama',180)] }));
+    L.push(lic({ id:'demo_tl3', codigo:'LIC-D023', estado:'abierta', tipoEquipo:'Grúa horquilla', marca:'Toyota', modelo:'8FG50', peso:'7', dimensiones:'4,2 x 1,9 x 2,6 m',
+      descripcion:'Grúa horquilla operativa, se carga con rampa.', origen:'Rancagua', destino:'Talca', direccionOrigen:'Camino Longitudinal Sur km 88, Rancagua', direccionDestino:'2 Sur 1450, Talca',
+      fechaCarga:fecha(2*D), fechaEntrega:fecha(2*D), createdAt:iso(-2*H), aprobadaAt:iso(-1*H), cierreAt:iso(6*H), plazo:'8' }));
+    // En decisión (cerrada) con mi cotización
+    L.push(lic({ id:'demo_tl4', codigo:'LIC-D024', estado:'cerrada', tipoEquipo:'Bulldozer', marca:'Caterpillar', modelo:'D6T', peso:'23', origen:'Santiago', destino:'Copiapó',
+      fechaCarga:fecha(2*D), fechaEntrega:fecha(4*D), createdAt:iso(-2*D), aprobadaAt:iso(-2*D+H), cierreAt:iso(-2*H),
+      cotizaciones:[cotMia('demo_tc4','demo_tl4',2690000,fmtFecha(2*D),fmtFecha(5*D),'Cama baja 3 ejes','Santiago → Copiapó',180), cotOtro('demo_tc4x','demo_tl4',TR.c,2850000,fmtFecha(4*D))] }));
+
+    // Adjudicadas a mí + sus transportes
+    function ganada(lid, cod, tipo, marca, ori, des, precio, dCarga, dEnt, extraL, tr){
+      var cid=lid+'_c';
+      var c=cotMia(cid, lid, precio, fmtFecha(dCarga), fmtFecha(dEnt), 'Cama baja', ori+' → '+des, 60);
+      L.push(lic(Object.assign({ id:lid, codigo:cod, estado:'adjudicada', tipoEquipo:tipo, marca:marca, origen:ori, destino:des, fechaCarga:fecha(dCarga), fechaEntrega:fecha(dEnt),
+        createdAt:iso(dCarga-5*D), aprobadaAt:iso(dCarga-5*D+H), cierreAt:iso(dCarga-4*D), adjudicadaAt:iso(dCarga-3*D), cotizaciones:[c], totalCotizaciones:3,
+        adjudicadaA:{ cotizacionId:cid, precio:precio, transportistaId:yo.id, transportistaNombre:yo.nombre, transportistaEmpresa:yo.empresa, transportistaEmail:yo.email, transportistaTelefono:yo.tel, tiempoEntrega:fmtFecha(dEnt) } }, extraL||{})));
+      var t=trn(Object.assign({ id:lid.replace('_tl','_tt'), codigo:cod.replace('LIC','TRN'), licitacionId:lid, licitacionCodigo:cod, tipoEquipo:tipo+(marca?' - '+marca:''), origen:ori, destino:des, precio:precio,
+        adjudicadoAt:iso(dCarga-3*D), puedoGestionar:true, asignadoNombre:yo.nombre,
+        clienteFacturacion:{ razonSocial:'Constructora Cordillera SpA (Demo)', rut:'76.000.000-0', giro:'Construcción', direccion:'Av. Apoquindo 4000, Las Condes', email:'facturacion@demo.cl', telefono:'+56 2 2555 0000' },
+        contactoEncargado:{ nombre:yo.nombre, telefono:yo.tel, email:yo.email } }, conT(TR.a), tr||{}));
+      T.push(t);
+      O.push({ id_ov:'OV-D'+cod.slice(-3), id_transporte:t.id, id_transportista:yo.id, transportistaEmpresa:yo.empresa, id_cliente:CLI.id, clienteEmpresa:'Constructora Cordillera (Demo)', id_licitacion:lid,
+        estado:'CONDICIONAL', monto_cotizado:precio, monto_facturado:null, comision_estimada:Math.round(precio*0.05), comision_porcentaje:5, comision_tope_uf:10, comision_final:null,
+        fecha_adjudicacion:iso(dCarga-3*D), historial:[{ estado:'CONDICIONAL', fecha:iso(dCarga-3*D), actor:'sistema', nota:'OV creada al adjudicar licitación' }] });
+      return t;
+    }
+    ganada('demo_tl5','LIC-D025','Contenedor 40\' HC','','Valparaíso','Santiago',1250000,2*D,2*D,{ tipoLicitacion:'carga', tipoCarga:'Contenedor' },{
+      estado:'preparacion', ubicacionOrigen:'https://maps.app.goo.gl/demoPuertoValpo',
+      requisitosEstandar:[
+        { id:'demo_rq1', label:'Seguro de carga vigente', archivoId:'demo_doc', archivoNombre:'Seguro-demo.pdf', subidoAt:iso(-1*D) },
+        { id:'demo_rq2', label:'Revisión técnica', indicaciones:'Del camión y del semirremolque', archivoId:null, solicitadoAt:iso(-3*H), origen:'cliente' },
+        { id:'demo_rq3', label:'Certificado de inducción en faena', indicaciones:'Lo pide prevención de riesgos', archivoId:null, solicitadoAt:iso(-3*H), origen:'cliente' } ],
+      direcciones:{ carga:{ direccion:'Terminal Pacífico Sur, Valparaíso', horario:'08:00 a 16:00', restricciones:'Presentar EIR en portería', ubicacion:'https://maps.app.goo.gl/demoPuertoValpo' }, descarga:{ direccion:'Camino a Noviciado 2300, Pudahuel', horario:'08:00 a 17:00', ubicacion:'47RV+HX Pudahuel' } },
+      historial:hist([['preparacion','Transporte creado al adjudicar',-1*D],['preparacion','Documentos solicitados por el cliente: Revisión técnica, Certificado de inducción en faena',-3*H,CLI.nombre]]) });
+    ganada('demo_tl6','LIC-D026','Cargador frontal','Komatsu','Santiago','Antofagasta',3450000,-1*D,1*D,null,{
+      estado:'en_ruta', oc:doc('OC-4501-demo.pdf',-3*D),
+      equipoAsignado:{ patente:'KXTR-45', tipo:'Cama baja 4 ejes', marca:'Volvo', modelo:'FH 540' },
+      conductorAsignado:{ nombre:'Luis Contreras', rut:'12.345.678-9', telefono:'+56 9 5555 0404' },
+      direcciones:{ carga:{ direccion:'Camino a Noviciado 2300, Pudahuel', horario:'08:00 a 17:00', ubicacion:'47RV+HX Pudahuel' }, descarga:{ direccion:'Av. Pedro Aguirre Cerda 9500, Antofagasta', horario:'08:00 a 18:00', notas:'Avisar 1 hora antes' } },
+      historial:hist([['preparacion','Transporte creado al adjudicar',-4*D],['carga_recogida','Equipo cargado',-1*D,TR.a.nombre],['en_ruta','En ruta',-6*H,TR.a.nombre]]) });
+    ganada('demo_tl7','LIC-D027','Minicargador','Bobcat','Rancagua','Talca',780000,-5*D,-4*D,null,{
+      estado:'entregado', entregadoAt:iso(-4*D), oc:doc('OC-4488-demo.pdf',-7*D), guiaDespacho:doc('Guia-demo.pdf',-5*D),
+      equipoAsignado:{ patente:'HJPL-22', tipo:'Cama baja 2 ejes', marca:'Scania', modelo:'R450' },
+      conductorAsignado:{ nombre:'Marcelo Díaz', rut:'13.456.789-0', telefono:'+56 9 5555 0505' },
+      historial:hist([['preparacion','Transporte creado al adjudicar',-8*D],['en_ruta','En ruta',-5*D,TR.a.nombre],['entregado','Entregado sin observaciones',-4*D,TR.a.nombre]]) });
+    var v8={ scores:{ puntualidad:5, comunicacion:5, estadoCarga:5, documentacion:4 }, promedio:4.8, comentario:'Muy buen servicio, llegaron antes de lo acordado.', createdAt:iso(-10*D) };
+    ganada('demo_tl8','LIC-D028','Motoniveladora','Caterpillar','Santiago','La Serena',2100000,-15*D,-13*D,{ estado:'completada', valoracion:v8 },{
+      estado:'completado', estadoDocumentos:'completo', entregadoAt:iso(-13*D), valoracion:v8, oc:doc('OC-4410-demo.pdf',-17*D), factura:doc('Factura-0987-demo.pdf',-12*D),
+      pagoCliente:{ estado:'pagado', marcadoAt:iso(-5*D) },
+      historial:hist([['preparacion','Transporte creado al adjudicar',-18*D],['en_ruta','En ruta',-15*D,TR.a.nombre],['entregado','Entregado',-13*D,TR.a.nombre]]) });
+    O[3].estado='PAGADA'; O[3].monto_facturado=2100000; O[3].comision_final=105000; O[3].fecha_pago_confirmado=iso(-4*D);
+
+    // Perdida (solo historial, con feedback de posición)
+    L.push(lic({ id:'demo_tl9', codigo:'LIC-D029', estado:'adjudicada', tipoEquipo:'Retroexcavadora', marca:'JCB', origen:'Concepción', destino:'Los Ángeles',
+      fechaCarga:fecha(-6*D), fechaEntrega:fecha(-6*D), createdAt:iso(-12*D), cierreAt:iso(-11*D), adjudicadaAt:iso(-10*D),
+      cotizaciones:[cotMia('demo_tc9','demo_tl9',960000,fmtFecha(-6*D),fmtFecha(-6*D),'Cama baja 2 ejes','Concepción → Los Ángeles',130), cotOtro('demo_tc9b','demo_tl9',TR.b,890000,fmtFecha(-6*D)), cotOtro('demo_tc9c','demo_tl9',TR.c,1050000,fmtFecha(-5*D))],
+      adjudicadaA:{ cotizacionId:'demo_tc9b', precio:890000, transportistaEmail:TR.b.email } }));
+
+    var N=[
+      { id:'demo_tn1', tipo:'documentos_solicitados', mensaje:'El cliente solicitó 2 documentos para el transporte TRN-D025: Revisión técnica, Certificado de inducción en faena', leida:false, createdAt:iso(-3*H), datos:{ transporteId:'demo_tt5' } },
+      { id:'demo_tn2', tipo:'nueva_licitacion', mensaje:'Nueva licitación: Grúa horquilla Rancagua → Talca', leida:false, createdAt:iso(-1*H), datos:{ licitacionId:'demo_tl3' } },
+      { id:'demo_tn3', tipo:'adjudicacion', mensaje:'¡Ganaste! Contenedor 40\' HC Valparaíso → Santiago · $1.250.000', leida:false, createdAt:iso(-1*D), datos:{ licitacionId:'demo_tl5' } },
+      { id:'demo_tn4', tipo:'valoracion_recibida', mensaje:'Recibiste una valoración de 4.8 en TRN-D028', leida:true, createdAt:iso(-10*D), datos:{ transporteId:'demo_tt8' } }
+    ];
+    return { lics:L, trans:T, notifs:N, ovs:O, seq:500,
+      equipos:[
+        { id:'demo_eq1', tipo:'Cama baja 3 ejes', marca:'Volvo', modelo:'FH 540', ano:'2021', capacidadMax:35, largoMax:14, anchoMax:3.2, altoMax:1, patente:'KXTR-45', descripcion:'Con rampas hidráulicas' },
+        { id:'demo_eq2', tipo:'Rampla plana', marca:'Scania', modelo:'R450', ano:'2019', capacidadMax:28, largoMax:13.5, anchoMax:2.6, altoMax:1.4, patente:'HJPL-22', descripcion:'' } ],
+      conductores:[
+        { id:'demo_cd1', nombre:'Luis Contreras', rut:'12.345.678-9', telefono:'+56 9 5555 0404', createdAt:iso(-90*D) },
+        { id:'demo_cd2', nombre:'Marcelo Díaz', rut:'13.456.789-0', telefono:'+56 9 5555 0505', createdAt:iso(-60*D) } ],
+      retornos:[
+        { id:'demo_tr1', estado:'disponible', ciudadOrigen:'Antofagasta', ciudadDestino:'Santiago', fechaDesde:fecha(2*D), fechaHasta:fecha(5*D), fecha:fecha(2*D), equipo:'Cama baja 3 ejes', capacidad:'Hasta 30 ton', precio:1400000, descripcion:'Retorno vacío tras entrega en faena.', transportistaEmail:TR.a.email, createdAt:iso(-1*D) } ]
+    };
+  }
+
+  var MET={ id:'demo_transp', email:TR.a.email, role:'transportista', nombre:TR.a.nombre, empresa:TR.a.empresa, comuna:'Quilicura', plan:null, rating:TR.a.rating, totalTransportes:TR.a.total, estado:'activo',
+    telefono:TR.a.tel, whatsapp:TR.a.tel, ciudad:'Santiago', rut:'12.222.333-4', rutEmpresa:'77.000.000-1', cargo:'Gerente de operaciones', giro:'Transporte de carga por carretera',
+    telEmpresa:'+56 2 2555 1111', ciudadEmpresa:'Santiago', direccion:'Av. Américo Vespucio 1200, Quilicura', web:'', descripcion:'Empresa ficticia para demostración de TransMatch.',
+    anosExperiencia:12, zonas:['Región Metropolitana','Valparaíso','Antofagasta','Atacama'], equipos:[], tiposEquipo:['Cama baja','Rampla plana'], industrias:['Minería','Construcción'],
+    facturacion:{}, contactos:[], datosBancarios:{ banco:'Banco Demo', tipoCuenta:'Cuenta corriente', numero:'00000000', titular:'Transportes Altiplano (Demo)' },
+    max_usuarios:3, esSubusuario:false, empresaMadreId:null, rol:'dueno', empresaId:'demo_transp', empresaMiembros:[], permisos:{}, perfilCompletitud:95,
+    notifEmail:true, notifWhatsapp:false, notifPrefs:{}, totalCotizaciones:48 };
+
+  function vistaLT(l){
+    var o=JSON.parse(JSON.stringify(l));
+    var mias=(l.cotizaciones||[]).filter(function(c){ return c.transportistaId==='demo_transp'; });
+    var gane=l.adjudicadaA&&l.adjudicadaA.transportistaEmail===TR.a.email;
+    if(!gane){
+      o.clienteEmpresa='Empresa verificada TransMatch';
+      ['clienteEmail','clienteNombre','clienteTelefono','contactoOrigenNombre','contactoOrigenTelefono','contactoOrigenEmail','contactoDestinoNombre','contactoDestinoTelefono','contactoDestinoEmail','creadoPorEmail','creadoPorNombre'].forEach(function(k){ delete o[k]; });
+    }
+    o.cotizaciones=mias;
+    o.empresaYaCotizo=mias.length>0; o.empresaCotizoNombre=mias.length?TR.a.nombre:'';
+    o.preguntas=(l.preguntas||[]).map(function(p){ return { id:p.id, texto:p.texto, respuesta:p.respuesta||null, createdAt:p.createdAt, respondidaAt:p.respondidaAt||null, esTuya:p.transportistaId==='demo_transp' }; });
+    return o;
+  }
+  function findTT(id){ return S.trans.filter(function(t){ return t.id===id; })[0]; }
+
+  function routeT(method, path, b){
+    var m;
+    if(path==='/api/auth/me') return { user:MET };
+    if(path==='/api/auth/me/prefs') return { ok:true };
+    if(path==='/api/perfil'){ if(method!=='GET'){ for(var k in b) MET[k]=b[k]; } return { ok:true, user:MET }; }
+
+    if(path==='/api/licitaciones' && method==='GET'){
+      var out=[];
+      S.lics.forEach(function(l){
+        var gane=l.adjudicadaA&&l.adjudicadaA.transportistaEmail===TR.a.email;
+        if(l.estado==='abierta'||l.estado==='cerrada') out.push(vistaLT(l));
+        else if((l.estado==='adjudicada'||l.estado==='completada')&&gane) out.push(vistaLT(l));
+      });
+      return { licitaciones:out };
+    }
+    if((m=path.match(/^\/api\/licitaciones\/([^/]+)$/))&&method==='GET'){ var l0=findL(m[1]); return l0?{ licitacion:vistaLT(l0) }:{ __status:404, error:'No encontrada' }; }
+    if((m=path.match(/^\/api\/licitaciones\/([^/]+)\/pregunta$/))){
+      var lp=findL(m[1]); if(lp){ lp.preguntas=lp.preguntas||[]; lp.preguntas.push({ id:'demo_tp'+(++S.seq), texto:b.texto||b.pregunta||'', respuesta:null, createdAt:ahora(), transportistaId:'demo_transp' }); }
+      return { ok:true };
+    }
+    if(path==='/api/cotizaciones' && method==='POST'){
+      var lc=findL(b.licitacionId); if(!lc) return { __status:404, error:'No encontrada' };
+      if(lc.estado!=='abierta') return { __status:400, error:'Esta licitacion no esta abierta' };
+      var mias=(lc.cotizaciones||[]).filter(function(c){ return c.transportistaId==='demo_transp'; });
+      if(mias.length>=2) return { __status:400, error:'Ya enviaste el máximo de 2 cotizaciones para esta licitación' };
+      var nc=cotMia('demo_tc'+(++S.seq), lc.id, parseFloat(b.precio)||0, b.fechaCargaISO||'', b.fechaEntregaISO||b.tiempoEntrega||'', (b.formulario&&b.formulario.equipoUtilizado)||'', lc.origen+' → '+lc.destino, 1);
+      nc.formulario=b.formulario||nc.formulario; nc.descripcion=b.descripcion||''; nc.incluye=b.incluye||[]; nc.modalidad=b.modalidad||''; nc.createdAt=ahora();
+      lc.cotizaciones=(lc.cotizaciones||[]).concat([nc]);
+      return { ok:true, mensaje:'Cotizacion enviada.' };
+    }
+    if(path==='/api/cotizaciones/eliminar'){
+      var le=findL(b.licitacionId); if(le) le.cotizaciones=(le.cotizaciones||[]).filter(function(c){ return !(c.transportistaId==='demo_transp' && (!b.cotizacionId||c.id===b.cotizacionId)); });
+      return { ok:true };
+    }
+    if((m=path.match(/^\/api\/cotizaciones\/mia\/([^/?]+)/))){
+      var lm=findL(m[1]); var mc=lm&&(lm.cotizaciones||[]).filter(function(c){ return c.transportistaId==='demo_transp'; })[0];
+      return mc?{ cotizacion:mc }:{ __status:404, error:'No tienes una cotización en esta licitación' };
+    }
+    if(path==='/api/transportista/historial'){
+      var res=[];
+      S.lics.forEach(function(l){
+        var mi=(l.cotizaciones||[]).filter(function(c){ return c.transportistaId==='demo_transp'; })[0];
+        var gane=l.adjudicadaA&&l.adjudicadaA.transportistaEmail===TR.a.email;
+        if(!mi&&!gane) return;
+        var pp=null,pe=null,pv=null,tot=null;
+        if(mi&&!gane&&(l.estado==='adjudicada'||l.estado==='completada')){
+          var cs=l.cotizaciones||[]; tot=cs.length;
+          pp=cs.slice().sort(function(a,b){return a.precio-b.precio;}).indexOf(mi)+1;
+          pe=2; pv=cs.slice().sort(function(a,b){return (b.transportistaRating||0)-(a.transportistaRating||0);}).indexOf(mi)+1;
+        }
+        res.push({ id:l.id, codigo:l.codigo, tipoEquipo:l.tipoEquipo, marca:l.marca, origen:l.origen, destino:l.destino, estado:l.estado, createdAt:l.createdAt, adjudicadaAt:l.adjudicadaAt,
+          miCotizacion:mi?{ id:mi.id, precio:mi.precio, tiempoEntrega:mi.tiempoEntrega, score:mi.score, createdAt:mi.createdAt, creadoPor:TR.a.nombre }:null,
+          gane:!!gane, precioAdjudicado:gane?l.adjudicadaA.precio:null, valoracion:gane?(l.valoracion||null):null, posPrecio:pp, posEntrega:pe, posValoracion:pv, totalCotizaciones:tot });
+      });
+      return { licitaciones:res };
+    }
+
+    if(path==='/api/transportes') return { transportes:JSON.parse(JSON.stringify(S.trans)) };
+    if((m=path.match(/^\/api\/transportes\/([^/]+)$/))){
+      var t0=findTT(m[1]); if(!t0) return { __status:404, error:'No encontrado' };
+      var o=JSON.parse(JSON.stringify(t0)); o.puedoGestionar=true; o.miembrosEmpresa=[{ email:TR.a.email, nombre:TR.a.nombre, esMadre:true }]; o.asignadoEmailActual=TR.a.email;
+      return { transporte:o };
+    }
+    if((m=path.match(/^\/api\/transportes\/([^/]+)\/(.+)$/))){
+      var t=findTT(m[1]); if(!t) return { __status:404, error:'No encontrado' };
+      var acc=m[2], now=ahora();
+      function h(nota){ t.historial=t.historial||[]; t.historial.push({ estado:t.estado, nota:nota, fecha:now, actor:TR.a.nombre }); }
+      if(acc==='estado'){ t.estado=b.estado||t.estado; if(t.estado==='entregado') t.entregadoAt=now; h(b.nota||''); return { ok:true, estado:t.estado }; }
+      if(acc==='equipo'){ if(!b.patente) return { __status:400, error:'patente requerida' }; t.equipoAsignado={ patente:b.patente, tipo:b.tipo||'', marca:b.marca||'', modelo:b.modelo||'', equipoId:b.equipoId||null, documentos:b.documentos||null }; h('Equipo asignado: '+b.patente); return { ok:true }; }
+      if(acc==='conductor'){ if(!b.nombre||!b.rut) return { __status:400, error:'nombre y rut requeridos' }; t.conductorAsignado=Object.assign({}, b); h('Conductor asignado: '+b.nombre); return { ok:true }; }
+      var mr=acc.match(/^requisito\/(.+)$/);
+      if(mr&&method==='POST'){ var rq=(t.requisitosEstandar||[]).filter(function(r){ return r.id===mr[1]; })[0]; if(!rq) return { __status:404, error:'Requisito no encontrado' };
+        rq.archivoId='demo_doc'; rq.archivoNombre=b.nombre||'documento.pdf'; rq.subidoAt=now; rq.subidoPor=TR.a.nombre; h('Documento de requisito cargado: '+rq.label); return { ok:true, requisito:rq }; }
+      if(acc==='documento-extra'&&method==='POST'){ if(!b.label) return { __status:400, error:'Indica un nombre para el documento (ej: Seguro de carga)' };
+        var dx={ id:'demo_dx'+(++S.seq), label:String(b.label).slice(0,80), archivoId:'demo_doc', archivoNombre:b.nombre||'documento.pdf', subidoAt:now, subidoPor:TR.a.nombre };
+        t.documentosExtra=(t.documentosExtra||[]).concat([dx]); h('Documento agregado: '+dx.label); return { ok:true, documento:dx }; }
+      var md=acc.match(/^documento-extra\/(.+)$/);
+      if(md){ t.documentosExtra=(t.documentosExtra||[]).filter(function(d){ return d.id!==md[1]; }); return { ok:true }; }
+      if(acc==='subir-factura'){ t.factura={ archivoId:'demo_doc', nombre:b.nombre||'factura.pdf', subidoAt:now }; t.estado='completado'; t.completadoAt=now; t.estadoDocumentos='completo'; return { ok:true }; }
+      if(acc==='pod'){ t.pod={ fotos:[], receptorNombre:b.receptorNombre||'', receptorRut:b.receptorRut||'', registradoAt:now, registradoPor:TR.a.nombre }; return { ok:true, pod:t.pod }; }
+      if(acc==='incidencia'){ t.incidenciasTransportista=(t.incidenciasTransportista||[]).concat([{ id:'demo_in'+(++S.seq), tipo:b.tipo||'Otro', descripcion:b.descripcion||'', createdAt:now }]); return { ok:true }; }
+      if(acc==='valoracion/responder'){ if(t.valoracion) t.valoracion.respuestaTransportista=String(b.respuesta||'').slice(0,500); return { ok:true }; }
+      if(acc==='pago-cliente'){ t.pagoCliente={ estado:b.estado==='pagado'?'pagado':'pendiente', marcadoAt:now }; return { ok:true }; }
+      if(acc==='contacto-operacional'&&method==='POST'){ t.contactosOperacionales=t.contactosOperacionales||{}; t.contactosOperacionales.transportista=(t.contactosOperacionales.transportista||[]).concat([{ nombre:b.nombre||'', cargo:b.cargo||'', telefono:b.telefono||'', email:b.email||'' }]); return { ok:true }; }
+      return { ok:true };
+    }
+
+    if(path==='/api/mis-ordenes-venta') return { ordenes:S.ovs||[] };
+    if(path==='/api/mis-facturas-transmatch') return { facturas:[] };
+    if(path==='/api/equipos'){ if(method==='POST'){ var e={ id:'demo_eq'+(++S.seq) }; for(var k2 in b) e[k2]=b[k2]; S.equipos.push(e); return { ok:true, id:e.id }; } return { equipos:S.equipos }; }
+    if((m=path.match(/^\/api\/equipos\/([^/]+)$/))){ if(method==='DELETE') S.equipos=S.equipos.filter(function(e){ return e.id!==m[1]; }); else { var eq=S.equipos.filter(function(e){ return e.id===m[1]; })[0]; if(eq) for(var k3 in b) eq[k3]=b[k3]; } return { ok:true }; }
+    if(path==='/api/conductores'){ if(method==='POST'){ var c2={ id:'demo_cd'+(++S.seq), createdAt:ahora() }; for(var k4 in b) c2[k4]=b[k4]; S.conductores.push(c2); return { ok:true, id:c2.id }; } return { conductores:S.conductores }; }
+    if((m=path.match(/^\/api\/conductores\/([^/]+)$/))){ if(method==='DELETE') S.conductores=S.conductores.filter(function(c){ return c.id!==m[1]; }); else { var cd=S.conductores.filter(function(c){ return c.id===m[1]; })[0]; if(cd) for(var k5 in b) cd[k5]=b[k5]; } return { ok:true }; }
+    if(path==='/api/retornos'){ if(method==='POST'){ var r={ id:'demo_tr'+(++S.seq), estado:'disponible', transportistaEmail:TR.a.email, createdAt:ahora() }; for(var k6 in b) r[k6]=b[k6]; S.retornos.unshift(r); return { ok:true, id:r.id }; } return { retornos:S.retornos, _fuente:'demo' }; }
+    if(/^\/api\/retornos\/[^/]+\/propuestas$/.test(path)) return { propuestas:[] };
+    if((m=path.match(/^\/api\/retornos\/([^/]+)$/))){ if(method==='DELETE') S.retornos=S.retornos.filter(function(r){ return r.id!==m[1]; }); return { ok:true }; }
+    if(path==='/api/propuestas') return { propuestas:[] };
+    if(path==='/api/mi-empresa/usuarios') return { miembros:[{ id:'demo_tu2', email:'despacho@demo.cl', nombre:'Paula Rivas', permisos:{}, rol:'miembro', estado:'activo', createdAt:iso(-30*D) }], max_usuarios:3, invitacionesPendientes:[] };
+
+    if(path==='/api/notificaciones') return { notificaciones:S.notifs };
+    if(path==='/api/notificaciones/leer'){ S.notifs.forEach(function(n){ if(b.todas||n.id===b.id) n.leida=true; }); return { ok:true }; }
+    if(path==='/api/archivos/upload'){ var aid='demo_arch_'+(++S.seq); return { ok:true, id:aid, archivoId:aid }; }
+    if(/^\/api\/archivos\/[^/]+$/.test(path)) return { base64:PDF_B64, mimeType:'application/pdf', nombre:'documento-demo.pdf', archivoNombre:'documento-demo.pdf' };
+    return { ok:true };
+  }
+
   // ── Interceptor de fetch ─────────────────────────────────────
   var _fetch=window.fetch.bind(window);
   window.fetch=function(input, init){
@@ -339,7 +583,7 @@
     if(!esApi) return _fetch(input, init);
     var method=((init&&init.method)||(input&&input.method)||'GET').toUpperCase();
     var body={}; try{ if(init&&typeof init.body==='string') body=JSON.parse(init.body)||{}; }catch(e){}
-    var res; try{ res=route(method, u.pathname, body); }catch(e){ console.warn('[demo]', e); res={ ok:true }; }
+    var res; try{ res=(ROL==='transportista'?routeT:route)(method, u.pathname, body); }catch(e){ console.warn('[demo]', e); res={ ok:true }; }
     save();
     var status=(res&&res.__status)||200; if(res) delete res.__status;
     return new Promise(function(resolve){
@@ -351,7 +595,7 @@
   function badge(){
     if(document.getElementById('tm-demo-badge')) return;
     var d=document.createElement('div'); d.id='tm-demo-badge';
-    d.innerHTML='MODO DEMO · datos ficticios &nbsp;<a href="/demo.html?reiniciar=1" style="color:#FF8808;text-decoration:none">Reiniciar</a> · <a href="/demo.html?salir=1" style="color:#FF8808;text-decoration:none">Salir</a>';
+    d.innerHTML='MODO DEMO · datos ficticios &nbsp;<a href="/demo.html?reiniciar=1'+(ROL==='transportista'?'&rol=transportista':'')+'" style="color:#FF8808;text-decoration:none">Reiniciar</a> · <a href="/demo.html?salir=1" style="color:#FF8808;text-decoration:none">Salir</a>';
     d.style.cssText='position:fixed;left:12px;bottom:12px;z-index:99999;background:#1E2D4E;color:#fff;font:600 11px Barlow,sans-serif;letter-spacing:.4px;padding:6px 12px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.2);opacity:.85';
     document.body.appendChild(d);
   }

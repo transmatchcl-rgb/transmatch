@@ -21,7 +21,8 @@
 <script>
 (function(){
   var q = new URLSearchParams(location.search);
-  try{ sessionStorage.removeItem('tm_demo_state_v1'); }catch(e){}
+  var esT = q.get('rol')==='transportista';
+  try{ sessionStorage.removeItem('tm_demo_state_v1'); sessionStorage.removeItem('tm_demo_state_t_v1'); }catch(e){}
   if(q.get('salir')==='1'){
     try{ localStorage.clear(); }catch(e){}
     location.replace('/index.html');
@@ -31,16 +32,23 @@
     localStorage.clear();
     localStorage.setItem('tm_demo','1');
     localStorage.setItem('tm_token','demo_token');
-    localStorage.setItem('tm_role','cliente');
-    localStorage.setItem('tm_email','demo@transmatch.cl');
-    localStorage.setItem('tm_nombre','Usuario Demo');
-    localStorage.setItem('tm_empresa','Constructora Cordillera (Demo)');
-    localStorage.setItem('tm_plan','pro');
+    if(esT){
+      localStorage.setItem('tm_role','transportista');
+      localStorage.setItem('tm_email','altiplano@demo.cl');
+      localStorage.setItem('tm_nombre','Rodrigo Fuentes');
+      localStorage.setItem('tm_empresa','Transportes Altiplano (Demo)');
+    } else {
+      localStorage.setItem('tm_role','cliente');
+      localStorage.setItem('tm_email','demo@transmatch.cl');
+      localStorage.setItem('tm_nombre','Usuario Demo');
+      localStorage.setItem('tm_empresa','Constructora Cordillera (Demo)');
+      localStorage.setItem('tm_plan','pro');
+    }
   }catch(e){
     document.getElementById('msg').textContent='No se pudo iniciar la demo (almacenamiento bloqueado).';
     return;
   }
-  location.replace('/cliente.html');
+  location.replace(esT ? '/transportista.html' : '/cliente.html');
 })();
 </script>
 </body>
