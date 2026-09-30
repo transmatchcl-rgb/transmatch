@@ -179,8 +179,8 @@ function mostrarCambioPassword(passActual, role){
     +'<div style="font-size:19px;font-weight:700;color:#1e2d4e;margin-bottom:6px">Crea tu nueva contraseña</div>'
     +'<div style="font-size:13.5px;color:#6B7280;margin-bottom:18px;line-height:1.5">Ingresaste con una contraseña provisoria. Por seguridad, elige una propia antes de continuar.</div>'
     +'<div class="alert" id="cp-alert"></div>'
-    +'<div class="field"><label for="cp-nueva">Nueva contraseña</label><input type="password" id="cp-nueva" placeholder="Mínimo 8 caracteres" autocomplete="new-password"/></div>'
-    +'<div class="field"><label for="cp-conf">Repite la contraseña</label><input type="password" id="cp-conf" placeholder="Repite la nueva contraseña" autocomplete="new-password"/></div>'
+    +'<div class="field"><label for="cp-nueva">Nueva contraseña</label><div style="position:relative"><input type="password" id="cp-nueva" placeholder="Mínimo 8 caracteres" autocomplete="new-password" style="padding-right:42px"/><button type="button" onclick="togglePass(\'cp-nueva\',this)" tabindex="-1" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:16px;padding:0;line-height:1"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>'
+    +'<div class="field"><label for="cp-conf">Repite la contraseña</label><div style="position:relative"><input type="password" id="cp-conf" placeholder="Repite la nueva contraseña" autocomplete="new-password" style="padding-right:42px"/><button type="button" onclick="togglePass(\'cp-conf\',this)" tabindex="-1" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:16px;padding:0;line-height:1"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>'
     +'<button class="btn btn-primary" id="cp-ok">Guardar y continuar</button>'
     +'<div style="text-align:center;margin-top:12px"><a href="#" id="cp-luego" style="font-size:13px;color:#6B7280">Hacerlo más tarde</a></div></div>';
   document.body.appendChild(m);
@@ -214,13 +214,11 @@ document.addEventListener('keydown', function(e) {
   var token = localStorage.getItem('tm_token');
   var role  = localStorage.getItem('tm_role');
   if (!token) return;
-  var nueva = new URLSearchParams(location.search).get('nueva') === '1';
-  if (!nueva) { irAlPanel(role); return; }
-  // Llegó desde el email de "cuenta lista": no redirigir a la sesión anterior; avisar que se reemplazará.
+  // No redirigir en silencio: puede venir desde un email para entrar con OTRA cuenta (ej. cuenta nueva creada por el admin).
   var quien = localStorage.getItem('tm_email') || (role==='admin' ? 'administrador' : '');
   var box = document.getElementById('alert-msg');
   box.style.cssText = 'display:block;background:#EEF1F6;color:#1e2d4e;border:1px solid #C7CEDB';
-  box.innerHTML = 'Tienes una sesión abierta' + (quien ? ' como <b>' + String(quien).replace(/[<>&"]/g,'') + '</b>' : '') + '. Si ingresas con otra cuenta, esa sesión se cerrará. <a href="#" id="seguir-sesion" style="color:#1e2d4e;font-weight:600">Seguir con esa sesión →</a>';
+  box.innerHTML = 'Tienes una sesión abierta' + (quien ? ' como <b>' + String(quien).replace(/[<>&"]/g,'') + '</b>' : '') + '. <a href="#" id="seguir-sesion" style="color:#1e2d4e;font-weight:600">Continuar con esa sesión →</a><br><span style="font-size:12px;color:#6B7280">O ingresa abajo con otra cuenta (la sesión actual se cerrará).</span>';
   document.getElementById('seguir-sesion').onclick = function(e){ e.preventDefault(); irAlPanel(role); };
 })();
 </script>
