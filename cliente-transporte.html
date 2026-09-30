@@ -44,6 +44,7 @@
   .s-carga_recogida{background:#EDE9FE;color:#5B21B6}
   .s-en_destino{background:#FFF7ED;color:#92400E}
   .s-entregado{background:#F0FDF4;color:#14532D}
+  .s-completado{background:#F3F4F6;color:#6B7280}
   .val-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid #F3F4F6}
   .star{width:22px;height:22px;cursor:pointer;border-radius:3px;background:#E5E7EB;transition:background .15s}
   .star.active{background:#FF8808}
@@ -162,7 +163,7 @@
 var API = (localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
 var transportes = [];
 
-var ESTADO_LABELS = {preparacion:'En preparacion',en_ruta:'En ruta',carga_recogida:'Carga recogida',en_destino:'En destino',entregado:'Entregado'};
+var ESTADO_LABELS = {preparacion:'En preparacion',en_ruta:'En ruta',carga_recogida:'Carga recogida',en_destino:'En destino',entregado:'Entregado',completado:'✓ Completado'};
 function estadoLabel(e){ return ESTADO_LABELS[e]||e; }
 
 
@@ -197,7 +198,7 @@ async function cargar(){
     var res = await fetch(API+'/api/transportes', {headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
     var d = await res.json();
     transportes = d.transportes || [];
-    var enCurso     = transportes.filter(function(t){ return t.estado !== 'entregado'; }).length;
+    var enCurso     = transportes.filter(function(t){ return t.estado !== 'entregado' && t.estado !== 'completado'; }).length;
     var completados = transportes.filter(function(t){ return t.factura; }).length;
     document.getElementById('st-curso').textContent      = enCurso;
     document.getElementById('st-completados').textContent = completados;
