@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8"/>
+<meta charset="UTF-8"/><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script><script src="/categorias-equipo.js" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>TransMatch — Transportistas</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
@@ -144,7 +144,7 @@
   <main>
     <div class="hdr">
       <div><div class="hdr-title">Transportistas</div><div class="hdr-sub">Gestión de proveedores de la red</div></div>
-      
+      <button class="btn btn-sm" onclick="abrirAltaExcel()" style="background:#FF8808;color:#fff;border-color:#FF8808">⬆ Cargar alta de cuenta (Excel)</button>
     </div>
 
     <div class="grid-3">
@@ -179,6 +179,7 @@
   async function asignarRol(email,rol){ var r=await apiFetch('/api/admin/asignar-rol','POST',{email:email,rol:rol}); if(r&&r.ok) toast('Rol actualizado. Aplica cuando la persona reinicie sesión.'); else toast((r&&r.data&&r.data.error)||'Error al asignar rol','err'); }
   function detalleEmpresa(g){
     var html='<div class="card-detalle" style="display:none;width:100%;margin-top:12px;padding-top:14px;border-top:0.5px solid #E5E7EB" onclick="event.stopPropagation()">';
+    if(g.madre&&g.madre.altaExcel&&g.madre.altaExcel.archivoId){ var ax=g.madre.altaExcel; html+='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#F0FDF4;border:0.5px solid #BBF7D0;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12.5px;color:#14532D;flex-wrap:wrap"><span>📄 Alta de cuenta cargada el '+new Date(ax.subidoAt).toLocaleDateString('es-CL')+'</span><button class="btn btn-outline btn-sm" onclick="descargarAltaExcel(\''+ax.archivoId+'\',\''+String(ax.nombre||'').replace(/['"\\]/g,'')+'\')">Descargar Excel</button></div>'; }
     html+='<div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Usuarios de la empresa</div>';
     var filas=[]; if(g.madre) filas.push(g.madre); filas=filas.concat(g.miembros||[]);
     html+=filas.map(function(u){
@@ -196,6 +197,172 @@
     }).join('');
     html+='</div></div>';
     return html;
+  }
+
+
+  // ── CARGA DEL EXCEL "ALTA DE CUENTA" ─────────────────────────
+  var _alta=null;
+  function _altaNorm(s){ return String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim(); }
+  function _altaEsc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function _altaRut(s){ return String(s||'').replace(/[^0-9kK]/g,'').toUpperCase(); }
+  var _ALTA_LABELS=[
+    ['razon social','empresa'],['rut empresa','rutEmpresa'],['giro','giro'],['direccion','direccion'],['comuna','comuna'],['region','region'],
+    ['nombre completo','ct.nombre'],['cargo','ct.cargo'],['mail','ct.email'],['telefono','ct.telefono'],
+    ['zonas de operacion - region','zonas'],['zonas de operacion - ciudad','ciudadesOperacion'],['tipos de equipo','tiposEquipo'],
+    ['correo de facturacion','facturacionEmail'],['contacto / area de pagos','facturacionContacto']
+  ];
+  function _altaLeer(wb){
+    var hoja=wb.Sheets['Datos de la empresa']||wb.Sheets[wb.SheetNames.find(function(n){ return _altaNorm(n).indexOf('datos')>=0; })||wb.SheetNames[1]||wb.SheetNames[0]];
+    if(!hoja) return null;
+    var filas=XLSX.utils.sheet_to_json(hoja,{header:1,defval:'',raw:false});
+    var out={}, n=0;
+    filas.forEach(function(f){
+      for(var c=0;c<f.length-1;c++){
+        var lab=_altaNorm(f[c]); if(!lab) continue;
+        var par=_ALTA_LABELS.find(function(p){ return lab===p[0]||lab.indexOf(p[0])===0; });
+        if(par){ var v=String(f[c+1]==null?'':f[c+1]).trim(); if(!(par[1] in out)){ out[par[1]]=v; if(v) n++; } break; }
+      }
+    });
+    out._n=n; return out;
+  }
+  function _altaBuscar(d){
+    var em=_altaNorm(d['ct.email']);
+    if(em){ var u=allT.find(function(x){ return _altaNorm(x.email)===em; }); if(u){ var eid=u.esSubusuario?(u.empresaMadreId||u.id):u.id; var g=grupos.find(function(x){return x.id===eid;}); if(g&&g.madre) return { g:g, por:'mail '+d['ct.email'] }; } }
+    var rut=_altaRut(d.rutEmpresa);
+    if(rut){ var g2=grupos.find(function(x){ return x.madre&&_altaRut(x.madre.rutEmpresa)===rut; }); if(g2) return { g:g2, por:'RUT '+d.rutEmpresa }; }
+    return null;
+  }
+  function abrirAltaExcel(){
+    if(!window.XLSX){ toast('No se pudo cargar el lector de Excel. Recarga la página.','err'); return; }
+    var m=document.createElement('div'); m.id='alta-modal';
+    m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:flex;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto';
+    m.innerHTML='<div style="background:#fff;border-radius:16px;width:100%;max-width:780px;overflow:hidden">'
+      +'<div style="padding:20px 24px;border-bottom:1px solid #e8eaf0;display:flex;justify-content:space-between;gap:10px"><div><div style="font-size:17px;font-weight:700;color:#1e2d4e">Cargar alta de cuenta</div><div style="font-size:13px;color:#6B7280">Sube el formulario «Alta de cuenta (Transportista)» completado.</div></div><button onclick="document.getElementById(\'alta-modal\').remove()" style="background:none;border:none;font-size:22px;color:#6B7280;cursor:pointer;line-height:1">×</button></div>'
+      +'<div id="alta-body" style="padding:20px 24px"><label style="display:block;border:2px dashed #CBD2DE;border-radius:12px;padding:28px;text-align:center;color:#6B7280;font-size:14px;background:#FAFBFC;cursor:pointer">Haz clic para elegir el archivo Excel (.xlsx)<input type="file" id="alta-file" accept=".xlsx,.xls" style="display:none"></label></div></div>';
+    document.body.appendChild(m);
+    m.onclick=function(e){ if(e.target===m) m.remove(); };
+    m.querySelector('#alta-file').onchange=function(){ var f=this.files[0]; if(f) _altaProcesar(f); };
+  }
+  function _altaProcesar(file){
+    var r=new FileReader();
+    r.onload=function(){
+      try{
+        var bytes=new Uint8Array(r.result);
+        var wb=XLSX.read(bytes,{type:'array'});
+        var d=_altaLeer(wb);
+        if(!d||!d._n){ toast('No reconocí el formulario. ¿Es el Excel de alta de cuenta?','err'); return; }
+        var bin=''; for(var i=0;i<bytes.length;i+=0x8000) bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));
+        _alta={ datos:d, archivo:{ base64:btoa(bin), nombre:file.name, mimeType:file.type||'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }, match:_altaBuscar(d) };
+        _altaRender();
+      }catch(e){ toast('No se pudo leer el archivo','err'); }
+    };
+    r.readAsArrayBuffer(file);
+  }
+  function _altaFilas(){
+    var d=_alta.datos, g=_alta.match&&_alta.match.g, mu=g?g.madre:{};
+    var em=_altaNorm(d['ct.email']);
+    var cu=g?[g.madre].concat(g.miembros||[]).find(function(u){ return u&&_altaNorm(u.email)===em; }):null;
+    var cc=cu||(mu.contactoComercial||{}); var sufCt=(cu||_alta.nueva)?'':' (se guarda como contacto comercial)';
+    var cf=mu.contactoFacturacion||{};
+    var arr=function(v){ return Array.isArray(v)?v.join(', '):(v||''); };
+    return [
+      ['Empresa','Razón social','empresa',mu.empresa,d.empresa],
+      ['Empresa','RUT empresa','rutEmpresa',mu.rutEmpresa,d.rutEmpresa],
+      ['Empresa','Giro','giro',mu.giro,d.giro],
+      ['Empresa','Dirección','direccion',mu.direccion,d.direccion],
+      ['Empresa','Comuna','comuna',mu.comuna,d.comuna],
+      ['Empresa','Región','region',mu.region,d.region],
+      ['Contacto principal'+sufCt,'Nombre','ct.nombre',cc.nombre,d['ct.nombre']],
+      ['Contacto principal'+sufCt,'Cargo','ct.cargo',cc.cargo,d['ct.cargo']],
+      ['Contacto principal'+sufCt,'Teléfono','ct.telefono',cc.telefono,d['ct.telefono']],
+      ['Operación','Zonas (regiones)','zonas',arr(mu.zonas),d.zonas],
+      ['Operación','Ciudades','ciudadesOperacion',arr(mu.ciudadesOperacion),d.ciudadesOperacion],
+      ['Operación','Tipos de equipo','tiposEquipo',arr(mu.tiposEquipo),d.tiposEquipo],
+      ['Facturación','Correo de facturación','facturacionEmail',cf.email,d.facturacionEmail],
+      ['Facturación','Contacto área de pagos','facturacionContacto',cf.nombre,d.facturacionContacto]
+    ];
+  }
+  function _altaRender(){
+    var body=document.getElementById('alta-body'); if(!body) return;
+    var d=_alta.datos, mt=_alta.match;
+    var opciones=grupos.filter(function(g){return g.madre;}).slice().sort(function(a,b){return a.nombre.localeCompare(b.nombre);}).map(function(g){ return '<option value="'+_altaEsc(g.id)+'"'+(mt&&mt.g.id===g.id?' selected':'')+'>'+_altaEsc(g.nombre)+' · '+_altaEsc(g.madre.email)+'</option>'; }).join('');
+    var h='<div style="display:flex;align-items:center;gap:10px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:10px 14px;font-size:13.5px;margin-bottom:14px">📄 <b>'+_altaEsc(_alta.archivo.nombre)+'</b><span style="color:#6B7280">· '+d._n+' campos con datos</span></div>';
+    h+='<div style="background:#EEF1F6;border-radius:10px;padding:12px 14px;font-size:13.5px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div>'+(mt?'✓ Cuenta encontrada por '+_altaEsc(mt.por):'<span style="color:#B45309;font-weight:600">No encontré la cuenta</span> por mail ni RUT. Elígela en la lista:')+'</div>'
+      +'<select id="alta-cuenta" style="font:500 13px Barlow,sans-serif;padding:7px 10px;border-radius:8px;border:1px solid #e8eaf0;max-width:100%"><option value="">— Elegir transportista —</option>'+opciones+'</select></div>';
+    if(!mt&&!_alta.nueva){
+      var puede=!!(_altaNorm(d['ct.email']).indexOf('@')>0&&String(d['ct.nombre']||'').trim());
+      h+='<div style="text-align:center;padding:14px;border:1.5px dashed #FF8808;background:#FFF8F0;border-radius:10px;font-size:13.5px;color:#9A3412">¿Es un transportista nuevo que aún no tiene cuenta?<div style="margin-top:10px">'
+        +(puede?'<button class="btn btn-sm" id="alta-nueva" style="background:#FF8808;color:#fff;border-color:#FF8808">Crear cuenta nueva con estos datos</button>':'<span style="color:#DC2626">Para crear la cuenta, el Excel debe traer el <b>Nombre completo</b> y el <b>Mail</b> del contacto principal.</span>')+'</div></div>';
+      body.innerHTML=h; body.querySelector('#alta-cuenta').onchange=_altaCambiarCuenta;
+      var bn=body.querySelector('#alta-nueva'); if(bn) bn.onclick=function(){ _alta.nueva=true; _altaRender(); };
+      return;
+    }
+    if(_alta.nueva){
+      h='<div style="display:flex;align-items:center;gap:10px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:10px 14px;font-size:13.5px;margin-bottom:14px">📄 <b>'+_altaEsc(_alta.archivo.nombre)+'</b><span style="color:#6B7280">· '+d._n+' campos con datos</span></div>'
+        +'<div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:12px 14px;font-size:13.5px;color:#9A3412;margin-bottom:16px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><div>Se creará una <b>cuenta nueva</b> para <b>'+_altaEsc(d['ct.email'])+'</b>, activa, y le enviaremos un email con su contraseña provisoria.</div><a href="#" id="alta-volver" style="color:#9A3412;font-size:12.5px">← Volver</a></div>';
+    }
+    var cats=(window.TM_CATEGORIAS_EQUIPO||[]).map(function(c){ return _altaNorm(c.value); }).concat(['otro']);
+    var sec='';
+    h+='<div style="font-size:13px;color:#6B7280;margin-bottom:8px">Marca los datos que quieres guardar. Vienen marcados los que cambian. Las celdas vacías del Excel no borran nada.</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#FAFBFC"><th style="width:28px;padding:8px 10px;border-bottom:1px solid #e8eaf0"></th><th style="text-align:left;padding:8px 10px;font-size:10.5px;color:#6B7280;text-transform:uppercase;border-bottom:1px solid #e8eaf0">Campo</th><th style="text-align:left;padding:8px 10px;font-size:10.5px;color:#6B7280;text-transform:uppercase;border-bottom:1px solid #e8eaf0">Actual</th><th style="text-align:left;padding:8px 10px;font-size:10.5px;color:#6B7280;text-transform:uppercase;border-bottom:1px solid #e8eaf0">Del Excel</th></tr></thead><tbody>';
+    _altaFilas().forEach(function(f){
+      if(f[0]!==sec){ sec=f[0]; h+='<tr><td colspan="4" style="background:#FAFBFC;font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;padding:7px 10px">'+_altaEsc(sec)+'</td></tr>'; }
+      var act=String(f[3]==null?'':f[3]).trim(), nue=String(f[4]==null?'':f[4]).trim();
+      var cambia=nue!==''&&(_alta.nueva||_altaNorm(act)!==_altaNorm(nue));
+      var nueHtml=_altaEsc(nue);
+      if(f[2]==='tiposEquipo'&&nue){ nueHtml=nue.split(',').map(function(t){ t=t.trim(); var ok=cats.indexOf(_altaNorm(t))>=0; return ok?_altaEsc(t):'<span style="color:#DC2626;font-weight:700" title="No está en el catálogo de equipos">'+_altaEsc(t)+' ⚠</span>'; }).join(', '); }
+      h+='<tr><td style="padding:8px 10px;border-bottom:1px solid #F1F2F6"><input type="checkbox" data-k="'+f[2]+'" '+(cambia?'checked':'')+(nue===''?' disabled':'')+' style="accent-color:#1e2d4e;width:15px;height:15px"></td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #F1F2F6">'+_altaEsc(f[1])+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #F1F2F6;color:#9CA3AF">'+(act?_altaEsc(act):'<i>vacío</i>')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #F1F2F6;font-weight:600;color:'+(cambia?'#B45309':'#1e2d4e')+'">'+(nue?nueHtml+(cambia?'':' <span style="font-weight:400;color:#9CA3AF">(sin cambios)</span>'):'<i style="font-weight:400;color:#9CA3AF">vacío en el Excel</i>')+'</td></tr>';
+    });
+    h+='</tbody></table></div>';
+    h+='<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-top:14px;cursor:pointer"><input type="checkbox" id="alta-guardar-archivo" checked style="accent-color:#1e2d4e"> Guardar el Excel en la ficha del transportista, como respaldo</label>';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid #e8eaf0;flex-wrap:wrap"><span id="alta-count" style="font-size:12.5px;color:#6B7280"></span><span style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="document.getElementById(\'alta-modal\').remove()">Cancelar</button><button class="btn btn-sm" id="alta-guardar" style="background:#1e2d4e;color:#fff;border-color:#1e2d4e">Guardar datos</button></span></div>';
+    body.innerHTML=h;
+    var sc=body.querySelector('#alta-cuenta'); if(sc) sc.onchange=_altaCambiarCuenta;
+    var bv=body.querySelector('#alta-volver'); if(bv) bv.onclick=function(ev){ ev.preventDefault(); _alta.nueva=false; _altaRender(); };
+    if(_alta.nueva){ var bg=body.querySelector('#alta-guardar'); bg.textContent='Crear cuenta y guardar datos'; }
+    var cnt=function(){ var t=body.querySelectorAll('input[data-k]:not(:disabled)').length, s=body.querySelectorAll('input[data-k]:checked').length; body.querySelector('#alta-count').textContent=s+' de '+t+' campos seleccionados'; };
+    body.querySelectorAll('input[data-k]').forEach(function(c){ c.onchange=cnt; }); cnt();
+    body.querySelector('#alta-guardar').onclick=_altaGuardar;
+  }
+  function _altaCambiarCuenta(){ var id=this.value; var g=grupos.find(function(x){return x.id===id;}); _alta.match=g?{ g:g, por:'selección manual' }:null; _altaRender(); }
+  async function _altaGuardar(){
+    var body=document.getElementById('alta-body'); var btn=body.querySelector('#alta-guardar');
+    var sel=[].slice.call(body.querySelectorAll('input[data-k]:checked')).map(function(c){ return c.getAttribute('data-k'); });
+    var guardarArch=body.querySelector('#alta-guardar-archivo').checked;
+    if(!sel.length&&!guardarArch){ toast('No hay nada seleccionado para guardar','err'); return; }
+    var d=_alta.datos, campos={}, contacto={};
+    sel.forEach(function(k){ if(k.indexOf('ct.')===0) contacto[k.slice(3)]=d[k]; else campos[k]=d[k]; });
+    var madreEmail, creada=null;
+    btn.disabled=true; btn.textContent='Guardando...';
+    if(_alta.nueva){
+      var rc=await apiFetch('/api/admin/crear-usuario','POST',{ role:'transportista', email:String(d['ct.email']).trim(), nombre:String(d['ct.nombre']).trim(), empresa:d.empresa||'', telefono:d['ct.telefono']||'', cargo:d['ct.cargo']||'', rutEmpresa:d.rutEmpresa||'' });
+      if(!rc||!rc.ok){ toast((rc&&rc.data&&rc.data.error)||'No se pudo crear la cuenta','err'); btn.disabled=false; btn.textContent='Crear cuenta y guardar datos'; return; }
+      creada=rc.data; madreEmail=rc.data.email;
+    } else madreEmail=_alta.match.g.madre.email;
+    var payload={ madreEmail:madreEmail, campos:campos, contacto:Object.keys(contacto).length?contacto:null, contactoEmail:d['ct.email']||'', archivo:guardarArch?_alta.archivo:null };
+    var r=await apiFetch('/api/admin/alta-transportista','POST',payload);
+    if(r&&r.ok&&creada){
+      document.getElementById('alta-body').innerHTML='<div style="text-align:center;padding:10px 0"><div style="font-size:34px;color:#16A34A">✓</div><div style="font-size:17px;font-weight:700;color:#1e2d4e;margin:6px 0 4px">Cuenta creada</div><div style="font-size:13.5px;color:#6B7280;margin-bottom:16px">'+_altaEsc(d.empresa||d['ct.nombre'])+' · '+_altaEsc(creada.email)+'</div>'
+        +'<div style="display:inline-block;background:#F8FAFC;border:1px solid #e8eaf0;border-radius:10px;padding:12px 18px;text-align:left;font-size:13.5px"><div style="color:#6B7280;font-size:12px">Contraseña provisoria</div><div style="font-family:Courier New,monospace;font-size:17px;font-weight:700;color:#1e2d4e;margin-top:2px">'+_altaEsc(creada.password)+'</div></div>'
+        +'<div style="font-size:12.5px;margin-top:12px;color:'+(creada.emailEnviado?'#14532D':'#B45309')+'">'+(creada.emailEnviado?'✓ Le enviamos un email con sus datos de acceso.':'⚠ No se pudo enviar el email: compártele la contraseña tú.')+'</div>'
+        +'<div style="margin-top:18px"><button class="btn btn-sm" style="background:#1e2d4e;color:#fff" onclick="document.getElementById(\'alta-modal\').remove()">Listo</button></div></div>';
+      initPage(); return;
+    }
+    if(r&&r.ok){ toast('Datos guardados en '+(_alta.match.g.nombre||'la cuenta')); var mm=document.getElementById('alta-modal'); if(mm) mm.remove(); initPage(); }
+    else if(creada){ toast('La cuenta se creó, pero no se pudieron guardar todos los datos. Contraseña provisoria: '+creada.password,'err'); btn.textContent='Cuenta creada'; initPage(); return; }
+    else { toast((r&&r.data&&r.data.error)||'Error al guardar','err'); btn.disabled=false; btn.textContent='Guardar datos'; }
+  }
+
+  async function descargarAltaExcel(id,nombre){
+    try{
+      var r=await fetch(API+'/api/archivos/'+id,{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+      var d=await r.json(); if(!r.ok||!d.base64) throw 0;
+      var bin=atob(d.base64), arr=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+      var url=URL.createObjectURL(new Blob([arr],{type:d.mimeType||'application/octet-stream'}));
+      var a=document.createElement('a'); a.href=url; a.download=nombre||'alta_de_cuenta.xlsx'; a.click(); URL.revokeObjectURL(url);
+    }catch(e){ toast('No se pudo descargar el archivo','err'); }
   }
 
   function toast(msg, type) {
