@@ -110,6 +110,7 @@ var API = (localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.work
 
 function showAlert(msg) {
   var el = document.getElementById('alert-msg');
+  el.style.cssText = '';
   el.textContent = msg;
   el.style.display = 'block';
 }
@@ -138,6 +139,7 @@ async function doLogin() {
     var data = await res.json();
 
     if (res.ok) {
+      ['tm_token','tm_role','tm_nombre','tm_empresa','tm_email','tm_plan','tm_demo'].forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} });
       localStorage.setItem('tm_token',   data.token);
       localStorage.setItem('tm_role',    data.role);
       localStorage.setItem('tm_nombre',  data.nombre);
@@ -145,13 +147,8 @@ async function doLogin() {
       localStorage.setItem('tm_email',   data.email);
       localStorage.setItem('tm_plan',    data.plan || 'basico');
 
-      if (data.role === 'transportista') {
-        window.location.replace('/transportista.html');
-      } else if (data.role === 'admin') {
-        window.location.replace('/admin.html');
-      } else {
-        window.location.replace('/cliente.html');
-      }
+      if (data.passwordProvisorio) { mostrarCambioPassword(password, data.role); return; }
+      irAlPanel(data.role);
     } else {
       var errMsg = data.error || 'Email o contrasena incorrectos';
       if (errMsg.toLowerCase().includes('pendiente')) {
@@ -168,19 +165,63 @@ async function doLogin() {
   }
 }
 
+function irAlPanel(role){
+  if (role === 'transportista') window.location.replace('/transportista.html');
+  else if (role === 'admin') window.location.replace('/admin.html');
+  else window.location.replace('/cliente.html');
+}
+
+// Primer ingreso con contraseña provisoria: ofrecer cambiarla de inmediato.
+function mostrarCambioPassword(passActual, role){
+  var m=document.createElement('div');
+  m.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  m.innerHTML='<div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:420px;box-shadow:0 10px 40px rgba(0,0,0,.2)">'
+    +'<div style="font-size:19px;font-weight:700;color:#1e2d4e;margin-bottom:6px">Crea tu nueva contraseña</div>'
+    +'<div style="font-size:13.5px;color:#6B7280;margin-bottom:18px;line-height:1.5">Ingresaste con una contraseña provisoria. Por seguridad, elige una propia antes de continuar.</div>'
+    +'<div class="alert" id="cp-alert"></div>'
+    +'<div class="field"><label for="cp-nueva">Nueva contraseña</label><input type="password" id="cp-nueva" placeholder="Mínimo 8 caracteres" autocomplete="new-password"/></div>'
+    +'<div class="field"><label for="cp-conf">Repite la contraseña</label><input type="password" id="cp-conf" placeholder="Repite la nueva contraseña" autocomplete="new-password"/></div>'
+    +'<button class="btn btn-primary" id="cp-ok">Guardar y continuar</button>'
+    +'<div style="text-align:center;margin-top:12px"><a href="#" id="cp-luego" style="font-size:13px;color:#6B7280">Hacerlo más tarde</a></div></div>';
+  document.body.appendChild(m);
+  var al=m.querySelector('#cp-alert');
+  function err(t){ al.textContent=t; al.style.display='block'; }
+  m.querySelector('#cp-nueva').focus();
+  m.querySelector('#cp-luego').onclick=function(e){ e.preventDefault(); irAlPanel(role); };
+  m.querySelector('#cp-ok').onclick=async function(){
+    var n=m.querySelector('#cp-nueva').value, c=m.querySelector('#cp-conf').value, b=this;
+    al.style.display='none';
+    if(n.length<8){ err('La contraseña debe tener al menos 8 caracteres'); return; }
+    if(n!==c){ err('Las contraseñas no coinciden'); return; }
+    b.disabled=true; b.textContent='Guardando...';
+    try{
+      var r=await fetch(API+'/api/auth/cambiar-password',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({passwordActual:passActual,passwordNueva:n})});
+      var d=await r.json();
+      if(!r.ok){ err(d.error||'No se pudo cambiar la contraseña'); b.disabled=false; b.textContent='Guardar y continuar'; return; }
+      irAlPanel(role);
+    }catch(e){ err('Error de conexión. Intenta nuevamente.'); b.disabled=false; b.textContent='Guardar y continuar'; }
+  };
+  m.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.stopPropagation(); m.querySelector('#cp-ok').click(); } });
+}
+
 // Enter key
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') doLogin();
+  if (e.key === 'Enter' && !document.getElementById('cp-nueva')) doLogin();
 });
 
-// Redirect if already logged in
+// Sesión ya abierta en este navegador
 (function(){
   var token = localStorage.getItem('tm_token');
   var role  = localStorage.getItem('tm_role');
   if (!token) return;
-  if (role === 'transportista') window.location.replace('/transportista.html');
-  else if (role === 'admin') window.location.replace('/admin.html');
-  else window.location.replace('/cliente.html');
+  var nueva = new URLSearchParams(location.search).get('nueva') === '1';
+  if (!nueva) { irAlPanel(role); return; }
+  // Llegó desde el email de "cuenta lista": no redirigir a la sesión anterior; avisar que se reemplazará.
+  var quien = localStorage.getItem('tm_email') || (role==='admin' ? 'administrador' : '');
+  var box = document.getElementById('alert-msg');
+  box.style.cssText = 'display:block;background:#EEF1F6;color:#1e2d4e;border:1px solid #C7CEDB';
+  box.innerHTML = 'Tienes una sesión abierta' + (quien ? ' como <b>' + String(quien).replace(/[<>&"]/g,'') + '</b>' : '') + '. Si ingresas con otra cuenta, esa sesión se cerrará. <a href="#" id="seguir-sesion" style="color:#1e2d4e;font-weight:600">Seguir con esa sesión →</a>';
+  document.getElementById('seguir-sesion').onclick = function(e){ e.preventDefault(); irAlPanel(role); };
 })();
 </script>
 </body>
