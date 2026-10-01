@@ -3772,8 +3772,32 @@ async function handleRequest(request, env) {
     const user=await getUser(request,env); if(!user||user.role!=='admin') return err('No autorizado',403);
     const emailToDelete=decodeURIComponent(path.replace('/api/admin/usuario/',''));
     if(!emailToDelete) return err('Email requerido');
-    await env.USERS.delete(emailToDelete.toLowerCase());
-    return ok({ message:'Usuario eliminado' });
+    const _em=emailToDelete.toLowerCase(); const _sbD=usarSupabase(env, url);
+    let _u=null; try{ _u=await dalGetUsuarioByEmail(env, _em, _sbD); }catch(e){}
+    if(!_u){ const _r=await env.USERS.get(_em); if(_r) _u=JSON.parse(_r); }
+    if(!_u) return err('Usuario no encontrado',404);
+    if(_u.role==='admin') return err('No se puede eliminar un administrador',403);
+    // Cuenta principal con usuarios asociados: no se borra (primero hay que quitar a los miembros)
+    if(!_u.esSubusuario && (_u.empresaMiembros||[]).filter(Boolean).length) return err('La empresa tiene otros usuarios. Elimínalos primero.');
+    const _avisos=[];
+    // Si es miembro: sacarlo de la lista de su empresa
+    if(_u.esSubusuario && _u.empresaMadreId){
+      try{ const _m=await dalGetUsuarioById(env, _u.empresaMadreId, _sbD); if(_m){ _m.empresaMiembros=(_m.empresaMiembros||[]).filter(e=>(e||'').toLowerCase()!==_em); await env.USERS.put(_m.email.toLowerCase(), JSON.stringify(_m)); if(_sbD) await dalSaveUsuario(env, _m, true); try{ await syncEmpresaMiembros(env, _m); }catch(e){} } }catch(e){ _avisos.push('miembros: '+e.message); }
+    }
+    // Usuario: KV (email + id:) y Supabase
+    await env.USERS.delete(_em);
+    if(_u.id){ try{ await env.USERS.delete('id:'+_u.id); }catch(e){} }
+    if(_sbD){ try{ await sbDelete(env,'usuarios','email=eq.'+encodeURIComponent(_em)); }catch(e){ _avisos.push('usuario supabase: '+e.message); } }
+    // Entidad empresa: solo si era la cuenta principal (sin miembros)
+    if(!_u.esSubusuario){
+      const _eid=_u.empresaId||_u.id;
+      if(_eid){
+        try{ await env.EMPRESAS.delete('empresa:'+_eid); }catch(e){}
+        if(_sbD){ try{ await sbDelete(env,'empresas','id=eq.'+encodeURIComponent(_eid)); }catch(e){ _avisos.push('empresa supabase: '+e.message); } }
+      }
+    }
+    try{ await registrarActividad(env,'usuario_eliminado',`Admin eliminó la cuenta ${_em}`,{ email:_em }); }catch(e){}
+    return ok({ message:'Usuario eliminado', avisos:_avisos });
   }
 
   if (path === "/api/perfil" && method === "PUT") {

@@ -593,7 +593,7 @@
       var d = await res.json();
       if (res.ok) {
         toast('Usuario eliminado');
-        setTimeout(function() { window.location.href = '/admin-clientes.html'; }, 1500);
+        setTimeout(function() { window.location.href = (userData.role==='transportista' ? '/admin-transportistas.html' : '/admin-clientes.html'); }, 1500);
       } else {
         toast(d.error || 'Error al eliminar', 'err');
       }

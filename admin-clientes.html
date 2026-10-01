@@ -431,7 +431,7 @@
     if (!confirm('¿Eliminar al cliente ' + email + '? Esta acción no se puede deshacer.')) return;
     const r = await apiFetch('/api/admin/usuario/' + encodeURIComponent(email), 'DELETE');
     if (r && r.ok) { alert('Cliente eliminado'); initPage(); }
-    else alert('Error al eliminar');
+    else alert((r&&r.data&&r.data.error)||'Error al eliminar');
   }
 
 function toggleMobileNav(){
