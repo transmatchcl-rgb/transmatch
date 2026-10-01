@@ -909,7 +909,7 @@ function sanitizarFormularioCotiz(f) {
   return limpio;
 }
 
-async function enviarEmail(env, { to, subject, html }) {
+async function enviarEmail(env, { to, subject, html, cc, attachments }) {
   // Modo pruebas: silencia TODOS los correos salientes (para probar sin molestar a usuarios reales).
   if (["1","on","true","si","sí"].includes(String(env.MODO_PRUEBAS||"").toLowerCase())) {
     console.log("[MODO_PRUEBAS] correo silenciado ->", to, "|", subject);
@@ -920,7 +920,7 @@ async function enviarEmail(env, { to, subject, html }) {
     const res = await fetch("https://api.resend.com/emails", {
       method:"POST",
       headers:{ "Authorization":"Bearer "+env.RESEND_API_KEY, "Content-Type":"application/json" },
-      body: JSON.stringify({ from: env.EMAIL_FROM||"TransMatch <noreply@transmatch.cl>", reply_to:"contacto@transmatch.cl", to:[to], subject, html }),
+      body: JSON.stringify(Object.assign({ from: env.EMAIL_FROM||"TransMatch <noreply@transmatch.cl>", reply_to:"contacto@transmatch.cl", to:[to], subject, html }, (Array.isArray(cc)&&cc.length)?{cc}:{}, (Array.isArray(attachments)&&attachments.length)?{attachments}:{})),
     });
     if (!res.ok) {
       const txt = await res.text().catch(()=> "");
@@ -4151,7 +4151,15 @@ async function handleRequest(request, env) {
     factura.estado_factura="facturado"; factura.facturaSiiArchivoId=archivoId; factura.facturaSiiNombre=nombre; factura.fechaFacturaSii=new Date().toISOString();
     await dalSaveFacturaCons(env, factura, usarSupabase(env, url));
     await crearNotificacion(env,factura.transportistaId,"factura_sii",`Factura de comisión disponible — Periodo ${factura.periodo}`,{ facturaId });
-    try{ await enviarEmail(env,{ to:factura.transportistaEmail, subject:`Factura de comisión ${factura.periodo} - TransMatch`, html:emailBase('<h1 style="margin:0 0 10px;font-size:20px;color:#1e2d4e">Factura de comisión disponible</h1><p style="font-size:15px;color:#374151;line-height:1.6">Ya está disponible tu factura de comisión del período <strong>'+factura.periodo+'</strong> por '+formatCLP(factura.total_comision)+'. Puedes verla y descargarla desde tu portal.</p>'+btnEmail("https://transmatch.cl/transportista-cobros.html","Ver mi factura"),"Factura de comisión TransMatch") }); }catch(e){}
+    try{
+      // Copia al contacto de facturación de la empresa (si tiene y es distinto)
+      let _cc=[];
+      try{ const _tu=await dalGetUsuarioByEmail(env, factura.transportistaEmail, usarSupabase(env, url)); const _emp=_tu?await empresaDe(env,_tu):null; const _cf=(_emp&&_emp.contactoFacturacion)||(_tu&&_tu.contactoFacturacion)||null; const _ce=String((_cf&&_cf.email)||"").trim().toLowerCase(); if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(_ce) && _ce!==String(factura.transportistaEmail||"").toLowerCase()) _cc=[_ce]; }catch(e){}
+      const _pdfOk = body.base64.length <= 13000000; // Resend: máx ~40MB por correo; nuestro tope ya es 8 MB
+      await enviarEmail(env,{ to:factura.transportistaEmail, cc:_cc, subject:`Factura de comisión ${factura.periodo} - TransMatch`,
+        attachments:_pdfOk?[{ filename:nombre, content:body.base64 }]:[],
+        html:emailBase('<h1 style="margin:0 0 10px;font-size:20px;color:#1e2d4e">Factura de comisión disponible</h1><p style="font-size:15px;color:#374151;line-height:1.6">Adjuntamos tu factura de comisión del período <strong>'+factura.periodo+'</strong> por <strong>'+formatCLP(factura.total_comision)+'</strong>. También puedes verla y descargarla desde tu portal.</p><p style="font-size:13px;color:#6B7280;line-height:1.6;margin:0 0 16px">Plazo de pago: 30 días corridos. Una vez realizado el pago, envía el comprobante a <strong>pagos@transmatch.cl</strong>.</p>'+btnEmail("https://transmatch.cl/transportista-cobros.html","Ver mi factura"),"Factura de comisión TransMatch") });
+    }catch(e){}
     return ok({ ok:true, archivoId });
   }
 
