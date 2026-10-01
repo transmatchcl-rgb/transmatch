@@ -1222,6 +1222,15 @@ function emailDocumentosSolicitados(t, docs) {
     ${btnEmail('https://transmatch.cl/transportista-transporte.html','Subir documentos','#FF8808')}`, "Documentos solicitados - TransMatch");
 }
 
+function emailDocumentosCompletos(t) {
+  const esc = v => String(v||"").replace(/[<>&"']/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;","'":"&#39;"}[c]));
+  const lista = (t.requisitosEstandar||[]).map(r => `<li style="margin:0 0 6px">${esc(r.label)}</li>`).join("");
+  return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Ya están todos los documentos</h2>
+    <p style="font-size:14px;color:#6B7280;margin:0 0 14px">El transportista subió todos los documentos solicitados para el transporte <strong style="white-space:nowrap">${esc(t.codigo||"")}</strong> (${esc(t.origen||"")} → ${esc(t.destino||"")}):</p>
+    <ul style="font-size:14px;color:#1e2d4e;margin:0 0 14px;padding-left:20px">${lista}</ul>
+    ${btnEmail('https://transmatch.cl/cliente-transporte.html','Ver documentos','#1e2d4e')}`, "Documentos completos - TransMatch");
+}
+
 function emailCuentaAprobada(nombre) {
   return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Tu cuenta fue aprobada</h2>
     <p style="font-size:14px;color:#6B7280;margin:0 0 20px">Hola ${nombre}, ya puedes acceder a la plataforma.</p>
@@ -4755,6 +4764,7 @@ async function handleRequest(request, env) {
     }
     if(!nuevos.length) return err("Esos documentos ya están solicitados");
     t.requisitosEstandar = reqs;
+    t.docsCompletosAvisadoAt = null; // hay nuevos pendientes: volver a avisar cuando se completen
     t.historial = t.historial||[];
     t.historial.push({ estado:t.estado, fecha:new Date().toISOString(), actor:user.nombre||user.email, nota:"Documentos solicitados por el cliente: "+nuevos.map(r=>r.label).join(", ") });
     await dalSaveTransporte(env, t, usarSupabase(env, url));
@@ -4794,13 +4804,23 @@ async function handleRequest(request, env) {
     if(!body.base64) return err("Archivo requerido");
     const reqs = t.requisitosEstandar||[]; const req = reqs.find(function(r){ return r.id===reqId; });
     if(!req) return err("Requisito no encontrado",404);
+    const _eraReemplazo=!!req.archivoId;
     const archivoId=uid();
     await dalSaveArchivo(env, archivoId, { base64:body.base64, mimeType:body.mimeType, nombre:body.nombre, createdAt:new Date().toISOString() }, usarSupabase(env, url));
     req.archivoId=archivoId; req.archivoNombre=body.nombre||"documento.pdf"; req.subidoAt=new Date().toISOString(); req.subidoPor=user.nombre||user.email;
     t.requisitosEstandar=reqs;
     t.historial = t.historial||[];
     t.historial.push({ estado:t.estado, fecha:new Date().toISOString(), actor:user.nombre||user.email, nota:"Documento de requisito cargado: "+(req.label||reqId) });
+    const _completos = reqs.length>0 && reqs.every(r=>r.archivoId);
+    const _avisarCompletos = _completos && !t.docsCompletosAvisadoAt;
+    if(_avisarCompletos) t.docsCompletosAvisadoAt = new Date().toISOString();
     await dalSaveTransporte(env, t, usarSupabase(env, url));
+    // Aviso al cliente: notificación por cada documento; correo solo cuando están todos
+    try {
+      const _cargados = reqs.filter(r=>r.archivoId).length;
+      if(t.clienteId) await crearNotificacion(env, t.clienteId, "documento_cargado", `${t.transportistaEmpresa||"El transportista"} ${_eraReemplazo?"reemplazó":"subió"} "${req.label||"un documento"}" para el transporte ${t.codigo||""} (${_cargados} de ${reqs.length})`, { transporteId:id });
+      if(_avisarCompletos && t.clienteEmail) await enviarEmail(env, { to:t.clienteEmail, subject:`Documentos completos - ${t.codigo||"Transporte"} - TransMatch`, html:emailDocumentosCompletos(t) });
+    } catch(e) {}
     return ok({ ok:true, requisito:req });
   }
   // POST /api/transportes/:id/contacto-operacional
