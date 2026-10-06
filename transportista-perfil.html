@@ -223,8 +223,8 @@
       <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Canal de notificaciones</div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
         <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:13px;color:#374151">Por email</span><input type="checkbox" id="notif-email-chk" onchange="guardarPrefs()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
-        
-        
+        <label id="notif-wa-row" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:13px;color:#374151">Por WhatsApp <span style="font-size:10px;font-weight:700;color:#FF8808;background:#FFF4E6;border-radius:999px;padding:1px 7px;margin-left:4px">NUEVO</span></span><input type="checkbox" id="notif-wa-chk" onchange="toggleWA()" style="width:16px;height:16px;accent-color:#1e2d4e;cursor:pointer"/></label>
+        <div id="notif-wa-sub" style="font-size:11px;color:#6B7280;line-height:1.4;margin-top:-4px"></div>
       </div>
       <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Sobre licitaciones</div>
       <div style="display:flex;flex-direction:column;gap:0">
@@ -2160,16 +2160,13 @@ function initRutInputs() {
       var ec = document.getElementById('notif-email-chk');
       var wc = document.getElementById('notif-wa-chk');
       if(ec) ec.checked = prefs.notifEmail !== false;
-      if(wc) wc.checked = !!prefs.notifWhatsapp;
-      if(wc && wc.checked){ var wi=document.getElementById('wa-input'); if(wi) wi.style.display='block'; }
-      var waNum = document.getElementById('wa-numero');
-      if(waNum && prefs.whatsapp) waNum.value = prefs.whatsapp;
       // Cargar preferencias detalladas desde el backend (default: todas activas)
       var notifPrefs = {};
       try {
         var me = await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
         var data = await me.json();
         if(me.ok && data.user && data.user.notifPrefs) notifPrefs = data.user.notifPrefs;
+        if(me.ok && data.user) pintarWA(!!data.user.notifWhatsapp, data.user.telefono || data.user.whatsapp || '');
       } catch(e){}
       ['nueva-licit','licit-cerrada','adjudicada','retornos'].forEach(function(id){
         var el = document.getElementById('pref-'+id);
@@ -2209,11 +2206,46 @@ function initRutInputs() {
   }
 
 
-  function toggleWA(){
-    var wc = document.getElementById('notif-wa-chk');
-    var wi = document.getElementById('wa-input');
-    if(wi) wi.style.display = (wc && wc.checked) ? 'block' : 'none';
-    guardarPrefs();
+  // ── Avisos por WhatsApp ──
+  function _telWaFront(t){
+    var s=String(t||'').replace(/[^0-9]/g,'');
+    if(!s) return null;
+    if(s.indexOf('56')!==0){ if(s.length===9 && s[0]==='9') s='56'+s; else if(s.length===8) s='569'+s; }
+    return /^569\d{8}$/.test(s) ? s : null;
+  }
+  function pintarWA(activo, tel){
+    var wc=document.getElementById('notif-wa-chk'), sub=document.getElementById('notif-wa-sub'), row=document.getElementById('notif-wa-row');
+    if(!wc||!sub) return;
+    var t=_telWaFront(tel);
+    if(!t){
+      wc.checked=false; wc.disabled=true; if(row) row.style.cursor='default';
+      sub.innerHTML='Para recibir avisos por WhatsApp agrega tu celular (+56 9) en <b>Mi perfil</b>.';
+      sub.style.color='#92400E';
+      return;
+    }
+    wc.disabled=false; if(row) row.style.cursor='pointer';
+    wc.checked=!!activo;
+    var bonito='+56 9 '+t.slice(3,7)+' '+t.slice(7);
+    sub.style.color='#6B7280';
+    sub.innerHTML = activo
+      ? 'Te llegarán las nuevas licitaciones al <b>'+bonito+'</b> y podrás cotizar directo desde WhatsApp.'
+      : 'Actívalo para recibir las nuevas licitaciones al <b>'+bonito+'</b> y cotizar directo desde WhatsApp.';
+    sub.dataset.tel=t;
+  }
+  async function toggleWA(){
+    var wc=document.getElementById('notif-wa-chk'); if(!wc) return;
+    var quiere=wc.checked, sub=document.getElementById('notif-wa-sub');
+    wc.disabled=true;
+    try{
+      var r=await fetch(API+'/api/perfil/notificaciones',{ method:'PUT', headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}, body:JSON.stringify({ notifWhatsapp:quiere }) });
+      var d=await r.json().catch(function(){ return {}; });
+      if(!r.ok) throw new Error(d.error||'No se pudo guardar');
+      pintarWA(!!d.notifWhatsapp, d.telefonoWa||(sub&&sub.dataset.tel)||'');
+      if(typeof toast==='function') toast(quiere?'Avisos por WhatsApp activados':'Avisos por WhatsApp desactivados');
+    }catch(e){
+      wc.checked=!quiere; wc.disabled=false;
+      if(typeof toast==='function') toast(e.message||'No se pudo guardar','err');
+    }
   }
 
 

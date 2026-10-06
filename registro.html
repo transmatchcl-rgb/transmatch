@@ -280,6 +280,9 @@ textarea{resize:vertical;min-height:72px}
           <input type="text" id="reg-otro-equipo" placeholder="Describe el tipo de equipo..." style="font-size:13px"/>
           <div style="font-size:11px;color:#9CA3AF;margin-top:4px">El equipo quedará pendiente de aprobación por TransMatch.</div>
         </div>
+
+        <div class="section-label" style="margin-top:16px">Avisos por WhatsApp</div>
+        <label class="check-item"><input type="checkbox" id="reg-wa" checked/> <div><div style="font-size:12px;font-weight:600;color:#374151">Quiero recibir las nuevas licitaciones por WhatsApp</div><div style="font-size:11px;color:#9CA3AF">Te llegarán a tu celular y podrás cotizar directo desde WhatsApp. Puedes desactivarlo cuando quieras.</div></div></label>
       </div>
 
       <!-- TyC -->
@@ -471,6 +474,8 @@ async function register(){
       extra.otroEquipoPendiente = otroTexto;
     }
     extra.tiposEquipo = tiposEquipo;
+    var waCb=document.getElementById('reg-wa');
+    extra.notifWhatsapp = !!(waCb && waCb.checked);
   }
 
   var btn=document.getElementById('btn-register');

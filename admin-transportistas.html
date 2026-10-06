@@ -465,6 +465,14 @@
     }
     html += sec('Cuenta');
     html += dato('Estado', t.estado) + dato('Rating', t.rating?('★ '+t.rating):'') + dato('Total transportes', t.totalTransportes) + dato('Total cotizaciones', t.totalCotizaciones) + dato('Perfil completo', t.perfilCompletitud?t.perfilCompletitud+'%':'') + dato('Notif. email', t.notifEmail?'Sí':'No');
+    // Avisos por WhatsApp (activar solo después de conversarlo con el transportista)
+    var _d=String(t.telefono||t.whatsapp||'').replace(/\D/g,''); if(_d.indexOf('56')!==0){ if(_d.length===9&&_d[0]==='9') _d='56'+_d; else if(_d.length===8) _d='569'+_d; } var _telOk=/^569\d{8}$/.test(_d);
+    html += '<div style="grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:2px">'
+      + '<span style="font-size:13px;color:#374151">Avisos por WhatsApp: <b style="color:'+(t.notifWhatsapp?'#16a34a':'#6B7280')+'">'+(t.notifWhatsapp?'Activos':'Desactivados')+'</b></span>'
+      + (_telOk || t.notifWhatsapp
+          ? '<button class="btn btn-outline btn-sm" data-email="'+String(t.email||'').replace(/"/g,'&quot;')+'" data-activo="'+(t.notifWhatsapp?'0':'1')+'" onclick="event.stopPropagation();toggleWAAdmin(this)">'+(t.notifWhatsapp?'Desactivar':'Activar')+'</button>'
+          : '<span style="font-size:12px;color:#92400E">Sin celular válido en el perfil</span>')
+      + '</div>';
     if(t.notasAdmin) html += sec('Notas del admin') + '<div style="grid-column:1/-1;font-size:13px;color:#374151;line-height:1.5;background:#FEF9C3;padding:8px 10px;border-radius:6px">'+t.notasAdmin+'</div>';
     html += '</div></div>';
     return html;
@@ -478,6 +486,14 @@
 
   function irPerfil(email) {
     window.location.href = '/admin-perfil-usuario.html?email=' + encodeURIComponent(email);
+  }
+
+  async function toggleWAAdmin(btn){
+    var email=btn.getAttribute('data-email'), activo=btn.getAttribute('data-activo')==='1';
+    btn.disabled=true;
+    var r=await apiFetch('/api/admin/usuario/whatsapp','POST',{ email:email, activo:activo });
+    if(r && r.ok){ toast(activo?'Avisos por WhatsApp activados':'Avisos por WhatsApp desactivados'); initPage(); }
+    else { btn.disabled=false; toast((r&&r.data&&r.data.error)||'Error','err'); }
   }
 
   async function aprobar(email, accion) {

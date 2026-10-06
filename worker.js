@@ -1458,7 +1458,14 @@ async function registrarActividad(env, tipo, mensaje, datos={}) {
 
 // ── Integración WhatsApp vía Kapso (proxy de la API oficial de Meta) ──
 // Todo queda "apagado" hasta que existan KAPSO_API_KEY + KAPSO_PHONE_NUMBER_ID en el worker.
-// En pruebas (Etapa 0): definir KAPSO_TEST_TO con TU número → solo a ti te llegan los WhatsApp.
+// Variables del worker:
+//   KAPSO_API_KEY, KAPSO_PHONE_NUMBER_ID  → credenciales (obligatorias)
+//   KAPSO_FLOW_ID                         → ID del Flow "Cotizacion TransMatch" en Meta
+//   KAPSO_FLOW_DRAFT=1                    → envía el Flow en modo borrador (para probar antes de publicarlo)
+//   KAPSO_TEMPLATE (opcional)             → nombre de la plantilla (default: nueva_licitacion)
+//   KAPSO_TEMPLATE_LANG (opcional)        → idioma de la plantilla (default: es)
+//   KAPSO_WEBHOOK_SECRET (opcional)       → secreto de firma del webhook de Kapso (X-Webhook-Signature)
+//   KAPSO_TEST_TO (opcional)              → en pruebas: los avisos solo llegan a ESTE número
 function usarKapso(env){ return !!(env.KAPSO_API_KEY && env.KAPSO_PHONE_NUMBER_ID); }
 function _telWa(t){
   let s=String(t||"").replace(/[^0-9]/g,"");
@@ -1468,6 +1475,8 @@ function _telWa(t){
   if(s.length===8) return "569"+s;              // XXXXXXXX (celular sin 9)
   return s;
 }
+// Celular chileno válido para WhatsApp: 569 + 8 dígitos
+function _telWaValido(t){ const s=_telWa(t); return !!(s && /^569\d{8}$/.test(s)); }
 async function kapsoEnviar(env, msg){
   if(!usarKapso(env)) return { skipped:true };
   const base=(env.KAPSO_API_BASE||"https://api.kapso.ai/meta/whatsapp/v24.0").replace(/\/+$/,"");
@@ -1478,43 +1487,223 @@ async function kapsoEnviar(env, msg){
     return { ok:true, data: await r.json().catch(()=>({})) };
   }catch(e){ console.error("Kapso excepción", e&&e.message); return { ok:false, error:String(e&&e.message||e) }; }
 }
-// Teléfonos de transportistas activos (para el envío masivo en producción).
-async function dalTelefonosTransportistasActivos(env, sb){
-  let users=[];
-  if(sb){ const rows=await sbSelect(env,"usuarios","role=eq.transportista&estado=eq.activo&select=datos&limit=5000"); users=rows.map(r=>r.datos).filter(Boolean); }
-  else { let cursor; do{ const l=await env.USERS.list({cursor}); for(const k of l.keys){ if(k.name.startsWith("id:")||k.name.startsWith("contador:")) continue; const raw=await env.USERS.get(k.name); if(!raw) continue; try{ const u=JSON.parse(raw); if(u.role==="transportista"&&u.estado==="activo") users.push(u); }catch(e){} } cursor=l.list_complete?undefined:l.cursor; }while(cursor); }
-  return [...new Set(users.map(u=>u.telefono||u.whatsapp).filter(Boolean))];
+function kapsoTexto(env, to, texto){ return kapsoEnviar(env, { to, type:"text", text:{ body:String(texto).slice(0,4096) } }); }
+
+// ── Datos de transportistas para WhatsApp ──
+async function _dalTransportistasTodos(env, sb){
+  if(sb){ const rows=await sbSelect(env,"usuarios","role=eq.transportista&select=datos&limit=5000"); return rows.map(r=>r.datos).filter(Boolean); }
+  const out=[]; let cursor;
+  do{
+    const l=await env.USERS.list({cursor});
+    for(const k of l.keys){
+      if(k.name.startsWith("id:")||k.name.startsWith("contador:")) continue;
+      const raw=await env.USERS.get(k.name); if(!raw) continue;
+      try{ const u=JSON.parse(raw); if(u && u.role==="transportista") out.push(u); }catch(e){}
+    }
+    cursor=l.list_complete?undefined:l.cursor;
+  }while(cursor);
+  return out;
 }
-// Al aprobar una licitación: manda el WhatsApp con botones Sí/No.
+function _telefonoWaDe(u){ return _telWa(u.telefono||u.whatsapp); }
+// Transportistas activos que aceptaron recibir avisos por WhatsApp y tienen celular válido.
+async function dalTransportistasWhatsapp(env, sb){
+  return (await _dalTransportistasTodos(env, sb)).filter(u=>u.estado==="activo" && u.notifWhatsapp===true && _telWaValido(u.telefono||u.whatsapp));
+}
+async function dalTransportistaPorTelefonoWa(env, tel, sb){
+  const t=_telWa(tel); if(!t) return null;
+  const lista=(await _dalTransportistasTodos(env, sb)).filter(u=>u.estado==="activo" && !u.desactivadoManual && _telefonoWaDe(u)===t);
+  return lista.find(u=>u.notifWhatsapp===true) || lista[0] || null;
+}
+
+// ── Formatos ──
+function _waFecha(iso){ const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso||"")); return m?(m[3]+"-"+m[2]+"-"+m[1]):(iso?String(iso):"—"); }
+function _waCierreISO(l){
+  if(l.cierreAt) return l.cierreAt;
+  if(l.createdAt) return new Date(new Date(l.createdAt).getTime()+parseInt(l.plazo||"24")*3600000).toISOString();
+  return null;
+}
+function _waCierreTexto(l){
+  const c=_waCierreISO(l); if(!c) return "—";
+  const p=new Intl.DateTimeFormat("es-CL",{ timeZone:"America/Santiago", day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit", hour12:false }).formatToParts(new Date(c));
+  const g=k=>(p.find(x=>x.type===k)||{}).value||"";
+  return g("day")+"-"+g("month")+"-"+g("year")+" "+g("hour")+":"+g("minute");
+}
+function _waCarga(l){
+  let s=(l.tipoEquipo||"Carga")+(l.marca?(" "+l.marca):"")+(l.modelo?(" "+l.modelo):"");
+  if(l.peso) s+=", "+l.peso+(l.pesoUnidad?(" "+l.pesoUnidad):"");
+  return s;
+}
+function _waRuta(l){ return (l.origen||"—")+" → "+(l.destino||"—"); }
+// Los parámetros de plantilla no aceptan saltos de línea, tabs ni más de 4 espacios seguidos.
+function _waParam(v){ const s=String(v==null?"":v).replace(/[\r\n\t]+/g," ").replace(/ {2,}/g," ").trim().slice(0,200); return s||"—"; }
+function _clp(n){ return "$"+Math.round(Number(n)||0).toLocaleString("es-CL"); }
+function _num(v){ const s=String(v==null?"":v).replace(/\$/g,"").replace(/\./g,"").replace(",",".").replace(/[^\d.]/g,""); const n=parseFloat(s); return isNaN(n)?0:n; }
+
+// ── Reglas de cotización compartidas (web + WhatsApp) ──
+function licitacionVencida(l){ const c=_waCierreISO(l); return !!c && new Date(c).getTime()<=Date.now(); }
+function _misCotizacionesEn(l, user, emailsT){
+  return (l.cotizaciones||[]).filter(c=>c.transportistaId===user.id || (c.transportistaEmail&&emailsT.has(c.transportistaEmail.toLowerCase())));
+}
+const MAX_COTIZ_POR_LICITACION = 2;
+// Crea la cotización con las mismas reglas para la web y para WhatsApp.
+// Devuelve { ok:true, cotizacion, licitacion } o { error, status }.
+async function crearCotizacionCore(env, user, body, sb){
+  const { licitacionId, precio, tiempoEntrega, fechaEntregaISO, fechaCargaISO, descripcion, incluye, archivoId, archivoNombre, archivoPdfId, archivoPdfNombre, formulario } = body||{};
+  if (!licitacionId||!precio) return { error:"licitacionId y precio son requeridos", status:400 };
+  const raw = await dalGetLicitacionById(env, licitacionId, sb); if(!raw) return { error:"No encontrada", status:404 };
+  const l = raw;
+  if (l.estado!=="abierta" || licitacionVencida(l)) return { error:"Esta licitacion no esta abierta", status:400 };
+  const emailsT = await emailsEmpresa(env, user);
+  const _misCotiz=_misCotizacionesEn(l, user, emailsT);
+  if(_misCotiz.length>=MAX_COTIZ_POR_LICITACION) return { error:"Ya enviaste el máximo de 2 cotizaciones para esta licitación", status:400 };
+  const userData = (await dalGetUsuarioByEmail(env, user.email, sb)) || {};
+  const _MODALIDADES=["Consolidada","No consolidada"];
+  const _modalidad = _MODALIDADES.includes(body.modalidad) ? body.modalidad : "";
+  const _sanContacto=function(c){ c=c||{}; const n=(c.nombre||'').toString().trim().slice(0,120),t=(c.telefono||'').toString().trim().slice(0,30),e=(c.email||'').toString().trim().slice(0,120); return (n||t||e)?{nombre:n,telefono:t,email:e}:null; };
+  const _contactoEnc=_sanContacto(body.contactoEncargado);
+  const cotizacion = { id:uid(), codigo:await generarCodigo(env,'COT'), licitacionId, transportistaId:user.id, transportistaNombre:user.nombre, transportistaEmpresa:user.empresa, transportistaEmail:user.email, transportistaTelefono:userData.telefono||"", transportistaRating:userData.rating||5.0, transportistaTransportes:userData.totalTransportes||0, precio:parseFloat(precio), modalidad:_modalidad, contactoEncargado:_contactoEnc, tiempoEntrega:tiempoEntrega||"", fechaCargaISO:fechaCargaISO||null, fechaEntregaISO:fechaEntregaISO||null, descripcion:descripcion||"", incluye:incluye||[], archivoId:archivoId||null, archivoNombre:archivoNombre||null, archivoPropioId:archivoPdfId||null, archivoPropioNombre:archivoPdfNombre||null, formulario:formulario||null, tiempoRespuesta:Math.floor((Date.now()-new Date(l.createdAt).getTime())/60000), score:0, createdAt:new Date().toISOString() };
+  if(body.canal==="whatsapp") cotizacion.canal="whatsapp";
+  l.cotizaciones = [...(l.cotizaciones||[]), cotizacion];
+  const todosPrecios = l.cotizaciones.map(c=>c.precio);
+  l.cotizaciones = l.cotizaciones.map(c=>({...c,_allPrecios:todosPrecios,score:calcScore({...c,_allPrecios:todosPrecios},l.fechaCarga)})).sort((a,b)=>b.score-a.score);
+  await dalSaveLicitacion(env, l, sb);
+  await crearNotificacion(env,"admin","nueva_cotizacion",`Nueva cotizacion${cotizacion.canal==="whatsapp"?" (WhatsApp)":""}: ${l.tipoEquipo} - ${l.origen}-${l.destino} - ${formatCLP(parseFloat(precio))}`,{ licitacionId, cotizacionId:cotizacion.id });
+  await registrarActividad(env,"cotizacion_enviada",`${user.empresa||user.nombre||'Transportista'} cotizó ${formatCLP(parseFloat(precio))} en ${l.tipoEquipo} (${l.origen} → ${l.destino})${cotizacion.canal==="whatsapp"?" vía WhatsApp":""}`,{ licitacionId, cotizacionId:cotizacion.id, codigo:l.codigo });
+  return { ok:true, cotizacion, licitacion:l };
+}
+
+// ── Aviso de nueva licitación (plantilla aprobada por Meta) ──
+// Se envía a los mismos transportistas que reciben el aviso por email (estricto o fallback),
+// pero solo a quienes activaron WhatsApp. El botón "Cotizar" vuelve al webhook con payload cotizar:<id>.
+function _waPlantillaLicitacion(env, to, l){
+  return { to, type:"template", template:{
+    name: env.KAPSO_TEMPLATE || "nueva_licitacion",
+    language:{ code: env.KAPSO_TEMPLATE_LANG || "es" },
+    components:[
+      { type:"body", parameters:[ _waParam(l.codigo||"Licitación"), _waParam(_waCarga(l)), _waParam(_waRuta(l)), _waParam(_waFecha(l.fechaCarga)), _waParam(_waFecha(l.fechaEntrega)), _waParam(_waCierreTexto(l)) ].map(t=>({ type:"text", text:t })) },
+      { type:"button", sub_type:"quick_reply", index:"0", parameters:[ { type:"payload", payload:"cotizar:"+l.id } ] }
+    ] } };
+}
 async function notificarLicitacionWhatsapp(env, l){
   if(!usarKapso(env)) return;
-  if(l.esPrueba && !env.KAPSO_TEST_TO) return; // no molestar a transportistas reales con una licitación de prueba
-  const cuerpo="🚚 *Nueva licitación en TransMatch*\n\n"+
-    (l.tipoEquipo||"Carga")+(l.marca?(" - "+l.marca):"")+"\n"+
-    "Ruta: "+(l.origen||"")+" → "+(l.destino||"")+"\n"+
-    "Fecha de carga: "+(l.fechaCarga||"—")+"\n"+
-    (l.peso?("Peso: "+l.peso+" "+(l.pesoUnidad||"")+"\n"):"")+
-    "\n¿Deseas cotizar?";
-  const interactive={ type:"button", body:{ text:cuerpo.slice(0,1024) }, action:{ buttons:[
-    { type:"reply", reply:{ id:"cotizar_si:"+l.id, title:"Sí, cotizar" } },
-    { type:"reply", reply:{ id:"cotizar_no:"+l.id, title:"No, gracias" } }
-  ] } };
+  if(l.estado!=="abierta") return;
   let destinos=[];
   if(env.KAPSO_TEST_TO){ destinos=[_telWa(env.KAPSO_TEST_TO)].filter(Boolean); }
-  else { destinos=(await dalTelefonosTransportistasActivos(env, usarSupabase(env,null))).map(_telWa).filter(Boolean); }
-  for(const to of destinos){ try{ await kapsoEnviar(env, { to, type:"interactive", interactive }); }catch(e){} }
+  else {
+    if(l.esPrueba) return; // no molestar a transportistas reales con una licitación de prueba
+    const fallback = l.modoNotificacion==="fallback";
+    const users=await dalTransportistasWhatsapp(env, usarSupabase(env,null));
+    destinos=[...new Set(users.filter(u=>fallback || puedeTransportar(u.tiposEquipo||[], l)).map(_telefonoWaDe))];
+  }
+  for(const to of destinos){ try{ await kapsoEnviar(env, _waPlantillaLicitacion(env, to, l)); }catch(e){} }
 }
-// Extrae los mensajes entrantes de un webhook de Kapso (formato Meta, con respaldos).
+
+// ── Flow de cotización ──
+const _WA_FLOW_CAMPOS=["desc","equipo","i1_mod","i1_yr","i1_cant","i1_tarifa","s1_tipo","s1_uf","s1_obs","s2_tipo","s2_uf","s2_obs","espera_h","cobro_espera","cobro_estadia","obs","enc_nombre","enc_tel","enc_email"];
+function _waFlowData(env, l, prev){
+  prev=prev||{};
+  const base=env.TM_BASE||"https://transmatch.cl";
+  const d={
+    codigo: l.codigo||"Licitación",
+    resumen: _waCarga(l)+" · "+_waRuta(l)+" · Cierre "+_waCierreTexto(l),
+    ruta: prev.ruta || _waRuta(l),
+    fecha_carga: prev.fecha_carga || l.fechaCarga || "",
+    fecha_entrega: prev.fecha_entrega || l.fechaEntrega || "",
+    label_lic: "Acepto las condiciones de la "+(l.codigo||"licitación"),
+    url_lic: base+"/transportista-licitaciones.html?id="+encodeURIComponent(l.id),
+  };
+  for(const k of _WA_FLOW_CAMPOS) d[k]=prev[k]!=null?String(prev[k]):"";
+  if(!d.i1_cant) d.i1_cant="1";
+  return d;
+}
+async function _waFlowToken(env, licId, userId){
+  return signToken({ t:"waflow", lic:licId, uid:userId }, env.JWT_SECRET);
+}
+async function kapsoEnviarFlow(env, to, l, user, prev, intro){
+  if(!env.KAPSO_FLOW_ID){ console.error("Falta KAPSO_FLOW_ID"); return kapsoTexto(env, to, "Por ahora no podemos abrir el formulario. Cotiza en "+(env.TM_BASE||"https://transmatch.cl")+"/transportista-licitaciones.html?id="+encodeURIComponent(l.id)); }
+  const params={ flow_message_version:"3", flow_token: await _waFlowToken(env, l.id, user.id), flow_id: env.KAPSO_FLOW_ID, flow_cta:"Abrir formulario", flow_action:"navigate", flow_action_payload:{ screen:"SERVICIO", data:_waFlowData(env, l, prev) } };
+  if(["1","on","true","si","sí"].includes(String(env.KAPSO_FLOW_DRAFT||"").toLowerCase())) params.mode="draft";
+  const texto=(intro?intro+"\n\n":"")+"Completa tu cotización para la *"+(l.codigo||"licitación")+"*. Recibimos cotizaciones hasta el "+_waCierreTexto(l)+".";
+  return kapsoEnviar(env, { to, type:"interactive", interactive:{ type:"flow", body:{ text:texto.slice(0,1024) }, action:{ name:"flow", parameters:params } } });
+}
+// Arma la cotización (mismo formato que cotizacion-editor.html) a partir de la respuesta del Flow.
+function _waArmarCotizacion(l, r){
+  const errores=[];
+  const equipo=String(r.equipo||"").trim().slice(0,120);
+  const cantRaw=String(r.i1_cant||"").trim()||"1";
+  const cant=_num(cantRaw), tarifa=_num(r.i1_tarifa);
+  if(!equipo) errores.push("Indica el equipo a utilizar.");
+  if(!(cant>0)) errores.push("La cantidad debe ser mayor a 0.");
+  if(!(tarifa>0)) errores.push("La tarifa debe ser mayor a 0.");
+  if(!r.fecha_carga) errores.push("Falta la fecha de carga.");
+  if(!r.fecha_entrega) errores.push("Falta la fecha de entrega.");
+  if(r.terminos!==true && r.terminos!=="true") errores.push("Debes aceptar las condiciones generales.");
+  if(r.terminos_lic!==true && r.terminos_lic!=="true") errores.push("Debes aceptar las condiciones de la licitación.");
+  const neto=Math.round(cant*tarifa), iva=Math.round(neto*0.19), total=Math.round(neto*1.19);
+  const t=v=>String(v==null?"":v).trim();
+  const seguros=[1,2].map(n=>({ tipo:t(r["s"+n+"_tipo"]), uf:t(r["s"+n+"_uf"]), cobertura:t(r["s"+n+"_uf"]), obs:t(r["s"+n+"_obs"]) })).filter(s=>s.tipo||s.uf||s.obs);
+  const modalidad=(r.modalidad==="Consolidada"||r.modalidad==="No consolidada")?r.modalidad:"";
+  const hoy=new Date().toLocaleDateString("es-CL",{ day:"2-digit", month:"long", year:"numeric", timeZone:"America/Santiago" });
+  const formulario={
+    fecha:hoy, validez:"5 días hábiles", ruta:t(r.ruta), descripcion:t(r.desc),
+    fechaCarga:t(r.fecha_carga), fechaEntrega:t(r.fecha_entrega),
+    montoNeto:neto, iva, montoTotal:total,
+    items:[{ eq:equipo, mod:t(r.i1_mod), modelo:t(r.i1_mod), yr:t(r.i1_yr), cant:cantRaw, tarifa, total:neto, unidad:"" }],
+    seguros, observaciones:t(r.obs), equipoUtilizado:equipo,
+    esperaIncluida:t(r.espera_h), cobroEspera:t(r.cobro_espera), cobroEstadia:t(r.cobro_estadia),
+    canal:"whatsapp",
+  };
+  const body={
+    licitacionId:l.id, precio:neto, tiempoEntrega:formulario.fechaEntrega,
+    fechaCargaISO:formulario.fechaCarga, fechaEntregaISO:formulario.fechaEntrega,
+    descripcion: formulario.observaciones || formulario.descripcion,
+    incluye:[], modalidad,
+    contactoEncargado:{ nombre:t(r.enc_nombre), telefono:t(r.enc_tel), email:t(r.enc_email) },
+    archivoId:null, archivoNombre:null, archivoPdfId:null, archivoPdfNombre:null,
+    formulario, canal:"whatsapp",
+  };
+  const lineas=[
+    "📋 *Revisa tu cotización · "+(l.codigo||"")+"*","",
+    "*Ruta:* "+(formulario.ruta||_waRuta(l)),
+    "*Carga:* "+_waFecha(formulario.fechaCarga)+" · *Entrega:* "+_waFecha(formulario.fechaEntrega),
+    "*Equipo:* "+equipo+([t(r.i1_mod),t(r.i1_yr)].filter(Boolean).length?(" · "+[t(r.i1_mod),t(r.i1_yr)].filter(Boolean).join(" ")):""),
+    "*Tarifa:* "+cantRaw+" × "+_clp(tarifa),
+  ];
+  if(modalidad) lineas.push("*Modalidad:* "+modalidad);
+  lineas.push("","Monto neto: "+_clp(neto),"IVA (19%): "+_clp(iva),"*Total: "+_clp(total)+"*");
+  for(const s of seguros) lineas.push("*Seguro:* "+[s.tipo, s.uf?(s.uf+" UF"):"", s.obs].filter(Boolean).join(" · "));
+  const esp=[formulario.esperaIncluida?(formulario.esperaIncluida+" h incluidas"):"", formulario.cobroEspera?("Hora extra "+_clp(_num(formulario.cobroEspera))):"", formulario.cobroEstadia?("Estadía "+_clp(_num(formulario.cobroEstadia))+"/noche"):""].filter(Boolean);
+  if(esp.length) lineas.push("*Espera:* "+esp.join(" · "));
+  if(formulario.observaciones) lineas.push("*Observaciones:* "+formulario.observaciones.slice(0,300));
+  lineas.push("","¿Enviamos esta cotización al cliente?");
+  return { errores, body, resumen:lineas.join("\n") };
+}
+
+// ── Webhook ──
+async function _kapsoFirmaValida(raw, firma, secreto){
+  if(!firma||!secreto) return false;
+  try{
+    const key=await crypto.subtle.importKey("raw", new TextEncoder().encode(secreto), { name:"HMAC", hash:"SHA-256" }, false, ["sign"]);
+    const sig=new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(raw)));
+    const hex=[...sig].map(b=>b.toString(16).padStart(2,"0")).join("");
+    const f=String(firma).trim().toLowerCase().replace(/^sha256=/,"");
+    if(f.length!==hex.length) return false;
+    let diff=0; for(let i=0;i<hex.length;i++) diff|=hex.charCodeAt(i)^f.charCodeAt(i);
+    return diff===0;
+  }catch(e){ return false; }
+}
+// Extrae los mensajes entrantes (formato Kapso v2, lotes de Kapso y formato Meta).
 function _kapsoExtraerMensajes(body){
   const out=[];
-  const push=(m)=>{ if(m) out.push(m); };
+  const push=(m)=>{ if(m && !(m.kapso && m.kapso.direction && m.kapso.direction!=="inbound")) out.push(m); };
   try{
     if(body && Array.isArray(body.entry)){
       for(const e of body.entry){ for(const c of (e.changes||[])){ const v=c.value||{}; for(const m of (v.messages||[])) push(m); } }
     }
   }catch(e){}
+  if(!out.length && body && Array.isArray(body.data)) for(const d of body.data){ if(d && d.message) push(Object.assign({}, d.message, { from: d.message.from || (d.conversation&&d.conversation.phone_number) })); }
   if(!out.length && body && Array.isArray(body.messages)) for(const m of body.messages) push(m);
-  if(!out.length && body && body.message) push(body.message);
+  if(!out.length && body && body.message) push(Object.assign({}, body.message, { from: body.message.from || (body.conversation&&body.conversation.phone_number) }));
   return out;
 }
 function _kapsoLeerMensaje(m){
@@ -1523,27 +1712,91 @@ function _kapsoLeerMensaje(m){
   if(m.interactive){
     if(m.interactive.button_reply) botonId=m.interactive.button_reply.id;
     else if(m.interactive.list_reply) botonId=m.interactive.list_reply.id;
-    else if(m.interactive.nfm_reply){ try{ flujo=JSON.parse(m.interactive.nfm_reply.response_json||"{}"); }catch(e){ flujo=m.interactive.nfm_reply; } }
-    if(m.interactive.type==="nfm_reply" && !flujo && m.interactive.nfm_reply){ try{ flujo=JSON.parse(m.interactive.nfm_reply.response_json||"{}"); }catch(e){} }
+    else if(m.interactive.nfm_reply){ try{ flujo=JSON.parse(m.interactive.nfm_reply.response_json||"{}"); }catch(e){ flujo=null; } }
+  }
+  if(!flujo && m.kapso && m.kapso.flow_response && typeof m.kapso.flow_response==="object"){
+    flujo=Object.assign({}, m.kapso.flow_response); if(!flujo.flow_token && m.kapso.flow_token) flujo.flow_token=m.kapso.flow_token;
   }
   if(m.button && m.button.payload) botonId=botonId||m.button.payload;
   if(m.text && m.text.body) texto=m.text.body;
   return { from, botonId, texto, flujo };
 }
-// Procesa un mensaje entrante: si tocan "Sí, cotizar" → manda el enlace para cotizar esa licitación.
+async function _waYaProcesado(env, id){
+  if(!id) return false;
+  const k="wa_evt:"+id;
+  if(await env.SESSIONS.get(k)) return true;
+  await env.SESSIONS.put(k, "1", { expirationTtl: 172800 });
+  return false;
+}
+// Procesa un mensaje entrante: botón Cotizar, respuesta del Flow, Confirmar/Corregir.
 async function kapsoProcesarMensaje(env, m){
-  const { from, botonId } = _kapsoLeerMensaje(m);
-  if(!from || !botonId) return;
+  if(await _waYaProcesado(env, m.id)) return; // Kapso/Meta pueden reintentar el mismo evento
+  const { from, botonId, flujo } = _kapsoLeerMensaje(m);
+  if(!from || (!botonId && !flujo)) return;
+  const sb=usarSupabase(env,null);
   const base=env.TM_BASE||"https://transmatch.cl";
-  if(botonId.startsWith("cotizar_si:")){
-    const licId=botonId.slice("cotizar_si:".length);
-    await kapsoEnviar(env, { to:from, type:"interactive", interactive:{ type:"cta_url", body:{ text:"¡Perfecto! 🙌 Cotiza esta licitación aquí. Tu oferta aparece al instante en la plataforma." }, action:{ name:"cta_url", parameters:{ display_text:"Cotizar ahora", url: base+"/transportista-licitaciones.html?lic="+encodeURIComponent(licId) } } } });
-  } else if(botonId.startsWith("cotizar_no:")){
-    await kapsoEnviar(env, { to:from, type:"text", text:{ body:"¡Gracias por avisar! Te seguiremos enviando las próximas licitaciones. 🚚" } });
+
+  // 1) Botón "Cotizar" de la plantilla → revisar antes de abrir el formulario
+  if(botonId && botonId.startsWith("cotizar:")){
+    const licId=botonId.slice("cotizar:".length);
+    const user=await dalTransportistaPorTelefonoWa(env, from, sb);
+    if(!user) return kapsoTexto(env, from, "No encontramos una cuenta de transportista activa con este número. Revisa el teléfono de tu perfil en "+base+" o escríbenos a contacto@transmatch.cl.");
+    const l=await dalGetLicitacionById(env, licId, sb);
+    if(!l) return kapsoTexto(env, from, "No encontramos esa licitación.");
+    if(l.estado!=="abierta" || licitacionVencida(l)) return kapsoTexto(env, from, "⚠️ La "+(l.codigo||"licitación")+" ya cerró y no recibe más cotizaciones.");
+    const mias=_misCotizacionesEn(l, user, await emailsEmpresa(env, user)).length;
+    if(mias>=MAX_COTIZ_POR_LICITACION) return kapsoTexto(env, from, "⚠️ Ya enviaste el máximo de "+MAX_COTIZ_POR_LICITACION+" cotizaciones para la "+(l.codigo||"licitación")+".");
+    const intro = mias>0 ? ("Ya enviaste "+mias+" de "+MAX_COTIZ_POR_LICITACION+" cotizaciones para esta licitación. Puedes enviar una más.") : "";
+    return kapsoEnviarFlow(env, from, l, user, null, intro);
+  }
+
+  // 2) Respuesta del Flow → validar, guardar pendiente y pedir confirmación
+  if(flujo){
+    const tok=await verifyToken(String(flujo.flow_token||""), env.JWT_SECRET);
+    if(!tok || tok.t!=="waflow") return kapsoTexto(env, from, "Este formulario expiró. Toca nuevamente \"Cotizar\" en el aviso de la licitación.");
+    const user=await dalGetUsuarioById(env, tok.uid, sb);
+    if(!user || user.estado!=="activo" || _telefonoWaDe(user)!==_telWa(from)) return kapsoTexto(env, from, "No pudimos validar tu cuenta para esta cotización. Cotiza en "+base+".");
+    const l=await dalGetLicitacionById(env, tok.lic, sb);
+    if(!l || l.estado!=="abierta" || licitacionVencida(l)) return kapsoTexto(env, from, "⚠️ La "+((l&&l.codigo)||"licitación")+" ya cerró y no recibe más cotizaciones.");
+    const armado=_waArmarCotizacion(l, flujo);
+    if(armado.errores.length){
+      return kapsoEnviarFlow(env, from, l, user, flujo, "Revisa tu cotización:\n• "+armado.errores.join("\n• "));
+    }
+    const pid=uid();
+    await env.SESSIONS.put("wa_pend:"+pid, JSON.stringify({ uid:user.id, from:_telWa(from), body:armado.body, respuesta:flujo, licId:l.id }), { expirationTtl: 86400 });
+    return kapsoEnviar(env, { to:from, type:"interactive", interactive:{ type:"button", body:{ text:armado.resumen.slice(0,1024) }, action:{ buttons:[
+      { type:"reply", reply:{ id:"wa_ok:"+pid, title:"Confirmar y enviar" } },
+      { type:"reply", reply:{ id:"wa_fix:"+pid, title:"Corregir" } }
+    ] } } });
+  }
+
+  // 3) Confirmar / Corregir
+  if(botonId && (botonId.startsWith("wa_ok:") || botonId.startsWith("wa_fix:"))){
+    const confirmar=botonId.startsWith("wa_ok:");
+    const pid=botonId.slice(confirmar?6:7);
+    const raw=await env.SESSIONS.get("wa_pend:"+pid);
+    if(!raw) return kapsoTexto(env, from, "Esta cotización ya fue enviada o expiró. Si quieres cotizar de nuevo, toca \"Cotizar\" en el aviso de la licitación.");
+    const p=JSON.parse(raw);
+    if(p.from!==_telWa(from)) return;
+    const user=await dalGetUsuarioById(env, p.uid, sb);
+    if(!user) return kapsoTexto(env, from, "No pudimos validar tu cuenta. Cotiza en "+base+".");
+    if(!confirmar){
+      const l=await dalGetLicitacionById(env, p.licId, sb);
+      if(!l || l.estado!=="abierta" || licitacionVencida(l)) return kapsoTexto(env, from, "⚠️ La "+((l&&l.codigo)||"licitación")+" ya cerró y no recibe más cotizaciones.");
+      await env.SESSIONS.delete("wa_pend:"+pid);
+      return kapsoEnviarFlow(env, from, l, user, p.respuesta, "Sin problema. El formulario viene con lo que ya escribiste para que cambies solo lo necesario.");
+    }
+    await env.SESSIONS.delete("wa_pend:"+pid); // evita doble envío si toca 2 veces
+    const r=await crearCotizacionCore(env, user, p.body, sb);
+    if(r.error){
+      const msg = r.error==="Esta licitacion no esta abierta" ? "⚠️ La licitación ya cerró y no recibe más cotizaciones." : ("⚠️ No pudimos enviar tu cotización: "+r.error+".");
+      return kapsoTexto(env, from, msg);
+    }
+    return kapsoTexto(env, from, "✅ *Cotización "+(r.cotizacion.codigo||"")+" enviada*\n\nYa está en la plataforma junto a las demás ofertas para la "+(r.licitacion.codigo||"licitación")+". Puedes revisarla o editarla en "+base+".\n\nTe avisaremos por correo si te adjudican. 🚚");
   }
 }
 
-async function handleRequest(request, env) {
+async function handleRequest(request, env, ctx) {
   const url    = new URL(request.url);
   const path   = url.pathname;
   const method = request.method;
@@ -1591,7 +1844,7 @@ async function handleRequest(request, env) {
       id:uid(), email:emailLower, password:await hashPassword(password),
       nombre, empresa:empresa||"", telefono:telefono||"", rut:rut||"",
       rutEmpresa: rutEmpresa||"", cargo: cargo||"",
-      notifEmail:roleNorm==="transportista", notifWhatsapp:false, whatsapp:whatsapp||"",
+      notifEmail:roleNorm==="transportista", notifWhatsapp:(roleNorm==="transportista" && body.notifWhatsapp===true && _telWaValido(telefono||whatsapp)), whatsapp:whatsapp||"",
       role:roleNorm, estado:"activo",
       plan:roleNorm==="cliente"?"basico":null,
       rating:5.0, totalTransportes:0,
@@ -2111,12 +2364,14 @@ async function handleRequest(request, env) {
       let prefsBody = {}; try { prefsBody = await request.json(); } catch(e) { return err("Formato invalido"); }
       const { notifPrefs } = prefsBody;
       if (!notifPrefs) return err("Faltan preferencias");
-      const raw = await env.USERS.get(user.email);
-      if (!raw) return err("Usuario no encontrado", 404);
-      const u = JSON.parse(raw);
-      u.notifPrefs = notifPrefs;
-      await env.USERS.put(user.email, JSON.stringify(u));
-      return ok({ ok: true });
+      const _sbP = usarSupabase(env, url);
+      const u = await dalGetUsuarioByEmail(env, user.email, _sbP);
+      if (!u) return err("Usuario no encontrado", 404);
+      if (typeof notifPrefs !== "object") return err("Formato invalido");
+      // Fusionar: cada panel guarda solo sus claves sin borrar las del otro
+      u.notifPrefs = Object.assign({}, u.notifPrefs || {}, notifPrefs);
+      await dalSaveUsuario(env, u, _sbP);
+      return ok({ ok: true, notifPrefs: u.notifPrefs });
     } catch(e) { return err("Error interno: " + e.message, 500); }
   }
 
@@ -2214,7 +2469,7 @@ async function handleRequest(request, env) {
     if(env.ADMIN_EMAIL){ try{ await enviarEmail(env,{ to:env.ADMIN_EMAIL, subject:_esExpress?"Licitación exprés publicada (6h) - TransMatch":"Nueva licitación pendiente de aprobación - TransMatch", html:emailNuevaLicitacionAdmin(licitacion) }); }catch(e){} }
     if (_esExpress) {
       if(!licitacion.esPrueba) { try{ await notificarNuevaLicitacionTransportistas(env, licitacion); }catch(e){} }
-      try{ await notificarLicitacionWhatsapp(env, licitacion); }catch(e){}
+      { const _wa=notificarLicitacionWhatsapp(env, licitacion).catch(e=>console.error('wa aviso',e&&e.message)); if(ctx&&ctx.waitUntil) ctx.waitUntil(_wa); else await _wa; }
     }
     await registrarActividad(env,"licitacion_creada",`${user.empresa||user.nombre||'Cliente'} publicó una licitación: ${licitacion.tipoEquipo} (${origen} → ${destino})`,{ licitacionId:id, codigo, empresa:user.empresa });
     return ok({ ok:true, id, mensaje:"Licitacion enviada." });
@@ -2276,26 +2531,9 @@ async function handleRequest(request, env) {
   if (path === "/api/cotizaciones" && method === "POST") {
     const user = await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
-    const { licitacionId, precio, tiempoEntrega, fechaEntregaISO, fechaCargaISO, descripcion, incluye, archivoId, archivoNombre, archivoPdfId, archivoPdfNombre, formulario } = body;
-    if (!licitacionId||!precio) return err("licitacionId y precio son requeridos");
-    const raw = await dalGetLicitacionById(env, licitacionId, usarSupabase(env, url)); if(!raw) return err("No encontrada",404);
-    const l = raw;
-    if (l.estado!=="abierta") return err("Esta licitacion no esta abierta");
-    const emailsT = await emailsEmpresa(env, user);
-    const _misCotiz=(l.cotizaciones||[]).filter(c=>c.transportistaId===user.id || (c.transportistaEmail&&emailsT.has(c.transportistaEmail.toLowerCase())));
-    if(_misCotiz.length>=2) return err("Ya enviaste el máximo de 2 cotizaciones para esta licitación");
-    const userData = (await dalGetUsuarioByEmail(env, user.email, usarSupabase(env, url))) || {};
-    const _MODALIDADES=["Consolidada","No consolidada"];
-    const _modalidad = _MODALIDADES.includes(body.modalidad) ? body.modalidad : "";
-    const _sanContacto=function(c){ c=c||{}; const n=(c.nombre||'').toString().trim().slice(0,120),t=(c.telefono||'').toString().trim().slice(0,30),e=(c.email||'').toString().trim().slice(0,120); return (n||t||e)?{nombre:n,telefono:t,email:e}:null; };
-    const _contactoEnc=_sanContacto(body.contactoEncargado);
-    const cotizacion = { id:uid(), codigo:await generarCodigo(env,'COT'), licitacionId, transportistaId:user.id, transportistaNombre:user.nombre, transportistaEmpresa:user.empresa, transportistaEmail:user.email, transportistaTelefono:userData.telefono||"", transportistaRating:userData.rating||5.0, transportistaTransportes:userData.totalTransportes||0, precio:parseFloat(precio), modalidad:_modalidad, contactoEncargado:_contactoEnc, tiempoEntrega:tiempoEntrega||"", fechaCargaISO:fechaCargaISO||null, fechaEntregaISO:fechaEntregaISO||null, descripcion:descripcion||"", incluye:incluye||[], archivoId:archivoId||null, archivoNombre:archivoNombre||null, archivoPropioId:archivoPdfId||null, archivoPropioNombre:archivoPdfNombre||null, formulario:formulario||null, tiempoRespuesta:Math.floor((Date.now()-new Date(l.createdAt).getTime())/60000), score:0, createdAt:new Date().toISOString() };
-    l.cotizaciones = [...(l.cotizaciones||[]), cotizacion];
-    const todosPrecios = l.cotizaciones.map(c=>c.precio);
-    l.cotizaciones = l.cotizaciones.map(c=>({...c,_allPrecios:todosPrecios,score:calcScore({...c,_allPrecios:todosPrecios},l.fechaCarga)})).sort((a,b)=>b.score-a.score);
-    await dalSaveLicitacion(env, l, usarSupabase(env, url));
-    await crearNotificacion(env,"admin","nueva_cotizacion",`Nueva cotizacion: ${l.tipoEquipo} - ${l.origen}-${l.destino} - ${formatCLP(parseFloat(precio))}`,{ licitacionId, cotizacionId:cotizacion.id });
-    await registrarActividad(env,"cotizacion_enviada",`${user.empresa||user.nombre||'Transportista'} cotizó ${formatCLP(parseFloat(precio))} en ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId, cotizacionId:cotizacion.id, codigo:l.codigo });
+    delete body.canal; // el canal "whatsapp" solo lo marca el webhook
+    const r = await crearCotizacionCore(env, user, body, usarSupabase(env, url));
+    if (r.error) return err(r.error, r.status||400);
     return ok({ ok:true, mensaje:"Cotizacion enviada." });
   }
 
@@ -2323,7 +2561,7 @@ async function handleRequest(request, env) {
     // Notificar a los transportistas elegibles (in-app + email según preferencia).
     // Las licitaciones de prueba NO se notifican ni se muestran a los transportistas.
     if(!l.esPrueba) await notificarNuevaLicitacionTransportistas(env, l);
-    try{ await notificarLicitacionWhatsapp(env, l); }catch(e){}  // WhatsApp vía Kapso (no-op si no está configurado)
+    { const _wa=notificarLicitacionWhatsapp(env, l).catch(e=>console.error('wa aviso',e&&e.message)); if(ctx&&ctx.waitUntil) ctx.waitUntil(_wa); else await _wa; }  // WhatsApp vía Kapso (no-op si no está configurado)
     await registrarActividad(env,"licitacion_aprobada",`Licitación aprobada y publicada: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo });
     return ok({ ok:true });
   }
@@ -3070,17 +3308,35 @@ async function handleRequest(request, env) {
     return ok({ ok:true });
   }
 
+  if (path === "/api/admin/usuario/whatsapp" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    const _sbA=usarSupabase(env, url);
+    const u=await dalGetUsuarioByEmail(env, body.email, _sbA); if(!u) return err("Usuario no encontrado",404);
+    if(u.role!=="transportista") return err("Solo aplica a transportistas");
+    const _on=!!body.activo;
+    if(_on && !_telWaValido(u.telefono||u.whatsapp)) return err("El transportista no tiene un celular válido (+56 9) en su perfil");
+    u.notifWhatsapp=_on; u.notifWhatsappAt=new Date().toISOString(); u.notifWhatsappPor="admin";
+    await dalSaveUsuario(env, u, _sbA);
+    await registrarActividad(env,"whatsapp_optin",`Admin ${_on?"activó":"desactivó"} avisos por WhatsApp de ${u.empresa||u.nombre||u.email}`,{ email:u.email });
+    return ok({ ok:true, notifWhatsapp:_on });
+  }
+
   if (path === "/api/perfil/notificaciones" && method === "PUT") {
     const user=await getUser(request,env); if(!user) return err("No autenticado",401);
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
-    const raw=await env.USERS.get(user.email); if(!raw) return err("No encontrado",404);
-    const u=JSON.parse(raw);
+    const _sbN=usarSupabase(env, url);
+    const u=await dalGetUsuarioByEmail(env, user.email, _sbN); if(!u) return err("No encontrado",404);
     if(body.notifEmail!==undefined) u.notifEmail=!!body.notifEmail;
-    if(body.notifWhatsapp!==undefined) u.notifWhatsapp=!!body.notifWhatsapp;
     if(body.whatsapp!==undefined) u.whatsapp=body.whatsapp;
     if(body.telefono!==undefined) u.telefono=body.telefono;
-    await env.USERS.put(user.email, JSON.stringify(u));
-    return ok({ ok:true });
+    if(body.notifWhatsapp!==undefined){
+      const _on=!!body.notifWhatsapp;
+      if(_on && !_telWaValido(u.telefono||u.whatsapp)) return err("Agrega un celular válido (+56 9) en tu perfil para activar WhatsApp");
+      if(_on!==!!u.notifWhatsapp){ u.notifWhatsapp=_on; u.notifWhatsappAt=new Date().toISOString(); u.notifWhatsappPor="usuario"; }
+    }
+    await dalSaveUsuario(env, u, _sbN);
+    return ok({ ok:true, notifWhatsapp:!!u.notifWhatsapp, telefonoWa:_telWaValido(u.telefono||u.whatsapp)?_telWa(u.telefono||u.whatsapp):null });
   }
 
   if (path === "/api/archivos/upload" && method === "POST") {
@@ -3349,12 +3605,17 @@ async function handleRequest(request, env) {
   // ── CONTACTO: formulario público (sin auth) + Resend ──
   // Webhook de Kapso (WhatsApp): recibe mensajes entrantes (respuestas Sí/No, y a futuro las cotizaciones por flow).
   if (path === "/api/kapso/webhook" && method === "POST") {
-    // Seguridad opcional: si defines KAPSO_WEBHOOK_SECRET, exígelo como ?secret= en la URL del webhook.
-    if(env.KAPSO_WEBHOOK_SECRET && url.searchParams.get("secret")!==env.KAPSO_WEBHOOK_SECRET) return err("no autorizado",401);
-    let body={}; try{ body=await request.json(); }catch(e){}
+    const rawBody = await request.text();
+    // Seguridad: si defines KAPSO_WEBHOOK_SECRET se exige la firma X-Webhook-Signature de Kapso (o ?secret= en la URL).
+    if(env.KAPSO_WEBHOOK_SECRET){
+      const _firmaOk = await _kapsoFirmaValida(rawBody, request.headers.get("X-Webhook-Signature"), env.KAPSO_WEBHOOK_SECRET);
+      if(!_firmaOk && url.searchParams.get("secret")!==env.KAPSO_WEBHOOK_SECRET) return err("no autorizado",401);
+    }
+    let body={}; try{ body=JSON.parse(rawBody||"{}"); }catch(e){}
     const mensajes=_kapsoExtraerMensajes(body);
-    for(const m of mensajes){ try{ await kapsoProcesarMensaje(env, m); }catch(e){ console.error("kapso webhook", e&&e.message); } }
-    return ok({ ok:true, procesados:mensajes.length });
+    const _proc=(async()=>{ for(const m of mensajes){ try{ await kapsoProcesarMensaje(env, m); }catch(e){ console.error("kapso webhook", e&&e.message); } } })();
+    if(ctx&&ctx.waitUntil) ctx.waitUntil(_proc); else await _proc;  // responder rápido a Kapso para que no reintente
+    return ok({ ok:true, recibidos:mensajes.length });
   }
   // Verificación del webhook (algunos proveedores hacen un GET de handshake)
   if (path === "/api/kapso/webhook" && method === "GET") {
@@ -4923,7 +5184,7 @@ async function procesarVencimientosEmpresas(env){
 }
 
 export default {
-  fetch: handleRequest,
+  fetch: (request, env, ctx) => handleRequest(request, env, ctx),
   async scheduled(event, env, ctx) {
     // Ejecutado por el Cron Trigger de Cloudflare (ej: cada 10 min)
     ctx.waitUntil(procesarLicitacionesVencidas(env));
