@@ -1588,6 +1588,41 @@ function _waPlantillaLicitacion(env, to, l){
       { type:"button", sub_type:"quick_reply", index:"0", parameters:[ { type:"payload", payload:"cotizar:"+l.id } ] }
     ] } };
 }
+// Aviso al admin (número personal en ADMIN_WHATSAPP) cada vez que se sube una licitación.
+// Plantilla utility KAPSO_TEMPLATE_ADMIN (default aviso_admin_licitacion): 6 variables + botón de respuesta rápida
+// "Ver licitación" (payload adminlic:<id>). Al tocarlo se abre la ventana de 24 h → los avisos siguientes son gratis.
+async function notificarAdminLicitacionWhatsapp(env, l){
+  if(!usarKapso(env)) return;
+  const to=_telWa(env.ADMIN_WHATSAPP); if(!to) return;
+  const estado = l.estado==="abierta" ? "Exprés, ya publicada (6h)" : "Pendiente de aprobación";
+  const cliente = (l.clienteEmpresa||l.clienteNombre||"—") + (l.esPrueba?" (prueba)":"");
+  return kapsoEnviar(env, { to, type:"template", template:{
+    name: env.KAPSO_TEMPLATE_ADMIN || "aviso_admin_licitacion",
+    language:{ code: env.KAPSO_TEMPLATE_LANG || "es" },
+    components:[
+      { type:"body", parameters:[ _waParam(l.codigo||"Licitación"), _waParam(cliente), _waParam(_waCarga(l)), _waParam(_waRuta(l)), _waParam(_waFecha(l.fechaCarga)), _waParam(estado) ].map(t=>({ type:"text", text:t })) },
+      { type:"button", sub_type:"quick_reply", index:"0", parameters:[ { type:"payload", payload:"adminlic:"+l.id } ] }
+    ] } });
+}
+function _esAdminWa(env, from){ const a=_telWa(env.ADMIN_WHATSAPP); return !!a && a===_telWa(from); }
+const _WA_EST_ADMIN={ pendiente_admin:"Pendiente de aprobación", abierta:"Abierta (cotizando)", cerrada:"Cerrada, en revisión", adjudicada:"Adjudicada", completada:"Completada", rechazada:"Rechazada", expirada:"Expirada", anulada:"Anulada" };
+async function waAdminProcesar(env, from, botonId, texto){
+  if(!_esAdminWa(env, from)) return false;
+  const base=env.TM_BASE||"https://transmatch.cl";
+  if(botonId && botonId.startsWith("adminlic:")){
+    const id=botonId.slice(9); const l=await dalGetLicitacionById(env, id, usarSupabase(env,null));
+    if(!l){ await kapsoTexto(env, from, "No encontramos esa licitación."); return true; }
+    await kapsoTexto(env, from, "📋 *"+(l.codigo||"Licitación")+"* · "+(l.clienteEmpresa||l.clienteNombre||"—")+"\n"+_waCarga(l)+" · "+_waRuta(l)+"\nEstado: "+(_WA_EST_ADMIN[l.estado]||l.estado)+"\n\nRevisar: "+base+"/admin-licitaciones.html?id="+encodeURIComponent(l.id));
+    return true;
+  }
+  if(texto && !botonId){
+    const d=new Date(Date.now()+864e5), o={ timeZone:"America/Santiago" };
+    const dia=d.toLocaleDateString("es-CL",{ ...o, weekday:"long" }), hora=d.toLocaleTimeString("es-CL",{ ...o, hour:"2-digit", minute:"2-digit", hour12:false });
+    await kapsoTexto(env, from, "✅ Listo. Los avisos de licitaciones te llegan gratis hasta mañana "+dia+" a las "+hora+".");
+    return true;
+  }
+  return false;
+}
 // El admin elige a quién avisar por WhatsApp (al aprobar o después). Nada se envía solo.
 async function waCandidatosLicitacion(env, l, sb){
   const enviados=new Set((l.waEnviados||[]).map(x=>String(x.uid)));
@@ -1759,7 +1794,9 @@ async function _waYaProcesado(env, id){
 async function kapsoProcesarMensaje(env, m){
   if(await _waYaProcesado(env, m.id)) return; // Kapso/Meta pueden reintentar el mismo evento
   const { from, botonId, flujo, texto } = _kapsoLeerMensaje(m);
+  if(botonId && botonId.startsWith("adminlic:") && await waAdminProcesar(env, from, botonId, null)) return;
   if(await waDocsProcesar(env, m, from, botonId, texto)) return;
+  if(texto && !botonId && await waAdminProcesar(env, from, null, texto)) return;
   if(!from || (!botonId && !flujo)) return;
   const sb=usarSupabase(env,null);
   const base=env.TM_BASE||"https://transmatch.cl";
@@ -2707,6 +2744,7 @@ async function handleRequest(request, env, ctx) {
     if (_esExpress) { licitacion.estado="abierta"; licitacion.aprobadaAt=licitacion.createdAt; licitacion.express=true; licitacion.autoAprobada=true; }
     await dalSaveLicitacion(env, licitacion, usarSupabase(env, url), { isNew:true, clienteIndexId:user.id });
     await crearNotificacion(env,"admin","nueva_licitacion",`${_esExpress?"Licitación exprés publicada":"Nueva licitacion"}: ${licitacion.tipoEquipo} - ${origen} - ${destino}`,{ licitacionId:id });
+    { const _wa=notificarAdminLicitacionWhatsapp(env, licitacion).catch(e=>console.error('wa admin',e&&e.message)); if(ctx&&ctx.waitUntil) ctx.waitUntil(_wa); else await _wa; }
     if(env.ADMIN_EMAIL){ try{ await enviarEmail(env,{ to:env.ADMIN_EMAIL, subject:_esExpress?"Licitación exprés publicada (6h) - TransMatch":"Nueva licitación pendiente de aprobación - TransMatch", html:emailNuevaLicitacionAdmin(licitacion) }); }catch(e){} }
     if (_esExpress) {
       if(!licitacion.esPrueba) { try{ await notificarNuevaLicitacionTransportistas(env, licitacion); }catch(e){} }

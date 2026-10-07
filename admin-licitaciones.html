@@ -466,6 +466,7 @@ async function cargar(){
     }catch(e){}
     renderStats();
     filtrar();
+    abrirLicitDesdeURL();
   }catch(e){
     document.getElementById('lista-licitaciones').innerHTML='<div class="empty">Error de conexión</div>';
   }
@@ -537,6 +538,18 @@ function renderCard(l){
   '</div>';
 }
 
+// Deep link: admin-licitaciones.html?id=<licitación> abre y resalta esa licitación (ej. desde el WhatsApp de aviso)
+var _deepLinkHecho=false;
+function abrirLicitDesdeURL(){
+  if(_deepLinkHecho) return; _deepLinkHecho=true;
+  var id=new URLSearchParams(location.search).get('id'); if(!id) return;
+  var card=document.getElementById('licit-card-'+id);
+  if(!card){ var b=document.getElementById('buscador'); var l=allLicit.find(function(x){return x.id===id;}); if(b&&l){ b.value=l.codigo||''; filtrar(); card=document.getElementById('licit-card-'+id); } }
+  if(!card) return;
+  var body=document.getElementById('det-'+id); if(body&&!body.classList.contains('open')) toggleCard(id);
+  card.scrollIntoView({behavior:'smooth',block:'start'});
+  card.style.boxShadow='0 0 0 2px #FF8808'; setTimeout(function(){ card.style.boxShadow=''; },4000);
+}
 function toggleCard(id){
   var body=document.getElementById('det-'+id);
   var arr=document.getElementById('arr-'+id);
