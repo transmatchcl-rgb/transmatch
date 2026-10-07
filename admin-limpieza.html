@@ -31,8 +31,11 @@ h3{font-size:12px;font-weight:700;color:#9CA3AF;letter-spacing:.06em;text-transf
 <main>
   <div class="card">
     <h1>Borrar datos de prueba</h1>
-    <div class="sub">Pega los códigos de las licitaciones de prueba. Se borran <b>definitivamente</b> junto con sus cotizaciones, preguntas, transportes, órdenes de venta, archivos y notificaciones. No se puede deshacer.</div>
+    <div class="sub">Pega los códigos de las licitaciones de prueba y/o marca los retornos de prueba. Se borran <b>definitivamente</b> junto con sus cotizaciones, preguntas, transportes, órdenes de venta, archivos y notificaciones. No se puede deshacer.</div>
+    <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:6px">Licitaciones</div>
     <textarea id="codigos" rows="3" placeholder="LIC-0001, LIC-0002, LIC-0003"></textarea>
+    <div style="font-size:13px;font-weight:600;color:#374151;margin:14px 0 6px">Retornos</div>
+    <div id="lista-ret" style="font-size:13px;color:#6B7280">Cargando retornos…</div>
     <div style="margin-top:10px"><button class="btn btn-nav" id="btn-prev" onclick="revisar()">Revisar qué se borrará</button></div>
   </div>
   <div id="res"></div>
@@ -48,24 +51,37 @@ async function api(body){
   return { ok:r.ok, data:await r.json().catch(()=>({})) };
 }
 function codigos(){ return (document.getElementById('codigos').value.match(/LIC-?\d+/gi)||[]).map(c=>c.toUpperCase().replace(/^LIC-?/,'LIC-')); }
+async function cargarRetornos(){
+  const el=document.getElementById('lista-ret');
+  try{
+    const r=await fetch(API+'/api/admin/retornos',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    const d=await r.json(); const a=d.retornos||d||[];
+    if(!Array.isArray(a)||!a.length){ el.textContent='No hay retornos.'; return; }
+    el.innerHTML=a.map(x=>'<label class="row" style="cursor:pointer;justify-content:flex-start;align-items:center"><input type="checkbox" class="ret-chk" value="'+e(x.id)+'" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0"><span style="flex:1"><b style="color:#111827">'+e((x.ciudadOrigen||'')+' → '+(x.ciudadDestino||''))+'</b> · '+e(x.transportistaEmpresa||x.transportistaEmail||'')+'<br><small>'+e((x.fecha||'').slice(0,10))+' · '+clp(x.precio)+'</small></span><span class="tag">'+e(x.estado||'')+'</span></label>').join('');
+  }catch(err){ el.textContent='No se pudieron cargar los retornos.'; }
+}
+cargarRetornos();
+function retSel(){ return [...document.querySelectorAll('.ret-chk')].filter(x=>x.checked).map(x=>x.value); }
+let _ultRet=[];
 function lista(t, arr, fn){ return arr.length?'<h3>'+t+' ('+arr.length+')</h3>'+arr.map(fn).join(''):''; }
 let _ultimos=[];
 async function revisar(){
-  const cs=codigos(); const res=document.getElementById('res');
-  if(!cs.length){ res.innerHTML='<div class="card warn">Escribe al menos un código LIC-XXXX.</div>'; return; }
+  const cs=codigos(), rs=retSel(); const res=document.getElementById('res');
+  if(!cs.length && !rs.length){ res.innerHTML='<div class="card warn">Escribe al menos un código LIC-XXXX o marca un retorno.</div>'; return; }
   res.innerHTML='<div class="card">Revisando…</div>';
-  const r=await api({codigos:cs}); if(!r) return;
+  const r=await api({codigos:cs, retornos:rs}); if(!r) return;
   if(!r.ok){ res.innerHTML='<div class="card warn">'+e(r.data.error||'Error')+'</div>'; return; }
-  const d=r.data; _ultimos=d.licitaciones.map(l=>l.codigo);
+  const d=r.data; _ultimos=d.licitaciones.map(l=>l.codigo); _ultRet=(d.retornos||[]).map(x=>x.id);
   let h='<div class="card"><div style="font-size:15px;font-weight:600;color:#1e2d4e">Se borrará esto:</div>'
     +lista('Licitaciones', d.licitaciones, l=>'<div class="row"><span><b>'+e(l.codigo)+'</b> · '+e(l.cliente)+'<br><small>'+e(l.ruta)+' · '+l.cotizaciones+' cotización(es)</small></span><span class="tag">'+e(l.estado)+'</span></div>')
     +lista('Transportes', d.transportes, t=>'<div class="row"><span><b>'+e(t.codigo)+'</b> · '+e(t.transportista)+'</span><span class="tag">'+e(t.estado)+'</span></div>')
     +lista('Órdenes de venta', d.ordenes, o=>'<div class="row"><span>'+e(o.id.slice(0,8))+'… <small>'+clp(o.comision)+'</small></span><span class="tag">'+e(o.estado)+'</span></div>')
     +lista('Facturas consolidadas', d.facturas, f=>'<div class="row"><span>'+e(f.periodo||f.id)+'</span><span class="tag">'+e(f.estado)+'</span></div>')
+    +lista('Retornos', d.retornos||[], x=>'<div class="row"><span><b>'+e(x.ruta)+'</b> · '+e(x.transportista)+(d.propuestas?'<br><small>'+d.propuestas+' propuesta(s) en total</small>':'')+'</span><span class="tag">'+e(x.estado)+'</span></div>')
     +(d.archivos?'<h3>Archivos</h3><div class="row"><span>'+d.archivos+' archivo(s) adjunto(s)</span></div>':'')
     +(d.noEncontradas.length?'<div class="warn">No encontré: '+e(d.noEncontradas.join(', '))+'</div>':'')
     +(d.facturasMixtas.length?'<div class="warn">Hay '+d.facturasMixtas.length+' factura(s) consolidada(s) que mezclan estas OV con OV reales. No se puede borrar hasta revisarlas.</div>':'');
-  if(d.licitaciones.length && !d.facturasMixtas.length){
+  if((d.licitaciones.length || (d.retornos||[]).length) && !d.facturasMixtas.length){
     h+='<div class="warn"><b>Esto no se puede deshacer.</b> Para confirmar, escribe <b>BORRAR</b>:<input id="conf" style="margin-top:8px" oninput="document.getElementById(\'btn-del\').disabled=this.value!==\'BORRAR\'" autocomplete="off"></div>'
       +'<div style="margin-top:12px"><button class="btn btn-red" id="btn-del" disabled onclick="borrar()">Borrar definitivamente</button></div>';
   }
@@ -73,15 +89,15 @@ async function revisar(){
 }
 async function borrar(){
   const b=document.getElementById('btn-del'); b.disabled=true; b.textContent='Borrando…';
-  const r=await api({codigos:_ultimos, ejecutar:true, confirmacion:document.getElementById('conf').value}); if(!r) return;
+  const r=await api({codigos:_ultimos, retornos:_ultRet, ejecutar:true, confirmacion:document.getElementById('conf').value}); if(!r) return;
   const res=document.getElementById('res');
   if(!r.ok){ res.innerHTML='<div class="card warn">'+e(r.data.error||'Error')+'</div>'; return; }
   const d=r.data;
   const f=d.fallos||[];
   res.innerHTML='<div class="card">'+(f.length
     ? '<div class="warn" style="margin-top:0"><b>No se pudo borrar todo.</b> Copia este detalle y envíalo:<br><br>'+f.map(e).join('<br>')+'</div>'
-    : '<div class="okbox">Listo y verificado en la base de datos: se borraron '+d.licitaciones.length+' licitación(es), '+d.transportes.length+' transporte(s), '+d.ordenes.length+' OV y '+d.archivos+' archivo(s).</div>')+'</div>';
-  document.getElementById('codigos').value='';
+    : '<div class="okbox">Listo y verificado en la base de datos: se borraron '+d.licitaciones.length+' licitación(es), '+(d.retornos||[]).length+' retorno(s), '+d.transportes.length+' transporte(s), '+d.ordenes.length+' OV y '+d.archivos+' archivo(s).</div>')+'</div>';
+  document.getElementById('codigos').value=''; cargarRetornos();
 }
 </script>
 </body>

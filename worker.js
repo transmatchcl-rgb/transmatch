@@ -2825,9 +2825,16 @@ async function handleRequest(request, env, ctx) {
     const sb=usarSupabase(env, url);
     let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
     const codigos=[...new Set((Array.isArray(body.codigos)?body.codigos:[]).map(c=>String(c).trim().toUpperCase()).filter(c=>/^LIC-\d+$/.test(c)))];
-    if(!codigos.length) return err("Indica al menos un código LIC-XXXX");
+    const retIds=[...new Set((Array.isArray(body.retornos)?body.retornos:[]).map(String).filter(Boolean))].slice(0,50);
+    if(!codigos.length && !retIds.length) return err("Indica al menos un código LIC-XXXX o un retorno");
     if(codigos.length>50) return err("Máximo 50 licitaciones por vez");
-    const todas=await dalGetAllLicitaciones(env, sb);
+    const rets=retIds.length?(await dalRetornosAll(env, sb)).filter(r=>r&&retIds.includes(String(r.id))):[];
+    let props=[];
+    if(rets.length){
+      if(sb){ const ids=rets.map(r=>'"'+r.id+'"').join(","); props=(await sbSelect(env,"propuestas","retorno_id="+encodeURIComponent("in.("+ids+")")+"&select=datos")).map(x=>x.datos).filter(Boolean); }
+      else { for(const r of rets) props.push(...await dalGetPropuestasPorRetorno(env, r.id, false)); }
+    }
+    const todas=codigos.length?await dalGetAllLicitaciones(env, sb):[];
     const lics=todas.filter(l=>l && codigos.includes(String(l.codigo||"").toUpperCase()));
     const noEncontradas=codigos.filter(c=>!lics.some(l=>String(l.codigo).toUpperCase()===c));
     const licIds=new Set(lics.map(l=>l.id));
@@ -2847,7 +2854,9 @@ async function handleRequest(request, env, ctx) {
       ordenes: ovs.map(o=>({ id:o.id_ov, estado:o.estado, comision:o.comision_final||o.comision_estimada||null })),
       facturas: factsBorrar.map(f=>({ id:f.id, periodo:f.periodo||"", estado:f.estado||"" })),
       facturasMixtas: factsMixtas.map(f=>({ id:f.id, periodo:f.periodo||"" })),
-      archivos: archivos.size, noEncontradas
+      archivos: archivos.size, noEncontradas,
+      retornos: rets.map(r=>({ id:r.id, transportista:r.transportistaEmpresa||r.transportistaEmail||"", ruta:(r.ciudadOrigen||"")+" → "+(r.ciudadDestino||""), estado:r.estado||"" })),
+      propuestas: props.length
     };
     if(!body.ejecutar) return ok({ ok:true, preview:true, ...resumen });
     if(body.confirmacion!=="BORRAR") return err("Escribe BORRAR para confirmar");
@@ -2867,6 +2876,8 @@ async function handleRequest(request, env, ctx) {
       await borrar("preguntas","licitacion_id",lIds);
       await borrar("notificaciones","data->>licitacionId",lIds);
       await borrar("licitaciones","id",lIds);
+      await borrar("propuestas","retorno_id",rets.map(r=>r.id));
+      await borrar("retornos","id",rets.map(r=>r.id));
       // Verificación: confirmar en la base que ya no existen (3 consultas)
       const quedan=async(tabla, col, valores, etiqueta)=>{
         if(!valores.length) return;
@@ -2876,9 +2887,11 @@ async function handleRequest(request, env, ctx) {
       await quedan("licitaciones","id",lIds,"licitaciones");
       await quedan("transportes","id",tIds,"transportes");
       await quedan("ordenes_venta","id_ov",oIds,"OV");
+      await quedan("retornos","id",rets.map(r=>r.id),"retornos");
       // Copias antiguas en KV (no cuentan para el límite de 50)
       try{
         for(const id of lIds) await env.LICITACIONES.delete(id);
+        for(const r of rets) await env.RETORNOS.delete(r.id);
         const a=JSON.parse(await env.LICITACIONES.get("all")||"[]"); await env.LICITACIONES.put("all", JSON.stringify(a.filter(x=>!lIds.includes(x))));
         for(const t of tIds) await env.RETORNOS.delete("transporte:"+t);
         for(const o of oIds) await env.OVS.delete("ov:"+o);
@@ -2895,8 +2908,10 @@ async function handleRequest(request, env, ctx) {
         const a=JSON.parse(await env.RETORNOS.get("transportes:all")||"[]"); if(a.includes(t.id)) await env.RETORNOS.put("transportes:all", JSON.stringify(a.filter(x=>x!==t.id)));
       });
       for(const l of lics) await intento("licitación "+l.codigo, ()=>dalDeleteLicitacion(env, l.id, false, { clienteIndexId:l.clienteId }));
+      for(const p of props) await intento("propuesta "+p.id, async()=>{ await env.RETORNOS.delete("propuesta:"+p.id); for(const k of ["propuestas:retorno:"+p.retornoId, p.transportistaId&&("propuestas:transportista:"+p.transportistaId), p.clienteId&&("propuestas:cliente:"+p.clienteId)].filter(Boolean)){ const a=JSON.parse(await env.RETORNOS.get(k)||"[]"); if(a.includes(p.id)) await env.RETORNOS.put(k, JSON.stringify(a.filter(x=>x!==p.id))); } });
+      for(const r of rets) await intento("retorno "+r.id, async()=>{ await env.RETORNOS.delete(r.id); const a=JSON.parse(await env.RETORNOS.get("all")||"[]"); if(a.includes(r.id)) await env.RETORNOS.put("all", JSON.stringify(a.filter(x=>x!==r.id))); });
     }
-    await registrarActividad(env,"limpieza_datos",`Datos de prueba borrados: ${lics.map(l=>l.codigo).join(", ")}`,{ licitaciones:lics.length, transportes:trns.length, ordenes:ovs.length });
+    await registrarActividad(env,"limpieza_datos",`Datos de prueba borrados: ${[...lics.map(l=>l.codigo), ...rets.map(r=>"retorno "+(r.ciudadOrigen||"")+"→"+(r.ciudadDestino||""))].join(", ")}`,{ licitaciones:lics.length, transportes:trns.length, ordenes:ovs.length });
     return ok({ ok:true, borrado:true, ...resumen, fallos });
   }
   // WhatsApp de una licitación: ver candidatos (GET) o enviar a los elegidos (POST {ids})
