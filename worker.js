@@ -500,10 +500,13 @@ async function obtenerUF() {
   } catch(e) { return 40800; } // fallback aprox. UF jun-2026 (se usa solo si mindicador.cl falla)
 }
 
+// Comisión TransMatch: 5% del servicio, con mínimo 0,5 UF y tope 10 UF
+const COMISION_PCT = 0.05, COMISION_MIN_UF = 0.5, COMISION_TOPE_UF = 10;
 function calcularComision(valorFactura, valorUF) {
-  const porPorcentaje = valorFactura * 0.05;
-  const tope          = valorUF * 10;
-  return Math.round(Math.min(porPorcentaje, tope));
+  const porPorcentaje = valorFactura * COMISION_PCT;
+  const tope          = valorUF * COMISION_TOPE_UF;
+  const minimo        = valorUF * COMISION_MIN_UF;
+  return Math.round(Math.max(Math.min(porPorcentaje, tope), minimo));
 }
 
 async function generarCodigoOV(env) {
@@ -516,14 +519,14 @@ async function generarCodigoOV(env) {
 
 async function crearOV(env, { transporteId, licitacion, cotizacion }) {
   const id_ov = await generarCodigoOV(env);
-  const comisionEstimada = Math.round(cotizacion.precio * 0.05);
+  const comisionEstimada = calcularComision(cotizacion.precio, await obtenerUF());
   const ov = {
     id_ov, id_transporte:transporteId,
     id_transportista:cotizacion.transportistaId, transportistaNombre:cotizacion.transportistaNombre,
     transportistaEmpresa:cotizacion.transportistaEmpresa, transportistaEmail:cotizacion.transportistaEmail,
     id_cliente:licitacion.clienteId, clienteEmpresa:licitacion.clienteEmpresa, id_licitacion:licitacion.id,
     estado:"CONDICIONAL", monto_cotizado:cotizacion.precio, monto_facturado:null,
-    comision_estimada:comisionEstimada, comision_porcentaje:5, comision_tope_uf:10,
+    comision_estimada:comisionEstimada, comision_porcentaje:5, comision_tope_uf:COMISION_TOPE_UF, comision_minimo_uf:COMISION_MIN_UF,
     tope_aplicado:null, comision_final:null, uf_del_dia:null, valor_servicio_final:null,
     id_oc:null, id_factura_transportista:null, id_factura_transmatch:null, id_guia_despacho:null,
     fecha_adjudicacion:new Date().toISOString(), fecha_confirmacion:null, fecha_facturacion:null,
@@ -1088,7 +1091,7 @@ function emailCotizacionesListas(l, nCotiz) {
     ${btnEmail('https://transmatch.cl/cliente-licitaciones.html','Ver cotizaciones','#FF8904')}`, "Tienes cotizaciones - TransMatch");
 }
 
-function emailAdjudicacionGanada(l, cotiz) {
+function emailAdjudicacionGanada(l, cotiz, comisionEstimada) {
   return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Ganaste una licitacion!</h2>
     <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:16px;margin-bottom:16px">
       <div style="font-size:13px;color:#374151;margin-bottom:5px"><strong>Empresa:</strong> ${l.clienteEmpresa}</div>
@@ -1101,7 +1104,7 @@ function emailAdjudicacionGanada(l, cotiz) {
       <div style="font-size:13px;color:#1e2d4e;font-weight:600"><strong>Valor:</strong> ${formatCLP(cotiz.precio)}</div>
     </div>
     <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#92400E">
-      <strong>Comision estimada TransMatch:</strong> ${formatCLP(Math.round(cotiz.precio*0.05))} (5% aprox, tope 10 UF).
+      <strong>Comision estimada TransMatch:</strong> ${formatCLP(comisionEstimada!=null?comisionEstimada:Math.round(cotiz.precio*0.05))} (5% aprox, mínimo 0,5 UF y tope 10 UF).
     </div>
     ${btnEmail('https://transmatch.cl/transportista-transporte.html','Ver en mi panel')}`, "Ganaste! - TransMatch");
 }
@@ -3104,7 +3107,7 @@ async function handleRequest(request, env, ctx) {
     const ov = await crearOV(env, { transporteId, licitacion:l, cotizacion:cotiz });
     await crearNotificacion(env,cotiz.transportistaId,"adjudicacion",`Ganaste: ${l.tipoEquipo} - ${l.origen} - ${l.destino} - ${formatCLP(cotiz.precio)}`,{ licitacionId:id, clienteEmpresa:l.clienteEmpresa, clienteEmail:l.clienteEmail, ovId:ov.id_ov });
     await registrarActividad(env,"licitacion_adjudicada",`Licitación adjudicada a ${cotiz.transportistaEmpresa||cotiz.transportistaNombre} por ${formatCLP(cotiz.precio)}: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo, ovId:ov.id_ov });
-    await enviarEmail(env,{ to:cotiz.transportistaEmail, subject:`Ganaste! ${l.tipoEquipo} - TransMatch`, html:emailAdjudicacionGanada(l,cotiz) });
+    await enviarEmail(env,{ to:cotiz.transportistaEmail, subject:`Ganaste! ${l.tipoEquipo} - TransMatch`, html:emailAdjudicacionGanada(l,cotiz,ov.comision_estimada) });
     await crearNotificacion(env,cotiz.transportistaId,"ov_condicional",`OV ${ov.id_ov} creada. Comision estimada: ${formatCLP(ov.comision_estimada)}.`,{ ovId:ov.id_ov });
     const todasCotiz=l.cotizaciones||[];
     const total=todasCotiz.length;
@@ -4485,10 +4488,11 @@ async function handleRequest(request, env, ctx) {
       const valorUF=await obtenerUF();
       const comisionFinal=calcularComision(valorFactura||t.precio, valorUF);
       const comision5pct=Math.round((valorFactura||t.precio)*0.05);
-      const tope10UF=Math.round(valorUF*10);
+      const tope10UF=Math.round(valorUF*COMISION_TOPE_UF);
+      const minimoUF=Math.round(valorUF*COMISION_MIN_UF);
       ov.estado="CONFIRMADA"; ov.monto_facturado=valorFactura||t.precio; ov.valor_servicio_final=valorFactura||t.precio;
-      ov.comision_final=comisionFinal; ov.comision_porcentaje=5; ov.comision_tope_uf=10;
-      ov.tope_aplicado=comision5pct>tope10UF; ov.uf_del_dia=valorUF; ov.id_factura_transportista=archivoId;
+      ov.comision_final=comisionFinal; ov.comision_porcentaje=5; ov.comision_tope_uf=COMISION_TOPE_UF; ov.comision_minimo_uf=COMISION_MIN_UF;
+      ov.tope_aplicado=comision5pct>tope10UF; ov.minimo_aplicado=comision5pct<minimoUF; ov.uf_del_dia=valorUF; ov.id_factura_transportista=archivoId;
       ov.fecha_confirmacion=new Date().toISOString(); ov.historial=ov.historial||[];
       ov.historial.push({ estado:"CONFIRMADA", fecha:new Date().toISOString(), actor:"sistema", nota:"Factura recibida. Comisión calculada." });
       await dalSaveOV(env, ov, _sbFac);

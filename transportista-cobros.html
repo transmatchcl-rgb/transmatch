@@ -426,6 +426,8 @@ function renderOVDetalle(ov){
     var tope10uf=Math.round((ov.uf_del_dia||38500)*10);
     h+='<div class="comis-row"><span>Tope máximo (10 UF · $'+Math.round(ov.uf_del_dia).toLocaleString('es-CL')+'/UF)</span><span>'+peso(tope10uf)+'</span></div>';
     if(ov.tope_aplicado) h+='<div class="comis-row" style="color:#92400E"><span>Se aplicó tope <span class="comis-tope">Tope aplicado</span></span><span>'+peso(tope10uf)+'</span></div>';
+    var minUf=Math.round((ov.uf_del_dia||38500)*(ov.comision_minimo_uf||0.5));
+    if(ov.minimo_aplicado) h+='<div class="comis-row" style="color:#92400E"><span>Se aplicó mínimo (0,5 UF) <span class="comis-tope">Mínimo aplicado</span></span><span>'+peso(minUf)+'</span></div>';
   }
   var comFinal=ov.comision_final!=null?ov.comision_final:(ov.comision_estimada||pct5);
   var esEst=ov.comision_final==null;
