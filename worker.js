@@ -163,55 +163,87 @@ async function dalGetPropuestasPorTransportista(env, tid, sb){
   return _dalPropuestasKV(env, "propuestas:transportista:"+tid);
 }
 // Capa de datos — USUARIOS.
+// ── Capa de datos — USUARIOS ──
+// Hay dos almacenes: KV (USERS) y Supabase (usuarios). Por un tiempo varios endpoints escribieron solo en KV
+// y otros solo en Supabase, así que ahora:
+//  • Lectura: se combinan. KV manda, salvo los campos que solo se escriben vía Supabase (_CAMPOS_SB).
+//  • Escritura: siempre en ambos.
+const _CAMPOS_SB=["notifPrefs","notifWhatsapp","notifWhatsappPor","notifWhatsappAt","rating","totalTransportes"];
+function _mergeUsuario(su, kv){
+  if(!su) return kv; if(!kv) return su;
+  const u={ ...su, ...kv };
+  for(const f of _CAMPOS_SB){ if(su[f]!==undefined) u[f]=su[f]; }
+  return u;
+}
+async function _kvUsuario(env, email){ try{ const raw=await env.USERS.get(email); return raw?JSON.parse(raw):null; }catch(e){ return null; } }
+async function _sbUsuarioByEmail(env, email){ const rows=await sbSelect(env,"usuarios","email=eq."+encodeURIComponent(email)+"&select=datos&limit=1"); return rows[0]?rows[0].datos:null; }
+async function _sbUsuarioById(env, id){ const rows=await sbSelect(env,"usuarios","id=eq."+encodeURIComponent(id)+"&select=datos&limit=1"); return rows[0]?rows[0].datos:null; }
 async function dalGetUsuarioByEmail(env, email, sb){
-  email=(email||"").toLowerCase();
-  if(sb){ const rows=await sbSelect(env,"usuarios","email=eq."+encodeURIComponent(email)+"&select=datos&limit=1"); return rows[0]?rows[0].datos:null; }
-  const raw=await env.USERS.get(email); return raw?JSON.parse(raw):null;
+  email=(email||"").toLowerCase(); if(!email) return null;
+  const kv=await _kvUsuario(env, email);
+  if(!sb && !usarSupabase(env,null)) return kv;
+  let su=null; try{ su=await _sbUsuarioByEmail(env, email); }catch(e){ if(!kv) throw e; }
+  return _mergeUsuario(su, kv);
 }
 async function dalGetUsuarioById(env, id, sb){
   if(!id) return null;
-  if(sb){ const rows=await sbSelect(env,"usuarios","id=eq."+encodeURIComponent(id)+"&select=datos&limit=1"); return rows[0]?rows[0].datos:null; }
-  const email=await env.USERS.get("id:"+id); if(!email) return null; const raw=await env.USERS.get(email); return raw?JSON.parse(raw):null;
+  let email=null;
+  try{ email=await env.USERS.get("id:"+id); }catch(e){}
+  if(!email && (sb || usarSupabase(env,null))){ const su=await _sbUsuarioById(env, id); if(su) email=su.email; }
+  return email?dalGetUsuarioByEmail(env, email, sb):null;
 }
+function _usuarioRow(u){ const email=(u.email||"").toLowerCase(); return { id:u.id, email, password_hash:u.password||null, nombre:u.nombre||null, telefono:u.telefono||null, cargo:u.cargo||null, role:u.role||null, estado:u.estado||null, plan:u.plan||null, empresa_id:u.empresaId||null, rol:u.rol||null, es_subusuario:(u.esSubusuario===true), empresa_madre_id:u.empresaMadreId||null, rating:(u.rating==null?null:u.rating), total_transportes:(u.totalTransportes==null?null:u.totalTransportes), zonas:(u.zonas==null?null:u.zonas), industrias:(u.industrias==null?null:u.industrias), tipos_equipo:(u.tiposEquipo==null?null:u.tiposEquipo), notif_prefs:(u.notifPrefs==null?null:u.notifPrefs), datos:u }; }
 async function dalSaveUsuario(env, u, sb){
-  const email=(u.email||"").toLowerCase();
-  if(sb){
-    await sbUpsert(env,"usuarios",[{ id:u.id, email, password_hash:u.password||null, nombre:u.nombre||null, telefono:u.telefono||null, cargo:u.cargo||null, role:u.role||null, estado:u.estado||null, plan:u.plan||null, empresa_id:u.empresaId||null, rol:u.rol||null, es_subusuario:(u.esSubusuario===true), empresa_madre_id:u.empresaMadreId||null, rating:(u.rating==null?null:u.rating), total_transportes:(u.totalTransportes==null?null:u.totalTransportes), zonas:(u.zonas==null?null:u.zonas), industrias:(u.industrias==null?null:u.industrias), tipos_equipo:(u.tiposEquipo==null?null:u.tiposEquipo), notif_prefs:(u.notifPrefs==null?null:u.notifPrefs), datos:u }]);
-    return;
-  }
+  const email=(u.email||"").toLowerCase(); if(!email) return;
+  u.email=u.email||email;
   await env.USERS.put(email, JSON.stringify(u));
   if(u.id) await env.USERS.put("id:"+u.id, email);
+  if(sb || usarSupabase(env,null)){
+    await sbUpsert(env,"usuarios",[_usuarioRow(u)]);
+  }
 }
-// ── Usuario combinado KV + Supabase ──
-// Los endpoints de perfil, equipos y conductores escribían solo en KV, mientras /api/auth/me lee Supabase.
-// Para esos campos KV es la fuente más reciente; el resto (preferencias, WhatsApp, estado, etc.) viene de Supabase.
-const _CAMPOS_PERFIL_KV=["nombre","telefono","whatsapp","rut","cargo","ciudad","direccion","comuna","giro","web","descripcion","anosExperiencia","zonas","equipos","tiposEquipo","industrias","telEmpresa","ciudadEmpresa","contactos","contactoOperaciones","contactoComercial","empresa","rutEmpresa","facturacion","datosBancarios","contactoFacturacion","conductores","perfilCompletitud"];
-async function dalGetUsuarioMerged(env, email){
-  email=String(email||"").toLowerCase(); if(!email) return null;
-  const sb=usarSupabase(env, null);
-  let kv=null; try{ const raw=await env.USERS.get(email); kv=raw?JSON.parse(raw):null; }catch(e){}
-  if(!sb) return kv;
-  let su=null; try{ su=await dalGetUsuarioByEmail(env, email, sb); }catch(e){}
-  if(!su) return kv; if(!kv) return su;
-  const u={ ...su };
-  for(const k of _CAMPOS_PERFIL_KV){ if(kv[k]!==undefined) u[k]=kv[k]; }
-  return u;
+// Todos los usuarios combinados: 1 consulta a Supabase + KV (para listados, sin pasar el límite de subrequests).
+async function dalTodosUsuarios(env){
+  const kvNames=(await kvAllKeys(env.USERS)).filter(k=>!k.startsWith("id:")&&!k.startsWith("contador:")&&!k.startsWith("__"));
+  const kvMap=new Map();
+  for(const k of kvNames){ const u=await _kvUsuario(env, k); if(u && u.email) kvMap.set(String(k).toLowerCase(), u); }
+  const sbMap=new Map();
+  if(usarSupabase(env,null)){ const rows=await sbSelect(env,"usuarios","select=datos&limit=5000"); for(const r of rows){ const d=r.datos; if(d&&d.email) sbMap.set(String(d.email).toLowerCase(), d); } }
+  const out=[];
+  for(const email of new Set([...kvMap.keys(), ...sbMap.keys()])){ const u=_mergeUsuario(sbMap.get(email), kvMap.get(email)); if(u) out.push(u); }
+  return out;
 }
-async function dalGetUsuarioMergedById(env, id){
-  if(!id) return null;
-  const sb=usarSupabase(env, null);
-  let email=null;
-  if(sb){ try{ const su=await dalGetUsuarioById(env, id, sb); if(su) email=su.email; }catch(e){} }
-  if(!email){ try{ email=await env.USERS.get("id:"+id); }catch(e){} }
-  return email?dalGetUsuarioMerged(env, email):null;
-}
-// Guarda en ambos (KV y Supabase) para que todas las pantallas vean lo mismo.
-async function dalSaveUsuarioAmbos(env, u){
-  const email=String(u.email||"").toLowerCase();
-  await env.USERS.put(email, JSON.stringify(u));
-  const sb=usarSupabase(env, null);
-  if(sb) await dalSaveUsuario(env, u, sb);
-}
+// Reemplazo de env.USERS con la misma forma (get/put/list) pero sobre la capa combinada.
+// Cada instancia guarda lo que trae list(), así los recorridos no consultan Supabase usuario por usuario.
+function _USR(env){ const cache=new Map(), ids=new Map(); return {
+  async get(key){
+    key=String(key||"");
+    if(key.startsWith("id:")){ const id=key.slice(3); if(ids.has(id)) return ids.get(id); const u=await dalGetUsuarioById(env, id, usarSupabase(env,null)); return u?String(u.email).toLowerCase():null; }
+    if(key.startsWith("contador:")||key.startsWith("__")) return env.USERS.get(key);
+    const em=key.toLowerCase(); if(cache.has(em)) return JSON.stringify(cache.get(em));
+    const u=await dalGetUsuarioByEmail(env, key, usarSupabase(env,null)); return u?JSON.stringify(u):null;
+  },
+  async put(key, val){
+    key=String(key||"");
+    if(key.startsWith("id:")||key.startsWith("contador:")||key.startsWith("__")) return env.USERS.put(key, val);
+    let u; try{ u=JSON.parse(val); }catch(e){ return env.USERS.put(key, val); }
+    if(!u.email) u.email=key;
+    await dalSaveUsuario(env, u, usarSupabase(env,null));
+    cache.set(String(u.email).toLowerCase(), u);
+  },
+  async delete(key){
+    key=String(key||"");
+    await env.USERS.delete(key);
+    if(key.startsWith("id:")||key.startsWith("contador:")||key.startsWith("__")) return;
+    const email=key.toLowerCase(); cache.delete(email);
+    if(usarSupabase(env,null)){ try{ await sbDelete(env,"usuarios","email=eq."+encodeURIComponent(email)); }catch(e){} }
+  },
+  async list(){ const us=await dalTodosUsuarios(env); for(const u of us){ const em=String(u.email).toLowerCase(); cache.set(em, u); if(u.id) ids.set(String(u.id), em); } return { keys: us.map(u=>({ name:String(u.email).toLowerCase() })), list_complete:true }; }
+}; }
+// Compatibilidad con nombres usados antes
+async function dalGetUsuarioMerged(env, email){ return dalGetUsuarioByEmail(env, email, usarSupabase(env,null)); }
+async function dalGetUsuarioMergedById(env, id){ return dalGetUsuarioById(env, id, usarSupabase(env,null)); }
+async function dalSaveUsuarioAmbos(env, u){ return dalSaveUsuario(env, u, usarSupabase(env,null)); }
 // Capa de datos — EMPRESAS.
 function _empresaRow(emp){
   return { id:emp.id, tipo:emp.tipo||null, razon_social:emp.razonSocial||null, rut:emp.rut||null, giro:emp.giro||null, direccion:emp.direccion||null, comuna:emp.comuna||null, ciudad:emp.ciudadEmpresa||null, telefono:emp.telEmpresa||null, web:emp.web||null, descripcion:emp.descripcion||null, plan:emp.plan||null, estado:emp.estado||null, dueno_email:emp.duenoEmail||null, max_usuarios:(emp.maxUsuarios==null?null:emp.maxUsuarios), industrias:(emp.industrias==null?null:emp.industrias), vigencia:(emp.vigencia==null?null:emp.vigencia), facturacion:(emp.facturacion==null?null:emp.facturacion), contactos:(emp.contactos==null?null:emp.contactos), datos_bancarios:(emp.datosBancarios==null?null:emp.datosBancarios), datos:emp };
@@ -492,9 +524,9 @@ function deny(user, ...roles) {
 // Carga la cuenta madre (empresa) de un sub-usuario a partir de su empresaMadreId. Devuelve el objeto usuario o null.
 async function cargarMadre(env, empresaMadreId) {
   if (!empresaMadreId) return null;
-  const emailMadre = await env.USERS.get("id:"+empresaMadreId);
+  const emailMadre = await _USR(env).get("id:"+empresaMadreId);
   if (!emailMadre) return null;
-  const raw = await env.USERS.get(emailMadre);
+  const raw = await _USR(env).get(emailMadre);
   return raw ? JSON.parse(raw) : null;
 }
 
@@ -719,10 +751,10 @@ async function procesarVencimientosDocumentos(env) {
       return "vence en " + dias + " día" + (dias === 1 ? "" : "s");
     };
     let avisos = 0;
-    const lista = await env.USERS.list();
+    const _usr=_USR(env); const lista=await _usr.list();
     for (const key of lista.keys) {
       if (!key.name.includes("@")) continue; // saltar punteros "id:..." y "__test__"
-      const raw = await env.USERS.get(key.name);
+      const raw = await _usr.get(key.name);
       if (!raw) continue;
       let u; try { u = JSON.parse(raw); } catch (e) { continue; }
       if (u.role !== "transportista") continue;
@@ -836,10 +868,10 @@ function puedeTransportar(tiposEquipo, licitacion) {
 async function contarTransportistasQueCalifican(env, l) {
   let total = 0, califican = 0;
   try {
-    const lista = await env.USERS.list();
+    const _usr=_USR(env); const lista=await _usr.list();
     for (const key of lista.keys) {
       if (key.name.startsWith("id:")) continue;
-      const raw = await env.USERS.get(key.name);
+      const raw = await _usr.get(key.name);
       if (!raw) continue;
       const u = JSON.parse(raw);
       if (u.role !== "transportista" || u.estado !== "activo") continue;
@@ -1089,10 +1121,10 @@ async function notificarNuevaLicitacionTransportistas(env, l) {
     l.transportistasCalificados = califican;
     await dalSaveLicitacion(env, l, usarSupabase(env, null));
 
-    const lista = await env.USERS.list();
+    const _usr=_USR(env); const lista=await _usr.list();
     for (const key of lista.keys) {
       if (key.name.startsWith("id:")) continue;
-      const raw = await env.USERS.get(key.name);
+      const raw = await _usr.get(key.name);
       if (!raw) continue;
       const u = JSON.parse(raw);
       if (u.role !== "transportista" || u.estado !== "activo") continue;
@@ -1525,18 +1557,7 @@ function kapsoTexto(env, to, texto){ return kapsoEnviar(env, { to, type:"text", 
 
 // ── Datos de transportistas para WhatsApp ──
 async function _dalTransportistasTodos(env, sb){
-  if(sb){ const rows=await sbSelect(env,"usuarios","role=eq.transportista&select=datos&limit=5000"); return rows.map(r=>r.datos).filter(Boolean); }
-  const out=[]; let cursor;
-  do{
-    const l=await env.USERS.list({cursor});
-    for(const k of l.keys){
-      if(k.name.startsWith("id:")||k.name.startsWith("contador:")) continue;
-      const raw=await env.USERS.get(k.name); if(!raw) continue;
-      try{ const u=JSON.parse(raw); if(u && u.role==="transportista") out.push(u); }catch(e){}
-    }
-    cursor=l.list_complete?undefined:l.cursor;
-  }while(cursor);
-  return out;
+  return (await dalTodosUsuarios(env)).filter(u=>u && u.role==="transportista");
 }
 function _telefonoWaDe(u){ return _telWa(u.telefono||u.whatsapp); }
 // Transportistas activos que aceptaron recibir avisos por WhatsApp y tienen celular válido.
@@ -2146,7 +2167,7 @@ async function handleRequest(request, env, ctx) {
     let _acceso={}; try{ _acceso=JSON.parse(_accesoRaw); }catch(e){}
     if (_acceso.role && _acceso.role!=="cualquiera" && _acceso.role!==roleNorm) return err("Este link de acceso es para otro tipo de cuenta.");
     const emailLower = email.toLowerCase();
-    const existing = await env.USERS.get(emailLower);
+    const existing = await _USR(env).get(emailLower);
     if (existing) return err("Este email ya esta registrado");
     const user = {
       id:uid(), email:emailLower, password:await hashPassword(password),
@@ -2562,11 +2583,11 @@ async function handleRequest(request, env, ctx) {
     const email=(body.email||"").toLowerCase(); const rol=body.rol;
     if(!email||!rol) return err("email y rol requeridos");
     if(!["dueno","gestor","miembro","visor"].includes(rol)) return err("Rol inválido");
-    const raw=await env.USERS.get(email); if(!raw) return err("Usuario no encontrado",404);
+    const raw=await _USR(env).get(email); if(!raw) return err("Usuario no encontrado",404);
     const u=JSON.parse(raw);
     if(u.role!=="cliente" && u.role!=="transportista") return err("Solo aplica a usuarios de empresa",400);
     u.rol=rol; u.actualizadoAt=new Date().toISOString();
-    await env.USERS.put(email, JSON.stringify(u));
+    await _USR(env).put(email, JSON.stringify(u));
     return ok({ ok:true, rol, aviso:"El cambio toma efecto cuando la persona vuelva a iniciar sesión." });
   }
 
@@ -2639,7 +2660,7 @@ async function handleRequest(request, env, ctx) {
     if(!["cliente","transportista"].includes(role)) return err("Rol invalido");
     if(!email.includes("@")) return err("Email invalido");
     if(!nombre) return err("Nombre requerido");
-    const existing=await env.USERS.get(email);
+    const existing=await _USR(env).get(email);
     if(existing) return err("Este email ya está registrado");
     const pass = generarPasswordProvisoria();
     const nuevo = {
@@ -2692,7 +2713,7 @@ async function handleRequest(request, env, ctx) {
     if (String(passwordNueva).length < 8) return err("La nueva contraseña debe tener al menos 8 caracteres");
     const _sbP = usarSupabase(env, url);
     let u = await dalGetUsuarioByEmail(env, user.email, _sbP);
-    if (!u) { const raw = await env.USERS.get(String(user.email).toLowerCase()); u = raw ? JSON.parse(raw) : null; }
+    if (!u) { const raw = await _USR(env).get(String(user.email).toLowerCase()); u = raw ? JSON.parse(raw) : null; }
     if (!u) return err("Usuario no encontrado", 404);
     const hashActual = await hashPassword(passwordActual);
     if (hashActual !== u.password) return err("La contraseña actual es incorrecta");
@@ -2700,7 +2721,7 @@ async function handleRequest(request, env, ctx) {
     u.password = await hashPassword(passwordNueva);
     u.passwordProvisorio = false;
     u.passwordCambiadaAt = new Date().toISOString();
-    await env.USERS.put(String(u.email).toLowerCase(), JSON.stringify(u));
+    await _USR(env).put(String(u.email).toLowerCase(), JSON.stringify(u));
     if (_sbP) { try { await dalSaveUsuario(env, u, _sbP); } catch(e) {} }
     return ok({ ok: true, mensaje: "Contraseña actualizada" });
   }
@@ -2943,6 +2964,27 @@ async function handleRequest(request, env, ctx) {
     }
     await registrarActividad(env,"limpieza_datos",`Datos de prueba borrados: ${[...lics.map(l=>l.codigo), ...rets.map(r=>"retorno "+(r.ciudadOrigen||"")+"→"+(r.ciudadDestino||""))].join(", ")}`,{ licitaciones:lics.length, transportes:trns.length, ordenes:ovs.length });
     return ok({ ok:true, borrado:true, ...resumen, fallos });
+  }
+  // Sincroniza usuarios entre KV y Supabase. POST {} → vista previa; POST {ejecutar:true} → guarda la versión combinada en ambos.
+  if (path === "/api/admin/sync-usuarios" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    let body={}; try{ body=await request.json(); }catch(e){}
+    const kvNames=(await kvAllKeys(env.USERS)).filter(k=>!k.startsWith("id:")&&!k.startsWith("contador:")&&!k.startsWith("__"));
+    const kvMap=new Map(); for(const k of kvNames){ const u=await _kvUsuario(env, k); if(u&&u.email) kvMap.set(String(k).toLowerCase(), u); }
+    const sbMap=new Map(); const rows=await sbSelect(env,"usuarios","select=datos&limit=5000"); for(const r of rows){ const x=r.datos; if(x&&x.email) sbMap.set(String(x.email).toLowerCase(), x); }
+    const detalle=[]; const aGuardar=[];
+    for(const email of new Set([...kvMap.keys(), ...sbMap.keys()])){
+      const kv=kvMap.get(email), su=sbMap.get(email), m=_mergeUsuario(su, kv);
+      if(!kv||!su){ detalle.push({ email, situacion: kv?"solo en KV":"solo en Supabase" }); aGuardar.push(m); continue; }
+      const campos=[...new Set([...Object.keys(kv), ...Object.keys(su)])].filter(k=>JSON.stringify(kv[k])!==JSON.stringify(su[k]));
+      if(campos.length){ detalle.push({ email, situacion:"distinto", campos }); aGuardar.push(m); }
+    }
+    if(!body.ejecutar) return ok({ ok:true, preview:true, total:kvMap.size+" en KV / "+sbMap.size+" en Supabase", pendientes:detalle.length, detalle });
+    for(const u of aGuardar){ if(!u.email) continue; const em=String(u.email).toLowerCase(); await env.USERS.put(em, JSON.stringify(u)); if(u.id) await env.USERS.put("id:"+u.id, em); }
+    const filas=aGuardar.filter(u=>u.email&&u.id).map(_usuarioRow);
+    for(let i=0;i<filas.length;i+=50) await sbUpsert(env,"usuarios",filas.slice(i,i+50));
+    await registrarActividad(env,"sync_usuarios",`Usuarios sincronizados KV↔Supabase: ${aGuardar.length}`,{});
+    return ok({ ok:true, sincronizados:aGuardar.length, detalle });
   }
   // WhatsApp de una licitación: ver candidatos (GET) o enviar a los elegidos (POST {ids})
   if (path.startsWith("/api/admin/licitacion/")&&path.endsWith("/whatsapp")&&(method==="GET"||method==="POST")) {
@@ -3805,7 +3847,7 @@ async function handleRequest(request, env, ctx) {
   if (path === "/api/facturas-suscripcion" && method === "GET") {
     const user = await getUser(request, env); const d = deny(user, "cliente"); if (d) return d;
     if (user.esSubusuario) return err("Solo la cuenta principal puede ver la facturación", 403);
-    const raw = await env.USERS.get(user.email); if (!raw) return err("Usuario no encontrado", 404);
+    const raw = await _USR(env).get(user.email); if (!raw) return err("Usuario no encontrado", 404);
     const u = JSON.parse(raw);
     const _empF = await empresaDe(env, user);
     const _srcF = (_empF && _empF.facturasSuscripcion) ? _empF.facturasSuscripcion : (u.facturasSuscripcion || []);
@@ -3820,7 +3862,7 @@ async function handleRequest(request, env, ctx) {
     const email = (url.searchParams.get("email")||"").toLowerCase();
     const out = [];
     if (email) {
-      const raw = await env.USERS.get(email); if (!raw) return err("Empresa no encontrada", 404);
+      const raw = await _USR(env).get(email); if (!raw) return err("Empresa no encontrada", 404);
       const u = JSON.parse(raw);
       const emp = await empresaDe(env, u) || {};
       const facts = (emp.facturasSuscripcion || u.facturasSuscripcion || []);
@@ -3845,7 +3887,7 @@ async function handleRequest(request, env, ctx) {
     if(!body.numero) return err("Número de factura requerido");
     if(!body.base64) return err("PDF de la factura requerido");
     if(body.base64.length>12000000) return err("Archivo demasiado grande. Máximo 8 MB");
-    const raw=await env.USERS.get(email); if(!raw) return err("Empresa no encontrada",404);
+    const raw=await _USR(env).get(email); if(!raw) return err("Empresa no encontrada",404);
     const u=JSON.parse(raw);
     if(u.role!=="cliente"||u.esSubusuario) return err("Debe ser una cuenta principal de cliente",400);
     const nombreArch=body.archivoNombre||("factura_"+body.numero+".pdf");
@@ -3854,7 +3896,7 @@ async function handleRequest(request, env, ctx) {
     const pagada=(body.estado==="pagada");
     const factura={ id:uid(), numero:String(body.numero), periodo:body.periodo||"", monto:Number(body.monto)||0, fechaEmision:body.fechaEmision||new Date().toISOString().slice(0,10), estado:(pagada?"pagada":"pendiente"), archivoId, archivoNombre:nombreArch, creadoAt:new Date().toISOString(), creadoPor:user.email, pagadaAt:(pagada?new Date().toISOString():null) };
     u.facturasSuscripcion=u.facturasSuscripcion||[]; u.facturasSuscripcion.push(factura);
-    await env.USERS.put(email, JSON.stringify(u));
+    await _USR(env).put(email, JSON.stringify(u));
     try{ await syncEmpresaFacturas(env, u); }catch(e){}
     try {
       if(u.email){
@@ -3879,10 +3921,10 @@ async function handleRequest(request, env, ctx) {
     const user = await getUser(request, env); const d = deny(user, "admin"); if (d) return d;
     let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
     const email=(body.email||"").toLowerCase(); if(!email||!body.facturaId) return err("email y facturaId requeridos");
-    const raw=await env.USERS.get(email); if(!raw) return err("Empresa no encontrada",404);
+    const raw=await _USR(env).get(email); if(!raw) return err("Empresa no encontrada",404);
     const u=JSON.parse(raw); const f=(u.facturasSuscripcion||[]).find(x=>x.id===body.facturaId); if(!f) return err("Factura no encontrada",404);
     const pagada=(body.estado==="pagada"); f.estado=(pagada?"pagada":"pendiente"); f.pagadaAt=(pagada?new Date().toISOString():null);
-    await env.USERS.put(email, JSON.stringify(u));
+    await _USR(env).put(email, JSON.stringify(u));
     try{ await syncEmpresaFacturas(env, u); }catch(e){}
     return ok({ ok:true });
   }
@@ -3892,14 +3934,14 @@ async function handleRequest(request, env, ctx) {
     const user = await getUser(request, env); const d = deny(user, "admin"); if (d) return d;
     let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
     const email=(body.email||"").toLowerCase(); if(!email||!body.facturaId) return err("email y facturaId requeridos");
-    const raw=await env.USERS.get(email); if(!raw) return err("Empresa no encontrada",404);
+    const raw=await _USR(env).get(email); if(!raw) return err("Empresa no encontrada",404);
     const u=JSON.parse(raw); const f=(u.facturasSuscripcion||[]).find(x=>x.id===body.facturaId); if(!f) return err("Factura no encontrada",404);
     if(body.numero!==undefined) f.numero=String(body.numero);
     if(body.periodo!==undefined) f.periodo=body.periodo;
     if(body.monto!==undefined) f.monto=Number(body.monto)||0;
     if(body.fechaEmision!==undefined) f.fechaEmision=body.fechaEmision;
     if(body.estado!==undefined){ const pag=(body.estado==="pagada"); f.estado=(pag?"pagada":"pendiente"); f.pagadaAt=(pag?(f.pagadaAt||new Date().toISOString()):null); }
-    await env.USERS.put(email, JSON.stringify(u));
+    await _USR(env).put(email, JSON.stringify(u));
     try{ await syncEmpresaFacturas(env, u); }catch(e){}
     return ok({ ok:true });
   }
@@ -3909,10 +3951,10 @@ async function handleRequest(request, env, ctx) {
     const user = await getUser(request, env); const d = deny(user, "admin"); if (d) return d;
     let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
     const email=(body.email||"").toLowerCase(); if(!email||!body.facturaId) return err("email y facturaId requeridos");
-    const raw=await env.USERS.get(email); if(!raw) return err("Empresa no encontrada",404);
+    const raw=await _USR(env).get(email); if(!raw) return err("Empresa no encontrada",404);
     const u=JSON.parse(raw); const arr=(u.facturasSuscripcion||[]); const idx=arr.findIndex(x=>x.id===body.facturaId); if(idx<0) return err("Factura no encontrada",404);
     const rm=arr.splice(idx,1)[0];
-    u.facturasSuscripcion=arr; await env.USERS.put(email, JSON.stringify(u));
+    u.facturasSuscripcion=arr; await _USR(env).put(email, JSON.stringify(u));
     try{ await syncEmpresaFacturas(env, u); }catch(e){}
     if(rm&&rm.archivoId){ try{ await dalDeleteArchivo(env, rm.archivoId, usarSupabase(env, url)); }catch(e){} }
     return ok({ ok:true });
@@ -3954,9 +3996,9 @@ async function handleRequest(request, env, ctx) {
     // Alertas + conteos de usuarios (lecturas en paralelo)
     const alertas = [];
     let transportistasPendientes=0, clientesActivos=0, transportistasActivos=0;
-    const usersLista = await env.USERS.list();
+    const _usr=_USR(env); const usersLista=await _usr.list();
     const _aKeys = usersLista.keys.filter(k=>!k.name.startsWith("id:"));
-    const _aRaws = await Promise.all(_aKeys.map(k=>env.USERS.get(k.name)));
+    const _aRaws = await Promise.all(_aKeys.map(k=>_usr.get(k.name)));
     for(const raw of _aRaws){
       if(!raw) continue;
       const u = JSON.parse(raw);
@@ -3987,13 +4029,13 @@ async function handleRequest(request, env, ctx) {
           pendientes[idx].estado = "aprobado";
           pendientes[idx].textoFinal = equipoTexto;
           // Agregar al perfil del transportista como tipoEquipo aprobado
-          const rawUser = await env.USERS.get(emailTransportista);
+          const rawUser = await _USR(env).get(emailTransportista);
           if(rawUser){
             const u = JSON.parse(rawUser);
             if(!u.tiposEquipo) u.tiposEquipo = [];
             if(!u.tiposEquipo.includes(equipoTexto)) u.tiposEquipo.push(equipoTexto);
             u.otroEquipoPendiente = null;
-            await env.USERS.put(emailTransportista, JSON.stringify(u));
+            await _USR(env).put(emailTransportista, JSON.stringify(u));
           }
           // Notificar al transportista
           await crearNotificacion(env, emailTransportista.replace('@','_').replace('.','_'), "equipo_aprobado",
@@ -4009,8 +4051,8 @@ async function handleRequest(request, env, ctx) {
 
   if (path === "/api/admin/transportistas-pendientes" && method === "GET") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
-    const lista=await env.USERS.list(); const pendientes=[];
-    for(const key of lista.keys){ if(key.name.startsWith("id:")) continue; const raw=await env.USERS.get(key.name); if(!raw) continue; const u=JSON.parse(raw); if(u.role==="transportista"&&u.estado==="pendiente") pendientes.push({ id:u.id,nombre:u.nombre,empresa:u.empresa,email:u.email,createdAt:u.createdAt }); }
+    const _usr=_USR(env); const lista=await _usr.list(); const pendientes=[];
+    for(const key of lista.keys){ if(key.name.startsWith("id:")) continue; const raw=await _usr.get(key.name); if(!raw) continue; const u=JSON.parse(raw); if(u.role==="transportista"&&u.estado==="pendiente") pendientes.push({ id:u.id,nombre:u.nombre,empresa:u.empresa,email:u.email,createdAt:u.createdAt }); }
     return ok({ pendientes });
   }
 
@@ -4018,9 +4060,9 @@ async function handleRequest(request, env, ctx) {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
     const { email, accion } = body; if(!email||!accion) return err("email y accion requeridos");
-    const raw=await env.USERS.get(email.toLowerCase()); if(!raw) return err("No encontrado",404);
+    const raw=await _USR(env).get(email.toLowerCase()); if(!raw) return err("No encontrado",404);
     const u=JSON.parse(raw); u.estado=accion==="aprobar"?"activo":"rechazado"; u.revisadoAt=new Date().toISOString();
-    await env.USERS.put(email.toLowerCase(), JSON.stringify(u));
+    await _USR(env).put(email.toLowerCase(), JSON.stringify(u));
     if(accion==="aprobar"){ await enviarEmail(env,{ to:u.email, subject:"Tu cuenta TransMatch fue aprobada", html:emailCuentaAprobada(u.nombre) }); await registrarActividad(env,"transportista_aprobado",`Transportista aprobado: ${u.empresa||u.nombre}`,{ transportistaId:u.id }); }
     return ok({ ok:true });
   }
@@ -4165,7 +4207,7 @@ async function handleRequest(request, env, ctx) {
     // Solo puede editar su propia cuenta o admin edita cualquiera
     if (user.role !== "admin" && user.email !== emailTarget) return err("Sin acceso", 403);
     let body = {}; try { body = await request.json(); } catch(e) {}
-    const raw = await env.USERS.get(emailTarget.toLowerCase());
+    const raw = await _USR(env).get(emailTarget.toLowerCase());
     if (!raw) return err("Usuario no encontrado", 404);
     const u = JSON.parse(raw);
     // Campos editables
@@ -4176,7 +4218,7 @@ async function handleRequest(request, env, ctx) {
     if (body.direccion !== undefined) u.direccion = body.direccion;
     if (body.ciudad    !== undefined) u.ciudad    = body.ciudad;
     u.updatedAt = new Date().toISOString();
-    await env.USERS.put(emailTarget.toLowerCase(), JSON.stringify(u));
+    await _USR(env).put(emailTarget.toLowerCase(), JSON.stringify(u));
     return ok({ ok: true, usuario: { nombre: u.nombre, empresa: u.empresa, telefono: u.telefono, rut: u.rut } });
   }
 
@@ -4189,11 +4231,11 @@ async function handleRequest(request, env, ctx) {
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
     const rol=body.rol;
     if(!["miembro","gestor","visor"].includes(rol)) return err("Rol inválido",400);
-    const raw=await env.USERS.get(emailTarget); if(!raw) return err("Usuario no encontrado",404);
+    const raw=await _USR(env).get(emailTarget); if(!raw) return err("Usuario no encontrado",404);
     const target=JSON.parse(raw);
     if(target.empresaMadreId !== user.id) return err("Sin acceso",403);
     target.rol=rol; target.updatedAt=new Date().toISOString();
-    await env.USERS.put(emailTarget, JSON.stringify(target));
+    await _USR(env).put(emailTarget, JSON.stringify(target));
     return ok({ ok:true, rol });
   }
 
@@ -4373,10 +4415,10 @@ async function handleRequest(request, env, ctx) {
 
   if (path === "/api/admin/usuarios" && method === "GET") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
-    const lista=await env.USERS.list(); const usuarios=[];
+    const _usr=_USR(env); const lista=await _usr.list(); const usuarios=[];
     const madreCache={}, empresaCache={};
     const _uKeys=lista.keys.filter(k=>!k.name.startsWith("id:"));
-    const _uRaws=await Promise.all(_uKeys.map(k=>env.USERS.get(k.name)));
+    const _uRaws=await Promise.all(_uKeys.map(k=>_usr.get(k.name)));
     for(const raw of _uRaws){
       if(!raw) continue;
       const u=JSON.parse(raw);
@@ -4385,8 +4427,8 @@ async function handleRequest(request, env, ctx) {
         let m=madreCache[u.empresaMadreId];
         if(m===undefined){
           m=null;
-          const mEmail=await env.USERS.get("id:"+u.empresaMadreId);
-          if(mEmail){ const rawM=await env.USERS.get(mEmail); if(rawM) m=JSON.parse(rawM); }
+          const mEmail=await _usr.get("id:"+u.empresaMadreId);
+          if(mEmail){ const rawM=await _usr.get(mEmail); if(rawM) m=JSON.parse(rawM); }
           madreCache[u.empresaMadreId]=m;
         }
         if(m){
@@ -4432,13 +4474,13 @@ async function handleRequest(request, env, ctx) {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
     const { email, estado, plan, notasAdmin } = body; if(!email) return err("email requerido");
-    const raw=await env.USERS.get(email.toLowerCase()); if(!raw) return err("No encontrado",404);
+    const raw=await _USR(env).get(email.toLowerCase()); if(!raw) return err("No encontrado",404);
     const u=JSON.parse(raw);
     if(notasAdmin!==undefined) u.notasAdmin=notasAdmin;
     if(estado) u.estado=estado;
     if(plan&&["basico","pro","enterprise"].includes(plan)) u.plan=plan;
     if(body.max_usuarios!==undefined) u.max_usuarios=parseInt(body.max_usuarios)||0;
-    await env.USERS.put(email.toLowerCase(), JSON.stringify(u));
+    await _USR(env).put(email.toLowerCase(), JSON.stringify(u));
     if((u.role==="cliente"||u.role==="transportista") && !u.esSubusuario){ try{ await syncEmpresaMiembros(env, u); }catch(e){} }
     return ok({ ok:true });
   }
@@ -4448,11 +4490,11 @@ async function handleRequest(request, env, ctx) {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
     const { email, activo } = body; if(!email||activo===undefined) return err("email y activo requeridos");
-    const raw=await env.USERS.get(email.toLowerCase()); if(!raw) return err("No encontrado",404);
+    const raw=await _USR(env).get(email.toLowerCase()); if(!raw) return err("No encontrado",404);
     const u=JSON.parse(raw);
     if(!u.esSubusuario) return err("Solo aplica a sub-usuarios",400);
     u.desactivadoManual = !activo;
-    await env.USERS.put(email.toLowerCase(), JSON.stringify(u));
+    await _USR(env).put(email.toLowerCase(), JSON.stringify(u));
     return ok({ ok:true, desactivadoManual:u.desactivadoManual });
   }
 
@@ -4462,7 +4504,7 @@ async function handleRequest(request, env, ctx) {
     if(!emailToDelete) return err('Email requerido');
     const _em=emailToDelete.toLowerCase(); const _sbD=usarSupabase(env, url);
     let _u=null; try{ _u=await dalGetUsuarioByEmail(env, _em, _sbD); }catch(e){}
-    if(!_u){ const _r=await env.USERS.get(_em); if(_r) _u=JSON.parse(_r); }
+    if(!_u){ const _r=await _USR(env).get(_em); if(_r) _u=JSON.parse(_r); }
     if(!_u) return err('Usuario no encontrado',404);
     if(_u.role==='admin') return err('No se puede eliminar un administrador',403);
     // Cuenta principal con usuarios asociados: no se borra (primero hay que quitar a los miembros)
@@ -4470,11 +4512,11 @@ async function handleRequest(request, env, ctx) {
     const _avisos=[];
     // Si es miembro: sacarlo de la lista de su empresa
     if(_u.esSubusuario && _u.empresaMadreId){
-      try{ const _m=await dalGetUsuarioById(env, _u.empresaMadreId, _sbD); if(_m){ _m.empresaMiembros=(_m.empresaMiembros||[]).filter(e=>(e||'').toLowerCase()!==_em); await env.USERS.put(_m.email.toLowerCase(), JSON.stringify(_m)); if(_sbD) await dalSaveUsuario(env, _m, true); try{ await syncEmpresaMiembros(env, _m); }catch(e){} } }catch(e){ _avisos.push('miembros: '+e.message); }
+      try{ const _m=await dalGetUsuarioById(env, _u.empresaMadreId, _sbD); if(_m){ _m.empresaMiembros=(_m.empresaMiembros||[]).filter(e=>(e||'').toLowerCase()!==_em); await _USR(env).put(_m.email.toLowerCase(), JSON.stringify(_m)); if(_sbD) await dalSaveUsuario(env, _m, true); try{ await syncEmpresaMiembros(env, _m); }catch(e){} } }catch(e){ _avisos.push('miembros: '+e.message); }
     }
     // Usuario: KV (email + id:) y Supabase
-    await env.USERS.delete(_em);
-    if(_u.id){ try{ await env.USERS.delete('id:'+_u.id); }catch(e){} }
+    await _USR(env).delete(_em);
+    if(_u.id){ try{ await _USR(env).delete('id:'+_u.id); }catch(e){} }
     if(_sbD){ try{ await sbDelete(env,'usuarios','email=eq.'+encodeURIComponent(_em)); }catch(e){ _avisos.push('usuario supabase: '+e.message); } }
     // Entidad empresa: solo si era la cuenta principal (sin miembros)
     if(!_u.esSubusuario){
@@ -4551,7 +4593,7 @@ async function handleRequest(request, env, ctx) {
       // Miembros de la empresa para el selector de "ceder" (solo si puede gestionar)
       if(t.puedoGestionar){
         const emails=await emailsEmpresa(env,user); const miembros=[];
-        for(const em of emails){ const r=await env.USERS.get(em); if(!r) continue; const mu=JSON.parse(r); miembros.push({ email:mu.email, nombre:mu.nombre||mu.email, esMadre:!mu.esSubusuario }); }
+        for(const em of emails){ const r=await _USR(env).get(em); if(!r) continue; const mu=JSON.parse(r); miembros.push({ email:mu.email, nombre:mu.nombre||mu.email, esMadre:!mu.esSubusuario }); }
         t.miembrosEmpresa=miembros;
         t.asignadoEmailActual=asignadoDeTransporte(t);
       }
@@ -4603,7 +4645,7 @@ async function handleRequest(request, env, ctx) {
     // El destinatario debe pertenecer a la misma empresa
     const emails=await emailsEmpresa(env,user);
     if(!emails.has(nuevoEmail)) return err("El usuario no pertenece a tu empresa",400);
-    const rawNuevo=await env.USERS.get(nuevoEmail); if(!rawNuevo) return err("Usuario no encontrado",404);
+    const rawNuevo=await _USR(env).get(nuevoEmail); if(!rawNuevo) return err("Usuario no encontrado",404);
     const nuevo=JSON.parse(rawNuevo);
     t.asignadoEmail=nuevo.email; t.asignadoId=nuevo.id; t.asignadoNombre=nuevo.nombre||nuevo.email;
     t.historial=t.historial||[]; t.historial.push({ estado:t.estado, fecha:new Date().toISOString(), actor:user.nombre||user.email, nota:"Adjudicación cedida a "+(nuevo.nombre||nuevo.email) });
@@ -5006,7 +5048,7 @@ async function handleRequest(request, env, ctx) {
     await env.SESSIONS.put("equipos:pendientes", JSON.stringify(pendientes));
     // Notificar al transportista
     if(equipo.email) {
-      const rawT = await env.USERS.get(equipo.email);
+      const rawT = await _USR(env).get(equipo.email);
       if(rawT) {
         const uT = JSON.parse(rawT);
         const msg = accion==="aprobar"
@@ -5017,7 +5059,7 @@ async function handleRequest(request, env, ctx) {
         if(accion === "aprobar") {
           if(!uT.tiposEquipo) uT.tiposEquipo = [];
           uT.tiposEquipo.push(pendientes[idx].nombreAprobado);
-          await env.USERS.put(equipo.email, JSON.stringify(uT));
+          await _USR(env).put(equipo.email, JSON.stringify(uT));
         }
       }
     }
@@ -5031,7 +5073,7 @@ async function handleRequest(request, env, ctx) {
     const user = await getUser(request, env);
     if(!user) return err("No autenticado", 401);
     if(!["cliente","transportista"].includes(user.role)) return err("Sin permisos", 403);
-    const rawAdmin = await env.USERS.get(user.email);
+    const rawAdmin = await _USR(env).get(user.email);
     if(!rawAdmin) return err("No encontrado", 404);
     const uAdmin = JSON.parse(rawAdmin);
     // Solo el admin de empresa puede ver el listado
@@ -5041,7 +5083,7 @@ async function handleRequest(request, env, ctx) {
     const miembrosIds = (Array.isArray(_empMe2.miembros) ? _empMe2.miembros.filter(e => e !== user.email) : (uAdmin.empresaMiembros || []));
     const miembros = [];
     for(const email of miembrosIds) {
-      const raw = await env.USERS.get(email); if(!raw) continue;
+      const raw = await _USR(env).get(email); if(!raw) continue;
       const m = JSON.parse(raw);
       miembros.push({ id:m.id, email:m.email, nombre:m.nombre, permisos:m.permisos||{}, rol:m.rol||'miembro', estado:m.estado, createdAt:m.createdAt });
     }
@@ -5059,7 +5101,7 @@ async function handleRequest(request, env, ctx) {
   if (path === "/api/mi-empresa/invitar" && method === "POST") {
     const user = await getUser(request, env);
     if(!user) return err("No autenticado", 401);
-    const rawAdmin = await env.USERS.get(user.email);
+    const rawAdmin = await _USR(env).get(user.email);
     if(!rawAdmin) return err("No encontrado", 404);
     const uAdmin = JSON.parse(rawAdmin);
     // Verificar que es admin de empresa
@@ -5071,7 +5113,7 @@ async function handleRequest(request, env, ctx) {
     const { emailInvitado, permisos, rol } = body;
     if(!emailInvitado) return err("emailInvitado requerido");
     // Verificar que no está ya registrado
-    const existe = await env.USERS.get(emailInvitado.toLowerCase());
+    const existe = await _USR(env).get(emailInvitado.toLowerCase());
     if(existe) return err("Este email ya tiene una cuenta en TransMatch");
     // Crear token de invitación (expira en 48h)
     const token = uid();
@@ -5088,7 +5130,7 @@ async function handleRequest(request, env, ctx) {
     if (!uAdmin.invitacionesPendientes) uAdmin.invitacionesPendientes = [];
     uAdmin.invitacionesPendientes = uAdmin.invitacionesPendientes.filter(i => i.emailInvitado !== emailInvitado.toLowerCase());
     uAdmin.invitacionesPendientes.push({ token, emailInvitado: emailInvitado.toLowerCase(), createdAt: invitacion.createdAt, expiresAt: invitacion.expiresAt });
-    await env.USERS.put(user.email, JSON.stringify(uAdmin));
+    await _USR(env).put(user.email, JSON.stringify(uAdmin));
     try{ await syncEmpresaMiembros(env, uAdmin); }catch(e){}
     // Enviar email de invitación
     const linkInvitacion = `https://transmatch.cl/registro.html?invitacion=${token}`;
@@ -5117,7 +5159,7 @@ async function handleRequest(request, env, ctx) {
     const user = await getUser(request, env);
     if(!user) return err("No autenticado", 401);
     if(!["cliente","transportista"].includes(user.role)) return err("Sin permisos", 403);
-    const rawAdmin = await env.USERS.get(user.email);
+    const rawAdmin = await _USR(env).get(user.email);
     if(!rawAdmin) return err("No encontrado", 404);
     const uAdmin = JSON.parse(rawAdmin);
     if(uAdmin.empresaAdminEmail && uAdmin.empresaAdminEmail !== user.email) return err("Solo el admin de empresa puede cancelar invitaciones", 403);
@@ -5126,7 +5168,7 @@ async function handleRequest(request, env, ctx) {
     const inv = lista.find(i => i.emailInvitado === emailCancelar);
     if(inv && inv.token) await env.SESSIONS.delete("invitacion:"+inv.token);
     uAdmin.invitacionesPendientes = lista.filter(i => i.emailInvitado !== emailCancelar);
-    await env.USERS.put(user.email, JSON.stringify(uAdmin));
+    await _USR(env).put(user.email, JSON.stringify(uAdmin));
     try{ await syncEmpresaMiembros(env, uAdmin); }catch(e){}
     return ok({ ok:true });
   }
@@ -5154,10 +5196,10 @@ async function handleRequest(request, env, ctx) {
     if(!telefono) return err("Teléfono requerido");
     if(password.length < 8) return err("Contraseña mínimo 8 caracteres");
     // Verificar que no existe aún
-    const existe = await env.USERS.get(inv.emailInvitado);
+    const existe = await _USR(env).get(inv.emailInvitado);
     if(existe) return err("Este email ya tiene una cuenta");
     // Leer la cuenta madre PRIMERO (necesario para empresaMadreId y para vincular el miembro)
-    const rawAdmin = await env.USERS.get(inv.empresaAdminEmail);
+    const rawAdmin = await _USR(env).get(inv.empresaAdminEmail);
     if(!rawAdmin) return err("La cuenta de empresa que te invitó ya no existe", 404);
     const uAdmin = JSON.parse(rawAdmin);
     // Crear usuario
@@ -5175,14 +5217,14 @@ async function handleRequest(request, env, ctx) {
       empresaId: uAdmin.id,
       createdAt: new Date().toISOString(),
     };
-    await env.USERS.put(inv.emailInvitado, JSON.stringify(nuevoUser));
-    await env.USERS.put("id:"+nuevoUser.id, inv.emailInvitado);
+    await _USR(env).put(inv.emailInvitado, JSON.stringify(nuevoUser));
+    await _USR(env).put("id:"+nuevoUser.id, inv.emailInvitado);
     // Agregar a la lista de miembros del admin (sin duplicar)
     if(!uAdmin.empresaMiembros) uAdmin.empresaMiembros = [];
     if(!uAdmin.empresaMiembros.includes(inv.emailInvitado)) uAdmin.empresaMiembros.push(inv.emailInvitado);
     // Quitar la invitación de la lista de pendientes ya que fue aceptada
     if(Array.isArray(uAdmin.invitacionesPendientes)) uAdmin.invitacionesPendientes = uAdmin.invitacionesPendientes.filter(i => i.emailInvitado !== inv.emailInvitado);
-    await env.USERS.put(inv.empresaAdminEmail, JSON.stringify(uAdmin));
+    await _USR(env).put(inv.empresaAdminEmail, JSON.stringify(uAdmin));
     try{ await syncEmpresaMiembros(env, uAdmin); }catch(e){}
     // Invalidar token
     await env.SESSIONS.delete("invitacion:"+token);
@@ -5195,17 +5237,17 @@ async function handleRequest(request, env, ctx) {
     const user = await getUser(request, env);
     if(!user) return err("No autenticado", 401);
     const emailTarget = decodeURIComponent(path.split("/")[4]);
-    const rawAdmin = await env.USERS.get(user.email);
+    const rawAdmin = await _USR(env).get(user.email);
     if(!rawAdmin) return err("No encontrado", 404);
     const uAdmin = JSON.parse(rawAdmin);
     if(uAdmin.empresaAdminEmail && uAdmin.empresaAdminEmail !== user.email) return err("Sin permisos", 403);
-    const rawTarget = await env.USERS.get(emailTarget);
+    const rawTarget = await _USR(env).get(emailTarget);
     if(!rawTarget) return err("Usuario no encontrado", 404);
     const uTarget = JSON.parse(rawTarget);
     if(uTarget.empresaAdminEmail !== user.email) return err("Este usuario no pertenece a tu empresa", 403);
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
     uTarget.permisos = body.permisos || {};
-    await env.USERS.put(emailTarget, JSON.stringify(uTarget));
+    await _USR(env).put(emailTarget, JSON.stringify(uTarget));
     return ok({ ok:true });
   }
 
@@ -5214,14 +5256,14 @@ async function handleRequest(request, env, ctx) {
     const user = await getUser(request, env);
     if(!user) return err("No autenticado", 401);
     const emailTarget = decodeURIComponent(path.split("/")[4]);
-    const rawAdmin = await env.USERS.get(user.email);
+    const rawAdmin = await _USR(env).get(user.email);
     if(!rawAdmin) return err("No encontrado", 404);
     const uAdmin = JSON.parse(rawAdmin);
     if(uAdmin.empresaAdminEmail && uAdmin.empresaAdminEmail !== user.email) return err("Sin permisos", 403);
     // Eliminar de la lista de miembros
     uAdmin.empresaMiembros = (uAdmin.empresaMiembros||[]).filter(e => e !== emailTarget);
-    await env.USERS.put(user.email, JSON.stringify(uAdmin));
-    await env.USERS.delete(emailTarget);
+    await _USR(env).put(user.email, JSON.stringify(uAdmin));
+    await _USR(env).delete(emailTarget);
     try{ await syncEmpresaMiembros(env, uAdmin); }catch(e){}
     return ok({ ok:true });
   }
@@ -5333,8 +5375,8 @@ async function handleRequest(request, env, ctx) {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
     const sb=usarSupabase(env, url);
-    const cargar=async em=>{ em=String(em||"").toLowerCase(); if(!em) return null; const x=await dalGetUsuarioByEmail(env, em, sb); if(x) return x; const r=await env.USERS.get(em); return r?JSON.parse(r):null; };
-    const guardar=async u=>{ await env.USERS.put(String(u.email).toLowerCase(), JSON.stringify(u)); if(sb){ try{ await dalSaveUsuario(env, u, sb); }catch(e){} } };
+    const cargar=async em=>{ em=String(em||"").toLowerCase(); if(!em) return null; const x=await dalGetUsuarioByEmail(env, em, sb); if(x) return x; const r=await _USR(env).get(em); return r?JSON.parse(r):null; };
+    const guardar=async u=>{ await _USR(env).put(String(u.email).toLowerCase(), JSON.stringify(u)); if(sb){ try{ await dalSaveUsuario(env, u, sb); }catch(e){} } };
     const madre=await cargar(body.madreEmail);
     if(!madre||madre.role!=="transportista"||madre.esSubusuario) return err("Cuenta de transportista no encontrada",404);
     const limpio=v=>String(v==null?"":v).replace(/[<>"'`]/g,"").replace(/\s+/g," ").trim().slice(0,200);
@@ -5456,7 +5498,7 @@ async function handleRequest(request, env, ctx) {
     t.historial.push({ estado:t.estado, fecha:new Date().toISOString(), actor:user.nombre||user.email, nota:"Documentos solicitados por el cliente: "+nuevos.map(r=>r.label).join(", ") });
     await dalSaveTransporte(env, t, usarSupabase(env, url));
     try {
-      const tRaw = t.transportistaEmail ? await env.USERS.get(t.transportistaEmail) : null;
+      const tRaw = t.transportistaEmail ? await _USR(env).get(t.transportistaEmail) : null;
       const tId = tRaw ? JSON.parse(tRaw).id : "";
       if(tId) await crearNotificacion(env, tId, "documentos_solicitados", `El cliente solicitó ${nuevos.length===1?"un documento":nuevos.length+" documentos"} para el transporte ${t.codigo}: ${nuevos.map(r=>r.label).join(", ")}`, { transporteId:id });
       if(t.transportistaEmail) await enviarEmail(env, { to:t.transportistaEmail, subject:`Documentos solicitados - ${t.codigo||"Transporte"} - TransMatch`, html:emailDocumentosSolicitados(t, nuevos) });
@@ -5543,7 +5585,7 @@ async function handleRequest(request, env, ctx) {
     ["carga","descarga"].forEach(function(k){ if(t.direcciones && t.direcciones[k] && typeof t.direcciones[k]==="object") { const d=t.direcciones[k]; d.ubicacion = limpiarUbicacion(d.ubicacion); const u=d.ubicacion; d.mapsUrl = u ? (/^https:/i.test(u) ? u : "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(u)) : (d.direccion ? "https://www.google.com/maps/search/"+encodeURIComponent(String(d.direccion)) : ""); } });
     await dalSaveTransporte(env, t, usarSupabase(env, url));
     // Notificar al transportista
-    await crearNotificacion(env, t.transportistaEmail ? (await env.USERS.get(t.transportistaEmail) ? JSON.parse(await env.USERS.get(t.transportistaEmail)).id : "") : "", "direcciones_actualizadas", `El cliente actualizó las direcciones de carga y descarga del transporte ${t.codigo}.`, { transporteId: id });
+    await crearNotificacion(env, t.transportistaEmail ? (await _USR(env).get(t.transportistaEmail) ? JSON.parse(await _USR(env).get(t.transportistaEmail)).id : "") : "", "direcciones_actualizadas", `El cliente actualizó las direcciones de carga y descarga del transporte ${t.codigo}.`, { transporteId: id });
     return ok({ ok:true });
   }
 
