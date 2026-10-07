@@ -3914,7 +3914,7 @@ async function handleRequest(request, env, ctx) {
     return ok({ ok: true, mensaje: "Solicitud recibida. Te contactaremos pronto." });
   }
 
-  // ── COBROS: generar cobro 4% desde licitación adjudicada ──
+  // ── COBROS: endpoint antiguo (cobro manual). Ya no crea OV: la OV se crea al adjudicar (5%, tope 10 UF) ──
   if (path === "/api/cobros/generar" && method === "POST") {
     const user = await getUser(request, env);
     const d = deny(user, "admin");
@@ -3931,19 +3931,6 @@ async function handleRequest(request, env, ctx) {
     const _ovsExist=(await dalGetAllOVs(env, usarSupabase(env, url))).filter(o=>o && (o.id_licitacion===licitacionId||o.licitacionId===licitacionId) && o.estado!=="ANULADA");
     if(_ovsExist.length) return err("Esta licitación ya tiene su OV ("+_ovsExist.map(o=>o.id_ov).join(", ")+"). El cobro se genera automáticamente al adjudicar.");
     return err("El cobro se genera automáticamente al adjudicar. Revisa Facturación → Órdenes de Venta.");
-    const fee = Math.round(cotiz.precio * 0.04);
-    const ovId = await generarCodigoOV(env);
-    const ov = {
-      id_ov: ovId, licitacionId, transportistaId: cotiz.transportistaId,
-      transportistaEmail: cotiz.transportistaEmail, transportistaNombre: cotiz.transportistaNombre,
-      transportistaEmpresa: cotiz.transportistaEmpresa, clienteEmpresa: l.clienteEmpresa,
-      precio_flete: cotiz.precio, comision_porcentaje: 0.04, comision_final: fee,
-      estado: "CONDICIONAL", createdAt: new Date().toISOString()
-    };
-    await dalSaveOV(env, ov, usarSupabase(env, url), { isNew:true });
-    l.cobro = { ovId, fee };
-    await dalSaveLicitacion(env, l, usarSupabase(env, url));
-    return ok({ cobro: { ovId, fee } });
   }
 
   // ── INVITACIÓN: validar token de invitación (registro transportista) ──
