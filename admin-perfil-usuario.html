@@ -447,6 +447,16 @@
         '</div>' +
       '</div></div>' +
 
+      // ── Acceso: bloqueo por intentos y clave provisoria ──
+      '<div class="card"><div class="card-hdr">Acceso</div><div class="card-body">' +
+        '<div id="acceso-estado" style="font-size:13px;color:#6B7280;margin-bottom:12px">Revisando…</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+          '<button id="btn-desbloquear" onclick="desbloquearAcceso()" style="display:none;background:#1e2d4e;color:#fff;padding:9px 16px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Desbloquear acceso</button>' +
+          '<button onclick="claveProvisoria()" style="background:#fff;color:#1e2d4e;padding:9px 16px;border-radius:8px;border:1px solid #1e2d4e;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Generar clave provisoria</button>' +
+        '</div>' +
+        '<div id="clave-prov" style="display:none;margin-top:12px;background:#EEF1F8;border-radius:8px;padding:12px;font-size:13px;color:#1e2d4e"></div>' +
+      '</div></div>' +
+
       // ── 6. Estado de la cuenta + Plan (unidos) ──
       '<div class="card"><div class="card-hdr">Estado de la cuenta</div><div class="card-body">' +
         '<div id="estado-banner" style="padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:16px"></div>' +
@@ -457,6 +467,7 @@
     document.getElementById('contenido').innerHTML = html;
     renderEstado(u.estado);
     cargarHistorial(u.email, isTransportista);
+    cargarAcceso();
   }
 
   function renderEstado(estado) {
@@ -577,6 +588,28 @@
     }
   }
 
+  async function cargarAcceso() {
+    var el = document.getElementById('acceso-estado'); if (!el || !userData) return;
+    var r = await api('/api/admin/usuario/acceso', 'POST', { email: userData.email, accion: 'estado' });
+    if (!r || !r.ok) { el.textContent = 'No se pudo revisar el acceso.'; return; }
+    var btn = document.getElementById('btn-desbloquear');
+    if (r.data.bloqueado) { el.innerHTML = '<span style="color:#991B1B;font-weight:600">Bloqueado por intentos fallidos</span> · se libera solo en 15 minutos o puedes desbloquearlo ahora.'; btn.style.display = ''; }
+    else { el.textContent = 'Sin bloqueo' + (r.data.intentos ? ' (' + r.data.intentos + ' intento(s) fallido(s) recientes)' : '') + '.'; btn.style.display = 'none'; }
+  }
+  async function desbloquearAcceso() {
+    var r = await api('/api/admin/usuario/acceso', 'POST', { email: userData.email, accion: 'desbloquear' });
+    if (r && r.ok) { toast('Acceso desbloqueado'); cargarAcceso(); } else toast((r && r.data && r.data.error) || 'Error', 'err');
+  }
+  async function claveProvisoria() {
+    if (!confirm('Se generará una clave provisoria y la actual dejará de funcionar. El usuario deberá cambiarla al entrar. ¿Continuar?')) return;
+    var r = await api('/api/admin/usuario/acceso', 'POST', { email: userData.email, accion: 'clave_provisoria' });
+    if (!r || !r.ok) { toast((r && r.data && r.data.error) || 'Error', 'err'); return; }
+    var box = document.getElementById('clave-prov'); box.style.display = 'block';
+    box.innerHTML = 'Clave provisoria: <b style="font-family:monospace;font-size:15px;letter-spacing:.5px">' + r.data.clave + '</b> ' +
+      '<button onclick="navigator.clipboard.writeText(\'' + r.data.clave + '\');toast(\'Copiada\')" style="margin-left:6px;background:none;border:none;color:#1e2d4e;text-decoration:underline;cursor:pointer;font-size:12px">Copiar</button>' +
+      '<div style="font-size:12px;color:#6B7280;margin-top:6px">Envíasela al usuario por un canal privado. Al entrar con ella, la plataforma le pedirá crear una nueva. Esta clave no se vuelve a mostrar.</div>';
+    cargarAcceso();
+  }
   async function guardarNotas() {
     var notas = document.getElementById('notas-admin').value;
     var r = await api('/api/admin/gestionar-usuario', 'POST', { email: userData.email, notasAdmin: notas });

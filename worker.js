@@ -15,10 +15,37 @@ function corsResponse(body, status, extra={}) {
 function ok(data)        { return corsResponse(JSON.stringify(data), 200); }
 function err(msg, s=400) { return corsResponse(JSON.stringify({ error:msg }), s); }
 
-async function hashPassword(pw) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pw));
-  return btoa(String.fromCharCode(...new Uint8Array(buf)));
+// Contraseñas: PBKDF2-SHA256 con sal aleatoria por usuario. Formato: pbkdf2$<iteraciones>$<sal b64>$<hash b64>.
+// Las antiguas (SHA-256 sin sal) se siguen aceptando y se convierten solas en el siguiente login.
+const PBKDF2_ITER = 50000;
+function _b64(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))); }
+function _unb64(s){ return Uint8Array.from(atob(s), c=>c.charCodeAt(0)); }
+async function _pbkdf2(pw, salt, iter){
+  const key=await crypto.subtle.importKey("raw", new TextEncoder().encode(String(pw)), "PBKDF2", false, ["deriveBits"]);
+  return crypto.subtle.deriveBits({ name:"PBKDF2", hash:"SHA-256", salt, iterations:iter }, key, 256);
 }
+async function _sha256Legacy(pw){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pw));
+  return _b64(buf);
+}
+async function hashPassword(pw) {
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  return "pbkdf2$"+PBKDF2_ITER+"$"+_b64(salt)+"$"+_b64(await _pbkdf2(pw, salt, PBKDF2_ITER));
+}
+function _igualSeguro(a, b){ a=String(a||""); b=String(b||""); let d=a.length^b.length; for(let i=0;i<Math.max(a.length,b.length);i++) d|=(a.charCodeAt(i)||0)^(b.charCodeAt(i)||0); return d===0; }
+async function verifyPassword(pw, stored){
+  stored=String(stored||""); if(!stored||pw==null) return false;
+  if(stored.startsWith("pbkdf2$")){
+    const [,it,salt,hash]=stored.split("$");
+    return _igualSeguro(_b64(await _pbkdf2(pw, _unb64(salt), parseInt(it,10))), hash);
+  }
+  return _igualSeguro(await _sha256Legacy(pw), stored);
+}
+function passwordEsLegacy(stored){ return !!stored && !String(stored).startsWith("pbkdf2$"); }
+// Límite de intentos de login: 5 fallos → bloqueo de 15 minutos por email.
+async function loginBloqueado(env, email){ try{ const n=parseInt(await env.SESSIONS.get("login_fail:"+email)||"0",10); return n>=5; }catch(e){ return false; } }
+async function loginFallo(env, email){ try{ const k="login_fail:"+email; const n=parseInt(await env.SESSIONS.get(k)||"0",10)+1; await env.SESSIONS.put(k, String(n), { expirationTtl: 900 }); }catch(e){} }
+async function loginOk(env, email){ try{ await env.SESSIONS.delete("login_fail:"+email); }catch(e){} }
 
 async function signToken(payload, secret) {
   const header = btoa(JSON.stringify({ alg:"HS256", typ:"JWT" }));
@@ -996,6 +1023,12 @@ async function enviarEmail(env, { to, subject, html, cc, attachments }) {
   } catch(e) { console.error("Email error:", e.message); return { ok:false, error:e.message }; }
 }
 
+function emailRestablecer(nombre, link){
+  return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Restablecer tu contraseña</h2>
+    <p style="font-size:14px;color:#374151;line-height:1.6;margin:0 0 16px">Hola${nombre?" "+nombre:""}, recibimos una solicitud para crear una nueva contraseña en TransMatch. Haz clic en el botón para continuar. El enlace sirve por <strong>1 hora</strong> y una sola vez.</p>
+    ${btnEmail(link,"Crear nueva contraseña")}
+    <p style="font-size:12px;color:#6B7280;line-height:1.5;margin:16px 0 0">Si no fuiste tú, ignora este correo: tu contraseña actual sigue funcionando.</p>`, "Restablecer contraseña - TransMatch");
+}
 function emailBase(contenido, titulo) {
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${titulo}</title></head>
 <body style="margin:0;padding:0;background:#EEF1F6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
@@ -2338,7 +2371,7 @@ async function handleRequest(request, env, ctx) {
     catch(e){ pasos.push("Error al leer: "+e.message); }
     // Verificar la "clave" igual que el login: comparar el hash
     let claveOk=false;
-    if(leido){ claveOk=(leido.password===await hashPassword(clave)); pasos.push("Verificacion de contraseña (como el login): "+(claveOk?"OK":"FALLO")); }
+    if(leido){ claveOk=await verifyPassword(clave, leido.password); pasos.push("Verificacion de contraseña (como el login): "+(claveOk?"OK":"FALLO")); }
     // Verificar por id también
     let porId=null; try{ porId=await dalGetUsuarioById(env, id, true); pasos.push("Busqueda por id: "+(porId?"OK":"NO")); }catch(e){ pasos.push("Error por id: "+e.message); }
     try{ await sbDelete(env, "usuarios", "id=eq."+id); pasos.push("Limpieza del usuario de prueba: OK"); }
@@ -2715,8 +2748,7 @@ async function handleRequest(request, env, ctx) {
     let u = await dalGetUsuarioByEmail(env, user.email, _sbP);
     if (!u) { const raw = await _USR(env).get(String(user.email).toLowerCase()); u = raw ? JSON.parse(raw) : null; }
     if (!u) return err("Usuario no encontrado", 404);
-    const hashActual = await hashPassword(passwordActual);
-    if (hashActual !== u.password) return err("La contraseña actual es incorrecta");
+    if (!(await verifyPassword(passwordActual, u.password))) return err("La contraseña actual es incorrecta");
     if (passwordActual === passwordNueva) return err("La nueva contraseña debe ser distinta de la actual");
     u.password = await hashPassword(passwordNueva);
     u.passwordProvisorio = false;
@@ -2726,20 +2758,59 @@ async function handleRequest(request, env, ctx) {
     return ok({ ok: true, mensaje: "Contraseña actualizada" });
   }
 
+  // ¿Olvidaste tu contraseña? → correo con enlace de 1 hora. Responde siempre igual (no revela si el correo existe).
+  if (path === "/api/auth/olvide" && method === "POST") {
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
+    const email=String(body.email||"").toLowerCase().trim();
+    const respuesta=ok({ ok:true, mensaje:"Si el correo está registrado, te enviamos un enlace para crear una nueva contraseña." });
+    if(!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return respuesta;
+    if(email===(env.ADMIN_EMAIL||"").toLowerCase()) return respuesta;
+    const ck="reset_cnt:"+email; const n=parseInt(await env.SESSIONS.get(ck)||"0",10);
+    if(n>=3) return respuesta; // máx. 3 correos por hora
+    await env.SESSIONS.put(ck, String(n+1), { expirationTtl:3600 });
+    const u=await dalGetUsuarioByEmail(env, email, usarSupabase(env, url));
+    if(!u || ["rechazado"].includes(u.estado)) return respuesta;
+    const tok=_b64(crypto.getRandomValues(new Uint8Array(32))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+    const th=await _sha256Legacy(tok);
+    await env.SESSIONS.put("reset:"+th, email, { expirationTtl:3600 });
+    const link=(env.TM_BASE||"https://transmatch.cl")+"/restablecer.html?t="+encodeURIComponent(tok);
+    try{ await enviarEmail(env,{ to:email, subject:"Restablecer tu contraseña - TransMatch", html:emailRestablecer(u.nombre, link) }); }catch(e){ console.error("email reset", e&&e.message); }
+    return respuesta;
+  }
+  if (path === "/api/auth/restablecer" && method === "POST") {
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
+    const tok=String(body.token||""), pw=String(body.password||"");
+    if(!tok) return err("Enlace inválido");
+    const k="reset:"+await _sha256Legacy(tok); const email=await env.SESSIONS.get(k);
+    if(!email) return err("El enlace expiró o ya se usó. Pide uno nuevo.",400);
+    if(body.validar) return ok({ ok:true, email });
+    if(pw.length<8) return err("La contraseña debe tener al menos 8 caracteres");
+    const u=await dalGetUsuarioByEmail(env, email, usarSupabase(env, url)); if(!u) return err("Usuario no encontrado",404);
+    u.password=await hashPassword(pw); u.passwordProvisorio=false; u.passwordCambiadaAt=new Date().toISOString();
+    await dalSaveUsuario(env, u, usarSupabase(env, url));
+    await env.SESSIONS.delete(k); await loginOk(env, email);
+    await registrarActividad(env,"password_restablecida",`Contraseña restablecida por correo: ${email}`,{ email });
+    return ok({ ok:true, mensaje:"Contraseña actualizada. Ya puedes iniciar sesión." });
+  }
   if (path === "/api/auth/login" && method === "POST") {
     let body = {}; try { body = await request.json(); } catch(e) { return err("Formato invalido"); }
     const { email, password } = body;
     if (!email||!password) return err("Email y contrasena requeridos");
-    const emailLower = email.toLowerCase();
+    const emailLower = String(email).toLowerCase().trim();
+    if (await loginBloqueado(env, emailLower)) return err("Demasiados intentos fallidos. Espera 15 minutos o escríbenos a contacto@transmatch.cl.",429);
     if (emailLower===(env.ADMIN_EMAIL||"").toLowerCase()) {
-      if (await hashPassword(password) !== await hashPassword(env.ADMIN_PASSWORD||"")) return err("Credenciales incorrectas",401);
+      if (!env.ADMIN_PASSWORD || !_igualSeguro(password, env.ADMIN_PASSWORD)) { await loginFallo(env, emailLower); return err("Credenciales incorrectas",401); }
+      await loginOk(env, emailLower);
       const token = await signToken({ id:"admin", email:emailLower, role:"admin", nombre:"Administrador", empresa:"TransMatch" }, env.JWT_SECRET);
       return ok({ token, role:"admin", nombre:"Administrador", empresa:"TransMatch", plan:null });
     }
     const _sbL = usarSupabase(env, url);
     const user = await dalGetUsuarioByEmail(env, emailLower, _sbL);
-    if (!user) return err("Credenciales incorrectas",401);
-    if (user.password !== await hashPassword(password)) return err("Credenciales incorrectas",401);
+    if (!user) { await loginFallo(env, emailLower); return err("Credenciales incorrectas",401); }
+    if (!(await verifyPassword(password, user.password))) { await loginFallo(env, emailLower); return err("Credenciales incorrectas",401); }
+    await loginOk(env, emailLower);
+    // Contraseña en formato antiguo → convertir a PBKDF2 ahora que la conocemos
+    if (passwordEsLegacy(user.password)) { try{ user.password = await hashPassword(password); user.passwordMigradaAt = new Date().toISOString(); await dalSaveUsuario(env, user, _sbL); }catch(e){} }
     // Estado efectivo: los sub-usuarios heredan el estado de la cuenta madre (cascada) y respetan su desactivación manual.
     const ef = await efectivoSubusuario(env, user);
     if (ef.estado==="pendiente")  return err("Cuenta pendiente de aprobacion",403);
@@ -4472,6 +4543,26 @@ async function handleRequest(request, env, ctx) {
     return ok({ usuarios });
   }
 
+  // Acceso de un usuario (admin): ver si está bloqueado, desbloquear o generar una clave provisoria.
+  if (path === "/api/admin/usuario/acceso" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
+    const email=String(body.email||"").toLowerCase().trim(); if(!email) return err("email requerido");
+    const intentos=parseInt(await env.SESSIONS.get("login_fail:"+email)||"0",10)||0;
+    if(body.accion==="estado") return ok({ ok:true, bloqueado:intentos>=5, intentos });
+    if(body.accion==="desbloquear"){ await loginOk(env, email); await registrarActividad(env,"acceso_desbloqueado",`Acceso desbloqueado: ${email}`,{ email }); return ok({ ok:true }); }
+    if(body.accion==="clave_provisoria"){
+      const u=await dalGetUsuarioByEmail(env, email, usarSupabase(env, url)); if(!u) return err("Usuario no encontrado",404);
+      const abc="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"; const rnd=crypto.getRandomValues(new Uint8Array(10));
+      const clave=Array.from(rnd, b=>abc[b%abc.length]).join("");
+      u.password=await hashPassword(clave); u.passwordProvisorio=true; u.passwordResetAdminAt=new Date().toISOString();
+      await dalSaveUsuario(env, u, usarSupabase(env, url));
+      await loginOk(env, email);
+      await registrarActividad(env,"clave_provisoria",`Clave provisoria generada para ${email}`,{ email });
+      return ok({ ok:true, clave });
+    }
+    return err("accion inválida");
+  }
   if (path === "/api/admin/gestionar-usuario" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>TransMatch — Iniciar sesion</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>TransMatch — Restablecer contraseña</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   body{font-family:Barlow,sans-serif;background:#f5f7fb;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
@@ -56,178 +56,62 @@ btn.style.color=isPass?"#1e2d4e":"#9CA3AF";
 </a>
 
 <div class="card">
-  <h1>Bienvenido de vuelta</h1>
-  <p class="sub">Ingresa tu email y contrasena para continuar</p>
-
-  <div class="alert" id="alert-msg"></div>
-
-  <div class="field">
-    <label for="email">Email</label>
-    <input type="email" id="email" placeholder="correo@empresa.cl" autocomplete="email"/>
+  <div id="paso-email">
+    <h1>¿Olvidaste tu contraseña?</h1>
+    <p class="sub">Escribe el correo con que te registraste y te enviaremos un enlace para crear una nueva.</p>
+    <div class="alert" id="alert-1"></div>
+    <div class="field"><label for="email">Email</label><input type="email" id="email" placeholder="correo@empresa.cl" autocomplete="email"/></div>
+    <button class="btn btn-primary" id="btn-enviar" onclick="enviar()">Enviar enlace</button>
   </div>
-  <div class="field">
-    <label for="password">Contrasena</label>
-    <div style="position:relative"><input type="password" id="password" placeholder="Tu contrasena" autocomplete="current-password" style="padding-right:42px"/><button type="button" onclick="togglePass('password',this)" tabindex="-1" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:16px;padding:0;line-height:1"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+  <div id="paso-enviado" style="display:none">
+    <h1>Revisa tu correo</h1>
+    <p class="sub" id="txt-enviado">Si el correo está registrado, te enviamos un enlace para crear una nueva contraseña. Sirve por 1 hora. Revisa también la carpeta de spam.</p>
   </div>
-
-  <div style="text-align:right;margin:-8px 0 16px"><a href="/restablecer.html" id="link-olvide" onclick="var e=document.getElementById('email').value;if(e)this.href='/restablecer.html?email='+encodeURIComponent(e)" style="font-size:13px;color:#1e2d4e;font-weight:500;text-decoration:underline">¿Olvidaste tu contraseña?</a></div>
-
-  <button class="btn btn-primary" id="btn-login" onclick="doLogin()">Iniciar sesion</button>
-
-  <div class="divider">¿Eres nuevo?</div>
-
-  <button class="btn btn-secondary" onclick="window.location.href='/registro.html'">Crear cuenta</button>
-
-  <div class="footer-links">
-    <a href="/registro.html">Registrar empresa →</a>
+  <div id="paso-nueva" style="display:none">
+    <h1>Crea tu nueva contraseña</h1>
+    <p class="sub" id="txt-cuenta">Mínimo 8 caracteres.</p>
+    <div class="alert" id="alert-2"></div>
+    <div class="field"><label for="p1">Nueva contraseña</label><input type="password" id="p1" placeholder="Mínimo 8 caracteres" autocomplete="new-password"/></div>
+    <div class="field"><label for="p2">Repite la contraseña</label><input type="password" id="p2" placeholder="Repite la nueva contraseña" autocomplete="new-password"/></div>
+    <button class="btn btn-primary" id="btn-guardar" onclick="guardar()">Guardar contraseña</button>
   </div>
+  <div id="paso-listo" style="display:none">
+    <h1>Contraseña actualizada</h1>
+    <p class="sub">Ya puedes iniciar sesión con tu nueva contraseña.</p>
+    <button class="btn btn-primary" onclick="location.href='/login.html'">Iniciar sesión</button>
+  </div>
+  <div class="footer-links"><a href="/login.html">← Volver al inicio de sesión</a></div>
 </div>
-
-<div class="admin-link">
-  <a href="/admin-login.html">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    Acceso administrador
-  </a>
-</div>
-
 <script>
-var API = (localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
-
-  async function fetchWithRetry(url, options, retries) {
-    retries = retries || 2;
-    for (var i = 0; i <= retries; i++) {
-      try {
-        var controller = new AbortController();
-        var timeout = setTimeout(function(){ controller.abort(); }, 15000);
-        var res = await fetch(url, Object.assign({}, options, { signal: controller.signal }));
-        clearTimeout(timeout);
-        return res;
-      } catch(e) {
-        if (i === retries) throw e;
-        await new Promise(function(r){ setTimeout(r, 1000); });
-      }
-    }
-  }
-
-
-function showAlert(msg) {
-  var el = document.getElementById('alert-msg');
-  el.style.cssText = '';
-  el.textContent = msg;
-  el.style.display = 'block';
+var API=(localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
+var TOKEN=new URLSearchParams(location.search).get('t');
+function ver(id){ ['paso-email','paso-enviado','paso-nueva','paso-listo'].forEach(function(x){ document.getElementById(x).style.display=(x===id?'block':'none'); }); }
+function alerta(id,msg){ var el=document.getElementById(id); el.textContent=msg; el.style.display=msg?'block':'none'; }
+async function post(path, body){ var r=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); var d={}; try{ d=await r.json(); }catch(e){} return { ok:r.ok, data:d }; }
+async function enviar(){
+  var email=(document.getElementById('email').value||'').trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ alerta('alert-1','Escribe un correo válido'); return; }
+  var b=document.getElementById('btn-enviar'); b.disabled=true; b.textContent='Enviando…';
+  try{ await post('/api/auth/olvide',{ email:email }); ver('paso-enviado'); }
+  catch(e){ alerta('alert-1','Error de conexión. Intenta de nuevo.'); b.disabled=false; b.textContent='Enviar enlace'; }
 }
-
-function hideAlert() {
-  document.getElementById('alert-msg').style.display = 'none';
+async function guardar(){
+  var p1=document.getElementById('p1').value, p2=document.getElementById('p2').value;
+  if(p1.length<8){ alerta('alert-2','La contraseña debe tener al menos 8 caracteres'); return; }
+  if(p1!==p2){ alerta('alert-2','Las contraseñas no coinciden'); return; }
+  var b=document.getElementById('btn-guardar'); b.disabled=true; b.textContent='Guardando…';
+  var r=await post('/api/auth/restablecer',{ token:TOKEN, password:p1 });
+  if(r.ok){ ver('paso-listo'); return; }
+  alerta('alert-2',(r.data&&r.data.error)||'No se pudo guardar'); b.disabled=false; b.textContent='Guardar contraseña';
 }
-
-async function doLogin() {
-  hideAlert();
-  var email    = document.getElementById('email').value.trim();
-  var password = document.getElementById('password').value;
-
-  if (!email || !password) { showAlert('Completa todos los campos'); return; }
-
-  var btn = document.getElementById('btn-login');
-  btn.disabled = true;
-  btn.textContent = 'Ingresando...';
-
-  try {
-    var res = await fetchWithRetry(API + '/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email, password: password })
-    });
-    var data = await res.json();
-
-    if (res.ok) {
-      ['tm_token','tm_role','tm_nombre','tm_empresa','tm_email','tm_plan','tm_demo'].forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} });
-      localStorage.setItem('tm_token',   data.token);
-      localStorage.setItem('tm_role',    data.role);
-      localStorage.setItem('tm_nombre',  data.nombre);
-      localStorage.setItem('tm_empresa', data.empresa);
-      localStorage.setItem('tm_email',   data.email);
-      localStorage.setItem('tm_plan',    data.plan || 'basico');
-
-      if (data.passwordProvisorio) { mostrarCambioPassword(password, data.role); return; }
-      irAlPanel(data.role);
-    } else {
-      var errMsg = data.error || 'Email o contrasena incorrectos';
-      if (errMsg.toLowerCase().includes('pendiente')) {
-        errMsg = 'Tu cuenta esta pendiente de aprobacion por TransMatch. Te avisaremos pronto.';
-      }
-      showAlert(errMsg);
-      btn.disabled = false;
-      btn.textContent = 'Iniciar sesion';
-    }
-  } catch(e) {
-    showAlert('Error de conexion. Intenta nuevamente.');
-    btn.disabled = false;
-    btn.textContent = 'Iniciar sesion';
-  }
-}
-
-function irAlPanel(role){
-  // Volver al link que abrió antes de iniciar sesión (ej: transporte desde WhatsApp), si es reciente
-  try{
-    var v=JSON.parse(localStorage.getItem('tm_volver')||'null'); localStorage.removeItem('tm_volver');
-    if(v && v.url && (Date.now()-v.ts)<30*60000 && role==='transportista' && /^\/transportista-[a-z-]+\.html\?id=[\w-]+$/.test(v.url)){ window.location.replace(v.url); return; }
-  }catch(e){}
-  if (role === 'transportista') window.location.replace('/transportista.html');
-  else if (role === 'admin') window.location.replace('/admin.html');
-  else window.location.replace('/cliente.html');
-}
-
-// Primer ingreso con contraseña provisoria: ofrecer cambiarla de inmediato.
-function mostrarCambioPassword(passActual, role){
-  var m=document.createElement('div');
-  m.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
-  m.innerHTML='<div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:420px;box-shadow:0 10px 40px rgba(0,0,0,.2)">'
-    +'<div style="font-size:19px;font-weight:700;color:#1e2d4e;margin-bottom:6px">Crea tu nueva contraseña</div>'
-    +'<div style="font-size:13.5px;color:#6B7280;margin-bottom:18px;line-height:1.5">Ingresaste con una contraseña provisoria. Por seguridad, elige una propia antes de continuar.</div>'
-    +'<div class="alert" id="cp-alert"></div>'
-    +'<div class="field"><label for="cp-nueva">Nueva contraseña</label><div style="position:relative"><input type="password" id="cp-nueva" placeholder="Mínimo 8 caracteres" autocomplete="new-password" style="padding-right:42px"/><button type="button" onclick="togglePass(\'cp-nueva\',this)" tabindex="-1" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:16px;padding:0;line-height:1"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>'
-    +'<div class="field"><label for="cp-conf">Repite la contraseña</label><div style="position:relative"><input type="password" id="cp-conf" placeholder="Repite la nueva contraseña" autocomplete="new-password" style="padding-right:42px"/><button type="button" onclick="togglePass(\'cp-conf\',this)" tabindex="-1" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:16px;padding:0;line-height:1"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>'
-    +'<button class="btn btn-primary" id="cp-ok">Guardar y continuar</button>'
-    +'<div style="text-align:center;margin-top:12px"><a href="#" id="cp-luego" style="font-size:13px;color:#6B7280">Hacerlo más tarde</a></div></div>';
-  document.body.appendChild(m);
-  var al=m.querySelector('#cp-alert');
-  function err(t){ al.textContent=t; al.style.display='block'; }
-  m.querySelector('#cp-nueva').focus();
-  m.querySelector('#cp-luego').onclick=function(e){ e.preventDefault(); irAlPanel(role); };
-  m.querySelector('#cp-ok').onclick=async function(){
-    var n=m.querySelector('#cp-nueva').value, c=m.querySelector('#cp-conf').value, b=this;
-    al.style.display='none';
-    if(n.length<8){ err('La contraseña debe tener al menos 8 caracteres'); return; }
-    if(n!==c){ err('Las contraseñas no coinciden'); return; }
-    b.disabled=true; b.textContent='Guardando...';
-    try{
-      var r=await fetch(API+'/api/auth/cambiar-password',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({passwordActual:passActual,passwordNueva:n})});
-      var d=await r.json();
-      if(!r.ok){ err(d.error||'No se pudo cambiar la contraseña'); b.disabled=false; b.textContent='Guardar y continuar'; return; }
-      irAlPanel(role);
-    }catch(e){ err('Error de conexión. Intenta nuevamente.'); b.disabled=false; b.textContent='Guardar y continuar'; }
-  };
-  m.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.stopPropagation(); m.querySelector('#cp-ok').click(); } });
-}
-
-// Enter key
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter' && !document.getElementById('cp-nueva')) doLogin();
-});
-
-// Sesión ya abierta en este navegador
-(function(){
-  var token = localStorage.getItem('tm_token');
-  var role  = localStorage.getItem('tm_role');
-  if (!token) return;
-  // No redirigir en silencio: puede venir desde un email para entrar con OTRA cuenta (ej. cuenta nueva creada por el admin).
-  var quien = localStorage.getItem('tm_email') || (role==='admin' ? 'administrador' : '');
-  var box = document.getElementById('alert-msg');
-  box.style.cssText = 'display:block;background:#EEF1F6;color:#1e2d4e;border:1px solid #C7CEDB';
-  box.innerHTML = 'Tienes una sesión abierta' + (quien ? ' como <b>' + String(quien).replace(/[<>&"]/g,'') + '</b>' : '') + '. <a href="#" id="seguir-sesion" style="color:#1e2d4e;font-weight:600">Continuar con esa sesión →</a><br><span style="font-size:12px;color:#6B7280">O ingresa abajo con otra cuenta (la sesión actual se cerrará).</span>';
-  document.getElementById('seguir-sesion').onclick = function(e){ e.preventDefault(); irAlPanel(role); };
+(async function(){
+  var e=new URLSearchParams(location.search).get('email'); if(e) document.getElementById('email').value=e;
+  if(!TOKEN){ ver('paso-email'); return; }
+  var r=await post('/api/auth/restablecer',{ token:TOKEN, validar:true });
+  if(r.ok){ document.getElementById('txt-cuenta').textContent='Cuenta: '+r.data.email+' · mínimo 8 caracteres.'; ver('paso-nueva'); }
+  else { ver('paso-email'); alerta('alert-1',(r.data&&r.data.error)||'El enlace no es válido. Pide uno nuevo.'); }
 })();
+['email','p2'].forEach(function(id){ var el=document.getElementById(id); if(el) el.addEventListener('keydown',function(ev){ if(ev.key==='Enter'){ id==='email'?enviar():guardar(); } }); });
 </script>
 </body>
 </html>
