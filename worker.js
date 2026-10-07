@@ -1731,7 +1731,8 @@ async function _waYaProcesado(env, id){
 // Procesa un mensaje entrante: botón Cotizar, respuesta del Flow, Confirmar/Corregir.
 async function kapsoProcesarMensaje(env, m){
   if(await _waYaProcesado(env, m.id)) return; // Kapso/Meta pueden reintentar el mismo evento
-  const { from, botonId, flujo } = _kapsoLeerMensaje(m);
+  const { from, botonId, flujo, texto } = _kapsoLeerMensaje(m);
+  if(await waDocsProcesar(env, m, from, botonId, texto)) return;
   if(!from || (!botonId && !flujo)) return;
   const sb=usarSupabase(env,null);
   const base=env.TM_BASE||"https://transmatch.cl";
@@ -1794,6 +1795,217 @@ async function kapsoProcesarMensaje(env, m){
     }
     return kapsoTexto(env, from, "✅ *Cotización "+(r.cotizacion.codigo||"")+" enviada*\n\nYa está en la plataforma junto a las demás ofertas para la "+(r.licitacion.codigo||"licitación")+". Puedes revisarla o editarla en "+base+".\n\nTe avisaremos por correo si te adjudican. 🚚");
   }
+}
+
+// ── Documentos del transporte por WhatsApp ──
+// El cliente solicita documentos → plantilla "solicitud_documento" al dueño de la cuenta transportista.
+// Botones: "Enviar por WhatsApp" (payload docs:<transporteId>) y "Lo envía otra persona" (docsdel:<transporteId>).
+// El dueño (o la persona a quien le reenvió el link) responde con la foto/PDF y queda cargado en el requisito,
+// con la misma lógica que la subida web (cargarRequisitoCore).
+const WA_DOC_MAX_BYTES = 8*1024*1024;
+const WA_DOC_MIMES = /^(image\/(jpeg|jpg|png|webp|heic)|application\/pdf|application\/msword|application\/vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|spreadsheetml\.sheet)|application\/vnd\.ms-excel)$/i;
+
+// Carga un archivo en un requisito del transporte. Compartido por la web y WhatsApp.
+async function cargarRequisitoCore(env, t, reqId, archivo, actorNombre, sb){
+  const reqs = t.requisitosEstandar||[]; const req = reqs.find(function(r){ return r.id===reqId; });
+  if(!req) return { error:"Requisito no encontrado", status:404 };
+  const _eraReemplazo=!!req.archivoId;
+  const archivoId=uid();
+  await dalSaveArchivo(env, archivoId, { base64:archivo.base64, mimeType:archivo.mimeType, nombre:archivo.nombre, createdAt:new Date().toISOString() }, sb);
+  req.archivoId=archivoId; req.archivoNombre=archivo.nombre||"documento.pdf"; req.subidoAt=new Date().toISOString(); req.subidoPor=actorNombre;
+  t.requisitosEstandar=reqs;
+  t.historial = t.historial||[];
+  t.historial.push({ estado:t.estado, fecha:new Date().toISOString(), actor:actorNombre, nota:"Documento de requisito cargado: "+(req.label||reqId) });
+  const _completos = reqs.length>0 && reqs.every(r=>r.archivoId);
+  const _avisarCompletos = _completos && !t.docsCompletosAvisadoAt;
+  if(_avisarCompletos) t.docsCompletosAvisadoAt = new Date().toISOString();
+  await dalSaveTransporte(env, t, sb);
+  // Aviso al cliente: notificación por cada documento; correo solo cuando están todos
+  try {
+    const _cargados = reqs.filter(r=>r.archivoId).length;
+    if(t.clienteId) await crearNotificacion(env, t.clienteId, "documento_cargado", `${t.transportistaEmpresa||"El transportista"} ${_eraReemplazo?"reemplazó":"subió"} "${req.label||"un documento"}" para el transporte ${t.codigo||""} (${_cargados} de ${reqs.length})`, { transporteId:t.id });
+    if(_avisarCompletos && t.clienteEmail) await enviarEmail(env, { to:t.clienteEmail, subject:`Documentos completos - ${t.codigo||"Transporte"} - TransMatch`, html:emailDocumentosCompletos(t) });
+  } catch(e) {}
+  return { ok:true, requisito:req };
+}
+
+function _waDocsPendientes(t){ return (t.requisitosEstandar||[]).filter(r=>!r.archivoId); }
+function _waRutaT(t){ return (t.origen||"—")+" → "+(t.destino||"—"); }
+function _waTelBonito(tel){ const s=_telWa(tel)||""; return /^569\d{8}$/.test(s) ? ("+56 9 "+s.slice(3,7)+" "+s.slice(7)) : ("+"+s); }
+function _waNumeroNegocio(env){ return String(env.KAPSO_BUSINESS_NUMBER||"56967590572").replace(/\D/g,""); }
+
+// Aviso al dueño de la cuenta cuando el cliente pide documentos (solo si activó WhatsApp)
+async function notificarDocsWhatsapp(env, t, nuevos){
+  if(!usarKapso(env) || !t.transportistaEmail) return;
+  const sb=usarSupabase(env,null);
+  const u=await dalGetUsuarioByEmail(env, t.transportistaEmail, sb);
+  let to=null;
+  if(env.KAPSO_TEST_TO) to=_telWa(env.KAPSO_TEST_TO);
+  else if(u && u.notifWhatsapp===true && _telWaValido(u.telefono||u.whatsapp)) to=_telefonoWaDe(u);
+  if(!to) return;
+  const labels=(nuevos||[]).map(r=>r.label).filter(Boolean).join(", ");
+  const ind=((nuevos||[]).map(r=>r.indicaciones).find(Boolean))||"—";
+  await kapsoEnviar(env, { to, type:"template", template:{
+    name: env.KAPSO_TEMPLATE_DOCS || "solicitud_documento",
+    language:{ code: env.KAPSO_TEMPLATE_LANG || "es" },
+    components:[
+      { type:"body", parameters:[ _waParam(t.codigo||"Transporte"), _waParam(_waRutaT(t)), _waParam(labels), _waParam(ind) ].map(x=>({ type:"text", text:x })) },
+      { type:"button", sub_type:"quick_reply", index:"0", parameters:[ { type:"payload", payload:"docs:"+t.id } ] },
+      { type:"button", sub_type:"quick_reply", index:"1", parameters:[ { type:"payload", payload:"docsdel:"+t.id } ] }
+    ] } });
+  // Para que una foto enviada directo (sin tocar el botón) se asocie a este transporte
+  await env.SESSIONS.put("wa_doc_ult:"+to, t.id, { expirationTtl: 7*86400 });
+}
+
+// ¿Quién es este número para este transporte? → { rol:"dueno"|"delegado", nombre } o null
+async function _waDocsActor(env, t, tel, sb){
+  const t56=_telWa(tel);
+  for(const email of [t.transportistaEmail, t.asignadoEmail].filter(Boolean)){
+    const u=await dalGetUsuarioByEmail(env, email, sb);
+    if(u && u.estado==="activo" && _telefonoWaDe(u)===t56) return { rol:"dueno", nombre:u.nombre||u.email };
+  }
+  if(env.KAPSO_TEST_TO && _telWa(env.KAPSO_TEST_TO)===t56) return { rol:"dueno", nombre:"Prueba ("+_waTelBonito(t56)+")" };
+  if(await env.SESSIONS.get("wa_deleg:"+t56+":"+t.id)) return { rol:"delegado", nombre:"Encargado ("+_waTelBonito(t56)+")" };
+  return null;
+}
+async function _waDocsSesion(env, tel, s){ await env.SESSIONS.put("wa_doc_sess:"+_telWa(tel), JSON.stringify(s), { expirationTtl: 86400 }); }
+// Pide el siguiente documento: si hay 1 pendiente lo pide directo; si hay varios, muestra la lista.
+async function _waDocsPedir(env, from, t, intro){
+  const pend=_waDocsPendientes(t);
+  if(!pend.length){ await env.SESSIONS.delete("wa_doc_sess:"+_telWa(from)); return kapsoTexto(env, from, (intro?intro+"\n\n":"")+"No quedan documentos pendientes para el transporte *"+(t.codigo||"")+"*. ✅"); }
+  if(pend.length===1){
+    const r=pend[0];
+    await _waDocsSesion(env, from, { tid:t.id, reqId:r.id });
+    return kapsoTexto(env, from, (intro?intro+"\n\n":"")+"Envía ahora la foto o PDF de: *"+r.label+"*"+(r.indicaciones?("\n_Indicación del cliente: "+r.indicaciones+"_"):""));
+  }
+  await _waDocsSesion(env, from, { tid:t.id, reqId:null });
+  const rows=pend.slice(0,10).map(r=>({ id:"docreq:"+t.id+":"+r.id, title:String(r.label||"Documento").slice(0,24), description:String(r.indicaciones||((r.label||"").length>24?r.label:"Pendiente")).slice(0,72) }));
+  return kapsoEnviar(env, { to:from, type:"interactive", interactive:{ type:"list",
+    body:{ text:((intro?intro+"\n\n":"")+"Tienes "+pend.length+" documentos pendientes para el transporte *"+(t.codigo||"")+"*. ¿Cuál vas a enviar?").slice(0,1024) },
+    action:{ button:"Elegir documento", sections:[ { title:"Pendientes", rows } ] } } });
+}
+// Descarga el archivo recibido por WhatsApp (link de Kapso o, si no viene, vía la API de medios de Meta a través de Kapso)
+async function kapsoDescargarMedia(env, m){
+  const media=m.image||m.document||null; if(!media) return { error:"sin_media" };
+  const k=m.kapso||{};
+  let url=k.media_url || (k.media_data&&k.media_data.url) || media.url || null;
+  const base=(env.KAPSO_API_BASE||"https://api.kapso.ai/meta/whatsapp/v24.0").replace(/\/+$/,"");
+  const hdr={ "X-API-Key":env.KAPSO_API_KEY };
+  try{
+    if(!url && media.id){
+      const r=await fetch(base+"/"+encodeURIComponent(media.id), { headers:hdr });
+      if(r.ok){ const j=await r.json().catch(()=>({})); url=j.url||null; }
+      else console.error("Kapso media meta "+r.status, (await r.text().catch(()=>"")).slice(0,200));
+    }
+    if(!url) return { error:"sin_url" };
+    let r=await fetch(url, { headers:hdr });
+    if(!r.ok) r=await fetch(url);
+    if(!r.ok){ console.error("Kapso media get "+r.status); return { error:"descarga_"+r.status }; }
+    const buf=new Uint8Array(await r.arrayBuffer());
+    if(buf.length>WA_DOC_MAX_BYTES) return { error:"muy_grande" };
+    let bin=""; for(let i=0;i<buf.length;i+=0x8000) bin+=String.fromCharCode.apply(null, buf.subarray(i,i+0x8000));
+    const mimeType=(media.mime_type||r.headers.get("content-type")||"application/octet-stream").split(";")[0].trim();
+    return { base64:btoa(bin), mimeType, bytes:buf.length, filename:media.filename||null };
+  }catch(e){ console.error("Kapso media excepción", e&&e.message); return { error:"excepcion" }; }
+}
+function _waExt(mime){ return ({ "image/jpeg":"jpg","image/jpg":"jpg","image/png":"png","image/webp":"webp","image/heic":"heic","application/pdf":"pdf" })[mime]||"bin"; }
+
+// Devuelve true si el mensaje era del flujo de documentos (y ya se respondió).
+async function waDocsProcesar(env, m, from, botonId, texto){
+  if(!from) return false;
+  const sb=usarSupabase(env,null);
+  const base=env.TM_BASE||"https://transmatch.cl";
+  const tel=_telWa(from);
+  const cargarT=async(tid)=>{ const t=await dalGetTransporteById(env, tid, sb); return (t && !t.valoracion) ? t : null; };
+
+  // 1) "Enviar por WhatsApp"
+  if(botonId && botonId.startsWith("docs:")){
+    const t=await cargarT(botonId.slice(5));
+    if(!t){ await kapsoTexto(env, from, "Este transporte ya no recibe documentos."); return true; }
+    const actor=await _waDocsActor(env, t, from, sb);
+    if(!actor){ await kapsoTexto(env, from, "Este número no está autorizado para enviar documentos de ese transporte. Revisa el teléfono de tu perfil en "+base+"."); return true; }
+    await _waDocsPedir(env, from, t, "");
+    return true;
+  }
+  // 2) "Lo envía otra persona" → link para reenviar
+  if(botonId && botonId.startsWith("docsdel:")){
+    const t=await cargarT(botonId.slice(8));
+    if(!t){ await kapsoTexto(env, from, "Este transporte ya no recibe documentos."); return true; }
+    const actor=await _waDocsActor(env, t, from, sb);
+    if(!actor || actor.rol!=="dueno"){ await kapsoTexto(env, from, "Solo el dueño de la cuenta puede compartir este acceso."); return true; }
+    let code=await env.SESSIONS.get("wa_delcode_t:"+t.id);
+    if(!code){
+      const abc="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; const rnd=crypto.getRandomValues(new Uint8Array(5));
+      code=[...rnd].map(b=>abc[b%abc.length]).join("");
+      await env.SESSIONS.put("wa_delcode:"+code, JSON.stringify({ tid:t.id, por:t.transportistaEmail }), { expirationTtl: 60*86400 });
+      await env.SESSIONS.put("wa_delcode_t:"+t.id, code, { expirationTtl: 60*86400 });
+    }
+    const txt=(t.codigo||"Transporte")+" código "+code;
+    const link="https://wa.me/"+_waNumeroNegocio(env)+"?text="+encodeURIComponent(txt);
+    await kapsoTexto(env, from, "Reenvíale el siguiente mensaje a quien tenga los documentos (conductor, encargado, etc.). Con un toque se le abre el chat con TransMatch, sin cuenta ni contraseña.");
+    await kapsoTexto(env, from, "📎 Documentos pendientes del transporte *"+(t.codigo||"")+"* ("+_waRutaT(t)+").\nToca aquí para enviarlos a TransMatch:\n"+link);
+    return true;
+  }
+  // 3) Elección en la lista
+  if(botonId && botonId.startsWith("docreq:")){
+    const [, tid, reqId]=botonId.split(":");
+    const t=await cargarT(tid);
+    if(!t){ await kapsoTexto(env, from, "Este transporte ya no recibe documentos."); return true; }
+    if(!(await _waDocsActor(env, t, from, sb))){ await kapsoTexto(env, from, "Este número no está autorizado para enviar documentos de ese transporte."); return true; }
+    const r=(t.requisitosEstandar||[]).find(x=>x.id===reqId);
+    if(!r){ await kapsoTexto(env, from, "Ese documento ya no está en la lista."); return true; }
+    await _waDocsSesion(env, from, { tid:t.id, reqId:r.id });
+    await kapsoTexto(env, from, "Envía ahora la foto o PDF de: *"+r.label+"*"+(r.indicaciones?("\n_Indicación del cliente: "+r.indicaciones+"_"):""));
+    return true;
+  }
+  // 4) La persona del link escribe "TRN-0045 código K7Q2"
+  const mc = texto ? /c[oó]digo\s+([A-Z0-9]{5})\b/i.exec(texto) : null;
+  if(mc){
+    const raw=await env.SESSIONS.get("wa_delcode:"+mc[1].toUpperCase());
+    if(!raw){ await kapsoTexto(env, from, "Ese código no es válido o ya expiró. Pídele a la empresa de transporte que te reenvíe el link."); return true; }
+    const d=JSON.parse(raw); const t=await cargarT(d.tid);
+    if(!t){ await kapsoTexto(env, from, "Este transporte ya no recibe documentos."); return true; }
+    await env.SESSIONS.put("wa_deleg:"+tel+":"+t.id, "1", { expirationTtl: 60*86400 });
+    await _waDocsPedir(env, from, t, "Hola 👋 Envías documentos para el transporte *"+(t.codigo||"")+"* de "+(t.transportistaEmpresa||"la empresa de transporte")+".");
+    return true;
+  }
+  // 5) Llega una foto o documento
+  const media=m.image||m.document||null;
+  if(media){
+    let s=null; try{ s=JSON.parse(await env.SESSIONS.get("wa_doc_sess:"+tel)||"null"); }catch(e){}
+    if(!s){ const ult=await env.SESSIONS.get("wa_doc_ult:"+tel); if(ult) s={ tid:ult, reqId:null }; }
+    if(!s){ await kapsoTexto(env, from, "Recibimos tu archivo, pero no sabemos a qué transporte corresponde. Toca \"Enviar por WhatsApp\" en el aviso de documentos solicitados, o súbelo en "+base+"."); return true; }
+    const t=await cargarT(s.tid);
+    if(!t){ await kapsoTexto(env, from, "Este transporte ya no recibe documentos."); return true; }
+    const actor=await _waDocsActor(env, t, from, sb);
+    if(!actor){ await kapsoTexto(env, from, "Este número no está autorizado para enviar documentos de ese transporte."); return true; }
+    let reqId=s.reqId;
+    if(!reqId){ const pend=_waDocsPendientes(t); if(pend.length===1) reqId=pend[0].id; else { await _waDocsPedir(env, from, t, "Recibimos tu archivo, pero tienes varios documentos pendientes."); return true; } }
+    const req=(t.requisitosEstandar||[]).find(x=>x.id===reqId);
+    if(!req){ await _waDocsPedir(env, from, t, "Ese documento ya no está en la lista."); return true; }
+    const arch=await kapsoDescargarMedia(env, m);
+    if(arch.error==="muy_grande"){ await kapsoTexto(env, from, "⚠️ El archivo supera 8 MB. Envía una foto o un PDF más liviano."); return true; }
+    if(arch.error){ await kapsoTexto(env, from, "⚠️ No pudimos recibir el archivo. Intenta de nuevo en unos minutos o súbelo en "+base+"."); return true; }
+    if(!WA_DOC_MIMES.test(arch.mimeType)){ await kapsoTexto(env, from, "⚠️ Ese tipo de archivo no se acepta. Envía una foto, PDF, Word o Excel."); return true; }
+    const nombre = arch.filename || (String(req.label||"documento").replace(/[^\wáéíóúñÁÉÍÓÚÑ .-]/g,"").trim().slice(0,60)+"."+_waExt(arch.mimeType));
+    const r=await cargarRequisitoCore(env, t, req.id, { base64:arch.base64, mimeType:arch.mimeType, nombre }, actor.nombre, sb);
+    if(r.error){ await kapsoTexto(env, from, "⚠️ No pudimos guardar el archivo: "+r.error+"."); return true; }
+    const pend=_waDocsPendientes(t);
+    const ok="✅ *Recibido:* "+req.label+" ("+(t.codigo||"")+"). Ya quedó cargado en la plataforma.";
+    if(!pend.length){
+      // Si en los próximos 10 min manda otra foto, reemplaza esta (igual que en la web)
+      await env.SESSIONS.put("wa_doc_sess:"+tel, JSON.stringify({ tid:t.id, reqId:req.id }), { expirationTtl: 600 });
+      await kapsoTexto(env, from, ok+"\n\nNo quedan documentos pendientes. ¡Gracias! 🚚"); return true;
+    }
+    if(pend.length===1){
+      await _waDocsSesion(env, from, { tid:t.id, reqId:pend[0].id });
+      await kapsoTexto(env, from, ok+"\n\nTe falta 1 documento: *"+pend[0].label+"*. Envíalo cuando lo tengas.");
+      return true;
+    }
+    await _waDocsPedir(env, from, t, ok);
+    return true;
+  }
+  return false;
 }
 
 async function handleRequest(request, env, ctx) {
@@ -5043,6 +5255,7 @@ async function handleRequest(request, env, ctx) {
       if(tId) await crearNotificacion(env, tId, "documentos_solicitados", `El cliente solicitó ${nuevos.length===1?"un documento":nuevos.length+" documentos"} para el transporte ${t.codigo}: ${nuevos.map(r=>r.label).join(", ")}`, { transporteId:id });
       if(t.transportistaEmail) await enviarEmail(env, { to:t.transportistaEmail, subject:`Documentos solicitados - ${t.codigo||"Transporte"} - TransMatch`, html:emailDocumentosSolicitados(t, nuevos) });
     } catch(e) {}
+    { const _wa=notificarDocsWhatsapp(env, t, nuevos).catch(e=>console.error('wa docs',e&&e.message)); if(ctx&&ctx.waitUntil) ctx.waitUntil(_wa); else await _wa; }
     return ok({ ok:true, requisitos:reqs, agregados:nuevos.length });
   }
 
@@ -5071,26 +5284,9 @@ async function handleRequest(request, env, ctx) {
     const t = raw; if(!(await puedeGestionarTransporte(env,user,t))) return err("Sin acceso",403);
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
     if(!body.base64) return err("Archivo requerido");
-    const reqs = t.requisitosEstandar||[]; const req = reqs.find(function(r){ return r.id===reqId; });
-    if(!req) return err("Requisito no encontrado",404);
-    const _eraReemplazo=!!req.archivoId;
-    const archivoId=uid();
-    await dalSaveArchivo(env, archivoId, { base64:body.base64, mimeType:body.mimeType, nombre:body.nombre, createdAt:new Date().toISOString() }, usarSupabase(env, url));
-    req.archivoId=archivoId; req.archivoNombre=body.nombre||"documento.pdf"; req.subidoAt=new Date().toISOString(); req.subidoPor=user.nombre||user.email;
-    t.requisitosEstandar=reqs;
-    t.historial = t.historial||[];
-    t.historial.push({ estado:t.estado, fecha:new Date().toISOString(), actor:user.nombre||user.email, nota:"Documento de requisito cargado: "+(req.label||reqId) });
-    const _completos = reqs.length>0 && reqs.every(r=>r.archivoId);
-    const _avisarCompletos = _completos && !t.docsCompletosAvisadoAt;
-    if(_avisarCompletos) t.docsCompletosAvisadoAt = new Date().toISOString();
-    await dalSaveTransporte(env, t, usarSupabase(env, url));
-    // Aviso al cliente: notificación por cada documento; correo solo cuando están todos
-    try {
-      const _cargados = reqs.filter(r=>r.archivoId).length;
-      if(t.clienteId) await crearNotificacion(env, t.clienteId, "documento_cargado", `${t.transportistaEmpresa||"El transportista"} ${_eraReemplazo?"reemplazó":"subió"} "${req.label||"un documento"}" para el transporte ${t.codigo||""} (${_cargados} de ${reqs.length})`, { transporteId:id });
-      if(_avisarCompletos && t.clienteEmail) await enviarEmail(env, { to:t.clienteEmail, subject:`Documentos completos - ${t.codigo||"Transporte"} - TransMatch`, html:emailDocumentosCompletos(t) });
-    } catch(e) {}
-    return ok({ ok:true, requisito:req });
+    const r = await cargarRequisitoCore(env, t, reqId, { base64:body.base64, mimeType:body.mimeType, nombre:body.nombre }, user.nombre||user.email, usarSupabase(env, url));
+    if(r.error) return err(r.error, r.status||400);
+    return ok({ ok:true, requisito:r.requisito });
   }
   // POST /api/transportes/:id/contacto-operacional
   if (path.match(/^\/api\/transportes\/[^/]+\/contacto-operacional$/) && method === "POST") {
