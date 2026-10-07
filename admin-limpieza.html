@@ -77,8 +77,10 @@ async function borrar(){
   const res=document.getElementById('res');
   if(!r.ok){ res.innerHTML='<div class="card warn">'+e(r.data.error||'Error')+'</div>'; return; }
   const d=r.data;
-  res.innerHTML='<div class="card"><div class="okbox">Listo: se borraron '+d.licitaciones.length+' licitación(es), '+d.transportes.length+' transporte(s), '+d.ordenes.length+' OV y '+d.archivos+' archivo(s).</div>'
-    +(d.fallos&&d.fallos.length?'<div class="warn">Algunos elementos fallaron:<br>'+d.fallos.map(e).join('<br>')+'</div>':'')+'</div>';
+  const f=d.fallos||[];
+  res.innerHTML='<div class="card">'+(f.length
+    ? '<div class="warn" style="margin-top:0"><b>No se pudo borrar todo.</b> Copia este detalle y envíalo:<br><br>'+f.map(e).join('<br>')+'</div>'
+    : '<div class="okbox">Listo y verificado en la base de datos: se borraron '+d.licitaciones.length+' licitación(es), '+d.transportes.length+' transporte(s), '+d.ordenes.length+' OV y '+d.archivos+' archivo(s).</div>')+'</div>';
   document.getElementById('codigos').value='';
 }
 </script>

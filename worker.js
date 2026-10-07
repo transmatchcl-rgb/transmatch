@@ -2868,9 +2868,21 @@ async function handleRequest(request, env, ctx) {
     });
     for(const l of lics) await intento("licitación "+l.codigo, async()=>{
       await dalDeleteLicitacion(env, l.id, sb, { clienteIndexId:l.clienteId });
-      if(sb){ try{ await env.LICITACIONES.delete(l.id); }catch(e){} }
-      if(sb){ try{ await sbDelete(env,"notificaciones","data->>licitacionId=eq."+encodeURIComponent(l.id)); }catch(e){} }
+      if(sb){
+        try{ await sbDelete(env,"notificaciones","data->>licitacionId=eq."+encodeURIComponent(l.id)); }catch(e){}
+        // KV: quitar también la copia antigua y sus índices, por si algo la vuelve a leer
+        try{ await env.LICITACIONES.delete(l.id); const a=JSON.parse(await env.LICITACIONES.get("all")||"[]"); if(a.includes(l.id)) await env.LICITACIONES.put("all", JSON.stringify(a.filter(x=>x!==l.id))); if(l.clienteId){ const c=JSON.parse(await env.LICITACIONES.get("cliente:"+l.clienteId)||"[]"); if(c.includes(l.id)) await env.LICITACIONES.put("cliente:"+l.clienteId, JSON.stringify(c.filter(x=>x!==l.id))); } }catch(e){}
+      }
     });
+    // Verificación: confirmar en la base que de verdad ya no existen
+    if(sb){
+      const quedanL=[]; for(const l of lics){ try{ const r=await sbSelect(env,"licitaciones","id=eq."+encodeURIComponent(l.id)+"&select=id&limit=1"); if(r.length) quedanL.push(l.codigo); }catch(e){ quedanL.push(l.codigo+" (no se pudo verificar)"); } }
+      const quedanT=[]; for(const t of trns){ try{ const r=await sbSelect(env,"transportes","id=eq."+encodeURIComponent(t.id)+"&select=id&limit=1"); if(r.length) quedanT.push(t.codigo); }catch(e){} }
+      const quedanO=[]; for(const o of ovs){ try{ const r=await sbSelect(env,"ordenes_venta","id_ov=eq."+encodeURIComponent(o.id_ov)+"&select=id_ov&limit=1"); if(r.length) quedanO.push(o.id_ov.slice(0,8)); }catch(e){} }
+      if(quedanL.length) fallos.push("Siguen en la base estas licitaciones: "+quedanL.join(", "));
+      if(quedanT.length) fallos.push("Siguen en la base estos transportes: "+quedanT.join(", "));
+      if(quedanO.length) fallos.push("Siguen en la base estas OV: "+quedanO.join(", "));
+    }
     await registrarActividad(env,"limpieza_datos",`Datos de prueba borrados: ${lics.map(l=>l.codigo).join(", ")}`,{ licitaciones:lics.length, transportes:trns.length, ordenes:ovs.length });
     return ok({ ok:true, borrado:true, ...resumen, fallos });
   }
