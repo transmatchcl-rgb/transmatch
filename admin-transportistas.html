@@ -177,6 +177,13 @@
 
   function rolBadge(rol){ var m={dueno:'<span class="badge" style="background:#EEEDFE;color:#3C3489">Dueño</span>',gestor:'<span class="badge" style="background:#E1F5EE;color:#0F6E56">Gestor</span>',miembro:'<span class="badge" style="background:#FAEEDA;color:#854F0B">Miembro</span>',visor:'<span class="badge" style="background:#F1EFE8;color:#444441">Visor</span>'}; return m[rol]||m.miembro; }
   async function asignarRol(email,rol){ var r=await apiFetch('/api/admin/asignar-rol','POST',{email:email,rol:rol}); if(r&&r.ok) toast('Rol actualizado. Aplica cuando la persona reinicie sesión.'); else toast((r&&r.data&&r.data.error)||'Error al asignar rol','err'); }
+  // Avisos por WhatsApp por usuario (activar solo después de conversarlo con el transportista)
+  function waCtrl(u){
+    var d=String(u.telefono||u.whatsapp||'').replace(/\D/g,''); if(d.indexOf('56')!==0){ if(d.length===9&&d[0]==='9') d='56'+d; else if(d.length===8) d='569'+d; }
+    var telOk=/^569\d{8}$/.test(d);
+    if(!telOk && !u.notifWhatsapp) return '<span title="Sin celular válido en el perfil" style="font-size:11px;color:#9CA3AF">WhatsApp: sin celular</span>';
+    return '<button class="btn btn-sm '+(u.notifWhatsapp?'btn-green':'btn-outline')+'" title="Avisos de licitaciones por WhatsApp" data-email="'+String(u.email||'').replace(/"/g,'&quot;')+'" data-activo="'+(u.notifWhatsapp?'0':'1')+'" onclick="event.stopPropagation();toggleWAAdmin(this)">WhatsApp: '+(u.notifWhatsapp?'activo':'activar')+'</button>';
+  }
   function detalleEmpresa(g){
     var html='<div class="card-detalle" style="display:none;width:100%;margin-top:12px;padding-top:14px;border-top:0.5px solid #E5E7EB" onclick="event.stopPropagation()">';
     if(g.madre&&g.madre.altaExcel&&g.madre.altaExcel.archivoId){ var ax=g.madre.altaExcel; html+='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#F0FDF4;border:0.5px solid #BBF7D0;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12.5px;color:#14532D;flex-wrap:wrap"><span>📄 Alta de cuenta cargada el '+new Date(ax.subidoAt).toLocaleDateString('es-CL')+'</span><button class="btn btn-outline btn-sm" onclick="descargarAltaExcel(\''+ax.archivoId+'\',\''+String(ax.nombre||'').replace(/['"\\]/g,'')+'\')">Descargar Excel</button></div>'; }
@@ -192,7 +199,7 @@
           '</select>';
       return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:0.5px solid #f3f4f6;flex-wrap:wrap">' +
         '<div style="min-width:0"><div style="font-size:13px;font-weight:500;color:#1e2d4e">'+(u.nombre||'--')+'</div><div style="font-size:12px;color:#6B7280">'+u.email+'</div></div>' +
-        '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'+control+'<a href="/admin-perfil-usuario.html?email='+encodeURIComponent(u.email)+'" class="btn btn-outline btn-sm">Ver perfil</a></div>' +
+        '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'+control+waCtrl(u)+'<a href="/admin-perfil-usuario.html?email='+encodeURIComponent(u.email)+'" class="btn btn-outline btn-sm">Ver perfil</a></div>' +
       '</div>';
     }).join('');
     html+='</div></div>';
@@ -465,14 +472,6 @@
     }
     html += sec('Cuenta');
     html += dato('Estado', t.estado) + dato('Rating', t.rating?('★ '+t.rating):'') + dato('Total transportes', t.totalTransportes) + dato('Total cotizaciones', t.totalCotizaciones) + dato('Perfil completo', t.perfilCompletitud?t.perfilCompletitud+'%':'') + dato('Notif. email', t.notifEmail?'Sí':'No');
-    // Avisos por WhatsApp (activar solo después de conversarlo con el transportista)
-    var _d=String(t.telefono||t.whatsapp||'').replace(/\D/g,''); if(_d.indexOf('56')!==0){ if(_d.length===9&&_d[0]==='9') _d='56'+_d; else if(_d.length===8) _d='569'+_d; } var _telOk=/^569\d{8}$/.test(_d);
-    html += '<div style="grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:2px">'
-      + '<span style="font-size:13px;color:#374151">Avisos por WhatsApp: <b style="color:'+(t.notifWhatsapp?'#16a34a':'#6B7280')+'">'+(t.notifWhatsapp?'Activos':'Desactivados')+'</b></span>'
-      + (_telOk || t.notifWhatsapp
-          ? '<button class="btn btn-outline btn-sm" data-email="'+String(t.email||'').replace(/"/g,'&quot;')+'" data-activo="'+(t.notifWhatsapp?'0':'1')+'" onclick="event.stopPropagation();toggleWAAdmin(this)">'+(t.notifWhatsapp?'Desactivar':'Activar')+'</button>'
-          : '<span style="font-size:12px;color:#92400E">Sin celular válido en el perfil</span>')
-      + '</div>';
     if(t.notasAdmin) html += sec('Notas del admin') + '<div style="grid-column:1/-1;font-size:13px;color:#374151;line-height:1.5;background:#FEF9C3;padding:8px 10px;border-radius:6px">'+t.notasAdmin+'</div>';
     html += '</div></div>';
     return html;
