@@ -745,6 +745,8 @@ function renderDetalle(l){
     acc.push('<button class="btn btn-red" onclick="event.stopPropagation();rechazar(\''+l.id+'\')">Rechazar</button>');
   }
   if(l.estado==='abierta'){
+    var _nWa=(l.waEnviados||[]).length;
+    acc.push('<button class="btn btn-outline" onclick="event.stopPropagation();abrirModalWA(\''+l.id+'\',\'enviar\')">'+(_nWa?'WhatsApp ('+_nWa+' enviado'+(_nWa>1?'s':'')+')':'Enviar WhatsApp')+'</button>');
     if(cotizaciones.length>0){
       acc.push('<button class="btn btn-primary" onclick="event.stopPropagation();cerrarLicit(\''+l.id+'\')">Cerrar y enviar TOP 3 →</button>');
       acc.push('<button class="btn btn-outline" onclick="event.stopPropagation();cerrarLicitSinEnviar(\''+l.id+'\')">Cerrar sin enviar</button>');
@@ -810,15 +812,93 @@ function renderDetalle(l){
   return html;
 }
 
-async function aprobar(id){
+function aprobar(id){ abrirModalWA(id,'aprobar'); }
+async function _aprobarConWA(id, waIds){
   var ta=document.getElementById('coment-admin-'+id);
   var comentarioAdmin=ta?ta.value.trim():'';
-  var payload={comentarioAdmin:comentarioAdmin};
+  var payload={comentarioAdmin:comentarioAdmin, waDestinatarios:waIds||[]};
   var va=document.getElementById('vis-arch-'+id); if(va) payload.archivoVisible=va.checked;
   var ve=document.getElementById('vis-est-'+id); if(ve) payload.estandarArchivoVisible=ve.checked;
   const r=await api('/api/admin/licitacion/'+id+'/aprobar','POST',payload);
-  if(r&&r.ok){toast('Licitación aprobada y publicada');cargar();}
+  if(r&&r.ok){
+    var w=r.data&&r.data.whatsapp;
+    if(w&&w.error) toast('Publicada, pero el WhatsApp no se envió: '+w.error,'err');
+    else toast('Licitación aprobada y publicada'+(w&&w.enviados?' · WhatsApp a '+w.enviados:'')+(w&&w.fallidos?' ('+w.fallidos+' fallaron)':''));
+    cargar();
+  }
   else toast(r&&r.data&&r.data.error||'Error al aprobar','err');
+}
+
+// ── Modal WhatsApp: elegir a quién avisar (al aprobar o después) ──
+function _eWA(x){ return String(x==null?'':x).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+async function abrirModalWA(id, modo){
+  var l=(typeof allLicit!=='undefined'&&Array.isArray(allLicit))?allLicit.find(function(x){return x.id===id;}):null;
+  var prev=document.getElementById('modal-wa-adm'); if(prev) prev.remove();
+  var wrap=document.createElement('div'); wrap.id='modal-wa-adm'; wrap._id=id; wrap._modo=modo;
+  wrap.style.cssText='position:fixed;inset:0;background:rgba(17,24,39,.5);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px';
+  wrap.innerHTML='<div style="background:#fff;border-radius:12px;max-width:520px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden">'
+    +'<div style="padding:16px 20px;border-bottom:1px solid #EEF1F6"><div style="font-size:16px;font-weight:600;color:#111827">'+(modo==='aprobar'?'Aprobar y publicar':'Enviar WhatsApp')+(l&&l.codigo?' · '+_eWA(l.codigo):'')+'</div>'
+    +(l?'<div style="font-size:12px;color:#6B7280;margin-top:3px">'+_eWA(l.tipoEquipo||'')+' · '+_eWA(l.origen||'')+' → '+_eWA(l.destino||'')+'</div>':'')+'</div>'
+    +'<div id="wa-body" style="padding:14px 20px;overflow:auto;flex:1"><div style="font-size:13px;color:#6B7280">Cargando transportistas…</div></div>'
+    +'<div style="display:flex;gap:8px;padding:14px 20px;border-top:1px solid #EEF1F6">'
+    +'<button onclick="document.getElementById(\'modal-wa-adm\').remove()" style="flex:1;padding:10px;border-radius:8px;border:1px solid #E5E7EB;background:#fff;cursor:pointer">Cancelar</button>'
+    +'<button id="wa-ok" onclick="confirmarModalWA()" style="flex:1;padding:10px;border-radius:8px;border:none;background:'+(modo==='aprobar'?'#16A34A':'#1e2d4e')+';color:#fff;font-weight:600;cursor:pointer">'+(modo==='aprobar'?'Aprobar y publicar':'Enviar')+'</button>'
+    +'</div></div>';
+  wrap.addEventListener('click',function(e){ if(e.target===wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
+  var r=await api('/api/admin/licitacion/'+id+'/whatsapp','GET');
+  var body=document.getElementById('wa-body'); if(!body) return;
+  var d=(r&&r.ok&&r.data)||{};
+  wrap._kapso=!!d.kapso;
+  if(!r||!r.ok){ body.innerHTML='<div style="font-size:13px;color:#991B1B">No se pudo cargar la lista'+(r&&r.data&&r.data.error?': '+_eWA(r.data.error):'')+'.</div>'; return; }
+  if(!d.kapso){ body.innerHTML='<div style="font-size:13px;color:#6B7280">WhatsApp no está configurado. '+(modo==='aprobar'?'Se publicará solo con avisos por email y campana.':'')+'</div>'; return; }
+  if(modo==='enviar'&&d.vencida){ body.innerHTML='<div style="font-size:13px;color:#6B7280">La licitación ya cerró: no se pueden enviar avisos.</div>'; document.getElementById('wa-ok').style.display='none'; return; }
+  var c=d.candidatos||[];
+  if(!c.length){ body.innerHTML='<div style="font-size:13px;color:#6B7280">Ningún transportista tiene WhatsApp activo todavía.'+(modo==='aprobar'?' Se publicará solo con avisos por email y campana.':'')+'</div>'; if(modo==='enviar') document.getElementById('wa-ok').style.display='none'; return; }
+  var fila=function(u){
+    return '<label class="wa-row" data-q="'+_eWA((u.empresa+' '+u.nombre).toLowerCase())+'" style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-top:1px solid #EEF1F6;font-size:13px;cursor:'+(u.enviado?'default':'pointer')+'">'
+      +'<input type="checkbox" class="wa-chk" value="'+_eWA(u.id)+'" data-calza="'+(u.calza?1:0)+'" '+(u.enviado||u.calza?'checked':'')+' '+(u.enviado?'disabled':'')+' onchange="contarWA()" style="width:16px;height:16px;accent-color:#1e2d4e;flex-shrink:0">'
+      +'<span style="flex:1;min-width:0"><b style="font-weight:600;color:#111827">'+_eWA(u.empresa||u.nombre)+'</b><small style="display:block;color:#6B7280;font-size:12px">'+_eWA(u.nombre)+' · '+_eWA(u.telefono)+'</small></span>'
+      +(u.enviado?'<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#E0E7FF;color:#1e2d4e;white-space:nowrap">Enviado</span>'
+        :'<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap;'+(u.calza?'background:#DCFCE7;color:#166534':'background:#F3F4F6;color:#6B7280')+'">'+_eWA((u.tiposEquipo||[]).slice(0,2).join(', ')||'Sin equipos')+'</span>')
+      +'</label>';
+  };
+  var si=c.filter(function(u){return u.calza;}), no=c.filter(function(u){return !u.calza;});
+  var grp=function(t){ return '<div style="font-size:11px;font-weight:700;color:#9CA3AF;letter-spacing:.06em;text-transform:uppercase;margin:12px 0 4px">'+t+'</div>'; };
+  body.innerHTML='<div style="font-size:14px;font-weight:600;color:#1e2d4e;margin-bottom:8px">¿A quién le avisamos por WhatsApp?</div>'
+    +(d.prueba?'<div style="background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;border-radius:8px;padding:8px 10px;font-size:12px;margin-bottom:8px">Modo prueba activo: el aviso llegará solo al número de prueba.</div>':'')
+    +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:4px"><input id="wa-q" oninput="filtrarWA()" placeholder="Buscar empresa o nombre…" style="flex:1;min-width:150px;border:1px solid #D1D5DB;border-radius:8px;padding:7px 10px;font:inherit;font-size:13px">'
+    +'<a href="javascript:void 0" onclick="marcarWA(\'todos\')" style="font-size:12px;color:#1e2d4e;font-weight:600">Todos</a>'
+    +'<a href="javascript:void 0" onclick="marcarWA(\'ninguno\')" style="font-size:12px;color:#1e2d4e;font-weight:600">Ninguno</a>'
+    +'<a href="javascript:void 0" onclick="marcarWA(\'calzan\')" style="font-size:12px;color:#1e2d4e;font-weight:600">Solo los que calzan</a></div>'
+    +(si.length?grp('Calzan con el equipo ('+si.length+')')+si.map(fila).join(''):'')
+    +(no.length?grp('No calzan con el equipo ('+no.length+')')+no.map(fila).join(''):'')
+    +'<div id="wa-sum" style="background:#EEF1F8;border-radius:8px;padding:10px 12px;font-size:13px;color:#1e2d4e;margin-top:12px"></div>';
+  contarWA();
+}
+function _waSel(){ return [].slice.call(document.querySelectorAll('#modal-wa-adm .wa-chk')).filter(function(x){return x.checked&&!x.disabled;}).map(function(x){return x.value;}); }
+function contarWA(){
+  var n=_waSel().length, el=document.getElementById('wa-sum'); if(!el) return;
+  el.innerHTML=n?('<b>'+n+' transportista'+(n>1?'s':'')+'</b> recibirán el WhatsApp · costo aprox. US$'+(n*0.02).toFixed(2).replace('.',',')):'No se enviará ningún WhatsApp. Podrás enviarlo después desde la licitación.';
+}
+function marcarWA(m){
+  [].forEach.call(document.querySelectorAll('#modal-wa-adm .wa-chk'),function(x){ if(x.disabled) return; x.checked = m==='todos' ? true : m==='ninguno' ? false : x.getAttribute('data-calza')==='1'; });
+  contarWA();
+}
+function filtrarWA(){
+  var q=(document.getElementById('wa-q').value||'').toLowerCase().trim();
+  [].forEach.call(document.querySelectorAll('#modal-wa-adm .wa-row'),function(r){ r.style.display=(!q||r.getAttribute('data-q').indexOf(q)>=0)?'flex':'none'; });
+}
+async function confirmarModalWA(){
+  var w=document.getElementById('modal-wa-adm'); if(!w) return;
+  var ids=w._kapso?_waSel():[], id=w._id, btn=document.getElementById('wa-ok');
+  if(btn){ btn.disabled=true; btn.textContent='Enviando…'; }
+  if(w._modo==='aprobar'){ await _aprobarConWA(id, ids); w.remove(); return; }
+  if(!ids.length){ toast('Elige al menos un transportista','err'); if(btn){btn.disabled=false;btn.textContent='Enviar';} return; }
+  var r=await api('/api/admin/licitacion/'+id+'/whatsapp','POST',{ids:ids});
+  w.remove();
+  if(r&&r.ok){ toast('WhatsApp enviado a '+r.data.enviados+(r.data.fallidos?' ('+r.data.fallidos+' fallaron)':'')); cargar(); }
+  else toast(r&&r.data&&r.data.error||'Error al enviar','err');
 }
 
 async function marcarPruebaLicit(id, esPrueba){

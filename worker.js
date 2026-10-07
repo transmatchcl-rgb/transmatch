@@ -835,7 +835,7 @@ function anonimizarPreguntas(preguntas, viewerId, viewerRole) {
 function anonimizarCliente(l) {
   // Se mantienen archivoId/estandarArchivoId y las banderas de visibilidad; el control de acceso real
   // (bidders vs. solo adjudicado) se aplica en el endpoint de descarga y en la UI del transportista.
-  return { ...l, clienteEmail:undefined, clienteNombre:undefined, clienteEmpresa: l.clienteEmpresa ? "Empresa verificada TransMatch" : "Empresa verificada", contactoOrigenNombre:undefined, contactoOrigenTelefono:undefined, contactoOrigenEmail:undefined, contactoDestinoNombre:undefined, contactoDestinoTelefono:undefined, contactoDestinoEmail:undefined, paradas: Array.isArray(l.paradas) ? l.paradas.map(p=>({direccion:p.direccion||"",horario:p.horario||"",descripcion:p.descripcion||"",contacto:undefined})) : l.paradas };
+  return { ...l, waEnviados:undefined, clienteEmail:undefined, clienteNombre:undefined, clienteEmpresa: l.clienteEmpresa ? "Empresa verificada TransMatch" : "Empresa verificada", contactoOrigenNombre:undefined, contactoOrigenTelefono:undefined, contactoOrigenEmail:undefined, contactoDestinoNombre:undefined, contactoDestinoTelefono:undefined, contactoDestinoEmail:undefined, paradas: Array.isArray(l.paradas) ? l.paradas.map(p=>({direccion:p.direccion||"",horario:p.horario||"",descripcion:p.descripcion||"",contacto:undefined})) : l.paradas };
 }
 
 // ── MODELO DE ESTADOS v2 (mapeo de solo lectura; no modifica datos) ──
@@ -1588,18 +1588,41 @@ function _waPlantillaLicitacion(env, to, l){
       { type:"button", sub_type:"quick_reply", index:"0", parameters:[ { type:"payload", payload:"cotizar:"+l.id } ] }
     ] } };
 }
-async function notificarLicitacionWhatsapp(env, l){
-  if(!usarKapso(env)) return;
-  if(l.estado!=="abierta") return;
-  let destinos=[];
-  if(env.KAPSO_TEST_TO){ destinos=[_telWa(env.KAPSO_TEST_TO)].filter(Boolean); }
-  else {
-    if(l.esPrueba) return; // no molestar a transportistas reales con una licitación de prueba
-    const fallback = l.modoNotificacion==="fallback";
-    const users=await dalTransportistasWhatsapp(env, usarSupabase(env,null));
-    destinos=[...new Set(users.filter(u=>fallback || puedeTransportar(u.tiposEquipo||[], l)).map(_telefonoWaDe))];
+// El admin elige a quién avisar por WhatsApp (al aprobar o después). Nada se envía solo.
+async function waCandidatosLicitacion(env, l, sb){
+  const enviados=new Set((l.waEnviados||[]).map(x=>String(x.uid)));
+  const fallback=l.modoNotificacion==="fallback";
+  return (await dalTransportistasWhatsapp(env, sb)).filter(u=>!u.desactivadoManual).map(u=>({
+    id:u.id, empresa:u.empresa||"", nombre:u.nombre||"", telefono:_waTelBonito(_telefonoWaDe(u)),
+    tiposEquipo:u.tiposEquipo||[], calza: fallback || puedeTransportar(u.tiposEquipo||[], l), enviado: enviados.has(String(u.id))
+  }));
+}
+// Envía la plantilla a los transportistas elegidos y lo registra en l.waEnviados (no repite).
+// NO guarda la licitación: lo hace quien llama.
+async function enviarWhatsappLicitacion(env, l, ids, sb){
+  if(!usarKapso(env)) return { error:"WhatsApp no está configurado" };
+  if(l.estado!=="abierta") return { error:"La licitación no está abierta" };
+  if(licitacionVencida(l)) return { error:"La licitación ya cerró" };
+  ids=[...new Set((Array.isArray(ids)?ids:[]).map(String))];
+  if(!ids.length) return { enviados:0, fallidos:0 };
+  const ya=new Set((l.waEnviados||[]).map(x=>String(x.uid)));
+  const users=(await dalTransportistasWhatsapp(env, sb)).filter(u=>ids.includes(String(u.id)) && !ya.has(String(u.id)) && !u.desactivadoManual);
+  l.waEnviados=l.waEnviados||[];
+  let enviados=0, fallidos=0;
+  if(env.KAPSO_TEST_TO){ // modo prueba: un solo envío, al número de prueba
+    const to=_telWa(env.KAPSO_TEST_TO); const r=to?await kapsoEnviar(env,_waPlantillaLicitacion(env,to,l)):{ok:false};
+    if(r&&r.ok){ const at=new Date().toISOString(); for(const u of users) l.waEnviados.push({ uid:u.id, at, prueba:true }); enviados=users.length; } else fallidos=users.length;
+    return { enviados, fallidos, prueba:true };
   }
-  for(const to of destinos){ try{ await kapsoEnviar(env, _waPlantillaLicitacion(env, to, l)); }catch(e){} }
+  if(l.esPrueba) return { error:"Es una licitación de prueba: no se avisa a transportistas reales" };
+  const telsHechos=new Set();
+  for(const u of users){
+    const to=_telefonoWaDe(u);
+    if(telsHechos.has(to)){ l.waEnviados.push({ uid:u.id, at:new Date().toISOString() }); continue; }
+    const r=await kapsoEnviar(env,_waPlantillaLicitacion(env,to,l));
+    if(r&&r.ok){ telsHechos.add(to); enviados++; l.waEnviados.push({ uid:u.id, at:new Date().toISOString() }); } else fallidos++;
+  }
+  return { enviados, fallidos };
 }
 
 // ── Flow de cotización ──
@@ -2687,7 +2710,7 @@ async function handleRequest(request, env, ctx) {
     if(env.ADMIN_EMAIL){ try{ await enviarEmail(env,{ to:env.ADMIN_EMAIL, subject:_esExpress?"Licitación exprés publicada (6h) - TransMatch":"Nueva licitación pendiente de aprobación - TransMatch", html:emailNuevaLicitacionAdmin(licitacion) }); }catch(e){} }
     if (_esExpress) {
       if(!licitacion.esPrueba) { try{ await notificarNuevaLicitacionTransportistas(env, licitacion); }catch(e){} }
-      { const _wa=notificarLicitacionWhatsapp(env, licitacion).catch(e=>console.error('wa aviso',e&&e.message)); if(ctx&&ctx.waitUntil) ctx.waitUntil(_wa); else await _wa; }
+      // WhatsApp: no se envía solo; el admin elige a quién desde admin-licitaciones.
     }
     await registrarActividad(env,"licitacion_creada",`${user.empresa||user.nombre||'Cliente'} publicó una licitación: ${licitacion.tipoEquipo} (${origen} → ${destino})`,{ licitacionId:id, codigo, empresa:user.empresa });
     return ok({ ok:true, id, mensaje:"Licitacion enviada." });
@@ -2722,6 +2745,7 @@ async function handleRequest(request, env, ctx) {
         lCopy.totalCotizaciones = (l.cotizaciones||[]).length;
         lCopy.preguntas = anonimizarPreguntas(l.preguntas, user.id, 'cliente');
         delete lCopy.clienteEmail;
+        delete lCopy.waEnviados;
         licitaciones.push(lCopy);
       } else licitaciones.push(l);
     }
@@ -2755,6 +2779,21 @@ async function handleRequest(request, env, ctx) {
     return ok({ ok:true, mensaje:"Cotizacion enviada." });
   }
 
+  // WhatsApp de una licitación: ver candidatos (GET) o enviar a los elegidos (POST {ids})
+  if (path.startsWith("/api/admin/licitacion/")&&path.endsWith("/whatsapp")&&(method==="GET"||method==="POST")) {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    const sb=usarSupabase(env, url);
+    const id=path.split("/")[4]; const l=await dalGetLicitacionById(env, id, sb); if(!l) return err("No encontrada",404);
+    if(method==="GET"){
+      return ok({ kapso:usarKapso(env), prueba:!!env.KAPSO_TEST_TO, estado:l.estado, vencida:licitacionVencida(l), candidatos: usarKapso(env)?await waCandidatosLicitacion(env, l, sb):[] });
+    }
+    let body={}; try{ body=await request.json(); }catch(e){}
+    const r=await enviarWhatsappLicitacion(env, l, body.ids, sb);
+    if(r.error) return err(r.error);
+    await dalSaveLicitacion(env, l, sb);
+    if(r.enviados) await registrarActividad(env,"licitacion_whatsapp",`WhatsApp enviado a ${r.enviados} transportista(s): ${l.codigo||l.tipoEquipo}`,{ licitacionId:id, codigo:l.codigo });
+    return ok({ ok:true, ...r });
+  }
   if (path.startsWith("/api/admin/licitacion/")&&path.endsWith("/aprobar")&&method==="POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     const id=path.split("/")[4]; const raw=await dalGetLicitacionById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrada",404);
@@ -2779,9 +2818,14 @@ async function handleRequest(request, env, ctx) {
     // Notificar a los transportistas elegibles (in-app + email según preferencia).
     // Las licitaciones de prueba NO se notifican ni se muestran a los transportistas.
     if(!l.esPrueba) await notificarNuevaLicitacionTransportistas(env, l);
-    { const _wa=notificarLicitacionWhatsapp(env, l).catch(e=>console.error('wa aviso',e&&e.message)); if(ctx&&ctx.waitUntil) ctx.waitUntil(_wa); else await _wa; }  // WhatsApp vía Kapso (no-op si no está configurado)
+    // WhatsApp: solo a los transportistas que eligió el admin
+    let _wa=null;
+    if(Array.isArray(_body.waDestinatarios) && _body.waDestinatarios.length){
+      try{ _wa=await enviarWhatsappLicitacion(env, l, _body.waDestinatarios, usarSupabase(env, url)); if(_wa && !_wa.error) await dalSaveLicitacion(env, l, usarSupabase(env, url)); }
+      catch(e){ console.error('wa aviso', e&&e.message); _wa={ error:"No se pudo enviar el WhatsApp" }; }
+    }
     await registrarActividad(env,"licitacion_aprobada",`Licitación aprobada y publicada: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo });
-    return ok({ ok:true });
+    return ok({ ok:true, whatsapp:_wa });
   }
 
   // POST /api/admin/licitacion/:id/archivos-visibilidad — cambiar la visibilidad de los archivos
