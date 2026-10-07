@@ -1851,7 +1851,9 @@ async function notificarDocsWhatsapp(env, t, nuevos){
     components:[
       { type:"body", parameters:[ _waParam(t.codigo||"Transporte"), _waParam(_waRutaT(t)), _waParam(labels), _waParam(ind) ].map(x=>({ type:"text", text:x })) },
       { type:"button", sub_type:"quick_reply", index:"0", parameters:[ { type:"payload", payload:"docs:"+t.id } ] },
-      { type:"button", sub_type:"quick_reply", index:"1", parameters:[ { type:"payload", payload:"docsdel:"+t.id } ] }
+      { type:"button", sub_type:"quick_reply", index:"1", parameters:[ { type:"payload", payload:"docsdel:"+t.id } ] },
+      // Botón "Subir en la plataforma": URL https://transmatch.cl/transportista-transporte.html?id={{1}}
+      { type:"button", sub_type:"url", index:"2", parameters:[ { type:"text", text:String(t.id) } ] }
     ] } });
   // Para que una foto enviada directo (sin tocar el botón) se asocie a este transporte
   await env.SESSIONS.put("wa_doc_ult:"+to, t.id, { expirationTtl: 7*86400 });

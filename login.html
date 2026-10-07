@@ -166,6 +166,11 @@ async function doLogin() {
 }
 
 function irAlPanel(role){
+  // Volver al link que abrió antes de iniciar sesión (ej: transporte desde WhatsApp), si es reciente
+  try{
+    var v=JSON.parse(localStorage.getItem('tm_volver')||'null'); localStorage.removeItem('tm_volver');
+    if(v && v.url && (Date.now()-v.ts)<30*60000 && role==='transportista' && /^\/transportista-[a-z-]+\.html\?id=[\w-]+$/.test(v.url)){ window.location.replace(v.url); return; }
+  }catch(e){}
   if (role === 'transportista') window.location.replace('/transportista.html');
   else if (role === 'admin') window.location.replace('/admin.html');
   else window.location.replace('/cliente.html');

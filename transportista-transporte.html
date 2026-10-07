@@ -297,7 +297,7 @@ async function cargar(){
   document.getElementById('lista').innerHTML='<div class="spinner" style="margin:40px auto"></div>';
   try {
     var res=await fetch(API+'/api/transportes',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
-    if(res.status===401){localStorage.clear();window.location.replace('/index.html');return;}
+    if(res.status===401){localStorage.clear(); if(new URLSearchParams(location.search).get('id')){ try{localStorage.setItem('tm_volver',JSON.stringify({url:location.pathname+location.search,ts:Date.now()}));}catch(e){} window.location.replace('/login.html'); } else window.location.replace('/index.html'); return;}
     var d=await res.json();
     transportes=d.transportes||[];
     // KPIs
@@ -310,6 +310,7 @@ async function cargar(){
     var kpiML=document.getElementById('kpi-mes-label'); if(kpiML) kpiML.textContent=new Date().toLocaleDateString('es-CL',{month:'long',year:'numeric'});
     var kpiMo=document.getElementById('kpi-monto'); if(kpiMo) kpiMo.textContent=montoTotal>0?peso(montoTotal):'$0';
     filtrar('todos', document.querySelector('.fil-btn.active'));
+    abrirTransporteDesdeURL();
   } catch(e){
     document.getElementById('lista').innerHTML='<div class="empty">Error al cargar. Intenta nuevamente.</div>';
   }
@@ -331,6 +332,20 @@ function filtrar(f, btn){
   document.getElementById('lista').innerHTML=lista.map(function(t,i){
     return renderCard(t,i);
   }).join('');
+}
+
+// Link directo (ej: desde WhatsApp): transportista-transporte.html?id=<transporteId> abre y resalta ese transporte
+function abrirTransporteDesdeURL(){
+  var id=new URLSearchParams(location.search).get('id'); if(!id) return;
+  try{ history.replaceState(null,'',location.pathname); }catch(e){}
+  var card=document.getElementById('card-'+id), body=document.getElementById('body-'+id);
+  if(!card||!body) return;
+  if(!body.classList.contains('open')) toggleCard(id);
+  setTimeout(function(){
+    card.scrollIntoView({behavior:'smooth',block:'start'});
+    var prev=card.style.boxShadow; card.style.transition='box-shadow .3s'; card.style.boxShadow='0 0 0 3px #FF8808';
+    setTimeout(function(){ card.style.boxShadow=prev; },2500);
+  },150);
 }
 
 function renderCard(t,i){
@@ -1312,7 +1327,7 @@ async function descargar(archivoId,nombre){
 (async function(){
   var token=localStorage.getItem('tm_token');
   var role=localStorage.getItem('tm_role');
-  if(!token||role!=='transportista'){window.location.replace('/index.html');return;}
+  if(!token||role!=='transportista'){ if(new URLSearchParams(location.search).get('id')){ try{localStorage.setItem('tm_volver',JSON.stringify({url:location.pathname+location.search,ts:Date.now()}));}catch(e){} window.location.replace('/login.html'); } else window.location.replace('/index.html'); return;}
   document.getElementById('nav-avatar').textContent=(localStorage.getItem('tm_nombre')||'?')[0].toUpperCase();
 var nn=document.getElementById('nav-nombre');if(nn)nn.textContent=localStorage.getItem('tm_nombre')||'';
 var ne=document.getElementById('nav-empresa');if(ne)ne.textContent=localStorage.getItem('tm_empresa')||'';
