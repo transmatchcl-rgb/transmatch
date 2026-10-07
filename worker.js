@@ -3927,6 +3927,10 @@ async function handleRequest(request, env, ctx) {
     if (l.estado !== "adjudicada") return err("La licitación no está adjudicada");
     const cotiz = (l.cotizaciones || []).find(c => l.adjudicadaA && c.id === l.adjudicadaA.cotizacionId);
     if (!cotiz) return err("Cotización adjudicada no encontrada");
+    // Obsoleto: la OV se crea automáticamente al adjudicar (5%, tope 10 UF). No crear duplicados.
+    const _ovsExist=(await dalGetAllOVs(env, usarSupabase(env, url))).filter(o=>o && (o.id_licitacion===licitacionId||o.licitacionId===licitacionId) && o.estado!=="ANULADA");
+    if(_ovsExist.length) return err("Esta licitación ya tiene su OV ("+_ovsExist.map(o=>o.id_ov).join(", ")+"). El cobro se genera automáticamente al adjudicar.");
+    return err("El cobro se genera automáticamente al adjudicar. Revisa Facturación → Órdenes de Venta.");
     const fee = Math.round(cotiz.precio * 0.04);
     const ovId = await generarCodigoOV(env);
     const ov = {

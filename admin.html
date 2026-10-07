@@ -863,9 +863,6 @@
     if (l.estado === 'abierta' && (l.cotizaciones||[]).length > 0) {
       acciones.push('<button class="btn btn-primary" onclick="cerrarLicitacion(this.dataset.id)" data-id="'+l.id+'">Cerrar y enviar TOP 3</button>');
     }
-    if ((l.estado === 'adjudicada') && !l.cobro) {
-      acciones.push('<button class="btn btn-orange" onclick="generarCobro(this.dataset.id)" data-id="'+l.id+'">Generar cobro fee 4%</button>');
-    }
     acciones.push('<button class="btn btn-outline" onclick="closeModalLicit()">Cerrar</button>');
     document.getElementById('ml-acciones').innerHTML = acciones.join('');
 

@@ -755,9 +755,6 @@ function renderDetalle(l){
   if(l.estado==='cerrada'){
     acc.push('<button class="btn btn-outline" onclick="event.stopPropagation();cerrarLicitSinEnviar(\''+l.id+'\')">Cerrar licitación</button>');
   }
-  if(l.estado==='adjudicada'&&!l.cobro){
-    acc.push('<button class="btn btn-orange" onclick="event.stopPropagation();generarCobro(\''+l.id+'\')">Generar cobro 4%</button>');
-  }
   acc.push('<button class="btn btn-outline" onclick="event.stopPropagation();marcarPruebaLicit(\''+l.id+'\','+(l.esPrueba?'false':'true')+')">'+(l.esPrueba?'Quitar marca de prueba':'Marcar como prueba')+'</button>');
   var _ampliable = !l.cerradaPorAdmin && _fechaCargaFutura(l) && ['abierta','cerrada','expirada','anulada'].includes(l.estado);
   if(_ampliable){
