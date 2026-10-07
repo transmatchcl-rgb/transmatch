@@ -1091,22 +1091,23 @@ function emailCotizacionesListas(l, nCotiz) {
     ${btnEmail('https://transmatch.cl/cliente-licitaciones.html','Ver cotizaciones','#FF8904')}`, "Tienes cotizaciones - TransMatch");
 }
 
-function emailAdjudicacionGanada(l, cotiz, comisionEstimada) {
-  return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Ganaste una licitacion!</h2>
+function emailAdjudicacionGanada(l, cotiz, comisionEstimada, transporteId) {
+  return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">¡Ganaste una licitación!</h2>
     <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:16px;margin-bottom:16px">
       <div style="font-size:13px;color:#374151;margin-bottom:5px"><strong>Empresa:</strong> ${l.clienteEmpresa}</div>
       <div style="font-size:13px;color:#374151;margin-bottom:5px"><strong>Contacto:</strong> ${l.clienteNombre}</div>
-      <div style="font-size:13px;color:#374151"><strong>Email:</strong> ${l.clienteEmail}</div>
+      <div style="font-size:13px;color:#374151${l.clienteTelefono?';margin-bottom:5px':''}"><strong>Email:</strong> ${l.clienteEmail}</div>
+      ${l.clienteTelefono?`<div style="font-size:13px;color:#374151"><strong>Teléfono:</strong> ${l.clienteTelefono}</div>`:''}
     </div>
     <div style="background:#F9FAFB;border-radius:8px;padding:16px;margin-bottom:16px">
       <div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>Equipo:</strong> ${l.tipoEquipo}${l.marca?' - '+l.marca:''}</div>
-      <div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>Ruta:</strong> ${l.origen} - ${l.destino}</div>
+      <div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>Ruta:</strong> ${l.origen} → ${l.destino}</div>
       <div style="font-size:13px;color:#1e2d4e;font-weight:600"><strong>Valor:</strong> ${formatCLP(cotiz.precio)}</div>
     </div>
     <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#92400E">
-      <strong>Comision estimada TransMatch:</strong> ${formatCLP(comisionEstimada!=null?comisionEstimada:Math.round(cotiz.precio*0.05))} (5% aprox, mínimo 0,5 UF y tope 10 UF).
+      <strong>Comisión estimada TransMatch:</strong> ${formatCLP(comisionEstimada!=null?comisionEstimada:Math.round(cotiz.precio*0.05))} (5% aprox, mínimo 0,5 UF y tope 10 UF).
     </div>
-    ${btnEmail('https://transmatch.cl/transportista-transporte.html','Ver en mi panel')}`, "Ganaste! - TransMatch");
+    ${btnEmail('https://transmatch.cl/transportista-transporte.html'+(transporteId?'?id='+encodeURIComponent(transporteId):''),'Ver transporte adjudicado')}`, "¡Ganaste! - TransMatch");
 }
 
 // ── INFORME MENSUAL PARA CLIENTES ──────────────────────────────
@@ -3107,7 +3108,7 @@ async function handleRequest(request, env, ctx) {
     const ov = await crearOV(env, { transporteId, licitacion:l, cotizacion:cotiz });
     await crearNotificacion(env,cotiz.transportistaId,"adjudicacion",`Ganaste: ${l.tipoEquipo} - ${l.origen} - ${l.destino} - ${formatCLP(cotiz.precio)}`,{ licitacionId:id, clienteEmpresa:l.clienteEmpresa, clienteEmail:l.clienteEmail, ovId:ov.id_ov });
     await registrarActividad(env,"licitacion_adjudicada",`Licitación adjudicada a ${cotiz.transportistaEmpresa||cotiz.transportistaNombre} por ${formatCLP(cotiz.precio)}: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo, ovId:ov.id_ov });
-    await enviarEmail(env,{ to:cotiz.transportistaEmail, subject:`Ganaste! ${l.tipoEquipo} - TransMatch`, html:emailAdjudicacionGanada(l,cotiz,ov.comision_estimada) });
+    await enviarEmail(env,{ to:cotiz.transportistaEmail, subject:`¡Ganaste! ${l.tipoEquipo} - TransMatch`, html:emailAdjudicacionGanada(l,cotiz,ov.comision_estimada,transporteId) });
     await crearNotificacion(env,cotiz.transportistaId,"ov_condicional",`OV ${ov.id_ov} creada. Comision estimada: ${formatCLP(ov.comision_estimada)}.`,{ ovId:ov.id_ov });
     const todasCotiz=l.cotizaciones||[];
     const total=todasCotiz.length;
