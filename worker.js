@@ -2854,34 +2854,47 @@ async function handleRequest(request, env, ctx) {
     if(factsMixtas.length) return err("Hay facturas consolidadas que mezclan OV reales con estas. Revísalas antes de borrar.");
     const fallos=[];
     const intento=async(nombre, fn)=>{ try{ await fn(); }catch(e){ fallos.push(nombre+": "+(e&&e.message||e)); } };
-    for(const id of archivos) await intento("archivo "+id, async()=>{ await dalDeleteArchivo(env, id, sb); try{ await env.ARCHIVOS.delete(id); }catch(e){} });
-    for(const f of factsBorrar) await intento("factura "+f.id, async()=>{ if(sb) await sbDelete(env,"facturas_consolidado","id=eq."+encodeURIComponent(f.id)); await env.OVS.delete("factura:"+f.id); const a=JSON.parse(await env.OVS.get("facturas:all")||"[]"); if(a.includes(f.id)) await env.OVS.put("facturas:all", JSON.stringify(a.filter(x=>x!==f.id))); });
-    for(const o of ovs) await intento("OV "+o.id_ov, async()=>{
-      if(sb) await sbDelete(env,"ordenes_venta","id_ov=eq."+encodeURIComponent(o.id_ov));
-      await env.OVS.delete("ov:"+o.id_ov);
-      for(const k of ["ovs:all", o.id_transportista&&("ovs:transportista:"+o.id_transportista), o.id_cliente&&("ovs:cliente:"+o.id_cliente)].filter(Boolean)){ const a=JSON.parse(await env.OVS.get(k)||"[]"); if(a.includes(o.id_ov)) await env.OVS.put(k, JSON.stringify(a.filter(x=>x!==o.id_ov))); }
-    });
-    for(const t of trns) await intento("transporte "+t.codigo, async()=>{
-      if(sb) await sbDelete(env,"transportes","id=eq."+encodeURIComponent(t.id));
-      await env.RETORNOS.delete("transporte:"+t.id);
-      const a=JSON.parse(await env.RETORNOS.get("transportes:all")||"[]"); if(a.includes(t.id)) await env.RETORNOS.put("transportes:all", JSON.stringify(a.filter(x=>x!==t.id)));
-    });
-    for(const l of lics) await intento("licitación "+l.codigo, async()=>{
-      await dalDeleteLicitacion(env, l.id, sb, { clienteIndexId:l.clienteId });
-      if(sb){
-        try{ await sbDelete(env,"notificaciones","data->>licitacionId=eq."+encodeURIComponent(l.id)); }catch(e){}
-        // KV: quitar también la copia antigua y sus índices, por si algo la vuelve a leer
-        try{ await env.LICITACIONES.delete(l.id); const a=JSON.parse(await env.LICITACIONES.get("all")||"[]"); if(a.includes(l.id)) await env.LICITACIONES.put("all", JSON.stringify(a.filter(x=>x!==l.id))); if(l.clienteId){ const c=JSON.parse(await env.LICITACIONES.get("cliente:"+l.clienteId)||"[]"); if(c.includes(l.id)) await env.LICITACIONES.put("cliente:"+l.clienteId, JSON.stringify(c.filter(x=>x!==l.id))); } }catch(e){}
-      }
-    });
-    // Verificación: confirmar en la base que de verdad ya no existen
     if(sb){
-      const quedanL=[]; for(const l of lics){ try{ const r=await sbSelect(env,"licitaciones","id=eq."+encodeURIComponent(l.id)+"&select=id&limit=1"); if(r.length) quedanL.push(l.codigo); }catch(e){ quedanL.push(l.codigo+" (no se pudo verificar)"); } }
-      const quedanT=[]; for(const t of trns){ try{ const r=await sbSelect(env,"transportes","id=eq."+encodeURIComponent(t.id)+"&select=id&limit=1"); if(r.length) quedanT.push(t.codigo); }catch(e){} }
-      const quedanO=[]; for(const o of ovs){ try{ const r=await sbSelect(env,"ordenes_venta","id_ov=eq."+encodeURIComponent(o.id_ov)+"&select=id_ov&limit=1"); if(r.length) quedanO.push(o.id_ov.slice(0,8)); }catch(e){} }
-      if(quedanL.length) fallos.push("Siguen en la base estas licitaciones: "+quedanL.join(", "));
-      if(quedanT.length) fallos.push("Siguen en la base estos transportes: "+quedanT.join(", "));
-      if(quedanO.length) fallos.push("Siguen en la base estas OV: "+quedanO.join(", "));
+      // Supabase: un solo DELETE por tabla (filtro in.(...)) para no pasar el límite de 50 subrequests del Worker.
+      const enLista=arr=>"in.("+arr.map(x=>'"'+String(x).replace(/"/g,"")+'"').join(",")+")";
+      const borrar=async(tabla, col, valores)=>{ if(valores.length) await intento(tabla, ()=>sbDelete(env, tabla, col+"="+encodeURIComponent(enLista(valores)))); };
+      const lIds=lics.map(l=>l.id), tIds=trns.map(t=>t.id), oIds=ovs.map(o=>o.id_ov);
+      await borrar("archivos","id",[...archivos]);
+      await borrar("facturas_consolidado","id",factsBorrar.map(f=>f.id));
+      await borrar("ordenes_venta","id_ov",oIds);
+      await borrar("transportes","id",tIds);
+      await borrar("cotizaciones","licitacion_id",lIds);
+      await borrar("preguntas","licitacion_id",lIds);
+      await borrar("notificaciones","data->>licitacionId",lIds);
+      await borrar("licitaciones","id",lIds);
+      // Verificación: confirmar en la base que ya no existen (3 consultas)
+      const quedan=async(tabla, col, valores, etiqueta)=>{
+        if(!valores.length) return;
+        try{ const r=await sbSelect(env, tabla, col+"="+encodeURIComponent(enLista(valores))+"&select="+col); if(r.length) fallos.push("Siguen en la base ("+etiqueta+"): "+r.length); }
+        catch(e){ fallos.push("No se pudo verificar "+etiqueta+": "+(e&&e.message||e)); }
+      };
+      await quedan("licitaciones","id",lIds,"licitaciones");
+      await quedan("transportes","id",tIds,"transportes");
+      await quedan("ordenes_venta","id_ov",oIds,"OV");
+      // Copias antiguas en KV (no cuentan para el límite de 50)
+      try{
+        for(const id of lIds) await env.LICITACIONES.delete(id);
+        const a=JSON.parse(await env.LICITACIONES.get("all")||"[]"); await env.LICITACIONES.put("all", JSON.stringify(a.filter(x=>!lIds.includes(x))));
+        for(const t of tIds) await env.RETORNOS.delete("transporte:"+t);
+        for(const o of oIds) await env.OVS.delete("ov:"+o);
+      }catch(e){}
+    } else {
+      for(const id of archivos) await intento("archivo "+id, ()=>env.ARCHIVOS.delete(id));
+      for(const f of factsBorrar) await intento("factura "+f.id, async()=>{ await env.OVS.delete("factura:"+f.id); const a=JSON.parse(await env.OVS.get("facturas:all")||"[]"); if(a.includes(f.id)) await env.OVS.put("facturas:all", JSON.stringify(a.filter(x=>x!==f.id))); });
+      for(const o of ovs) await intento("OV "+o.id_ov, async()=>{
+        await env.OVS.delete("ov:"+o.id_ov);
+        for(const k of ["ovs:all", o.id_transportista&&("ovs:transportista:"+o.id_transportista), o.id_cliente&&("ovs:cliente:"+o.id_cliente)].filter(Boolean)){ const a=JSON.parse(await env.OVS.get(k)||"[]"); if(a.includes(o.id_ov)) await env.OVS.put(k, JSON.stringify(a.filter(x=>x!==o.id_ov))); }
+      });
+      for(const t of trns) await intento("transporte "+t.codigo, async()=>{
+        await env.RETORNOS.delete("transporte:"+t.id);
+        const a=JSON.parse(await env.RETORNOS.get("transportes:all")||"[]"); if(a.includes(t.id)) await env.RETORNOS.put("transportes:all", JSON.stringify(a.filter(x=>x!==t.id)));
+      });
+      for(const l of lics) await intento("licitación "+l.codigo, ()=>dalDeleteLicitacion(env, l.id, false, { clienteIndexId:l.clienteId }));
     }
     await registrarActividad(env,"limpieza_datos",`Datos de prueba borrados: ${lics.map(l=>l.codigo).join(", ")}`,{ licitaciones:lics.length, transportes:trns.length, ordenes:ovs.length });
     return ok({ ok:true, borrado:true, ...resumen, fallos });
