@@ -2976,7 +2976,9 @@ async function handleRequest(request, env, ctx) {
     for(const email of new Set([...kvMap.keys(), ...sbMap.keys()])){
       const kv=kvMap.get(email), su=sbMap.get(email), m=_mergeUsuario(su, kv);
       if(!kv||!su){ detalle.push({ email, situacion: kv?"solo en KV":"solo en Supabase" }); aGuardar.push(m); continue; }
-      const campos=[...new Set([...Object.keys(kv), ...Object.keys(su)])].filter(k=>JSON.stringify(kv[k])!==JSON.stringify(su[k]));
+      // Supabase (jsonb) reordena las claves: comparar en forma canónica para no marcar diferencias falsas
+      const canon=v=>JSON.stringify(v, (k,x)=>(x&&typeof x==="object"&&!Array.isArray(x))?Object.keys(x).sort().reduce((o,kk)=>(o[kk]=x[kk],o),{}):x);
+      const campos=[...new Set([...Object.keys(kv), ...Object.keys(su)])].filter(k=>canon(kv[k])!==canon(su[k]));
       if(campos.length){ detalle.push({ email, situacion:"distinto", campos }); aGuardar.push(m); }
     }
     if(!body.ejecutar) return ok({ ok:true, preview:true, total:kvMap.size+" en KV / "+sbMap.size+" en Supabase", pendientes:detalle.length, detalle });
