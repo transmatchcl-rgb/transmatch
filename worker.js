@@ -182,6 +182,36 @@ async function dalSaveUsuario(env, u, sb){
   await env.USERS.put(email, JSON.stringify(u));
   if(u.id) await env.USERS.put("id:"+u.id, email);
 }
+// ── Usuario combinado KV + Supabase ──
+// Los endpoints de perfil, equipos y conductores escribían solo en KV, mientras /api/auth/me lee Supabase.
+// Para esos campos KV es la fuente más reciente; el resto (preferencias, WhatsApp, estado, etc.) viene de Supabase.
+const _CAMPOS_PERFIL_KV=["nombre","telefono","whatsapp","rut","cargo","ciudad","direccion","comuna","giro","web","descripcion","anosExperiencia","zonas","equipos","tiposEquipo","industrias","telEmpresa","ciudadEmpresa","contactos","contactoOperaciones","contactoComercial","empresa","rutEmpresa","facturacion","datosBancarios","contactoFacturacion","conductores","perfilCompletitud"];
+async function dalGetUsuarioMerged(env, email){
+  email=String(email||"").toLowerCase(); if(!email) return null;
+  const sb=usarSupabase(env, null);
+  let kv=null; try{ const raw=await env.USERS.get(email); kv=raw?JSON.parse(raw):null; }catch(e){}
+  if(!sb) return kv;
+  let su=null; try{ su=await dalGetUsuarioByEmail(env, email, sb); }catch(e){}
+  if(!su) return kv; if(!kv) return su;
+  const u={ ...su };
+  for(const k of _CAMPOS_PERFIL_KV){ if(kv[k]!==undefined) u[k]=kv[k]; }
+  return u;
+}
+async function dalGetUsuarioMergedById(env, id){
+  if(!id) return null;
+  const sb=usarSupabase(env, null);
+  let email=null;
+  if(sb){ try{ const su=await dalGetUsuarioById(env, id, sb); if(su) email=su.email; }catch(e){} }
+  if(!email){ try{ email=await env.USERS.get("id:"+id); }catch(e){} }
+  return email?dalGetUsuarioMerged(env, email):null;
+}
+// Guarda en ambos (KV y Supabase) para que todas las pantallas vean lo mismo.
+async function dalSaveUsuarioAmbos(env, u){
+  const email=String(u.email||"").toLowerCase();
+  await env.USERS.put(email, JSON.stringify(u));
+  const sb=usarSupabase(env, null);
+  if(sb) await dalSaveUsuario(env, u, sb);
+}
 // Capa de datos — EMPRESAS.
 function _empresaRow(emp){
   return { id:emp.id, tipo:emp.tipo||null, razon_social:emp.razonSocial||null, rut:emp.rut||null, giro:emp.giro||null, direccion:emp.direccion||null, comuna:emp.comuna||null, ciudad:emp.ciudadEmpresa||null, telefono:emp.telEmpresa||null, web:emp.web||null, descripcion:emp.descripcion||null, plan:emp.plan||null, estado:emp.estado||null, dueno_email:emp.duenoEmail||null, max_usuarios:(emp.maxUsuarios==null?null:emp.maxUsuarios), industrias:(emp.industrias==null?null:emp.industrias), vigencia:(emp.vigencia==null?null:emp.vigencia), facturacion:(emp.facturacion==null?null:emp.facturacion), contactos:(emp.contactos==null?null:emp.contactos), datos_bancarios:(emp.datosBancarios==null?null:emp.datosBancarios), datos:emp };
@@ -2703,13 +2733,13 @@ async function handleRequest(request, env, ctx) {
     if (!user) return err("Token invalido",401);
     if (user.role==="admin") return ok({ user:{ id:"admin", email:user.email, role:"admin", nombre:"Administrador", empresa:"TransMatch", plan:null } });
     const _sbM = usarSupabase(env, url);
-    const u = await dalGetUsuarioByEmail(env, user.email, _sbM);
+    const u = await dalGetUsuarioMerged(env, user.email);
     if (!u) return err("Usuario no encontrado",404);
     var planOut=u.plan, estadoOut=u.estado;
     if (u.esSubusuario && u.empresaMadreId) { const ef = await efectivoSubusuario(env, u); planOut = ef.plan; estadoOut = ef.estado; }
     // Datos a nivel empresa (Mi empresa, Contactos, Operaciones, Mis equipos): heredados de la cuenta madre.
     if (u.esSubusuario && u.empresaMadreId) {
-      const m = await dalGetUsuarioById(env, u.empresaMadreId, _sbM);
+      const m = await dalGetUsuarioMergedById(env, u.empresaMadreId);
       if (m) {
         u.empresa=m.empresa; u.rutEmpresa=m.rutEmpresa; u.giro=m.giro; u.telEmpresa=m.telEmpresa; u.ciudadEmpresa=m.ciudadEmpresa; u.direccion=m.direccion; u.web=m.web; u.descripcion=m.descripcion; u.anosExperiencia=m.anosExperiencia; u.zonas=m.zonas; u.equipos=m.equipos; u.tiposEquipo=m.tiposEquipo; u.facturacion=m.facturacion; u.contactoOperaciones=m.contactoOperaciones; u.contactoComercial=m.contactoComercial; u.contactoFacturacion=m.contactoFacturacion; u.contactos=m.contactos; u.datosBancarios=m.datosBancarios; u.industrias=m.industrias; u.rating=m.rating; u.totalTransportes=m.totalTransportes; u.totalCotizaciones=m.totalCotizaciones;
       }
@@ -3501,8 +3531,8 @@ async function handleRequest(request, env, ctx) {
     let email;
     if(user.role==="admin"){ email=url.searchParams.get("email")||user.email; }
     else { email=await emailEmpresaTransportista(env,user); } // equipos a nivel empresa
-    const raw=await env.USERS.get(email); if(!raw) return err("No encontrado",404);
-    return ok({ equipos:JSON.parse(raw).equipos||[] });
+    const _u=await dalGetUsuarioMerged(env, email); if(!_u) return err("No encontrado",404);
+    return ok({ equipos:_u.equipos||[] });
   }
 
   if (path === "/api/equipos" && method === "POST") {
@@ -3510,20 +3540,20 @@ async function handleRequest(request, env, ctx) {
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
     if(!body.tipo) return err("tipo requerido");
     const emailEmp=await emailEmpresaTransportista(env,user);
-    const raw=await env.USERS.get(emailEmp); if(!raw) return err("No encontrado",404);
-    const u=JSON.parse(raw); if(!u.equipos) u.equipos=[];
+    const u=await dalGetUsuarioMerged(env, emailEmp); if(!u) return err("No encontrado",404);
+    if(!u.equipos) u.equipos=[];
     const equipo={ id:uid(), tipo:body.tipo, marca:body.marca||"", modelo:body.modelo||"", ano:body.ano||"", capacidadMax:parseFloat(body.capacidadMax)||0, largoMax:parseFloat(body.largoMax)||0, anchoMax:parseFloat(body.anchoMax)||0, altoMax:parseFloat(body.altoMax)||0, patente:body.patente||"", descripcion:body.descripcion||"", documentos:body.documentos||{}, createdAt:new Date().toISOString() };
     u.equipos.push(equipo);
-    await env.USERS.put(emailEmp, JSON.stringify(u));
+    await dalSaveUsuarioAmbos(env, u);
     return ok({ ok:true, id:equipo.id });
   }
 
   if (path.startsWith("/api/equipos/")&&path.split("/").length===4&&method==="DELETE") {
     const equipoId=path.split("/")[3]; const user=await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
     const emailEmp=await emailEmpresaTransportista(env,user);
-    const raw=await env.USERS.get(emailEmp); if(!raw) return err("No encontrado",404);
-    const u=JSON.parse(raw); u.equipos=(u.equipos||[]).filter(e=>e.id!==equipoId);
-    await env.USERS.put(emailEmp, JSON.stringify(u));
+    const u=await dalGetUsuarioMerged(env, emailEmp); if(!u) return err("No encontrado",404);
+    u.equipos=(u.equipos||[]).filter(e=>e.id!==equipoId);
+    await dalSaveUsuarioAmbos(env, u);
     return ok({ ok:true });
   }
 
@@ -3655,8 +3685,8 @@ async function handleRequest(request, env, ctx) {
     let email;
     if(user.role==="admin"){ email=url.searchParams.get("email")||user.email; }
     else { email=await emailEmpresaTransportista(env,user); } // conductores a nivel empresa
-    const raw=await env.USERS.get(email); if(!raw) return err("No encontrado",404);
-    return ok({ conductores:JSON.parse(raw).conductores||[] });
+    const _u=await dalGetUsuarioMerged(env, email); if(!_u) return err("No encontrado",404);
+    return ok({ conductores:_u.conductores||[] });
   }
 
   if (path === "/api/conductores" && method === "POST") {
@@ -3664,8 +3694,8 @@ async function handleRequest(request, env, ctx) {
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
     if(!body.nombre||!body.rut) return err("Nombre y RUT son requeridos");
     const emailEmp=await emailEmpresaTransportista(env,user);
-    const raw=await env.USERS.get(emailEmp); if(!raw) return err("No encontrado",404);
-    const u=JSON.parse(raw); if(!u.conductores) u.conductores=[];
+    const u=await dalGetUsuarioMerged(env, emailEmp); if(!u) return err("No encontrado",404);
+    if(!u.conductores) u.conductores=[];
     const conductor={
       id:uid(), nombre:body.nombre, rut:body.rut, telefono:body.telefono||"",
       carnetFrenteId:body.carnetFrenteId||null, carnetFrenteNombre:body.carnetFrenteNombre||null,
@@ -3675,16 +3705,16 @@ async function handleRequest(request, env, ctx) {
       createdAt:new Date().toISOString()
     };
     u.conductores.push(conductor);
-    await env.USERS.put(emailEmp, JSON.stringify(u));
+    await dalSaveUsuarioAmbos(env, u);
     return ok({ ok:true, id:conductor.id });
   }
 
   if (path.startsWith("/api/conductores/")&&path.split("/").length===4&&method==="DELETE") {
     const conductorId=path.split("/")[3]; const user=await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
     const emailEmp=await emailEmpresaTransportista(env,user);
-    const raw=await env.USERS.get(emailEmp); if(!raw) return err("No encontrado",404);
-    const u=JSON.parse(raw); u.conductores=(u.conductores||[]).filter(c=>c.id!==conductorId);
-    await env.USERS.put(emailEmp, JSON.stringify(u));
+    const u=await dalGetUsuarioMerged(env, emailEmp); if(!u) return err("No encontrado",404);
+    u.conductores=(u.conductores||[]).filter(c=>c.id!==conductorId);
+    await dalSaveUsuarioAmbos(env, u);
     return ok({ ok:true });
   }
 
@@ -4461,8 +4491,7 @@ async function handleRequest(request, env, ctx) {
   if (path === "/api/perfil" && method === "PUT") {
     const user=await getUser(request,env); if(!user) return err("No autenticado",401);
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
-    const raw=await env.USERS.get(user.email); if(!raw) return err("No encontrado",404);
-    const u=JSON.parse(raw);
+    const u=await dalGetUsuarioMerged(env, user.email); if(!u) return err("No encontrado",404);
     // Permisos por rol: personales (todos), perfil de empresa (dueño+gestor), y dueño-only (razón social, RUT, facturación, bancarios).
     const _personales=["nombre","telefono","whatsapp","rut","cargo","ciudad"];
     const _empresaProfile=["direccion","comuna","giro","web","descripcion","anosExperiencia","zonas","equipos","tiposEquipo","industrias","telEmpresa","ciudadEmpresa","contactos","contactoOperaciones","contactoComercial"];
@@ -4492,7 +4521,7 @@ async function handleRequest(request, env, ctx) {
       u.perfilCompletitud=Math.min(100,pts);
     }
     u.updatedAt=new Date().toISOString();
-    await env.USERS.put(user.email, JSON.stringify(u));
+    await dalSaveUsuarioAmbos(env, u);
     // Fuente de verdad de la empresa: escribir en empresa:<id> solo los campos de compañía que el rol puede editar.
     if((user.role==="cliente"||user.role==="transportista") && (!user.esSubusuario || user.rol==="gestor")){
       const _empKeys=_wl.filter(k=>_empresaProfile.includes(k)||_empresaDueno.includes(k));
