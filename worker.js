@@ -3808,6 +3808,7 @@ async function handleRequest(request, env, ctx) {
     const user=await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
     let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
     if(!body.nombre||!body.rut) return err("Nombre y RUT son requeridos");
+    if(body.avisoInformado!==true) return err("Debes confirmar que informaste al conductor sobre el uso de sus datos");
     const emailEmp=await emailEmpresaTransportista(env,user);
     const u=await dalGetUsuarioMerged(env, emailEmp); if(!u) return err("No encontrado",404);
     if(!u.conductores) u.conductores=[];
@@ -3817,7 +3818,8 @@ async function handleRequest(request, env, ctx) {
       carnetReversoId:body.carnetReversoId||null, carnetReversoNombre:body.carnetReversoNombre||null,
       licenciaFrenteId:body.licenciaFrenteId||null, licenciaFrenteNombre:body.licenciaFrenteNombre||null,
       licenciaReversoId:body.licenciaReversoId||null, licenciaReversoNombre:body.licenciaReversoNombre||null,
-      createdAt:new Date().toISOString()
+      createdAt:new Date().toISOString(),
+      avisoInformadoAt:new Date().toISOString(), avisoInformadoPor:user.email
     };
     u.conductores.push(conductor);
     await dalSaveUsuarioAmbos(env, u);
@@ -3828,8 +3830,11 @@ async function handleRequest(request, env, ctx) {
     const conductorId=path.split("/")[3]; const user=await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
     const emailEmp=await emailEmpresaTransportista(env,user);
     const u=await dalGetUsuarioMerged(env, emailEmp); if(!u) return err("No encontrado",404);
+    const _cond=(u.conductores||[]).find(c=>c.id===conductorId);
     u.conductores=(u.conductores||[]).filter(c=>c.id!==conductorId);
     await dalSaveUsuarioAmbos(env, u);
+    // Política de privacidad: las fotos de cédula y licencia se eliminan al quitar al conductor
+    if(_cond){ for(const k of ["carnetFrenteId","carnetReversoId","licenciaFrenteId","licenciaReversoId"]){ if(_cond[k]){ try{ await dalDeleteArchivo(env, _cond[k], usarSupabase(env, url)); await env.ARCHIVOS.delete(_cond[k]); }catch(e){} } } }
     return ok({ ok:true });
   }
 
@@ -4543,6 +4548,29 @@ async function handleRequest(request, env, ctx) {
     return ok({ usuarios });
   }
 
+  // Derecho de acceso / portabilidad: exporta en JSON todos los datos de un usuario (sin contraseña).
+  if (path === "/api/admin/usuario/exportar" && method === "GET") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    const sb=usarSupabase(env, url);
+    const email=String(url.searchParams.get("email")||"").toLowerCase().trim(); if(!email) return err("email requerido");
+    const u=await dalGetUsuarioByEmail(env, email, sb); if(!u) return err("Usuario no encontrado",404);
+    const limpio=JSON.parse(JSON.stringify(u)); delete limpio.password;
+    let empresa=null; try{ empresa=await empresaDe(env, u); if(empresa){ empresa=JSON.parse(JSON.stringify(empresa)); delete empresa.datosBancariosCifrados; } }catch(e){}
+    const eid=empresaIdDe(u);
+    const lics=await dalGetAllLicitaciones(env, sb);
+    const mismo=x=>String(x||"").toLowerCase()===email;
+    const licCliente=lics.filter(l=>l && ((l.empresaId||l.clienteId)===eid || mismo(l.clienteEmail) || mismo(l.creadoPorEmail)));
+    const cotizaciones=[]; for(const l of lics){ for(const c of (l.cotizaciones||[])){ if(mismo(c.transportistaEmail)) cotizaciones.push({ licitacion:l.codigo, ...c }); } }
+    const transportes=(await dalGetAllTransportes(env, sb)).filter(t=>t && (mismo(t.clienteEmail)||mismo(t.transportistaEmail)||mismo(t.creadoPorEmail)));
+    const ovs=(await dalGetAllOVs(env, sb)).filter(o=>o && (o.id_transportista===u.id || o.id_cliente===u.id || mismo(o.transportistaEmail)));
+    const archivos=[]; const juntar=(o,origen)=>{ if(!o||typeof o!=="object") return; for(const [k,v] of Object.entries(o)){ if(typeof v==="string" && /archivo(propio|sii)?id$|^(carnet|licencia)(frente|reverso)id$/i.test(k)) archivos.push({ id:v, campo:k, origen }); else if(v&&typeof v==="object") juntar(v,origen); } };
+    juntar(limpio,"perfil"); licCliente.forEach(l=>juntar(l,"licitación "+(l.codigo||""))); transportes.forEach(t=>juntar(t,"transporte "+(t.codigo||"")));
+    const paquete={ exportadoAt:new Date().toISOString(), responsable:"TransMatch SpA (RUT 78.419.036-6)", titular:email,
+      nota:"Exportación de datos personales conforme a la Ley 19.628/21.719 (derechos de acceso y portabilidad). Los archivos se listan por nombre e identificador; pueden entregarse por separado si se solicitan.",
+      usuario:limpio, empresa, licitaciones:licCliente, cotizaciones, transportes, ordenesDeVenta:ovs, archivos };
+    await registrarActividad(env,"datos_exportados",`Datos exportados (derecho de acceso): ${email}`,{ email });
+    return new Response(JSON.stringify(paquete,null,2), { status:200, headers:{ ...CORS_HEADERS, "Content-Type":"application/json; charset=utf-8", "Content-Disposition":`attachment; filename="datos-${email.replace(/[^a-z0-9@._-]/g,"")}.json"` } });
+  }
   // Acceso de un usuario (admin): ver si está bloqueado, desbloquear o generar una clave provisoria.
   if (path === "/api/admin/usuario/acceso" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;

@@ -452,6 +452,7 @@
         '<div id="acceso-estado" style="font-size:13px;color:#6B7280;margin-bottom:12px">Revisando…</div>' +
         '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
           '<button id="btn-desbloquear" onclick="desbloquearAcceso()" style="display:none;background:#1e2d4e;color:#fff;padding:9px 16px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Desbloquear acceso</button>' +
+          '<button onclick="exportarDatos()" style="background:#fff;color:#1e2d4e;padding:9px 16px;border-radius:8px;border:1px solid #1e2d4e;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Exportar datos (JSON)</button>' +
           '<button onclick="claveProvisoria()" style="background:#fff;color:#1e2d4e;padding:9px 16px;border-radius:8px;border:1px solid #1e2d4e;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Generar clave provisoria</button>' +
         '</div>' +
         '<div id="clave-prov" style="display:none;margin-top:12px;background:#EEF1F8;border-radius:8px;padding:12px;font-size:13px;color:#1e2d4e"></div>' +
@@ -595,6 +596,13 @@
     var btn = document.getElementById('btn-desbloquear');
     if (r.data.bloqueado) { el.innerHTML = '<span style="color:#991B1B;font-weight:600">Bloqueado por intentos fallidos</span> · se libera solo en 15 minutos o puedes desbloquearlo ahora.'; btn.style.display = ''; }
     else { el.textContent = 'Sin bloqueo' + (r.data.intentos ? ' (' + r.data.intentos + ' intento(s) fallido(s) recientes)' : '') + '.'; btn.style.display = 'none'; }
+  }
+  async function exportarDatos() {
+    var r = await fetch(API + '/api/admin/usuario/exportar?email=' + encodeURIComponent(userData.email), { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') } });
+    if (!r.ok) { var e = {}; try { e = await r.json(); } catch(x) {} toast(e.error || 'No se pudo exportar', 'err'); return; }
+    var blob = await r.blob(); var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'datos-' + userData.email + '.json'; document.body.appendChild(a); a.click(); a.remove();
+    toast('Archivo descargado. Envíaselo al titular por un canal seguro.');
   }
   async function desbloquearAcceso() {
     var r = await api('/api/admin/usuario/acceso', 'POST', { email: userData.email, accion: 'desbloquear' });

@@ -669,6 +669,10 @@
           </div>
         </div>
 
+        <div style="margin-top:14px;background:#EEF1F8;border-radius:8px;padding:12px 14px;font-size:12.5px;color:#1e2d4e;line-height:1.5">
+          <b>Datos personales del conductor.</b> Las fotos de cédula y licencia se usan solo para que el cliente adjudicado pueda verificar quién realiza el transporte. Se guardan mientras el conductor esté registrado y se eliminan al quitarlo. Más detalles en la <a href="/privacidad.html" target="_blank" style="color:#1e2d4e;font-weight:600">Política de Privacidad</a>.
+          <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:12.5px;font-weight:600;cursor:pointer"><input type="checkbox" id="cond-aviso" style="width:15px;height:15px;margin-top:2px;accent-color:#1e2d4e;flex-shrink:0"/><span>Declaro que informé al conductor que sus datos y documentos quedarán registrados en TransMatch para este fin.</span></label>
+        </div>
         <div class="err" id="err-cond"></div>
         <div style="margin-top:14px;display:flex;gap:10px"><button class="btn btn-orange" onclick="agregarConductor()">+ Agregar conductor</button><button class="btn btn-outline" onclick="cerrarForm('cond')">Cancelar</button></div>
         </div>
@@ -1270,6 +1274,7 @@ async function agregarConductor() {
   if(!nombre||!rut){ errEl.textContent='Nombre y RUT son requeridos'; errEl.style.display='block'; return; }
   if(!condBuffer.carnetFrente||!condBuffer.carnetReverso){ errEl.textContent='Debes subir ambos lados del carnet'; errEl.style.display='block'; return; }
   if(!condBuffer.licenciaFrente||!condBuffer.licenciaReverso){ errEl.textContent='Debes subir ambos lados de la licencia'; errEl.style.display='block'; return; }
+  if(!document.getElementById('cond-aviso').checked){ errEl.textContent='Debes confirmar que informaste al conductor'; errEl.style.display='block'; return; }
   var btn=event&&event.target; if(btn){ btn.disabled=true; btn.textContent='Subiendo...'; }
   try {
     var cf=await subirImagenConductor('carnetFrente');
@@ -1284,13 +1289,14 @@ async function agregarConductor() {
         carnetFrenteId:cf&&cf.id, carnetFrenteNombre:cf&&cf.nombre,
         carnetReversoId:cr&&cr.id, carnetReversoNombre:cr&&cr.nombre,
         licenciaFrenteId:lf&&lf.id, licenciaFrenteNombre:lf&&lf.nombre,
-        licenciaReversoId:lr&&lr.id, licenciaReversoNombre:lr&&lr.nombre
+        licenciaReversoId:lr&&lr.id, licenciaReversoNombre:lr&&lr.nombre,
+        avisoInformado:true
       })
     });
     if(res.ok){
       toast('Conductor agregado');
       // Limpiar formulario
-      document.getElementById('cond-nombre').value='';
+      document.getElementById('cond-nombre').value=''; document.getElementById('cond-aviso').checked=false;
       document.getElementById('cond-rut').value='';
       document.getElementById('cond-telefono').value='';
       condBuffer={};
