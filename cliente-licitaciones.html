@@ -149,7 +149,7 @@ document.dispatchEvent(new Event('_authReady'));
 <a href="/cliente-licitaciones.html" class="nav-link active">Licitaciones</a>
 <a href="/cliente-retornos.html" id="nav-retornos" class="nav-link">Retornos</a>
 <a href="/cliente-transporte.html" class="nav-link">Transportes</a>
-<a href="/cliente-facturacion.html" class="nav-link">Facturacion</a>
+<a href="/cliente-facturacion.html" class="nav-link">Facturación</a>
 <a href="/cliente-calendario.html" class="nav-link">Calendario</a>
 </div>
 </div>
@@ -164,10 +164,10 @@ document.dispatchEvent(new Event('_authReady'));
 <div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div>
 <div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:220px;z-index:999;overflow:hidden">
 <div style="padding:14px 16px;border-bottom:1px solid #f3f4f6"><div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div><div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div></div>
-<a href="/cliente-perfil.html" class="um-item">Configuracion</a>
+<a href="/cliente-perfil.html" class="um-item">Configuración</a>
 <a href="/ayuda.html" class="um-item">Ayuda</a>
 <a href="/landing-servicios.html" class="um-item">Planes y precios</a>
-<div style="border-top:1px solid #f3f4f6"><button onclick="cerrarSesion()" class="um-item um-danger">Cerrar sesion</button></div>
+<div style="border-top:1px solid #f3f4f6"><button onclick="cerrarSesion()" class="um-item um-danger">Cerrar sesión</button></div>
 </div>
 </div>
 </div>
@@ -185,7 +185,7 @@ document.dispatchEvent(new Event('_authReady'));
 <a href="/cliente-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
 <a href="/cliente-retornos.html" class="nav-mobile-link">Retornos</a>
 <a href="/cliente-transporte.html" class="nav-mobile-link">Transportes</a>
-<a href="/cliente-facturacion.html" class="nav-mobile-link">Facturacion</a>
+<a href="/cliente-facturacion.html" class="nav-mobile-link">Facturación</a>
 <a href="/cliente-calendario.html" class="nav-mobile-link">Calendario</a>
 </div>
 
@@ -193,7 +193,7 @@ document.dispatchEvent(new Event('_authReady'));
 <main>
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap">
 <div><div style="font-size:20px;font-weight:600;color:#1e2d4e">Mis licitaciones</div><div style="font-size:14px;color:#6B7280;margin-top:2px">Gestiona y revisa todas tus solicitudes de transporte</div></div>
-<a href="/cliente-nueva.html" class="btn btn-orange" style="white-space:nowrap;flex-shrink:0">+ Nueva licitacion</a>
+<a href="/cliente-nueva.html" class="btn btn-orange" style="white-space:nowrap;flex-shrink:0">+ Nueva licitación</a>
 </div>
 
 <div class="grid-4">
@@ -206,7 +206,7 @@ document.dispatchEvent(new Event('_authReady'));
 <div class="card" style="overflow:visible">
 <div class="filter-bar">
 <span class="pill pill-todas active" onclick="togglePill(this,'')">Todas</span>
-<span class="pill pill-revision" onclick="togglePill(this,'pendiente_admin')">En revision</span>
+<span class="pill pill-revision" onclick="togglePill(this,'pendiente_admin')">En revisión</span>
 <span class="pill pill-abierta" onclick="togglePill(this,'abierta')">Abiertas</span>
 <span class="pill pill-cotiz" onclick="togglePill(this,'cerrada')">Con cotizaciones</span>
 <span class="pill pill-adj" onclick="togglePill(this,'adjudicada')">Adjudicadas</span>
@@ -225,8 +225,8 @@ document.dispatchEvent(new Event('_authReady'));
 <!-- Modal eliminar -->
 <div class="modal-bg" id="modal-eliminar">
 <div class="modal" style="max-width:400px">
-<div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:6px">Eliminar licitacion?</div>
-<div style="font-size:13px;color:#6B7280;margin-bottom:16px">Esta accion no se puede deshacer.</div>
+<div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:6px">Eliminar licitación?</div>
+<div style="font-size:13px;color:#6B7280;margin-bottom:16px">Esta acción no se puede deshacer.</div>
 <div class="modal-btns">
 <button class="btn btn-outline" onclick="document.getElementById('modal-eliminar').classList.remove('open')">Cancelar</button>
 <button class="btn" style="background:#DC2626;color:#fff" onclick="ejecutarEliminar()">Si, eliminar</button>
@@ -252,7 +252,7 @@ document.dispatchEvent(new Event('_authReady'));
 <div class="modal-bg" id="modal-ampliar">
 <div class="modal" style="max-width:420px">
 <div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:6px">Ampliar plazo</div>
-<div style="font-size:13px;color:#6B7280;margin-bottom:16px">Tu licitacion se volvera a publicar y quedara abierta durante el nuevo plazo que elijas.</div>
+<div style="font-size:13px;color:#6B7280;margin-bottom:16px">Tu licitación se volvera a publicar y quedara abierta durante el nuevo plazo que elijas.</div>
 <label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:8px">Nuevo plazo para recibir cotizaciones <span style="color:#EF4444">*</span></label>
 <div id="ampliar-grid" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
 <div class="plazo-btn-amp selected" onclick="selectAmpliar(this,'12')" data-val="12" style="flex:1;min-width:80px;padding:10px;border-radius:8px;border:1.5px solid #1e2d4e;background:#eef1f8;cursor:pointer;text-align:center"><div style="font-size:16px;font-weight:700;color:#111827">12h</div><div style="font-size:10px;color:#9CA3AF;margin-top:2px">Urgente</div></div>
@@ -270,8 +270,8 @@ document.dispatchEvent(new Event('_authReady'));
 <!-- Modal adjudicar -->
 <div class="modal-bg" id="modal-adj" style="z-index:400">
 <div class="modal" style="max-width:400px">
-<div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:6px">Confirmar adjudicacion</div>
-<div style="font-size:13px;color:#6B7280;margin-bottom:12px">Adjudicaras esta licitacion a:</div>
+<div style="font-size:16px;font-weight:600;color:#111827;margin-bottom:6px">Confirmar adjudicación</div>
+<div style="font-size:13px;color:#6B7280;margin-bottom:12px">Adjudicaras esta licitación a:</div>
 <div id="modal-adj-info" style="background:#F0FDF4;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;color:#14532D"></div>
 <div style="font-size:12px;color:#6B7280;margin-bottom:4px">Al confirmar, los datos de contacto del transportista seran revelados.</div>
 <div class="modal-btns">
@@ -318,9 +318,9 @@ document.dispatchEvent(new Event('_authReady'));
 <button class="pmenu-btn" onclick="togglePanelMenu(event,'det-pmenu')">&#8943;</button>
 <div class="pmenu-dd" id="det-pmenu">
 <button class="pmenu-item" id="det-btn-duplicar" onclick="closePanelMenu();duplicarLicitacion()">Duplicar licitación</button>
-<button class="pmenu-item" id="det-btn-editar" onclick="closePanelMenu();editarLicitacion()">Editar licitacion</button>
+<button class="pmenu-item" id="det-btn-editar" onclick="closePanelMenu();editarLicitacion()">Editar licitación</button>
 <button class="pmenu-item" id="det-btn-editar-contacto" onclick="closePanelMenu();abrirModalEditarContacto()">Editar datos de contacto</button>
-<button class="pmenu-item danger" id="det-btn-eliminar" onclick="closePanelMenu();confirmarEliminar()">Eliminar licitacion</button>
+<button class="pmenu-item danger" id="det-btn-eliminar" onclick="closePanelMenu();confirmarEliminar()">Eliminar licitación</button>
 <button class="pmenu-item" id="det-btn-anular" style="display:none" onclick="closePanelMenu();confirmarAnular()">Cerrar licitación</button>
 </div>
 </div>
@@ -459,7 +459,7 @@ return '&#128666;';
 function renderLista(lista){
 var ll=document.getElementById('lista-licitaciones');if(!ll)return;
 if(!lista.length){
-ll.innerHTML='<div class="empty">Sin licitaciones<br><a href="/cliente-nueva.html" class="btn btn-orange" style="margin-top:14px;display:inline-flex">+ Nueva licitacion</a></div>';
+ll.innerHTML='<div class="empty">Sin licitaciones<br><a href="/cliente-nueva.html" class="btn btn-orange" style="margin-top:14px;display:inline-flex">+ Nueva licitación</a></div>';
 return;
 }
 ll.innerHTML=lista.map(function(l){
@@ -474,8 +474,8 @@ menuHtml='<div class="pmenu-wrap" onclick="event.stopPropagation()">'
 +'<button class="pmenu-btn" onclick="togglePanelMenu(event,\'pm-'+l.id+'\')">&#8943;</button>'
 +'<div class="pmenu-dd" id="pm-'+l.id+'">';
 if(l.estado==='pendiente_admin'){
-menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();editarLicitacionId(\''+l.id+'\')">Editar licitacion</button>';
-menuHtml+='<button class="pmenu-item danger" onclick="closePanelMenu();confirmarEliminarId(\''+l.id+'\')">Eliminar licitacion</button>';
+menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();editarLicitacionId(\''+l.id+'\')">Editar licitación</button>';
+menuHtml+='<button class="pmenu-item danger" onclick="closePanelMenu();confirmarEliminarId(\''+l.id+'\')">Eliminar licitación</button>';
 }else if(_v2.estado==='cerrada'){
 if(_expReactivable){ menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();abrirModalAmpliar(\''+l.id+'\')">Ampliar plazo y volver a publicar</button>'; }
 menuHtml+='<button class="pmenu-item" onclick="closePanelMenu();duplicarLicitacionId(\''+l.id+'\')">Duplicar licitación</button>';
@@ -577,13 +577,13 @@ function _generarPDFLicitacion(l, ocultarSensible){
     if(l.dimensiones)rows.push(['Dimensiones',l.dimensiones]);
   }
   rows.push(['Origen',l.origen||'-']);
-  if(l.direccionOrigen)rows.push(['Direccion de origen',l.direccionOrigen]);
+  if(l.direccionOrigen)rows.push(['Dirección de origen',l.direccionOrigen]);
   rows.push(['Destino',l.destino||'-']);
-  if(l.direccionDestino)rows.push(['Direccion de destino',l.direccionDestino]);
+  if(l.direccionDestino)rows.push(['Dirección de destino',l.direccionDestino]);
   if(l.tipoEntregaDestino&&l.tipoEntregaDestino!=='no_aplica')rows.push(['Tipo de entrega',tEntMap[l.tipoEntregaDestino]||'-']);
   if(l.fechaCarga)rows.push(['Fecha de carga',fd(l.fechaCarga)+(l.horaCarga?' - '+l.horaCarga:'')]);
   if(l.fechaEntrega)rows.push(['Fecha de descarga',fd(l.fechaEntrega)+(l.horaDescarga?' - '+l.horaDescarga:'')]);
-  rows.push(['Plazo cotizaciones',(l.plazo||'24')+'h']);
+  rows.push(['Plazo cotizaciónes',(l.plazo||'24')+'h']);
   if(l.valorSeguro)rows.push(['Valor seguro aprox.','$'+Number(l.valorSeguro).toLocaleString('es-CL')]);
 
   var jsPDF=window.jspdf.jsPDF;
@@ -605,7 +605,7 @@ function _generarPDFLicitacion(l, ocultarSensible){
   try { pdf.addImage(_tmPdfLogo, 'PNG', mL, y-4.6, 30, 30/5.99); }
   catch(e){ pdf.setFont('helvetica','bold'); pdf.setTextColor(30,45,78); pdf.setFontSize(15); pdf.text('TransMatch', mL, y); }
   pdf.setFont('helvetica','normal'); pdf.setFontSize(9); pdf.setTextColor(107,114,128);
-  pdf.text('Detalle de licitacion', mL, y+5);
+  pdf.text('Detalle de licitación', mL, y+5);
   // Lado derecho: código grande + ruta
   pdf.setFont('helvetica','bold'); pdf.setTextColor(30,45,78); pdf.setFontSize(17);
   pdf.text(String(l.codigo||''), pw-mR, y, {align:'right'});
@@ -662,7 +662,7 @@ function _generarPDFLicitacion(l, ocultarSensible){
   }
   if(ocultarSensible){
     nl(4); pdf.setFont('helvetica','italic'); pdf.setFontSize(8); pdf.setTextColor(156,163,175);
-    var nota=pdf.splitTextToSize('El archivo de especificaciones y los datos de contacto se revelan al adjudicarse la licitacion.', contentW);
+    var nota=pdf.splitTextToSize('El archivo de especificaciones y los datos de contacto se revelan al adjudicarse la licitación.', contentW);
     pdf.text(nota, mL, y); nl(nota.length*4);
   }
   nl(6); pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor(156,163,175);
@@ -709,7 +709,7 @@ if(l.ubicacionDestino&&window.TMUbic)infoRows.push(['Ubicación destino',TMUbic.
 if(l.tipoEntregaDestino&&l.tipoEntregaDestino!=='no_aplica')infoRows.push(['Tipo de entrega',tEntMap[l.tipoEntregaDestino]||'--']);
 if(l.fechaCarga)infoRows.push(['Fecha de carga',l.fechaCarga+(l.horaCarga?' · '+l.horaCarga:'')]);
 if(l.fechaEntrega)infoRows.push(['Fecha de descarga',l.fechaEntrega+(l.horaDescarga?' · '+l.horaDescarga:'')]);
-infoRows.push(['Plazo cotizaciones',(l.plazo||'24')+'h']);
+infoRows.push(['Plazo cotizaciónes',(l.plazo||'24')+'h']);
 if(l.valorSeguro)infoRows.push(['Valor seguro aprox.','$'+Number(l.valorSeguro).toLocaleString('es-CL')]);
 if(window._miUsuario&&['dueno','gestor','visor'].indexOf(window._miUsuario.rol)>=0&&l.creadoPorNombre)infoRows.push(['Creado por',l.creadoPorNombre+(l.creadoPorEmail?' ('+l.creadoPorEmail+')':'')]);
 
@@ -781,7 +781,7 @@ h+='</div></div>';
 // Estado mensaje
 var _detV2=licV2(l);
 if(l.estado==='pendiente_admin'){
-h+='<div style="background:#eef1f8;border-radius:8px;padding:11px 14px;font-size:12px;color:#1e40af;margin-bottom:14px">Tu licitacion esta siendo revisada. Sera publicada pronto.</div>';
+h+='<div style="background:#eef1f8;border-radius:8px;padding:11px 14px;font-size:12px;color:#1e40af;margin-bottom:14px">Tu licitación esta siendo revisada. Sera publicada pronto.</div>';
 }else if(_detV2.estado==='cerrada'){
 var _extra=(l.motivoCierre||l.motivoAnulacion||'');
 if(_detV2.reactivable){
@@ -810,7 +810,7 @@ h+='<div style="background:#eef1f8;border-radius:8px;padding:11px 14px;font-size
 
 if(cotiz.length>0){
 if(l.estado==='cerrada')h+='<div style="background:#F0FDF4;border-radius:8px;padding:11px 14px;font-size:13px;color:#14532D;font-weight:500;margin-bottom:10px">Tienes cotizaciones listas. Revisa y adjudica la que prefieras.</div>';
-h+='<div style="font-size:13px;font-weight:500;color:#374151;margin-bottom:10px">'+cotiz.length+' cotizacion'+(cotiz.length>1?'es':'')+' disponibles</div>';
+h+='<div style="font-size:13px;font-weight:500;color:#374151;margin-bottom:10px">'+cotiz.length+' cotización'+(cotiz.length>1?'es':'')+' disponibles</div>';
 var yaAdjudicada=(l.estado==='adjudicada'||l.estado==='completada');
 // Orden de score: tal cual viene del backend. Solo se reordena para mostrar cuando ya hay una adjudicada,
 // para que "lo que realmente pasó" quede primero, en vez de "cuál tenía mejor score".
@@ -854,7 +854,7 @@ h+='<div style="display:flex;justify-content:space-between;align-items:center;pa
 h+='<div class="score-bar" style="margin:2px 0 14px"><div class="score-fill" style="width:'+sc+'%"></div></div>';
 h+='<button onclick="verPreviewCotiz('+i+')" style="width:fit-content;display:inline-flex;align-items:center;gap:6px;margin-bottom:8px;padding:7px 12px;background:#fff;color:#1e2d4e;border:0.5px solid #d1d5db;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer">Ver cotización completa</button>';
 if(!yaAdjudicada&&(l.estado==='abierta'||l.estado==='cerrada')){
-  h+='<button style="width:100%;justify-content:center;padding:9px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:#FF8808;color:#fff" onclick="adjudicarPorIdx(this)" data-idx="'+i+'" data-precio="'+c.precio+'">Adjudicar esta cotizacion</button>';
+  h+='<button style="width:100%;justify-content:center;padding:9px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:#FF8808;color:#fff" onclick="adjudicarPorIdx(this)" data-idx="'+i+'" data-precio="'+c.precio+'">Adjudicar esta cotización</button>';
 }
 h+='</div>';
 h+='</div>';
@@ -1070,7 +1070,7 @@ var campos=['cumplimiento','seriedad','comunicacion','estadoEquipo','documentaci
 for(var i=0;i<campos.length;i++){if(!valoraciones[campos[i]]){toast('Completa todos los criterios','err');return}}
 var prom=Math.round(Object.values(valoraciones).reduce(function(a,b){return a+b},0)/campos.length*10)/10;
 var r=await api('/api/valoraciones','POST',{licitacionId:licitacionId,scores:valoraciones,promedio:prom});
-if(r&&r.ok){toast('Valoracion enviada');document.getElementById('modal-det').classList.remove('open');await cargarLicitaciones();}
+if(r&&r.ok){toast('Valoración enviada');document.getElementById('modal-det').classList.remove('open');await cargarLicitaciones();}
 else toast((r&&r.data&&r.data.error)||'Error al enviar','err');
 }
 
@@ -1164,7 +1164,7 @@ async function ejecutarEliminar(){
 if(!_eliminarId)return;
 document.getElementById('modal-eliminar').classList.remove('open');
 var r=await api('/api/licitaciones/'+_eliminarId,'DELETE');
-if(r&&r.ok){toast('Licitacion eliminada');_eliminarId=null;await cargarLicitaciones();}
+if(r&&r.ok){toast('Licitación eliminada');_eliminarId=null;await cargarLicitaciones();}
 else toast((r&&r.data&&r.data.error)||'Error al eliminar','err');
 }
 
@@ -1210,7 +1210,7 @@ if(!_ampliarId)return;
 var plazo=document.getElementById('ampliar-plazo').value||'12';
 document.getElementById('modal-ampliar').classList.remove('open');
 var r=await api('/api/licitaciones/'+_ampliarId+'/ampliar-plazo','POST',{plazo:plazo});
-if(r&&r.ok){toast('Licitacion publicada nuevamente');_ampliarId=null;await cargarLicitaciones();}
+if(r&&r.ok){toast('Licitación publicada nuevamente');_ampliarId=null;await cargarLicitaciones();}
 else toast((r&&r.data&&r.data.error)||'Error al ampliar el plazo','err');
 }
 

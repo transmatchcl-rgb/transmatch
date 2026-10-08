@@ -333,7 +333,7 @@ function descargarLicitacionAdminPDF(licId){
   rows.push(['Cliente', l.clienteEmpresa||'-']);
   rows.push(['Contacto cliente', l.clienteNombre||'-']);
   if(l.clienteEmail)rows.push(['Email cliente', l.clienteEmail]);
-  if(l.clienteTelefono)rows.push(['Telefono cliente', l.clienteTelefono]);
+  if(l.clienteTelefono)rows.push(['Teléfono cliente', l.clienteTelefono]);
   if(l.tipoEquipoRequerido)rows.push(['Equipo requerido', l.tipoEquipoRequerido]);
   if(tipoLic==='maquinaria'){
     if(l.tipoEquipo)rows.push(['Maquinaria',l.tipoEquipo]);
@@ -350,13 +350,13 @@ function descargarLicitacionAdminPDF(licId){
     if(l.dimensiones)rows.push(['Dimensiones',l.dimensiones]);
   }
   rows.push(['Origen',l.origen||'-']);
-  if(l.direccionOrigen)rows.push(['Direccion de origen',l.direccionOrigen]);
+  if(l.direccionOrigen)rows.push(['Dirección de origen',l.direccionOrigen]);
   rows.push(['Destino',l.destino||'-']);
-  if(l.direccionDestino)rows.push(['Direccion de destino',l.direccionDestino]);
+  if(l.direccionDestino)rows.push(['Dirección de destino',l.direccionDestino]);
   if(l.tipoEntregaDestino&&l.tipoEntregaDestino!=='no_aplica')rows.push(['Tipo de entrega',tEntMap[l.tipoEntregaDestino]||'-']);
   if(l.fechaCarga)rows.push(['Fecha de carga',fd(l.fechaCarga)+(l.horaCarga?' - '+l.horaCarga:'')]);
   if(l.fechaEntrega)rows.push(['Fecha de descarga',fd(l.fechaEntrega)+(l.horaDescarga?' - '+l.horaDescarga:'')]);
-  rows.push(['Plazo cotizaciones',(l.plazo||'24')+'h']);
+  rows.push(['Plazo cotizaciónes',(l.plazo||'24')+'h']);
   if(l.valorSeguro)rows.push(['Valor seguro aprox.','$'+Number(l.valorSeguro).toLocaleString('es-CL')]);
   if(l.contactoOrigenNombre||l.contactoOrigenTelefono)rows.push(['Contacto en origen',[l.contactoOrigenNombre,l.contactoOrigenTelefono,l.contactoOrigenEmail].filter(Boolean).join(' - ')]);
   if(l.contactoDestinoNombre||l.contactoDestinoTelefono)rows.push(['Contacto en destino',[l.contactoDestinoNombre,l.contactoDestinoTelefono,l.contactoDestinoEmail].filter(Boolean).join(' - ')]);
@@ -366,7 +366,7 @@ function descargarLicitacionAdminPDF(licId){
   var y=38;
   function nl(s){ y+=s; if(y>ph-20){ pdf.addPage(); y=20; } }
   function seccion(t){ nl(4); pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor(30,45,78); pdf.text(t.toUpperCase(),mL,y); pdf.setDrawColor(225,228,235); pdf.setLineWidth(0.3); pdf.line(mL,y+1.5,pw-mR,y+1.5); nl(6); }
-  _pdfHeader(pdf,l,'Detalle de licitacion');
+  _pdfHeader(pdf,l,'Detalle de licitación');
   pdf.setFontSize(10);
   rows.forEach(function(r){
     pdf.setFont('helvetica','normal'); pdf.setTextColor(107,114,128); pdf.text(String(r[0]),mL,y);
@@ -403,7 +403,7 @@ function descargarCotizacionAdminPDF(licId, cotId){
   function seccion(t){ nl(4); pdf.setFont('helvetica','bold'); pdf.setFontSize(9); pdf.setTextColor(30,45,78); pdf.text(t.toUpperCase(),mL,y); pdf.setDrawColor(225,228,235); pdf.setLineWidth(0.3); pdf.line(mL,y+1.5,pw-mR,y+1.5); nl(6); }
   function fila(k,v){ pdf.setFont('helvetica','normal'); pdf.setTextColor(107,114,128); pdf.text(String(k),mL,y); pdf.setFont('helvetica','bold'); pdf.setTextColor(31,41,55); var val=pdf.splitTextToSize(String(v),contentW*0.5); pdf.text(val,pw-mR,y,{align:'right'}); pdf.setDrawColor(238,238,238); pdf.setLineWidth(0.2); pdf.line(mL,y+2.5,pw-mR,y+2.5); nl(7+(val.length>1?(val.length-1)*5:0)); }
 
-  _pdfHeader(pdf,l,'Cotizacion '+(c.codigo||''));
+  _pdfHeader(pdf,l,'Cotización '+(c.codigo||''));
   pdf.setFontSize(10);
   fila('Transportista', (c.transportistaNombre||'-')+' / '+(c.transportistaEmpresa||'-'));
   if(c.transportistaEmail)fila('Email', c.transportistaEmail);
@@ -419,7 +419,7 @@ function descargarCotizacionAdminPDF(licId, cotId){
   if(f.montoTotal)fila('Total','$'+Number(f.montoTotal).toLocaleString('es-CL'));
   if(f.esperaIncluida)fila('Espera incluida', f.esperaIncluida+' h');
   if(f.cobroEspera)fila('Hora de espera adicional','$'+Number(f.cobroEspera).toLocaleString('es-CL'));
-  if(f.cobroEstadia)fila('Estadia por noche','$'+Number(f.cobroEstadia).toLocaleString('es-CL'));
+  if(f.cobroEstadia)fila('Estadía por noche','$'+Number(f.cobroEstadia).toLocaleString('es-CL'));
 
   if(Array.isArray(f.items)&&f.items.length){
     seccion('Detalle del servicio'); pdf.setFontSize(9.5);
@@ -430,7 +430,7 @@ function descargarCotizacionAdminPDF(licId, cotId){
     f.seguros.forEach(function(s){ pdf.setFont('helvetica','normal'); pdf.setTextColor(55,65,81); var t=(s.tipo||'-')+(s.cobertura?' - '+s.cobertura+' UF':'')+(s.obs?' - '+s.obs:''); var ls=pdf.splitTextToSize(t,contentW); pdf.text(ls,mL,y); nl(ls.length*5); });
   }
   if(f.observaciones){ seccion('Observaciones'); pdf.setFont('helvetica','normal'); pdf.setFontSize(9.5); pdf.setTextColor(55,65,81); var os=pdf.splitTextToSize(f.observaciones,contentW); pdf.text(os,mL,y); nl(os.length*5); }
-  if(c.descripcion){ seccion('Descripcion'); pdf.setFont('helvetica','normal'); pdf.setFontSize(9.5); pdf.setTextColor(55,65,81); var ds=pdf.splitTextToSize(c.descripcion,contentW); pdf.text(ds,mL,y); nl(ds.length*5); }
+  if(c.descripcion){ seccion('Descripción'); pdf.setFont('helvetica','normal'); pdf.setFontSize(9.5); pdf.setTextColor(55,65,81); var ds=pdf.splitTextToSize(c.descripcion,contentW); pdf.text(ds,mL,y); nl(ds.length*5); }
   nl(6); pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor(156,163,175); pdf.text('Generado por TransMatch (admin) - '+new Date().toLocaleDateString('es-CL'),mL,y);
   pdf.save('Cotizacion-'+(c.codigo||l.codigo||'TransMatch')+'.pdf');
 }

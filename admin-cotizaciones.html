@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>TransMatch — Cotizaciónes</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>TransMatch — Cotizaciones</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Barlow',sans-serif;background:#fff;color:#374151}
@@ -63,8 +63,8 @@
   .ncot{font-size:13px;font-weight:700;color:#1e2d4e}
 
   /* COTIZACIONES LIST */
-  .cotizaciónes-wrap{display:none}
-  .cotizaciónes-wrap.open{display:block}
+  .cotizaciones-wrap{display:none}
+  .cotizaciones-wrap.open{display:block}
   .cotiz-row{display:flex;align-items:center;gap:12px;padding:13px 18px 13px 36px;border-bottom:0.5px solid #f3f4f6}
   .cotiz-row:last-child{border-bottom:none}
   .cotiz-rank{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
@@ -156,7 +156,7 @@
         <a href="/admin-reportes.html" class="nav-tab">Reportes</a>
       </div>
       </div>
-    <button class="logout-btn" onclick="localStorage.clear();window.location.replace('/admin-login.html')">Cerrar sesion</button>
+    <button class="logout-btn" onclick="localStorage.clear();window.location.replace('/admin-login.html')">Cerrar sesión</button>
   </nav>
 <div id="nav-mobile-panel" class="nav-mobile-panel">
 <a href="/admin.html" class="nav-mobile-link">Dashboard</a>
@@ -174,8 +174,8 @@
   <main>
     <div class="page-hdr">
       <div>
-        <div class="page-title">Historial de cotizaciónes</div>
-        <div class="page-sub">Todas las cotizaciónes recibidas, agrupadas por licitación</div>
+        <div class="page-title">Historial de cotizaciones</div>
+        <div class="page-sub">Todas las cotizaciones recibidas, agrupadas por licitación</div>
       </div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-outline" onclick="exportarCSV()">Exportar CSV</button>
@@ -192,7 +192,7 @@
     <div class="filter-bar">
       <select class="sel" id="fil-estado" onchange="filtrar()">
         <option value="">Todos los estados</option>
-        <option value="pendiente_admin">Pendiente aprobacion</option>
+        <option value="pendiente_admin">Pendiente aprobación</option>
         <option value="abierta">Abierta</option>
         <option value="cerrada">Cerrada</option>
         <option value="adjudicada">Adjudicada</option>
@@ -201,7 +201,7 @@
       <input class="srch" id="fil-buscar" placeholder="Buscar licitación, empresa o equipo..." oninput="filtrar()"/>
       <label style="font-size:13px;color:#6B7280;display:flex;align-items:center;gap:6px;cursor:pointer">
         <input type="checkbox" id="fil-solo-cotiz" onchange="filtrar()" style="accent-color:#1e2d4e"/>
-        Solo con cotizaciónes
+        Solo con cotizaciones
       </label>
     </div>
 
@@ -219,7 +219,7 @@
 
   function estadoBadge(e){
     const m = {
-      pendiente_admin: ['badge-warn','Pendiente aprobacion'],
+      pendiente_admin: ['badge-warn','Pendiente aprobación'],
       abierta:   ['badge-warn','Abierta'],
       cerrada:   ['badge-info','En revisión'],
       adjudicada:['badge-success','Adjudicada'],
@@ -332,7 +332,7 @@
           '</div>'+
         '</div>'+
         '<div class="grupo-right">'+
-          '<span class="ncot">'+nCot+' cotizacion'+(nCot!==1?'es':'')+'</span>'+
+          '<span class="ncot">'+nCot+' cotización'+(nCot!==1?'es':'')+'</span>'+
         '</div>'+
       '</div>'+
       '<div class="cotizaciones-wrap" id="cotiz-wrap-'+gi+'">'+cotizHTML+'</div>'+
@@ -348,8 +348,8 @@
   }
 
   function exportarCSV(){
-    const rows = [['Licitacion','Codigo Licit','Cliente','Equipo','Origen','Destino','Estado Licit',
-      'Codigo Cotiz','Transportista','Precio','Entrega','Rating','Score','Adjudicada','Fecha']];
+    const rows = [['Licitación','Código Licit','Cliente','Equipo','Origen','Destino','Estado Licit',
+      'Código Cotiz','Transportista','Precio','Entrega','Rating','Score','Adjudicada','Fecha']];
     allLicit.forEach(l => {
       const cotizaciones = l.cotizaciones || [];
       if(cotizaciones.length === 0){
@@ -381,12 +381,12 @@
     const sc = Math.round((c.score||0)*100);
 
     document.getElementById('mc-titulo').textContent =
-      (licit.equipo||'Cotizacion') + (esGanadora ? ' — Adjudicada' : '');
+      (licit.equipo||'Cotización') + (esGanadora ? ' — Adjudicada' : '');
     document.getElementById('mc-código').textContent =
       (c.codigo||'--') + (licit.codigo ? '  /  ' + licit.codigo : '');
 
     const items = [
-      ['Licitacion',          licit.codigo + ' — ' + licit.equipo],
+      ['Licitación',          licit.codigo + ' — ' + licit.equipo],
       ['Ruta',                licit.ruta],
       ['Cliente',             licit.clienteEmpresa||'--'],
       ['Transportista', (c.transportistaNombre||'—')+' · '+(c.transportistaEmpresa||'—')],
@@ -396,7 +396,7 @@
       ['Rating transportista','★ ' + (c.transportistaRating||5)],
       ['Score algoritmo',     sc + '%'],
       ['Adjudicada',          esGanadora ? 'Si' : 'No'],
-      ['Fecha cotizacion',    fecha(c.createdAt)],
+      ['Fecha cotización',    fecha(c.createdAt)],
     ];
 
     let html = items.map(function(row){

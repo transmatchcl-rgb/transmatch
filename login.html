@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>TransMatch — Iniciar sesion</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>TransMatch — Iniciar sesión</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   body{font-family:Barlow,sans-serif;background:#f5f7fb;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
@@ -57,7 +57,7 @@ btn.style.color=isPass?"#1e2d4e":"#9CA3AF";
 
 <div class="card">
   <h1>Bienvenido de vuelta</h1>
-  <p class="sub">Ingresa tu email y contrasena para continuar</p>
+  <p class="sub">Ingresa tu email y contraseña para continuar</p>
 
   <div class="alert" id="alert-msg"></div>
 
@@ -66,13 +66,13 @@ btn.style.color=isPass?"#1e2d4e":"#9CA3AF";
     <input type="email" id="email" placeholder="correo@empresa.cl" autocomplete="email"/>
   </div>
   <div class="field">
-    <label for="password">Contrasena</label>
-    <div style="position:relative"><input type="password" id="password" placeholder="Tu contrasena" autocomplete="current-password" style="padding-right:42px"/><button type="button" onclick="togglePass('password',this)" tabindex="-1" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:16px;padding:0;line-height:1"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+    <label for="password">Contraseña</label>
+    <div style="position:relative"><input type="password" id="password" placeholder="Tu contraseña" autocomplete="current-password" style="padding-right:42px"/><button type="button" onclick="togglePass('password',this)" tabindex="-1" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:16px;padding:0;line-height:1"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
   </div>
 
   <div style="text-align:right;margin:-8px 0 16px"><a href="/restablecer.html" id="link-olvide" onclick="var e=document.getElementById('email').value;if(e)this.href='/restablecer.html?email='+encodeURIComponent(e)" style="font-size:13px;color:#1e2d4e;font-weight:500;text-decoration:underline">¿Olvidaste tu contraseña?</a></div>
 
-  <button class="btn btn-primary" id="btn-login" onclick="doLogin()">Iniciar sesion</button>
+  <button class="btn btn-primary" id="btn-login" onclick="doLogin()">Iniciar sesión</button>
 
   <div class="divider">¿Eres nuevo?</div>
 
@@ -152,18 +152,18 @@ async function doLogin() {
       if (data.passwordProvisorio) { mostrarCambioPassword(password, data.role); return; }
       irAlPanel(data.role);
     } else {
-      var errMsg = data.error || 'Email o contrasena incorrectos';
+      var errMsg = data.error || 'Email o contraseña incorrectos';
       if (errMsg.toLowerCase().includes('pendiente')) {
-        errMsg = 'Tu cuenta esta pendiente de aprobacion por TransMatch. Te avisaremos pronto.';
+        errMsg = 'Tu cuenta esta pendiente de aprobación por TransMatch. Te avisaremos pronto.';
       }
       showAlert(errMsg);
       btn.disabled = false;
-      btn.textContent = 'Iniciar sesion';
+      btn.textContent = 'Iniciar sesión';
     }
   } catch(e) {
     showAlert('Error de conexion. Intenta nuevamente.');
     btn.disabled = false;
-    btn.textContent = 'Iniciar sesion';
+    btn.textContent = 'Iniciar sesión';
   }
 }
 

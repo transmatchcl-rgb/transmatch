@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/><script src="/demo-mock.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>TransMatch -- Nueva licitacion</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>TransMatch -- Nueva licitación</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Barlow,sans-serif;background:#f5f7fb;display:flex;flex-direction:column;min-height:100vh}
@@ -168,7 +168,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <a href="/cliente-licitaciones.html" class="nav-link active">Licitaciones</a>
 <a href="/cliente-retornos.html" id="nav-retornos" class="nav-link">Retornos</a>
 <a href="/cliente-transporte.html" class="nav-link">Transportes</a>
-<a href="/cliente-facturacion.html" class="nav-link">Facturacion</a>
+<a href="/cliente-facturacion.html" class="nav-link">Facturación</a>
 <a href="/cliente-calendario.html" class="nav-link">Calendario</a>
 <a href="/cliente-historial.html" class="nav-link">Historial</a>
 </div>
@@ -179,7 +179,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
   <span id="notif-count" style="display:none;position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center"></span>
 </div>
-<div style="position:relative"><div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div><div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:220px;z-index:999;overflow:hidden"><div style="padding:14px 16px;border-bottom:1px solid #f3f4f6"><div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div><div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div></div><a href="/cliente-perfil.html" class="um-item">Configuracion</a><a href="/ayuda.html" class="um-item">Ayuda</a><a href="/landing-servicios.html" class="um-item">Planes y precios</a><div style="border-top:1px solid #f3f4f6"><button onclick="cerrarSesion()" class="um-item um-danger">Cerrar sesion</button></div></div></div>
+<div style="position:relative"><div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div><div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:220px;z-index:999;overflow:hidden"><div style="padding:14px 16px;border-bottom:1px solid #f3f4f6"><div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div><div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div></div><a href="/cliente-perfil.html" class="um-item">Configuración</a><a href="/ayuda.html" class="um-item">Ayuda</a><a href="/landing-servicios.html" class="um-item">Planes y precios</a><div style="border-top:1px solid #f3f4f6"><button onclick="cerrarSesion()" class="um-item um-danger">Cerrar sesión</button></div></div></div>
 </div>
 <div id="notif-panel" style="display:none;position:fixed;top:60px;right:16px;width:360px;background:#fff;border-radius:14px;border:0.5px solid #E5E7EB;box-shadow:0 8px 30px rgba(0,0,0,.14);z-index:500;overflow:hidden;max-height:520px;flex-direction:column">
   <!-- Header dinámico: cambia entre "Notificaciones" y "← Configuración" -->
@@ -225,7 +225,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <a href="/cliente-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
 <a href="/cliente-retornos.html" class="nav-mobile-link">Retornos</a>
 <a href="/cliente-transporte.html" class="nav-mobile-link">Transportes</a>
-<a href="/cliente-facturacion.html" class="nav-mobile-link">Facturacion</a>
+<a href="/cliente-facturacion.html" class="nav-mobile-link">Facturación</a>
 <a href="/cliente-calendario.html" class="nav-mobile-link">Calendario</a>
 <a href="/cliente-historial.html" class="nav-mobile-link">Historial</a>
 </div>
@@ -234,7 +234,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <main>
 <div class="page-hdr-wrap" style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px">
   <div>
-    <div style="font-size:22px;font-weight:700;color:#1e2d4e;margin-bottom:4px" id="page-title">Nueva licitacion</div>
+    <div style="font-size:22px;font-weight:700;color:#1e2d4e;margin-bottom:4px" id="page-title">Nueva licitación</div>
     <div style="font-size:14px;color:#6B7280" id="page-sub">Completa los datos de tu solicitud de transporte</div>
   </div>
   <div style="display:flex;gap:10px;align-items:center">
@@ -272,7 +272,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 <div class="step-line"></div>
 <div class="step"><div class="step-num pending" id="sn2">2</div><div class="step-label pending" id="sl2">Ruta y fechas</div></div>
 <div class="step-line"></div>
-<div class="step"><div class="step-num pending" id="sn3">3</div><div class="step-label pending" id="sl3">Configuracion</div></div>
+<div class="step"><div class="step-num pending" id="sn3">3</div><div class="step-label pending" id="sl3">Configuración</div></div>
 <div class="step-line"></div>
 <div class="step"><div class="step-num pending" id="sn4">4</div><div class="step-label pending" id="sl4">Confirmar</div></div>
 </div>
@@ -301,9 +301,9 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 </div>
 <div class="form-group"><label>Dimensiones (largo x ancho x alto en metros) <span class="required">*</span></label><input type="text" id="dimensionesMaq" placeholder="Ej: 14.5 x 4.2 x 4.8 m" autocomplete="off"/></div>
 <div class="form-group">
-<label>Descripcion y condiciones especiales</label>
+<label>Descripción y condiciones especiales</label>
 <textarea id="descripcionMaq" placeholder="Ej: Requiere escolta, permiso sobredimensionado..."></textarea>
-<div class="hint">Mientras mas detalle, mejores cotizaciones recibiras</div>
+<div class="hint">Mientras más detalle, mejores cotizaciones recibirás</div>
 </div>
 <div class="form-group">
 <label>Archivo de especificaciones <span class="required">*</span></label>
@@ -350,7 +350,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 </div>
 <div class="form-group"><label>Dimensiones por bulto (cm)</label><input type="text" id="dimensionesCarga" placeholder="Ej: 90 x 90 x 120 cm" autocomplete="off"/></div>
 <div class="form-group">
-<label>Descripcion y condiciones especiales</label>
+<label>Descripción y condiciones especiales</label>
 <textarea id="descripcionCarga" placeholder="Ej: Carga paletizada, requiere grua horquilla en destino..."></textarea>
 </div>
 <div class="form-group">
@@ -451,7 +451,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 </div>
 
 <div class="form-group">
-<label>Descripcion y condiciones especiales</label>
+<label>Descripción y condiciones especiales</label>
 <textarea id="descripcionContenedor" placeholder="Ej: Retiro en depósito, entrega en bodega cliente..."></textarea>
 </div>
 <div class="form-group">
@@ -567,7 +567,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 </div>
 
 <div class="form-card" id="paso3">
-<div class="card-title">Configuracion de la licitacion</div>
+<div class="card-title">Configuración de la licitación</div>
 <div class="form-group">
 <label>Valor aproximado del seguro necesario (CLP)</label>
 <input type="number" id="valorSeguro" placeholder="Ej: 50000000" min="0" step="1" autocomplete="off"/>
@@ -582,7 +582,7 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 </div>
 <input type="hidden" id="plazo" value="24"/>
 </div>
-<div class="info-box">Un plazo mas corto significa mayor urgencia. Para cargas con mas anticipacion, recomendamos <strong>24h o 48h</strong> para obtener mejores cotizaciones.<span id="info-express" style="display:none"> La opcion <strong>6h Express</strong> esta disponible para cargas de hoy o mañana, publicando antes de las 13:00.</span></div>
+<div class="info-box">Un plazo mas corto significa mayor urgencia. Para cargas con más anticipación, recomendamos <strong>24h o 48h</strong> para obtener mejores cotizaciones.<span id="info-express" style="display:none"> La opción <strong>6h Express</strong> esta disponible para cargas de hoy o mañana, publicando antes de las 13:00.</span></div>
 <div class="btn-row">
 <button class="btn btn-outline" onclick="irPaso(2)">Volver</button>
 <button class="btn btn-primary" onclick="irPaso(4)">Siguiente</button>
@@ -604,13 +604,13 @@ setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 </div>
 <div class="btn-row">
 <button class="btn btn-outline" onclick="irPaso(3)">Editar</button>
-<button class="btn btn-orange" id="btn-publicar" onclick="publicar()">Publicar licitacion</button>
+<button class="btn btn-orange" id="btn-publicar" onclick="publicar()">Publicar licitación</button>
 </div>
 </div>
 
 <div class="success-screen" id="success">
 <div style="font-size:56px;margin-bottom:16px">&#10003;</div>
-<div class="success-title">Licitacion publicada!</div>
+<div class="success-title">Licitación publicada!</div>
 <div class="success-sub">Los transportistas estan siendo notificados. Recibiras las mejores cotizaciones dentro del plazo que seleccionaste.</div>
 <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
 <a href="/cliente-licitaciones.html" class="btn btn-primary">Ver mis licitaciones</a>
@@ -1055,7 +1055,7 @@ var cN=document.getElementById('contactoOrigenNombre').value.trim(),cT=document.
 if(cN)rows.push(['Contacto origen',cN+(cT?' · '+cT:'')]);
 var dN=document.getElementById('contactoDestinoNombre').value.trim(),dT=document.getElementById('contactoDestinoTelefono').value.trim();
 if(dN)rows.push(['Contacto destino',dN+(dT?' · '+dT:'')]);
-rows.push(['Plazo cotizaciones',gv('plazo')+'h']);
+rows.push(['Plazo cotizaciónes',gv('plazo')+'h']);
 var vSeg=gv('valorSeguro');if(vSeg)rows.push(['Valor seguro aprox.','$'+Number(vSeg).toLocaleString('es-CL')]);
 var _re=document.getElementById('requiereEstandar');
 if(_re&&_re.checked){
@@ -1068,7 +1068,7 @@ document.getElementById('resumen-content').innerHTML=rows.map(function(r){
 return '<div class="resumen-row"><span class="resumen-key">'+r[0]+'</span><span class="resumen-val">'+r[1]+'</span></div>';
 }).join('');
 var btn=document.getElementById('btn-publicar');
-if(btn)btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';
+if(btn)btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitación';
 }
 
 async function publicar(){
@@ -1080,7 +1080,7 @@ if(errT) errT.style.display='none';
 var btn=document.getElementById('btn-publicar');
 btn.disabled=true;btn.textContent='Publicando...';
 var _ubMal=[].slice.call(document.querySelectorAll('input.tm-ubic')).some(function(i){return TMUbic.tipo(i.value)==='bad';});
-if(_ubMal){showToast('Revisa la ubicación de Google Maps: debe ser un link de Maps o un Plus Code','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';return;}
+if(_ubMal){showToast('Revisa la ubicación de Google Maps: debe ser un link de Maps o un Plus Code','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitación';return;}
 // Red de seguridad: pase lo que pase adentro (incluso un error de programación inesperado),
 // el botón SIEMPRE se reactiva. Nunca más debería quedar pegado en "Publicando...".
 try{
@@ -1090,9 +1090,9 @@ if(archivo){
 try{
 var rA=await fetch(API+'/api/archivos/upload',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(archivo)});
 var dA=await rA.json();
-if(!rA.ok){showToast(dA.error||'Error al subir el archivo','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';return;}
+if(!rA.ok){showToast(dA.error||'Error al subir el archivo','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitación';return;}
 archivoId=dA.id;
-}catch(e){showToast('Error al subir el archivo','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';return;}
+}catch(e){showToast('Error al subir el archivo','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitación';return;}
 }
 var payload={tipoLicitacion:tipoLicitacion,ubicacionOrigen:TMUbic.valida(document.getElementById('ubicacionOrigen').value),ubicacionDestino:TMUbic.valida(document.getElementById('ubicacionDestino').value),origen:document.getElementById('origen').value.trim(),destino:document.getElementById('destino').value.trim(),direccionOrigen:document.getElementById('direccionOrigen').value.trim(),direccionDestino:document.getElementById('direccionDestino').value.trim(),fechaCarga:document.getElementById('fechaCarga').value,horaCarga:document.getElementById('horaCarga').value||'',fechaEntrega:document.getElementById('fechaEntrega').value,horaDescarga:document.getElementById('horaDescarga').value||'',plazo:document.getElementById('plazo').value,valorSeguro:document.getElementById('valorSeguro').value||'',contactoOrigenNombre:document.getElementById('contactoOrigenNombre').value.trim(),contactoOrigenTelefono:document.getElementById('contactoOrigenTelefono').value.trim(),contactoOrigenEmail:document.getElementById('contactoOrigenEmail').value.trim(),contactoDestinoNombre:document.getElementById('contactoDestinoNombre').value.trim(),contactoDestinoTelefono:document.getElementById('contactoDestinoTelefono').value.trim(),contactoDestinoEmail:document.getElementById('contactoDestinoEmail').value.trim()};
 if(archivoId){payload.archivoId=archivoId;payload.archivoNombre=archivo.nombre;}
@@ -1183,7 +1183,7 @@ var url=modoEdicion?API+'/api/licitaciones/'+modoEdicion:API+'/api/licitaciones'
 var method=modoEdicion?'PUT':'POST';
 var res=await fetch(url,{method:method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify(payload)});
 var data=await res.json();
-if(!res.ok){showToast(data.error||'Error al publicar','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';return;}
+if(!res.ok){showToast(data.error||'Error al publicar','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitación';return;}
 document.getElementById('paso4').classList.remove('active');
 document.getElementById('success').style.display='block';
 document.getElementById('stepper').style.display='none';
@@ -1191,13 +1191,13 @@ var tsw=document.getElementById('tipo-selector-wrap');if(tsw)tsw.style.display='
 var th=document.getElementById('tipo-elegido');if(th)th.style.display='none';
 document.querySelectorAll('a.btn.btn-outline').forEach(function(b){b.style.display='none';});
 window.scrollTo({top:0,behavior:'smooth'});
-}catch(e){showToast('Error de conexion. Intenta nuevamente.','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';}
+}catch(e){showToast('Error de conexion. Intenta nuevamente.','err');btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitación';}
 }catch(eGeneral){
 // Red de seguridad: cualquier error no previsto (ej. un elemento del formulario que falte)
 // libera el botón en vez de dejarlo pegado para siempre, y avisa para que se pueda reportar.
 console.error('Error inesperado al publicar:', eGeneral);
 showToast('Ocurrió un error inesperado. Si persiste, contacta a soporte.','err');
-btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitacion';
+btn.disabled=false;btn.textContent=modoEdicion?'Guardar cambios':'Publicar licitación';
 }
 }
 
@@ -1214,7 +1214,7 @@ toggleCamposPorTipoRuta();
 document.getElementById('paso0').style.display='none';
 document.getElementById('stepper').style.display='flex';
 document.getElementById('sl1').textContent=tipoLicitacion==='maquinaria'?'Equipo':(tipoLicitacion==='contenedor'?'Contenedor':'Carga');
-document.getElementById('page-title').textContent=esDuplicado?'Duplicar licitación':'Editar licitacion';
+document.getElementById('page-title').textContent=esDuplicado?'Duplicar licitación':'Editar licitación';
 document.getElementById('page-sub').textContent=esDuplicado?'Revisa los datos, ajusta lo necesario y elige nuevas fechas':'Modifica los datos que necesites';
 document.getElementById(paso1Id()).classList.add('active');
 currentStep=1;updateStepper(1);

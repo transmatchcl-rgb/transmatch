@@ -246,7 +246,7 @@
           createdAt:ahora(), cierreAt:new Date(Date.now()+parseInt(b.plazo||'24',10)*H).toISOString(), cotizaciones:[], preguntas:[] }));
         S.lics.unshift(n);
         S.notifs.unshift({ id:'demo_n'+S.seq, tipo:'licitacion_aprobada', mensaje:'Recibimos tu licitación '+n.codigo+'. La estamos revisando.', leida:false, createdAt:ahora(), datos:{ licitacionId:id } });
-        return { ok:true, id:id, mensaje:'Licitacion enviada.' };
+        return { ok:true, id:id, mensaje:'Licitación enviada.' };
       }
     }
     if((m=path.match(/^\/api\/licitaciones\/([^/]+)$/))){
@@ -260,7 +260,7 @@
       var cs=la.cotizaciones||[];
       var c=cs.filter(function(x){ return x.id===b.cotizacionId; })[0];
       if(!c){ var mi=String(b.cotizacionId||'').match(/^cotiz_(\d+)$/); if(mi) c=cs[parseInt(mi[1],10)]; }
-      if(!c) return { __status:400, error:'Cotizacion no encontrada' };
+      if(!c) return { __status:400, error:'Cotización no encontrada' };
       var t=c._t||TR.a;
       la.estado='adjudicada'; la.adjudicadaAt=ahora(); la.adjudicadaA=adj(t,c.id,c.precio,c.tiempoEntrega);
       var tid='demo_t'+(++S.seq);
@@ -502,13 +502,13 @@
     }
     if(path==='/api/cotizaciones' && method==='POST'){
       var lc=findL(b.licitacionId); if(!lc) return { __status:404, error:'No encontrada' };
-      if(lc.estado!=='abierta') return { __status:400, error:'Esta licitacion no esta abierta' };
+      if(lc.estado!=='abierta') return { __status:400, error:'Esta licitación no está abierta' };
       var mias=(lc.cotizaciones||[]).filter(function(c){ return c.transportistaId==='demo_transp'; });
       if(mias.length>=2) return { __status:400, error:'Ya enviaste el máximo de 2 cotizaciones para esta licitación' };
       var nc=cotMia('demo_tc'+(++S.seq), lc.id, parseFloat(b.precio)||0, b.fechaCargaISO||'', b.fechaEntregaISO||b.tiempoEntrega||'', (b.formulario&&b.formulario.equipoUtilizado)||'', lc.origen+' → '+lc.destino, 1);
       nc.formulario=b.formulario||nc.formulario; nc.descripcion=b.descripcion||''; nc.incluye=b.incluye||[]; nc.modalidad=b.modalidad||''; nc.createdAt=ahora();
       lc.cotizaciones=(lc.cotizaciones||[]).concat([nc]);
-      return { ok:true, mensaje:'Cotizacion enviada.' };
+      return { ok:true, mensaje:'Cotización enviada.' };
     }
     if(path==='/api/cotizaciones/eliminar'){
       var le=findL(b.licitacionId); if(le) le.cotizaciones=(le.cotizaciones||[]).filter(function(c){ return !(c.transportistaId==='demo_transp' && (!b.cotizacionId||c.id===b.cotizacionId)); });

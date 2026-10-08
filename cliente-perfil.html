@@ -146,7 +146,7 @@ document.dispatchEvent(new Event('_authReady'));
 <a href="/cliente-licitaciones.html" class="nav-link">Licitaciones</a>
 <a href="/cliente-retornos.html" id="nav-retornos" class="nav-link">Retornos</a>
 <a href="/cliente-transporte.html" class="nav-link">Transportes</a>
-<a href="/cliente-facturacion.html" class="nav-link">Facturacion</a>
+<a href="/cliente-facturacion.html" class="nav-link">Facturación</a>
 <a href="/cliente-calendario.html" class="nav-link">Calendario</a>
 </div>
 </div>
@@ -161,10 +161,10 @@ document.dispatchEvent(new Event('_authReady'));
 <div class="nav-avatar" id="nav-avatar" onclick="toggleUserMenu(event)">?</div>
 <div id="user-menu" style="display:none;position:absolute;top:42px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid #e8eaf0;min-width:220px;z-index:999;overflow:hidden">
 <div style="padding:14px 16px;border-bottom:1px solid #f3f4f6"><div id="um-nombre" style="font-weight:700;font-size:14px;color:#1e2d4e"></div><div id="um-empresa" style="font-size:12px;color:#6B7280;margin-top:2px"></div></div>
-<a href="/cliente-perfil.html" class="um-item">Configuracion</a>
+<a href="/cliente-perfil.html" class="um-item">Configuración</a>
 <a href="/ayuda.html" class="um-item">Ayuda</a>
 <a href="/landing-servicios.html" class="um-item">Planes y precios</a>
-<div style="border-top:1px solid #f3f4f6"><button onclick="cerrarSesion()" class="um-item um-danger">Cerrar sesion</button></div>
+<div style="border-top:1px solid #f3f4f6"><button onclick="cerrarSesion()" class="um-item um-danger">Cerrar sesión</button></div>
 </div>
 </div>
 </div>
@@ -182,7 +182,7 @@ document.dispatchEvent(new Event('_authReady'));
 <a href="/cliente-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
 <a href="/cliente-retornos.html" class="nav-mobile-link">Retornos</a>
 <a href="/cliente-transporte.html" class="nav-mobile-link">Transportes</a>
-<a href="/cliente-facturacion.html" class="nav-mobile-link">Facturacion</a>
+<a href="/cliente-facturacion.html" class="nav-mobile-link">Facturación</a>
 <a href="/cliente-calendario.html" class="nav-mobile-link">Calendario</a>
 </div>
 
@@ -190,7 +190,7 @@ document.dispatchEvent(new Event('_authReady'));
 <main>
 <div class="card">
 <div class="card-hdr">
-<div class="card-title">Configuracion de cuenta</div>
+<div class="card-title">Configuración de cuenta</div>
 <button class="close-btn" onclick="window.location.href='/cliente.html'">x</button>
 </div>
 <div class="tabs">
@@ -214,8 +214,8 @@ document.dispatchEvent(new Event('_authReady'));
 </div>
 <div class="grid2">
 <div class="fg"><label>Nombre completo</label><input type="text" id="inp-nombre" placeholder="Tu nombre completo"/></div>
-<div class="fg"><label>Correo electronico</label><input type="email" id="inp-email" disabled/></div>
-<div class="fg"><label>Telefono / WhatsApp</label><input type="tel" id="inp-telefono" placeholder="+56 9 XXXX XXXX"/></div>
+<div class="fg"><label>Correo electrónico</label><input type="email" id="inp-email" disabled/></div>
+<div class="fg"><label>Teléfono / WhatsApp</label><input type="tel" id="inp-telefono" placeholder="+56 9 XXXX XXXX"/></div>
 <div class="fg"><label>Cargo en la empresa</label><input type="text" id="inp-cargo" placeholder="Gerente de operaciones"/></div>
 </div>
 <div id="alok-perfil" class="alert-ok">Perfil actualizado correctamente</div>
@@ -225,15 +225,15 @@ document.dispatchEvent(new Event('_authReady'));
 <!-- EMPRESA -->
 <div class="tab-pane" id="pane-empresa">
 <div class="grid2">
-<div class="fg full"><label>Razon social</label><input type="text" id="inp-empresa" placeholder="Minera Atacama SpA"/></div>
+<div class="fg full"><label>Razón social</label><input type="text" id="inp-empresa" placeholder="Minera Atacama SpA"/></div>
 <div class="fg"><label>RUT empresa</label><input type="text" id="inp-rut-empresa" placeholder="76.123.456-7" oninput="formatRut(this)"/></div>
-<div class="fg"><label>Giro / Industria</label><input type="text" id="inp-giro" placeholder="Mineria, Construccion..."/></div>
-<div class="fg"><label>Telefono empresa</label><input type="tel" id="inp-tel-empresa" placeholder="+56 2 XXXX XXXX"/></div>
-<div class="fg"><label>Direccion</label><input type="text" id="inp-direccion" placeholder="Av. Apoquindo 1234, Of. 501"/></div>
+<div class="fg"><label>Giro / Industria</label><input type="text" id="inp-giro" placeholder="Minería, Construcción..."/></div>
+<div class="fg"><label>Teléfono empresa</label><input type="tel" id="inp-tel-empresa" placeholder="+56 2 XXXX XXXX"/></div>
+<div class="fg"><label>Dirección</label><input type="text" id="inp-direccion" placeholder="Av. Apoquindo 1234, Of. 501"/></div>
 <div class="fg"><label>Comuna</label><input type="text" id="inp-comuna-empresa" placeholder="Las Condes"/></div>
 <div class="fg"><label>Ciudad</label><input type="text" id="inp-ciudad-empresa" placeholder="Santiago"/></div>
 <div class="fg full"><label>Sitio web</label><input type="text" id="inp-web" placeholder="www.miempresa.cl"/></div>
-<div class="fg full"><label>Descripcion del negocio</label><textarea id="inp-desc" placeholder="Breve descripcion de tu empresa y sus actividades..."></textarea></div>
+<div class="fg full"><label>Descripción del negocio</label><textarea id="inp-desc" placeholder="Breve descripción de tu empresa y sus actividades..."></textarea></div>
 </div>
 <div id="alok-empresa" class="alert-ok">Empresa actualizada correctamente</div>
 <div style="margin-top:16px"><button class="btn btn-green" onclick="guardarEmpresa()">Guardar empresa</button></div>
@@ -287,10 +287,10 @@ Usar los mismos datos que en "Empresa"
 </div>
 <div class="sec-row">
 <div><div class="sec-label">Sesion activa</div><div class="sec-sub" id="sesion-info">--</div></div>
-<button class="btn btn-red" onclick="cerrarSesion()">Cerrar sesion</button>
+<button class="btn btn-red" onclick="cerrarSesion()">Cerrar sesión</button>
 </div>
 <div class="sec-row">
-<div><div class="sec-label">Eliminar cuenta</div><div class="sec-sub">Contacta a contacto@transmatch.cl para solicitar la eliminacion de tu cuenta</div></div>
+<div><div class="sec-label">Eliminar cuenta</div><div class="sec-sub">Contacta a contacto@transmatch.cl para solicitar la eliminación de tu cuenta</div></div>
 </div>
 </div>
 

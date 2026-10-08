@@ -85,13 +85,13 @@
 </svg></a>
   <div class="nav-right">
     <a href="/index.html">Inicio</a><a href="/landing-conocenos.html">Conócenos</a><a href="/landing-servicios.html">Servicios</a><a href="/landing-contacto.html" class="active">Contacto</a>
-    <a href="/login.html" class="sep">Iniciar sesion</a><a href="/registro.html" class="cta">Registrarme</a>
+    <a href="/login.html" class="sep">Iniciar sesión</a><a href="/registro.html" class="cta">Registrarme</a>
   </div>
   <button class="nav-mb-btn" onclick="document.getElementById('mmenu').classList.toggle('open')">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </button>
   <div class="nav-mb-menu" id="mmenu">
-    <a href="/index.html">Inicio</a><a href="/landing-conocenos.html">Conócenos</a><a href="/landing-servicios.html">Servicios</a><a href="/landing-contacto.html">Contacto</a><a href="/login.html">Iniciar sesion</a><a href="/index.html" style="color:var(--orange);font-weight:700">Registrarme</a>
+    <a href="/index.html">Inicio</a><a href="/landing-conocenos.html">Conócenos</a><a href="/landing-servicios.html">Servicios</a><a href="/landing-contacto.html">Contacto</a><a href="/login.html">Iniciar sesión</a><a href="/index.html" style="color:var(--orange);font-weight:700">Registrarme</a>
   </div>
 </nav>
 
@@ -100,7 +100,7 @@
   <div class="page-hero-inner">
     <div class="section-tag">Contacto</div>
     <h1>Hablemos de<br><em>tu operación</em></h1>
-    <p class="page-sub">Completa el formulario y nuestro equipo se pondra en contacto contigo en menos de 24 horas.</p>
+    <p class="page-sub">Completa el formulario y nuestro equipo se pondrá en contacto contigo en menos de 24 horas.</p>
   </div>
 </div>
 
@@ -133,11 +133,11 @@
 
       <!-- FORM -->
       <div class="form-wrap">
-        <div class="form-title">Envianos un mensaje</div>
+        <div class="form-title">Envíanos un mensaje</div>
         <div id="form-success">
           <div class="ok-icon"></div>
           <h3>Mensaje enviado</h3>
-          <p>Nuestro equipo se pondra en contacto contigo en menos de 24 horas.</p>
+          <p>Nuestro equipo se pondrá en contacto contigo en menos de 24 horas.</p>
         </div>
         <div id="contact-form">
           <div class="form-row">
@@ -151,7 +151,7 @@
           <div class="form-group">
             <label>Soy *</label>
             <select id="f-tipo">
-              <option value="">Selecciónar...</option>
+              <option value="">Seleccionar...</option>
               <option value="empresa">Empresa mandante (necesito transporte)</option>
               <option value="transportista">Transportista (quiero ofrecer servicios)</option>
               <option value="otro">Otro</option>
@@ -159,7 +159,7 @@
           </div>
           <div class="form-group">
             <label>Mensaje *</label>
-            <textarea id="f-mensaje" placeholder="Cuentanos sobre tu operación o consulta..."></textarea>
+            <textarea id="f-mensaje" placeholder="Cuéntanos sobre tu operación o consulta..."></textarea>
           </div>
           <input type="text" id="f-web" name="web" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true">
           <button class="btn-primary" onclick="enviarFormulario()">
@@ -207,7 +207,7 @@
       errEl.style.display = 'block'; return;
     }
     if(!email.includes('@')){
-      errEl.textContent = 'Ingresa un email valido.';
+      errEl.textContent = 'Ingresa un email válido.';
       errEl.style.display = 'block'; return;
     }
     var telefono = document.getElementById('f-teléfono').value.trim();

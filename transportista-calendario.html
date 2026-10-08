@@ -177,7 +177,7 @@
 <path d="M940.244 15.0301C936.94 11.7256 931.582 11.7257 928.278 15.0301L916.182 27.1262C912.877 30.4306 912.877 35.7882 916.182 39.0926L957.153 80.0637C960.457 83.3681 960.457 88.7257 957.153 92.0301L916.182 133.001C912.877 136.306 912.877 141.663 916.182 144.968L928.278 157.064C931.582 160.368 936.94 160.368 940.244 157.064L1005.28 92.0301C1008.58 88.7256 1008.58 83.3681 1005.28 80.0637L940.244 15.0301Z" fill="#FF8808"/>
 </svg>
       </a>
-      <button class="nav-mobile-menu" onclick="toggleMobileNav()" aria-label="Menu"><span></span><span></span><span></span></button><div class="nav-links"><a href="/transportista.html" class="nav-link">Inicio</a><a href="/transportista-retornos.html" class="nav-link">Retornos</a><a href="/transportista-licitaciones.html" class="nav-link">Licitaciones</a><a href="/transportista-transporte.html" class="nav-link">Transportes</a><a href="/transportista-cobros.html" class="nav-link">Facturacion</a><a href="/transportista-calendario.html" class="nav-link active">Calendario</a><a href="/transportista-historial.html" class="nav-link">Historial</a></div>
+      <button class="nav-mobile-menu" onclick="toggleMobileNav()" aria-label="Menu"><span></span><span></span><span></span></button><div class="nav-links"><a href="/transportista.html" class="nav-link">Inicio</a><a href="/transportista-retornos.html" class="nav-link">Retornos</a><a href="/transportista-licitaciones.html" class="nav-link">Licitaciones</a><a href="/transportista-transporte.html" class="nav-link">Transportes</a><a href="/transportista-cobros.html" class="nav-link">Facturación</a><a href="/transportista-calendario.html" class="nav-link active">Calendario</a><a href="/transportista-historial.html" class="nav-link">Historial</a></div>
     </div>
     <div class="nav-right">
       <div style="display:flex;align-items:center;gap:12px;"><div class="nav-user-name" style="text-align:right"><div style="font-size:13px;color:#fff;font-weight:500" id="nav-nombre">--</div><div style="font-size:11px;color:#93C5FD" id="nav-empresa">--</div></div><div style="display:flex;align-items:center;gap:8px;"><div style="position:relative;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;" id="notif-btn" onclick="toggleNotifs(event)">
@@ -217,7 +217,7 @@
 <a href="/transportista-retornos.html" class="nav-mobile-link">Retornos</a>
 <a href="/transportista-licitaciones.html" class="nav-mobile-link">Licitaciones</a>
 <a href="/transportista-transporte.html" class="nav-mobile-link">Transportes</a>
-<a href="/transportista-cobros.html" class="nav-mobile-link">Facturacion</a>
+<a href="/transportista-cobros.html" class="nav-mobile-link">Facturación</a>
 <a href="/transportista-calendario.html" class="nav-mobile-link">Calendario</a>
 <a href="/transportista-historial.html" class="nav-mobile-link">Historial</a>
 </div>
@@ -271,7 +271,7 @@
     <!-- Filtros -->
     <div class="filters">
       <div class="filter-chip active" onclick="toggleFilter('abierta',this)">Abiertas</div>
-      <div class="filter-chip" onclick="toggleFilter('cerrada',this)">Cotizacion enviada</div>
+      <div class="filter-chip" onclick="toggleFilter('cerrada',this)">Cotización enviada</div>
       <div class="filter-chip" onclick="toggleFilter('adjudicada',this)">Adjudicadas</div>
       
       <div class="filter-chip" onclick="toggleFilter('completada',this)">Completadas</div>
@@ -328,7 +328,7 @@ var DIAS  = ['Lun','Mar','Mie','Jue','Vie','Sab','Dom'];
 
 var ESTADO_LABEL = {
   abierta:         'Abierta',
-  cerrada:         'Cotizacion enviada',
+  cerrada:         'Cotización enviada',
   adjudicada:      'Adjudicada',
   no_adjudicada:   'No adjudicada',
   completada:      'Completada',
@@ -524,7 +524,7 @@ function renderSemana(){
   html += '</div><div class="week-body">';
 
   // 8 time slots: Allday + 8-9, 9-10... simplified as day events
-  html += '<div class="week-time" style="background:#fafafa;font-weight:600;color:var(--navy);padding:10px 6px">Todo el dia</div>';
+  html += '<div class="week-time" style="background:#fafafa;font-weight:600;color:var(--navy);padding:10px 6px">Todo el día</div>';
   for(var d=0; d<7; d++){
     var day = new Date(monday); day.setDate(monday.getDate()+d);
     var eventos = licit.filter(function(l){ return isSameDay(fechaLicitacion(l), day); });
@@ -550,7 +550,7 @@ function abrirModal(id){
 
   var rows = [
     ['Estado',       '<span class="badge '+badgeCls+'">'+(ESTADO_LABEL[l.estado]||l.estado)+'</span>'],
-    ['Codigo',       l.codigo || '--'],
+    ['Código',       l.codigo || '--'],
     ['Ruta',         (l.origen||'--')+' &rarr; '+(l.destino||'--')],
     ['Fecha',        fechaStr(l.createdAt)],
     ['Fecha requerida', l.fechaRequerida ? fechaStr(l.fechaRequerida) : '--'],
