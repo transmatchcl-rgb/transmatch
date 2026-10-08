@@ -161,6 +161,7 @@
             <label>Mensaje *</label>
             <textarea id="f-mensaje" placeholder="Cuentanos sobre tu operación o consulta..."></textarea>
           </div>
+          <input type="text" id="f-web" name="web" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true">
           <button class="btn-primary" onclick="enviarFormulario()">
             Enviar mensaje
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -189,7 +190,7 @@
     <div class="footer-col"><h4>Legal</h4><a href="/terminos.html">Términos y condiciones</a><a href="/privacidad.html">Política de privacidad</a><a href="/ayuda.html">Centro de ayuda</a></div>
     <div class="footer-col"><h4>Contacto</h4><a href="/cdn-cgi/l/email-protection#8deee2e3f9eceef9e2cdf9ffece3fee0ecf9eee5a3eee1"><span class="__cf_email__" data-cfemail="1d7e7273697c7e69725d696f7c736e707c697e75337e71">[email&#160;protected]</span></a><span>+56 9 6908 1098</span><span>Santiago, Chile</span></div>
   </div>
-  <div class="footer-bottom"><span>© 2026 TransMatch SpA. Todos los derechos reservados.</span><span>RUT 76.XXX.XXX-X</span></div>
+  <div class="footer-bottom"><span>© 2026 TransMatch SpA. Todos los derechos reservados.</span><span>RUT 78.419.036-6</span></div>
 </footer>
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
@@ -209,4 +210,26 @@
       errEl.textContent = 'Ingresa un email valido.';
       errEl.style.display = 'block'; return;
     }
-    // Simular envio — en produccion conectar con Resend u otro ser
+    var telefono = document.getElementById('f-teléfono').value.trim();
+    var btn = document.querySelector('#contact-form .btn-primary');
+    btn.disabled = true; var txtBtn = btn.innerHTML; btn.innerHTML = 'Enviando...';
+    fetch('https://transmatch.transmatchcl.workers.dev/api/contacto', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: nombre, empresa: empresa, email: email, telefono: telefono, tipo: tipo, mensaje: mensaje, web: (document.getElementById('f-web')||{}).value || '' })
+    }).then(function(r){ return r.json().catch(function(){ return {}; }).then(function(d){ return { ok: r.ok, d: d }; }); })
+    .then(function(res){
+      if (res.ok) {
+        document.getElementById('contact-form').style.display = 'none';
+        document.getElementById('form-success').style.display = 'block';
+      } else {
+        errEl.textContent = (res.d && res.d.error) || 'No pudimos enviar tu mensaje. Escríbenos a contacto@transmatch.cl';
+        errEl.style.display = 'block'; btn.disabled = false; btn.innerHTML = txtBtn;
+      }
+    }).catch(function(){
+      errEl.textContent = 'No pudimos enviar tu mensaje. Escríbenos a contacto@transmatch.cl';
+      errEl.style.display = 'block'; btn.disabled = false; btn.innerHTML = txtBtn;
+    });
+  }
+</script>
+</body>
+</html>
