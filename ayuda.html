@@ -97,6 +97,6 @@ item.style.display = hit ? '' : 'none'; if(hit) n++;
 document.querySelectorAll('.g-head').forEach(function(h){ h.style.display = q ? 'none' : ''; });
 document.getElementById('sin-res').style.display = (q && !n) ? 'block' : 'none';
 }
-(function(){ var r=new URLSearchParams(location.search).get('rol'); if(!r){ try{ r=localStorage.getItem('tm_role'); }catch(e){} } if(r==='cliente') verTab('clientes'); else if(r==='transportista') verTab('transportistas'); })();
+(function(){ var r=new URLSearchParams(location.search).get('rol'); if(r==='cliente') verTab('clientes'); else if(r==='transportista') verTab('transportistas'); })();
 </script>
 </body></html>

@@ -218,11 +218,9 @@
     <div class="filter-wrap">
       <div class="chips-row">
         <div class="filter-chip active" onclick="setChip('',this)">Todos</div>
-        <div class="filter-chip" onclick="setChip('preparacion',this)">En preparación</div>
-        <div class="filter-chip" onclick="setChip('en_ruta',this)">En ruta</div>
-        <div class="filter-chip" onclick="setChip('carga_recogida',this)">Carga recogida</div>
-        <div class="filter-chip" onclick="setChip('en_destino',this)">En destino</div>
+        <div class="filter-chip" onclick="setChip('en_curso',this)">En curso</div>
         <div class="filter-chip" onclick="setChip('entregado',this)">Entregados</div>
+        <div class="filter-chip" onclick="setChip('completado',this)">Completados</div>
       </div>
       <div class="search-row">
         <input class="srch" id="buscador" placeholder="Buscar por código, cliente, transportista, ruta..." oninput="filtrar()"/>
@@ -271,22 +269,19 @@
   </footer>
 </div>
 
-<!-- Modal cambio estado -->
+<!-- Modal confirmar entrega -->
 <div class="modal-bg" id="modal-estado">
   <div class="modal">
-    <div class="modal-title">Cambiar estado del transporte</div>
+    <div class="modal-title" id="modal-estado-titulo">Confirmar entrega</div>
     <div class="modal-sub" id="modal-estado-info">—</div>
-    <select class="sel" id="modal-estado-sel">
-      <option value="preparacion">En preparación</option>
-      <option value="en_ruta">En ruta</option>
-      <option value="carga_recogida">Carga recogida</option>
-      <option value="en_destino">En destino</option>
-      <option value="entregado">Entregado</option>
-    </select>
-    <textarea class="ta" id="modal-estado-nota" placeholder="Nota del cambio (opcional)..."></textarea>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div><div style="font-size:11px;font-weight:600;color:#6B7280;margin-bottom:3px">Fecha real de entrega *</div><input type="date" class="sel" id="modal-ent-fecha" style="margin:0"/></div>
+      <div><div style="font-size:11px;font-weight:600;color:#6B7280;margin-bottom:3px">Hora (opcional)</div><input type="time" class="sel" id="modal-ent-hora" style="margin:0"/></div>
+    </div>
+    <textarea class="ta" id="modal-estado-nota" placeholder="Nota (opcional), ej: confirmado por WhatsApp con el cliente"></textarea>
     <div class="modal-btns">
       <button class="btn btn-outline" onclick="cerrarModal('modal-estado')">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarEstado()">Guardar</button>
+      <button class="btn btn-primary" id="modal-ent-btn" onclick="guardarEstado()">Confirmar entrega</button>
     </div>
   </div>
 </div>
@@ -315,16 +310,12 @@ function fechaCorta(iso){
 }
 
 function estadoLabel(e){
-  const m={
-    preparacion: ['badge-orange','En preparación'],
-    en_ruta:     ['badge-blue','En ruta'],
-    carga_recogida:['badge-blue','Carga recogida'],
-    en_destino:  ['badge-purple','En destino'],
-    entregado:   ['badge-green','Entregado'],
-  };
-  const [cls,lbl]=m[e]||['badge-gray',e];
+  const m={ entregado:['badge-green','Entregado'], completado:['badge-gray','Completado'] };
+  const [cls,lbl]=m[e]||['badge-blue','En curso'];
   return '<span class="badge '+cls+'">'+lbl+'</span>';
 }
+function fechaDMY(iso){ if(!iso) return ''; var p=String(iso).slice(0,10).split('-'); return p.length===3?p[2]+'-'+p[1]+'-'+p[0]:iso; }
+function hoyChileISO(){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Santiago'}).format(new Date()); }catch(e){ return new Date().toISOString().slice(0,10); } }
 
 function docBadge(doc, label){
   if(doc) return '<span class="badge badge-green" style="font-size:10px">✓ '+label+'</span>';
@@ -368,8 +359,8 @@ async function cargar(){
 
 function renderStats(){
   const total=allTransportes.length;
-  const activos=allTransportes.filter(t=>!['entregado'].includes(t.estado)).length;
-  const entregados=allTransportes.filter(t=>t.estado==='entregado').length;
+  const activos=allTransportes.filter(t=>!['entregado','completado'].includes(t.estado)).length;
+  const entregados=allTransportes.filter(t=>['entregado','completado'].includes(t.estado)).length;
   const sinDocs=allTransportes.filter(t=>!t.oc||!t.factura).length;
   document.getElementById('stats').innerHTML=
     '<div class="stat-card"><div class="sc-label">Total transportes</div><div class="sc-val" style="color:#1e2d4e">'+total+'</div><div class="sc-sub">Histórico completo</div></div>'+
@@ -388,7 +379,8 @@ function setChip(estado, el){
 function filtrar(){
   const q=(document.getElementById('buscador').value||'').toLowerCase();
   let lista=allTransportes;
-  if(filtroEstado) lista=lista.filter(t=>t.estado===filtroEstado);
+  if(filtroEstado==='en_curso') lista=lista.filter(t=>!['entregado','completado'].includes(t.estado));
+  else if(filtroEstado) lista=lista.filter(t=>t.estado===filtroEstado);
   if(q) lista=lista.filter(t=>(
     (t.codigo||'')+(t.tipoEquipo||'')+(t.origen||'')+(t.destino||'')+
     (t.clienteEmpresa||'')+(t.transportistaNombre||'')+(t.transportistaEmpresa||'')
@@ -454,7 +446,7 @@ function renderDetalle(t){
     ['Origen', t.origen||'—'],
     ['Destino', t.destino||'—'],
     ['Adjudicado', fechaCorta(t.adjudicadoAt)],
-    ['Entregado', t.entregadoAt?fechaCorta(t.entregadoAt):'—'],
+    ['Entregado', t.fechaEntregaReal?fechaDMY(t.fechaEntregaReal)+(t.horaEntregaReal?' '+t.horaEntregaReal:'')+(t.entregaConfirmadaAt?' <span style="color:#9CA3AF;font-size:11px">(confirmado el '+fechaDMY(t.entregaConfirmadaAt)+(t.entregaConfirmadaPor?' por '+t.entregaConfirmadaPor:'')+')</span>':''):(t.entregadoAt?fechaCorta(t.entregadoAt):'—')],
   ];
   html+='<div class="det-grid">'+items.map(function(it){
     return '<div class="det-cell"><div class="det-label">'+it[0]+'</div><div class="det-val">'+it[1]+'</div></div>';
@@ -547,9 +539,8 @@ function renderDetalle(t){
 
   // Acciones admin
   html+='<div class="det-actions">';
-  if(t.estado!=='entregado'){
-    html+='<button class="btn btn-primary" onclick="event.stopPropagation();abrirModalEstado(\''+t.id+'\',\''+t.estado+'\',\''+t.codigo+'\')">Cambiar estado</button>';
-  }
+  var _ent=['entregado','completado'].includes(t.estado);
+  html+='<button class="btn btn-primary" onclick="event.stopPropagation();abrirModalEstado(\''+t.id+'\','+(_ent?'true':'false')+',\''+t.codigo+'\',\''+(t.fechaEntregaReal||'')+'\')">'+(_ent?'Corregir fecha de entrega':'Confirmar entrega')+'</button>';
   html+='</div>';
 
   return html;
@@ -571,28 +562,31 @@ async function descargar(id, nombre){
 }
 
 // ── Modal estado ─────────────────────────────────────────────
-function abrirModalEstado(id, estadoActual, codigo){
+function abrirModalEstado(id, yaEntregado, codigo, fechaActual){
   modalTransporteId=id;
-  document.getElementById('modal-estado-info').textContent='Transporte '+codigo;
-  document.getElementById('modal-estado-sel').value=estadoActual;
+  var hoy=hoyChileISO();
+  document.getElementById('modal-estado-titulo').textContent=yaEntregado?'Corregir fecha de entrega':'Confirmar entrega';
+  document.getElementById('modal-ent-btn').textContent=yaEntregado?'Guardar corrección':'Confirmar entrega';
+  document.getElementById('modal-estado-info').textContent='Transporte '+codigo+(yaEntregado&&fechaActual?' · fecha actual: '+fechaDMY(fechaActual):'');
+  var f=document.getElementById('modal-ent-fecha'); f.value=fechaActual||hoy; f.max=hoy;
+  document.getElementById('modal-ent-hora').value='';
   document.getElementById('modal-estado-nota').value='';
   document.getElementById('modal-estado').classList.add('open');
 }
 
 async function guardarEstado(){
-  var estado=document.getElementById('modal-estado-sel').value;
+  var fecha=document.getElementById('modal-ent-fecha').value;
+  var hora=document.getElementById('modal-ent-hora').value;
   var nota=document.getElementById('modal-estado-nota').value.trim();
-  // El endpoint de estado solo acepta transportistas, pero admin puede hacerlo
-  // usando el endpoint directo con token admin
-  const r=await api('/api/transportes/'+modalTransporteId+'/estado','POST',{estado,nota});
+  if(!fecha){ toast('Indica la fecha de entrega','err'); return; }
+  if(fecha>hoyChileISO()){ toast('La fecha de entrega no puede ser futura','err'); return; }
+  const r=await api('/api/transportes/'+modalTransporteId+'/estado','POST',{estado:'entregado',fechaEntrega:fecha,horaEntrega:hora||null,nota:nota});
   if(r&&r.ok){
-    toast('Estado actualizado: '+estado);
+    toast('Entrega registrada: '+fechaDMY(fecha));
     cerrarModal('modal-estado');
     cargar();
   } else {
-    // Si el worker restringe solo transportistas, hacemos PUT directo
-    toast(r&&r.data&&r.data.error||'El worker requiere rol transportista para cambiar estado','warn');
-    cerrarModal('modal-estado');
+    toast((r&&r.data&&r.data.error)||'No se pudo guardar','err');
   }
 }
 

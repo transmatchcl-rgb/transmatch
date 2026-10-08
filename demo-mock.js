@@ -547,7 +547,7 @@
       var t=findTT(m[1]); if(!t) return { __status:404, error:'No encontrado' };
       var acc=m[2], now=ahora();
       function h(nota){ t.historial=t.historial||[]; t.historial.push({ estado:t.estado, nota:nota, fecha:now, actor:TR.a.nombre }); }
-      if(acc==='estado'){ t.estado=b.estado||t.estado; if(t.estado==='entregado') t.entregadoAt=now; h(b.nota||''); return { ok:true, estado:t.estado }; }
+      if(acc==='estado'){ if(t.estado==='entregado'||t.estado==='completado') return { __status:400, error:'Este transporte ya está marcado como entregado' }; t.estado=b.estado||t.estado; if(t.estado==='entregado'){ var _fe=String(b.fechaEntrega||now).slice(0,10); t.fechaEntregaReal=_fe; t.horaEntregaReal=b.horaEntrega||null; t.entregadoAt=_fe+'T12:00:00.000Z'; t.entregaConfirmadaAt=now; t.entregaConfirmadaPor=TR.a.nombre; } h(b.nota||''); return { ok:true, estado:t.estado }; }
       if(acc==='equipo'){ if(!b.patente) return { __status:400, error:'patente requerida' }; t.equipoAsignado={ patente:b.patente, tipo:b.tipo||'', marca:b.marca||'', modelo:b.modelo||'', equipoId:b.equipoId||null, documentos:b.documentos||null }; h('Equipo asignado: '+b.patente); return { ok:true }; }
       if(acc==='conductor'){ if(!b.nombre||!b.rut) return { __status:400, error:'nombre y rut requeridos' }; t.conductorAsignado=Object.assign({}, b); h('Conductor asignado: '+b.nombre); return { ok:true }; }
       var mr=acc.match(/^requisito\/(.+)$/);

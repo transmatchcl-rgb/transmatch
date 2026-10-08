@@ -39,10 +39,10 @@
   .trn-title{font-size:14px;font-weight:600;color:#1e2d4e}
   .trn-meta{font-size:12px;color:#6B7280;margin-top:2px}
   .badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px}
-  .s-preparacion{background:#FEF9C3;color:#854D0E}
+  .s-preparacion{background:#DBEAFE;color:#1e40af}
   .s-en_ruta{background:#DBEAFE;color:#1e40af}
-  .s-carga_recogida{background:#EDE9FE;color:#5B21B6}
-  .s-en_destino{background:#FFF7ED;color:#92400E}
+  .s-carga_recogida{background:#DBEAFE;color:#1e40af}
+  .s-en_destino{background:#DBEAFE;color:#1e40af}
   .s-entregado{background:#F0FDF4;color:#14532D}
   .s-completado{background:#F3F4F6;color:#6B7280}
   .val-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid #F3F4F6}
@@ -163,7 +163,7 @@
 var API = (localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
 var transportes = [];
 
-var ESTADO_LABELS = {preparacion:'En preparación',en_ruta:'En ruta',carga_recogida:'Carga recogida',en_destino:'En destino',entregado:'Entregado',completado:'✓ Completado'};
+var ESTADO_LABELS = {preparacion:'En curso',en_ruta:'En curso',carga_recogida:'En curso',en_destino:'En curso',entregado:'Entregado',completado:'✓ Completado'};
 function estadoLabel(e){ return ESTADO_LABELS[e]||e; }
 
 
@@ -239,7 +239,7 @@ function render(){
           (t.licitacionCodigo ? '<div class="trn-meta" style="margin-top:1px">Licitación: '+(t.licitacionId ? '<a href="/cliente-licitaciones.html?id='+t.licitacionId+'" onclick="event.stopPropagation()" style="color:#1d4ed8;text-decoration:none;font-weight:600">'+t.licitacionCodigo+'</a>' : '<span style="font-weight:600;color:#1e2d4e">'+t.licitacionCodigo+'</span>')+'</div>' : '') +
         '</div>' +
         '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">' +
-          '<span class="badge s-'+t.estado+'">'+estadoLabel(t.estado)+'</span>' +
+          '<span class="badge s-'+t.estado+'">'+estadoLabel(t.estado)+((t.estado==='entregado'||t.estado==='completado')&&t.fechaEntregaReal?' '+t.fechaEntregaReal.slice(8,10)+'-'+t.fechaEntregaReal.slice(5,7):'')+'</span>' +
           (t.estadoDocumentos === 'oc_pendiente_factura' ? '<span class="badge" style="background:#FEF9C3;color:#854D0E">Factura pendiente</span>' : '') +
           '<span style="font-size:18px;color:#9CA3AF;transition:transform .2s" id="arr-'+t.id+'">›</span>' +
         '</div>' +

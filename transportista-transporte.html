@@ -38,10 +38,10 @@
   .trn-title{font-size:14px;font-weight:600;color:#1e2d4e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .trn-meta{font-size:11px;color:#6B7280;margin-top:2px}
   .badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px}
-  .s-preparacion{background:#FEF9C3;color:#854D0E}
+  .s-preparacion{background:#DBEAFE;color:#1e40af}
   .s-en_ruta{background:#DBEAFE;color:#1e40af}
-  .s-carga_recogida{background:#EDE9FE;color:#5B21B6}
-  .s-en_destino{background:#FFF7ED;color:#92400E}
+  .s-carga_recogida{background:#DBEAFE;color:#1e40af}
+  .s-en_destino{background:#DBEAFE;color:#1e40af}
   .s-entregado{background:#F0FDF4;color:#14532D}
   .s-completado{background:#F3F4F6;color:#6B7280}
   .arr{font-size:16px;color:#9CA3AF;transition:transform .2s;flex-shrink:0}
@@ -283,7 +283,10 @@ function toggleFacturacion(btn){
 }
 function esEntregado(e){ return e==='entregado'||e==='completado'; }
 function estadoIdx(e){ if(e==='completado') e='entregado'; return ESTADOS.findIndex(function(x){return x.id===e;}); }
-function estadoLabel(e){ if(e==='completado') return '✓ Completado'; var m=ESTADOS.find(function(x){return x.id===e;}); return m?m.icon+' '+m.label:e; }
+function estadoLabel(e){ if(e==='completado') return 'Completado'; if(e==='entregado') return 'Entregado'; return 'En curso'; }
+function escHtml(x){ return String(x==null?'':x).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function fechaDMY(iso){ if(!iso) return ''; var p=String(iso).slice(0,10).split('-'); return p.length===3?p[2]+'-'+p[1]+'-'+p[0]:iso; }
+function hoyChileISO(){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Santiago'}).format(new Date()); }catch(e){ return new Date().toISOString().slice(0,10); } }
 function peso(n){ return n?new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n):'--'; }
 function fechaHora(iso){ if(!iso)return'--'; return new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
 
@@ -357,7 +360,7 @@ function renderCard(t,i){
   var fechaLabel='';
   if(fechaEnt){
     var diff=Math.round((fechaEnt-hoy)/(1000*60*60*24));
-    if(esEntregado(t.estado)) fechaLabel='<span style="font-size:11px;color:#6B7280">Entregado '+fechaEnt.toLocaleDateString("es-CL",{day:"2-digit",month:"short",year:"numeric"})+'</span>';
+    if(esEntregado(t.estado)) fechaLabel='<span style="font-size:11px;color:#6B7280">Entregado '+(t.fechaEntregaReal?fechaDMY(t.fechaEntregaReal):(t.entregadoAt?fechaDMY(t.entregadoAt):''))+'</span>';
     else if(diff===0) fechaLabel='<span style="font-size:11px;color:#f97316;font-weight:600">Entrega hoy</span>';
     else if(diff<0)  fechaLabel='<span style="font-size:11px;color:#dc2626;font-weight:600">Entrega vencida '+Math.abs(diff)+'d</span>';
     else             fechaLabel='<span style="font-size:11px;color:#6B7280">Entrega: '+fechaEnt.toLocaleDateString("es-CL",{day:"2-digit",month:"short",year:"numeric"})+'</span>';
@@ -389,7 +392,7 @@ function renderDetalle(t){
 
   // Banner vencimiento
   if(vence){
-    h+='<div style="background:#fff7ed;border-left:3px solid #f97316;padding:10px 14px;font-size:12px;color:#c2410c;font-weight:600;margin-bottom:14px">Entrega comprometida vencida. Actualiza el estado al llegar a destino.</div>';
+    h+='<div style="background:#fff7ed;border-left:3px solid #f97316;padding:10px 14px;font-size:12px;color:#c2410c;font-weight:600;margin-bottom:14px">Entrega comprometida vencida. Si ya entregaste, confírmalo abajo con la fecha real.</div>';
   }
 
   // Info grid
@@ -579,43 +582,42 @@ function renderDetalle(t){
   }
   h+='</div>';
 
-  // Timeline
-  h+='<div class="tl-wrap"><div class="tl-title">Estado del transporte</div><div class="tl-steps">';
-  ESTADOS.forEach(function(e,i){
-    var cls=i<idx?'done':(i===idx?'active':'');
-    h+='<div class="tl-step '+cls+'"><div class="tl-dot">'+e.icon+'</div><div class="tl-label">'+e.label+'</div></div>';
-  });
-  h+='</div></div>';
-
-  // Actualizar estado
+  // Entrega (reemplaza la línea de tiempo de estados)
   if(!esEntregado(t.estado)){
-    var siguiente=ESTADOS[idx+1];
-    if(siguiente){
-      h+='<div class="estado-form">'+
-        '<div class="estado-subtitle">Actualizar estado</div>'+
-        '<div class="sig-estado">'+
-          '<span style="font-size:13px;font-weight:500;color:#1e2d4e">'+siguiente.icon+' '+siguiente.label+'</span>'+
-          '<input class="nota-inp" id="nota-'+t.id+'" placeholder="Nota opcional (ej: Saliendo a las 08:00)"/>'+
-          '<button class="btn btn-primary" onclick="actualizarEstado(\''+t.id+'\',\''+siguiente.id+'\')">Confirmar</button>'+
-        '</div>';
-      // Opción de marcar como entregado directamente (si el siguiente paso no es ya "entregado")
-      if(siguiente.id!=='entregado'){
-        h+='<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid #e8eaf0;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">'+
-          '<span style="font-size:12px;color:#6B7280">¿El transporte ya fue entregado?</span>'+
-          '<button class="btn btn-outline btn-sm" style="color:#14532D;border-color:#BBF7D0" onclick="marcarEntregadoDirecto(\''+t.id+'\')">Marcar como entregado</button>'+
-        '</div>';
-      }
-      h+='</div>';
+    var hoyISO=hoyChileISO();
+    h+='<div class="doc-card" style="margin:12px 0">'+
+      '<div class="doc-title">Confirmar entrega</div>'+
+      '<div style="font-size:12px;color:#6B7280;margin:2px 0 12px">Cuando la carga llegue a destino, indica la fecha real de entrega.</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">'+
+        '<div><div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:3px">Fecha de entrega *</div><input type="date" id="ent-fecha-'+t.id+'" value="'+hoyISO+'" max="'+hoyISO+'" style="width:100%;padding:8px 10px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px;font-family:inherit"/></div>'+
+        '<div><div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:3px">Hora <span style="font-weight:400;text-transform:none;color:#9CA3AF">(opcional)</span></div><input type="time" id="ent-hora-'+t.id+'" style="width:100%;padding:8px 10px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px;font-family:inherit"/></div>'+
+      '</div>'+
+      '<div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:3px">Prueba de entrega <span style="font-weight:400;text-transform:none;color:#9CA3AF">(opcional)</span></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'+
+        '<input id="pod-nom-'+t.id+'" placeholder="Nombre de quien recibe" style="padding:8px 10px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/>'+
+        '<input id="pod-rut-'+t.id+'" placeholder="RUT de quien recibe" style="padding:8px 10px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/>'+
+      '</div>'+
+      '<label style="display:block;border:1px dashed #cbd2de;border-radius:8px;padding:10px 14px;font-size:13px;color:#6B7280;cursor:pointer;text-align:center">Agregar foto(s) de la entrega<input type="file" accept="image/*" multiple style="display:none" onchange="handlePodFotos(\''+t.id+'\',this)"/></label>'+
+      '<div id="pod-preview-'+t.id+'" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px">'+
+        '<span style="font-size:11px;color:#9CA3AF">No puede ser una fecha futura ni anterior a la carga.</span>'+
+        '<button class="btn btn-sm" id="btn-ent-'+t.id+'" style="background:#16A34A;color:#fff;border:none" onclick="confirmarEntrega(\''+t.id+'\')">Marcar como entregado</button>'+
+      '</div>'+
+    '</div>';
+  } else {
+    var fReal=t.fechaEntregaReal?fechaDMY(t.fechaEntregaReal)+(t.horaEntregaReal?' '+t.horaEntregaReal:''):(t.entregadoAt?fechaDMY(t.entregadoAt):'');
+    var fConf=t.entregaConfirmadaAt?fechaDMY(t.entregaConfirmadaAt):'';
+    h+='<div style="background:#F0FDF4;border:1px solid #BBF7D0;color:#14532D;border-radius:10px;padding:10px 14px;font-size:13px;margin:12px 0">'+
+      '<strong>Entregado'+(fReal?' el '+fReal:'')+'</strong>'+(fConf&&t.fechaEntregaReal&&fConf!==fechaDMY(t.fechaEntregaReal)?' · confirmado el '+fConf:'')+(t.entregaConfirmadaPor?' por '+escHtml(t.entregaConfirmadaPor):'')+
+    '</div>';
+    if(!t.factura){
+      h+='<div style="background:#FFF7ED;border:1px solid #FED7AA;color:#9A3412;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px">Falta <strong>tu factura del flete</strong> para completar el transporte. Súbela en "Documentos del transporte".</div>';
     }
-  }
-
-  // Prueba de entrega (POD) — visible al llegar a destino / entregado
-  if(['en_destino','entregado'].includes(t.estado)){
     var pod=t.pod||null;
     h+='<div class="doc-card" style="margin:12px 0"><div class="doc-title">Prueba de entrega (POD) <span style="font-size:10px;font-weight:400;color:#9CA3AF;margin-left:4px">— fotos y datos de quien recibe</span></div>';
     if(pod){
       h+='<div style="font-size:12px;color:#14532D;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:8px 10px;margin-bottom:10px">Registrada el '+fechaHora(pod.registradoAt)+'</div>';
-      if(pod.receptorNombre||pod.receptorRut){ h+='<div style="font-size:13px;color:#374151;margin-bottom:8px">Recibió: <strong>'+(pod.receptorNombre||'—')+'</strong>'+(pod.receptorRut?' · '+pod.receptorRut:'')+'</div>'; }
+      if(pod.receptorNombre||pod.receptorRut){ h+='<div style="font-size:13px;color:#374151;margin-bottom:8px">Recibió: <strong>'+escHtml(pod.receptorNombre||'—')+'</strong>'+(pod.receptorRut?' · '+escHtml(pod.receptorRut):'')+'</div>'; }
       if((pod.fotos||[]).length){ h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'+pod.fotos.map(function(f){return '<img src="data:'+(f.mimeType||'image/jpeg')+';base64,'+f.base64+'" onclick="verFotoPod(this)" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:0.5px solid #e8eaf0;cursor:zoom-in"/>';}).join('')+'</div>'; }
       h+='<div style="font-size:12px;color:#6B7280;margin-bottom:6px">Puedes actualizarla:</div>';
     }
@@ -757,6 +759,30 @@ function toggleCard(id){
   var open=body.classList.contains('open');
   body.classList.toggle('open',!open);
   arr.style.transform=open?'':'rotate(90deg)';
+}
+
+async function confirmarEntrega(transporteId){
+  var fe=(document.getElementById('ent-fecha-'+transporteId)||{}).value||'';
+  var hr=(document.getElementById('ent-hora-'+transporteId)||{}).value||'';
+  if(!fe){ toast('Indica la fecha de entrega','err'); return; }
+  if(fe>hoyChileISO()){ toast('La fecha de entrega no puede ser futura','err'); return; }
+  if(!confirm('¿Confirmas que la carga se entregó el '+fechaDMY(fe)+(hr?' a las '+hr:'')+'?')) return;
+  var btn=document.getElementById('btn-ent-'+transporteId); if(btn){ btn.disabled=true; btn.textContent='Guardando...'; }
+  var nom=((document.getElementById('pod-nom-'+transporteId)||{}).value||'').trim();
+  var rut=((document.getElementById('pod-rut-'+transporteId)||{}).value||'').trim();
+  var fotos=podFotoBuffer[transporteId]||[];
+  try{
+    var res=await fetch(API+'/api/transportes/'+transporteId+'/estado',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({estado:'entregado',fechaEntrega:fe,horaEntrega:hr||null})});
+    var d=await res.json().catch(function(){return {};});
+    if(!res.ok){ toast(d.error||'No se pudo confirmar la entrega','err'); if(btn){ btn.disabled=false; btn.textContent='Marcar como entregado'; } return; }
+    if(nom||rut||fotos.length){
+      var rp=await fetch(API+'/api/transportes/'+transporteId+'/pod',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({receptorNombre:nom,receptorRut:rut,fotos:fotos})});
+      if(!rp.ok) toast('Entrega confirmada, pero no se guardó la prueba de entrega. Inténtalo de nuevo abajo.','err');
+      else podFotoBuffer[transporteId]=[];
+    }
+    toast('Entrega confirmada');
+    await cargar(); setTimeout(function(){toggleCard(transporteId);},200);
+  }catch(e){ toast('Error de conexión','err'); if(btn){ btn.disabled=false; btn.textContent='Marcar como entregado'; } }
 }
 
 async function marcarEntregadoDirecto(transporteId){
