@@ -340,6 +340,11 @@ var estadosFiltro=new Set();
 var _eliminarId=null,_anularId=null,_selectedId=null,_selectedLic=null;
 var pendingCotizId=null,valoraciones={},_cotizMap={};
 
+function nivelBadge(c){ return c&&c.transportistaNivel==='verificado'?'<span style="display:inline-flex;align-items:center;gap:3px;background:#DCFCE7;color:#166534;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px">✓ Verificado</span>':''; }
+// Mostrar la valoración y el n° de transportes al cliente: desactivado por ahora (hay pocos transportes valorados). Cambiar a true para activarlo.
+var MOSTRAR_VALORACION_CLIENTE=false;
+function tieneRating(c){ return !!(MOSTRAR_VALORACION_CLIENTE&&c&&c.transportistaRating!=null&&c.transportistaRating!==''&&(c.transportistaTransportes||0)>0); }
+function ratingTxt(c){ return tieneRating(c)?(c.transportistaRating+' <span style="color:#FF8808">&#9733;</span>'):''; }
 function toast(msg,type){
 var el=document.getElementById('toast');
 el.textContent=msg;el.style.background=type==='err'?'#EF4444':'#1ED24E';
@@ -845,7 +850,7 @@ h+='<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:22px;font-
 h+='</div>';
 // Cuerpo: ficha con etiquetas
 h+='<div style="padding:14px 16px">';
-h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F1F2F6;font-size:13px"><span style="color:#6B7280">Transportista</span><span style="color:#1e2d4e;font-weight:600">'+(c.transportistaRating||5)+' <span style="color:#FF8808">&#9733;</span>'+((c.transportistaTransportes||0)>10?' <span style="color:#9CA3AF;font-weight:400">&middot; '+c.transportistaTransportes+' transportes</span>':'')+'</span></div>';
+if(nivelBadge(c)||tieneRating(c)) h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F1F2F6;font-size:13px"><span style="color:#6B7280">Transportista</span><span style="color:#1e2d4e;font-weight:600;display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+nivelBadge(c)+' '+ratingTxt(c)+(tieneRating(c)?' <span style="color:#9CA3AF;font-weight:400">&middot; '+c.transportistaTransportes+' transportes</span>':'')+'</span></div>';
 var fc = (c.formulario&&c.formulario.fechaCarga)||c.fechaCargaISO||'';
 var fe = (c.formulario&&c.formulario.fechaEntrega)||c.fechaEntregaISO||c.tiempoEntrega||'';
 if(fc)h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F1F2F6;font-size:13px"><span style="color:#6B7280">Carga</span><span style="color:#1e2d4e;font-weight:600">'+fc+'</span></div>';
@@ -1023,7 +1028,7 @@ function verInformeAdjudicacion(licId){
       h+='<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:#6B7280">';
       if(c.fechaEntregaISO) h+='<span>Entrega: '+fmt(c.fechaEntregaISO)+'</span>';
       else if(c.tiempoEntrega) h+='<span>Entrega: '+c.tiempoEntrega+'</span>';
-      if(typeof c.transportistaRating!=='undefined') h+='<span>Valoración: '+(c.transportistaRating||'—')+' <span style="color:#FF8808">★</span></span>';
+      h+=(nivelBadge(c)?'<span>'+nivelBadge(c)+'</span>':'')+(tieneRating(c)?'<span>Valoración: '+ratingTxt(c)+'</span>':'');
       if(typeof c.score!=='undefined' && c.score) h+='<span>Score: '+Math.round(c.score*100)+'%</span>';
       h+='</div>';
       // Identidad solo de la ganadora (ya revelada al adjudicar)

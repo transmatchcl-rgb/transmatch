@@ -257,6 +257,12 @@
 
     <!-- COLUMNA DERECHA -->
     <div>
+      <div class="card" id="nivel-card" style="display:none">
+        <div class="card-hdr" style="display:flex;justify-content:space-between;align-items:center">
+          <span class="card-title">Tu nivel</span><span id="nivel-badge"></span>
+        </div>
+        <div style="padding:14px 18px;font-size:13px;color:#6B7280;line-height:1.55" id="nivel-content"></div>
+      </div>
       <div class="card">
         <div class="card-hdr">
           <span class="card-title">Mi valoración detallada</span>
@@ -358,7 +364,7 @@
         if(u.email) miEmail = (u.email||'').toLowerCase();
         const rating = u.rating || 5.0;
         const total  = u.totalTransportes || 0;
-        document.getElementById('kpi-rating').innerHTML   = rating + '<span style="font-size:16px;font-weight:600;color:#9CA3AF"> / 5</span>';
+        document.getElementById('kpi-rating').innerHTML   = total>0 ? (rating + '<span style="font-size:16px;font-weight:600;color:#9CA3AF"> / 5</span>') : '<span style="font-size:15px;color:#9CA3AF">Sin valoraciones aún</span>';
         document.getElementById('kpi-ganados').textContent  = total;
         // Nombre en bienvenida
         const bienNombre = u.nombre || localStorage.getItem('tm_nombre') || '';
@@ -395,6 +401,7 @@
               '<div style="font-size:12px;font-weight:600;color:#374151;min-width:28px;text-align:right">' + row[1].toFixed(1) + '</div>' +
             '</div>';
           }).join('');
+        if(total===0) document.getElementById('rating-content').innerHTML='<div style="text-align:center;color:#6B7280;font-size:13px;line-height:1.5;padding:8px 0">Aún no tienes valoraciones.<br>Aparecerán cuando los clientes valoren tus primeros transportes.</div>';
       }
     } catch(e){}
 
@@ -693,6 +700,32 @@ document.addEventListener('click',function(e){
   if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.nav-mobile-menu'))
     p.classList.remove('open');
 });
+
+// ── Nivel Nuevo / Verificado (solo informativo) ──
+(async function cargarNivel(){
+  try{
+    var r=await fetch(API+'/api/transportista/nivel',{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    if(!r.ok) return; var d=await r.json(); var n=d.nivel, rg=d.reglas||{minTransportes:3,minPromedio:4.5,pierdeBajo:4};
+    if(!n) return;
+    var BV='<span style="display:inline-flex;align-items:center;gap:3px;background:#DCFCE7;color:#166534;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px">✓ Verificado</span>', BN='<span style="display:inline-flex;align-items:center;background:#EEF1F8;color:#1e2d4e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px">Nuevo en TransMatch</span>';
+    document.getElementById('nivel-badge').innerHTML=n.nivel==='verificado'?BV:BN;
+    var c=document.getElementById('nivel-content'), h='';
+    var fmtN=function(x){ return x==null?'—':Number(x).toFixed(1).replace('.',','); };
+    if(n.nivel==='verificado'){
+      h='Los clientes ven la insignia <b>Verificado</b> en tus cotizaciones'+(n.desde?' desde el '+new Date(n.desde).toLocaleDateString('es-CL'):'')+'. '+n.completados+' transporte'+(n.completados===1?'':'s')+' completado'+(n.completados===1?'':'s')+(n.promedio!=null?' · '+fmtN(n.promedio)+' ★':'')+'. Mantén tu promedio sobre '+fmtN(rg.pierdeBajo)+' para conservarla.';
+    } else {
+      var pct=Math.min(100,Math.round((n.completados||0)/rg.minTransportes*100));
+      var ok='<span style="color:#16A34A;font-weight:700">✓</span>', no='<span style="color:#9CA3AF;font-weight:700">○</span>';
+      h='Completa '+rg.minTransportes+' transportes con buena valoración para ser <b>Verificado</b>. Los clientes ven esta insignia en tus cotizaciones.'
+        +'<div style="height:8px;background:#E5E7EB;border-radius:4px;overflow:hidden;margin:10px 0 4px"><div style="height:100%;width:'+pct+'%;background:#FF8808"></div></div>'
+        +'<div style="font-size:12px">'+Math.min(n.completados||0,rg.minTransportes)+' de '+rg.minTransportes+' transportes completados</div>'
+        +'<div style="margin-top:8px;line-height:1.9">'+((n.completados||0)>=rg.minTransportes?ok:no)+' '+rg.minTransportes+' transportes completados (llevas '+(n.completados||0)+')<br>'
+        +(n.promedio!=null&&n.promedio>=rg.minPromedio?ok:no)+' Promedio '+fmtN(rg.minPromedio)+' o más'+(n.promedio!=null?' (tienes '+fmtN(n.promedio)+')':' (aún sin valoraciones)')+'<br>'
+        +(n.graves?no:ok)+' Sin incidencias graves en los últimos 3 meses</div>';
+    }
+    c.innerHTML=h; document.getElementById('nivel-card').style.display='block';
+  }catch(e){}
+})();
 </script>
 
 <footer style="background:#1e2d4e;margin-top:auto;padding:28px 24px 20px">

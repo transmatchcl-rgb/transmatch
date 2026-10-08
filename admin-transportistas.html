@@ -144,7 +144,8 @@
   <main>
     <div class="hdr">
       <div><div class="hdr-title">Transportistas</div><div class="hdr-sub">Gestión de proveedores de la red</div></div>
-      <button class="btn btn-sm" onclick="abrirAltaExcel()" style="background:#FF8808;color:#fff;border-color:#FF8808">⬆ Cargar alta de cuenta (Excel)</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm" onclick="recalcularNiveles(this)" style="background:#fff;color:#1e2d4e;border:1px solid #1e2d4e">Recalcular niveles</button>
+      <button class="btn btn-sm" onclick="abrirAltaExcel()" style="background:#FF8808;color:#fff;border-color:#FF8808">⬆ Cargar alta de cuenta (Excel)</button></div>
     </div>
 
     <div class="grid-3">
@@ -378,6 +379,13 @@
     el.style.opacity = '1'; clearTimeout(el._t); el._t = setTimeout(() => { el.style.opacity = '0'; }, 3000);
   }
 
+  async function recalcularNiveles(btn){
+    btn.disabled=true; var t=btn.textContent; btn.textContent='Calculando...';
+    var r=await apiFetch('/api/admin/recalcular-niveles','POST',{});
+    btn.disabled=false; btn.textContent=t;
+    if(r&&r.ok){ toast(r.data.verificados+' verificados de '+r.data.transportistas+' transportistas'+(r.data.pendientes?' · quedan '+r.data.pendientes+' por actualizar, vuelve a presionar':'')); if(typeof cargar==='function') cargar(); }
+    else toast((r&&r.data&&r.data.error)||'Error al recalcular','err');
+  }
   async function apiFetch(path, method, body) {
     const o = { method: method||'GET', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') } };
     if (body) o.body = JSON.stringify(body);
@@ -395,7 +403,7 @@
     allT = (r.data.usuarios||[]).filter(function(u){ return u.role === 'transportista'; });
     var map={};
     allT.forEach(function(u){ var eid=u.esSubusuario?(u.empresaMadreId||u.id):u.id; if(!map[eid])map[eid]={id:eid,madre:null,miembros:[]}; if(u.esSubusuario)map[eid].miembros.push(u); else map[eid].madre=u; });
-    grupos=Object.keys(map).map(function(k){ var g=map[k]; var ref=g.madre||g.miembros[0]||{}; g.nombre=ref.empresa||ref.nombre||'(sin nombre)'; g.estado=(g.madre&&g.madre.estado)||ref.estado||''; g.email=ref.email||''; g.rating=ref.rating; g.totalTransportes=ref.totalTransportes||0; g.totalUsuarios=(g.madre?1:0)+g.miembros.length; g.madreEmail=(g.madre&&g.madre.email)||ref.email; return g; }).sort(function(a,b){return (a.nombre||'').localeCompare(b.nombre||'');});
+    grupos=Object.keys(map).map(function(k){ var g=map[k]; var ref=g.madre||g.miembros[0]||{}; g.nombre=ref.empresa||ref.nombre||'(sin nombre)'; g.estado=(g.madre&&g.madre.estado)||ref.estado||''; g.email=ref.email||''; g.rating=ref.rating; g.nivel=(ref.nivel&&ref.nivel.nivel)||'nuevo'; g.totalTransportes=ref.totalTransportes||0; g.totalUsuarios=(g.madre?1:0)+g.miembros.length; g.madreEmail=(g.madre&&g.madre.email)||ref.email; return g; }).sort(function(a,b){return (a.nombre||'').localeCompare(b.nombre||'');});
     document.getElementById('st-total').textContent = grupos.length;
     document.getElementById('st-activos').textContent = grupos.filter(function(g){return g.estado==='activo';}).length;
     document.getElementById('st-pendientes').textContent = grupos.filter(function(g){return g.estado==='pendiente';}).length;
@@ -424,7 +432,7 @@
           '<div class="av" style="background:' + avColors[i % avColors.length] + '">' + ((g.nombre[0]) || 'T').toUpperCase() + '</div>' +
           '<div class="row-body">' +
             '<div class="row-name">' + g.nombre + '</div>' +
-            '<div class="row-meta">' + g.totalUsuarios + ' usuario' + (g.totalUsuarios!==1?'s':'') + ' · ★ ' + (g.rating || 5) + ' · ' + (g.totalTransportes || 0) + ' transp.</div>' +
+            '<div class="row-meta">' + g.totalUsuarios + ' usuario' + (g.totalUsuarios!==1?'s':'') + ' · ' + ((g.totalTransportes||0)>0&&g.rating?'★ '+g.rating:'sin valoraciones') + ' · ' + (g.totalTransportes || 0) + ' transp. · ' + (g.nivel==='verificado'?'<span style="color:#166534;font-weight:700">✓ Verificado</span>':'Nuevo') + '</div>' +
           '</div>' +
           '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">' +
             estadoBadge(g.estado) +

@@ -835,7 +835,7 @@
             '</div>' +
             '<div style="font-size:12px;color:#6B7280;margin-bottom:4px">Entrega: '+cotiz.tiempoEntrega+
            
-            ' &nbsp;·&nbsp; <span style="color:#FF8808">'+(cotiz.transportistaRating||5)+'</span></div>' +
+            ' &nbsp;·&nbsp; <span style="color:#FF8808">'+(cotiz.transportistaRating!=null?cotiz.transportistaRating:'sin valoraciones')+'</span></div>' +
             (cotiz.descripción ? '<div style="font-size:12px;color:#6B7280;margin-bottom:6px;">'+cotiz.descripción+'</div>' : '') +
             (cotiz.archivoId ? '<button onclick="descargarArchivo(this.dataset.id,this.dataset.nombre)" data-id="'+cotiz.archivoId+'" data-nombre="'+(cotiz.archivoNombre||'propuesta')+'" style="width:fit-content;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:#eef1f8;color:#1e2d4e;border:none;border-radius:6px;font-size:12px;cursor:pointer">Descargar propuesta</button>' : '') +
             '<div style="height:4px;background:#E5E7EB;border-radius:2px;margin-top:8px;"><div style="height:100%;width:'+sc+'%;background:#1e2d4e;border-radius:2px;"></div></div>' +

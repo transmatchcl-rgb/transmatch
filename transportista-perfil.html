@@ -818,7 +818,7 @@ function fill() {
   document.getElementById('prof-av').textContent    = n ? n[0].toUpperCase() : '?';
   document.getElementById('prof-name').textContent  = n   || '--';
   document.getElementById('prof-email').textContent = em  || '--';
-  document.getElementById('prof-rating').textContent = (U.rating || 5.0).toFixed(1);
+  document.getElementById('prof-rating').textContent = (U.totalTransportes||0)>0 ? (U.rating || 0).toFixed(1) : '—';
   document.getElementById('sesion-lbl').textContent  = em ? 'Activa como ' + em : '--';
   document.getElementById('inp-nombre').value  = n;
   document.getElementById('inp-email').value   = em;

@@ -304,7 +304,7 @@
               '</div>'+
               '<div class="cotiz-meta">'+
                 '<span>Entrega: '+(c.tiempoEntrega||'--')+'</span>'+
-                '<span>Rating: '+(c.transportistaRating||5)+'</span>'+
+                '<span>Rating: '+(c.transportistaRating!=null?c.transportistaRating:'sin valoraciones')+'</span>'+
                 
                 (c.descripción?'<span style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+c.descripción+'</span>':'')+
               '</div>'+
@@ -361,7 +361,7 @@
           rows.push([l.id, l.codigo||'', l.clienteEmpresa||'', (l.tipoEquipo||'')+(l.marca?' - '+l.marca:''),
             l.origen||'', l.destino||'', l.estado||'',
             c.codigo||'', (c.transportistaNombre||'—')+' / '+(c.transportistaEmpresa||'—'), c.precio||'', c.tiempoEntrega||'',
-            c.transportistaRating||5, Math.round((c.score||0)*100)+'%', esGan?'Si':'No', fecha(c.createdAt)]);
+            (c.transportistaRating!=null?c.transportistaRating:''), Math.round((c.score||0)*100)+'%', esGan?'Si':'No', fecha(c.createdAt)]);
         });
       }
     });
@@ -393,7 +393,7 @@
       ['Precio ofrecido',     peso(c.precio)],
       ['Tiempo entrega',      c.tiempoEntrega||'--'],
       
-      ['Rating transportista','★ ' + (c.transportistaRating||5)],
+      ['Rating transportista','★ ' + (c.transportistaRating!=null?c.transportistaRating:'sin valoraciones')],
       ['Score algoritmo',     sc + '%'],
       ['Adjudicada',          esGanadora ? 'Si' : 'No'],
       ['Fecha cotización',    fecha(c.createdAt)],

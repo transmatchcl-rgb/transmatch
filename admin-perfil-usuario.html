@@ -447,6 +447,13 @@
         '</div>' +
       '</div></div>' +
 
+      (isTransportista ? '<div class="card"><div class="card-hdr">Nivel</div><div class="card-body"><div id="nivel-admin" style="font-size:13px;color:#6B7280">Revisando…</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">' +
+          '<button onclick="nivelAccion(\'verificar\')" style="background:#16A34A;color:#fff;padding:9px 16px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Verificar ahora</button>' +
+          '<button onclick="nivelAccion(\'quitar\')" style="background:#fff;color:#B91C1C;padding:9px 16px;border-radius:8px;border:1px solid #FECACA;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Quitar verificado</button>' +
+          '<button onclick="nivelAccion(\'auto\')" style="background:#fff;color:#1e2d4e;padding:9px 16px;border-radius:8px;border:1px solid #1e2d4e;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Volver a automático</button>' +
+        '</div></div></div>' : '') +
+
       // ── Acceso: bloqueo por intentos y clave provisoria ──
       '<div class="card"><div class="card-hdr">Acceso</div><div class="card-body">' +
         '<div id="acceso-estado" style="font-size:13px;color:#6B7280;margin-bottom:12px">Revisando…</div>' +
@@ -469,6 +476,7 @@
     renderEstado(u.estado);
     cargarHistorial(u.email, isTransportista);
     cargarAcceso();
+    if (isTransportista) cargarNivelAdmin();
   }
 
   function renderEstado(estado) {
@@ -589,6 +597,29 @@
     }
   }
 
+
+  function _renderNivelAdmin(d){
+    var el=document.getElementById('nivel-admin'); if(!el) return;
+    if(!d||!d.nivel){ el.textContent='No se pudo calcular el nivel.'; return; }
+    var n=d.nivel, rg=d.reglas||{minTransportes:3,minPromedio:4.5};
+    var ok='<span style="color:#16A34A;font-weight:700">✓</span>', no='<span style="color:#9CA3AF;font-weight:700">○</span>';
+    var f=function(x){ return x==null?'—':String(x).replace('.',','); };
+    el.innerHTML='<div style="margin-bottom:8px">'+(n.nivel==='verificado'?'<span style="background:#DCFCE7;color:#166534;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px">✓ Verificado</span>':'<span style="background:#EEF1F8;color:#1e2d4e;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px">Nuevo en TransMatch</span>')
+      +(n.manual?' <span style="font-size:12px;color:#92400E">· forzado a mano: '+String(n.manual.motivo||'').replace(/</g,'&lt;')+'</span>':' <span style="font-size:12px">· automático</span>')+'</div>'
+      +'<div style="line-height:1.9;color:#374151">'+((n.completados||0)>=rg.minTransportes?ok:no)+' '+(n.completados||0)+' de '+rg.minTransportes+' transportes completados<br>'
+      +(n.promedio!=null&&n.promedio>=rg.minPromedio?ok:no)+' Promedio '+f(n.promedio)+' (mín. '+f(rg.minPromedio)+')<br>'
+      +(n.graves?no+' '+n.graves+' incidencia(s) grave(s) en 3 meses':ok+' Sin incidencias graves (3 meses)')+'</div>';
+  }
+  async function cargarNivelAdmin(){
+    var r=await api('/api/admin/transportista/nivel?email='+encodeURIComponent(userData.email));
+    _renderNivelAdmin(r&&r.ok?r.data:null);
+  }
+  async function nivelAccion(acc){
+    var motivo='';
+    if(acc!=='auto'){ motivo=prompt(acc==='verificar'?'¿Por qué lo verificas a mano?':'¿Por qué le quitas el verificado?'); if(motivo===null) return; if(!motivo.trim()){ toast('Indica un motivo','err'); return; } }
+    var r=await api('/api/admin/transportista/nivel','POST',{ email:userData.email, accion:acc, motivo:motivo });
+    if(r&&r.ok){ _renderNivelAdmin(r.data); toast('Nivel actualizado'); } else toast((r&&r.data&&r.data.error)||'Error','err');
+  }
   async function cargarAcceso() {
     var el = document.getElementById('acceso-estado'); if (!el || !userData) return;
     var r = await api('/api/admin/usuario/acceso', 'POST', { email: userData.email, accion: 'estado' });

@@ -42,7 +42,7 @@
       id:id, licitacionId:licId, precio:precio, modalidad:'No consolidada', tiempoEntrega:fEntrega,
       descripcion:desc, incluye:incluye, tiempoRespuesta:minResp,
       transportistaRating:t.rating, transportistaTransportes:t.total, archivoId:null, archivoNombre:null,
-      score:score, createdAt:iso(-minResp*60000), transportistaLabel:'Transportista Verificado '+t.rating,
+      score:score, createdAt:iso(-minResp*60000), transportistaNivel:'verificado', transportistaLabel:'Transportista verificado',
       _t:t,
       formulario:{
         equipoUtilizado:equipo, ruta:ruta, fechaCarga:fCarga, fechaEntrega:fEntrega, validez:'15 días',
@@ -483,6 +483,7 @@
   function routeT(method, path, b){
     var m;
     if(path==='/api/auth/me') return { user:MET };
+    if(path==='/api/transportista/nivel') return { nivel:{ nivel:'verificado', auto:'verificado', completados:TR.a.total, promedio:TR.a.rating, graves:0, desde:iso(-60*D) }, reglas:{ minTransportes:3, minPromedio:4.5, pierdeBajo:4 } };
     if(path==='/api/auth/me/prefs') return { ok:true };
     if(path==='/api/perfil'){ if(method!=='GET'){ for(var k in b) MET[k]=b[k]; } return { ok:true, user:MET }; }
 
