@@ -554,7 +554,7 @@ function verTodosDelDia(isoDate){
   async function cargarNotificaciones(){
     try {
       var token = localStorage.getItem('tm_token');
-      var r = await fetch((typeof API!=='undefined'?API:'https://transmatch-api.transmatch-66b.workers.dev')+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
+      var r = await fetch((typeof API!=='undefined'?API:'https://transmatch.transmatchcl.workers.dev')+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
       var data = r.ok ? await r.json() : {};
       var notifs = data.notificaciones || [];
       var noLeidas = notifs.filter(function(n){ return !n.leida; }).length;
@@ -593,7 +593,7 @@ function verTodosDelDia(isoDate){
   async function marcarTodasLeidas(){
     try {
       var token = localStorage.getItem('tm_token');
-      var API_URL = typeof API!=='undefined' ? API : 'https://transmatch-api.transmatch-66b.workers.dev';
+      var API_URL = typeof API!=='undefined' ? API : 'https://transmatch.transmatchcl.workers.dev';
       var r = await fetch(API_URL+'/api/notificaciones',{headers:{'Authorization':'Bearer '+token}});
       var data = r.ok ? await r.json() : {};
       var notifs = (data.notificaciones||[]).filter(function(n){ return !n.leida; });
@@ -609,7 +609,7 @@ function verTodosDelDia(isoDate){
   async function marcarUnaLeida(id){
     try {
       var token = localStorage.getItem('tm_token');
-      var API_URL = typeof API!=='undefined' ? API : 'https://transmatch-api.transmatch-66b.workers.dev';
+      var API_URL = typeof API!=='undefined' ? API : 'https://transmatch.transmatchcl.workers.dev';
       await fetch(API_URL+'/api/notificaciones/leer',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id:id})});
       await cargarNotificaciones();
     } catch(e){}
