@@ -1020,7 +1020,7 @@ async function guardarEquipoAsignado(transporteId, modal){
       var tiene=!!eqFileBuffer[p[0]];
       if(p[3] && (!tiene || (p[2]&&!v))) faltan.push(p[1].replace(' (si corresponde)',''));
       else if(tiene && p[2] && !v) faltan.push('fecha de vencimiento de '+p[1].replace(' (si corresponde)',''));
-      if(v && v<hoy) vencidos.push(p[1].replace(' (si corresponde)',''));
+      if(tiene && v && v<hoy) vencidos.push(p[1].replace(' (si corresponde)',''));
     });
     var prevEq=(window._mpTransporte&&window._mpTransporte.equipoAsignado&&!window._mpTransporte.equipoAsignado.equipoId&&window._mpTransporte.equipoAsignado.patente===patente)?window._mpTransporte.equipoAsignado:null;
     var prevDocs=(prevEq&&prevEq.documentos)||{};
