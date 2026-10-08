@@ -159,7 +159,7 @@
 
     // 9) Completada + valorada (con respuesta del transportista)
     var c9=cot('demo_c91','demo_l9',TR.c,2100000,0.9,fmtFecha(-15*D),fmtFecha(-13*D),'Cama baja 3 ejes','Santiago → La Serena',['Seguro de carga','Permiso MOP'],'',40);
-    var val9={ scores:{ puntualidad:5, comunicacion:5, estadoCarga:5, documentacion:4 }, promedio:4.8, comentario:'Muy buen servicio, llegaron antes de lo acordado.', createdAt:iso(-10*D), respuestaTransportista:'¡Gracias! Fue un gusto trabajar con ustedes.' };
+    var val9={ scores:{ cumplimiento:5, seriedad:5, comunicacion:5, estadoEquipo:5, documentacion:4, velocidad:5 }, promedio:4.8, comentario:'Muy buen servicio, llegaron antes de lo acordado.', createdAt:iso(-10*D), respuestaTransportista:'¡Gracias! Fue un gusto trabajar con ustedes.' };
     L.push(lic({ id:'demo_l9', codigo:'LIC-D009', estado:'completada', tipoEquipo:'Motoniveladora', marca:'Caterpillar', modelo:'140K', peso:'16', origen:'Santiago', destino:'La Serena',
       fechaCarga:fecha(-15*D), fechaEntrega:fecha(-13*D), createdAt:iso(-20*D), cierreAt:iso(-19*D), adjudicadaAt:iso(-18*D),
       cotizaciones:[c9], totalCotizaciones:5, adjudicadaA:adj(TR.c,'demo_c91',2100000,fmtFecha(-13*D)), valoracion:val9 }));
@@ -180,7 +180,7 @@
     ];
     previas.forEach(function(h,i){
       var d=h[6]*D, cid=h[0]+'_c', n=10+i;
-      var v={ scores:{ puntualidad:5, comunicacion:4, estadoCarga:5, documentacion:5 }, promedio:4.7, comentario:'', createdAt:iso(d+3*D) };
+      var v={ scores:{ cumplimiento:5, seriedad:5, comunicacion:4, estadoEquipo:5, documentacion:5, velocidad:4 }, promedio:4.7, comentario:'', createdAt:iso(d+3*D) };
       L.push(lic({ id:h[0], codigo:'LIC-D0'+n, estado:'completada', tipoEquipo:h[1], origen:h[2], destino:h[3], fechaCarga:fecha(d+2*D), fechaEntrega:fecha(d+2*D),
         createdAt:iso(d), cierreAt:iso(d+D), adjudicadaAt:iso(d+D+2*H), totalCotizaciones:3+(i%3),
         cotizaciones:[cot(cid,h[0],h[5],h[4],0.8,fmtFecha(d+2*D),fmtFecha(d+2*D),'Cama baja',h[2]+' → '+h[3],['Seguro de carga'],'',60)],
@@ -426,7 +426,7 @@
       equipoAsignado:{ patente:'HJPL-22', tipo:'Cama baja 2 ejes', marca:'Scania', modelo:'R450' },
       conductorAsignado:{ nombre:'Marcelo Díaz', rut:'13.456.789-0', telefono:'+56 9 5555 0505' },
       historial:hist([['preparacion','Transporte creado al adjudicar',-8*D],['en_ruta','En ruta',-5*D,TR.a.nombre],['entregado','Entregado sin observaciones',-4*D,TR.a.nombre]]) });
-    var v8={ scores:{ puntualidad:5, comunicacion:5, estadoCarga:5, documentacion:4 }, promedio:4.8, comentario:'Muy buen servicio, llegaron antes de lo acordado.', createdAt:iso(-10*D) };
+    var v8={ scores:{ cumplimiento:5, seriedad:5, comunicacion:5, estadoEquipo:5, documentacion:4, velocidad:5 }, promedio:4.8, comentario:'Muy buen servicio, llegaron antes de lo acordado.', createdAt:iso(-10*D) };
     ganada('demo_tl8','LIC-D028','Motoniveladora','Caterpillar','Santiago','La Serena',2100000,-15*D,-13*D,{ estado:'completada', valoracion:v8 },{
       estado:'completado', estadoDocumentos:'completo', entregadoAt:iso(-13*D), valoracion:v8, oc:doc('OC-4410-demo.pdf',-17*D), factura:doc('Factura-0987-demo.pdf',-12*D),
       pagoCliente:{ estado:'pagado', marcadoAt:iso(-5*D) },
