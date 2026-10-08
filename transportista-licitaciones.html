@@ -1057,7 +1057,7 @@ function descargarLicitacionPDF(licId, ocultarSensible){
   if(l.tipoEntregaDestino&&l.tipoEntregaDestino!=='no_aplica')rows.push(['Tipo de entrega',tEntMap[l.tipoEntregaDestino]||'-']);
   if(l.fechaCarga)rows.push(['Fecha de carga',fd(l.fechaCarga)+(l.horaCarga?' - '+l.horaCarga:'')]);
   if(l.fechaEntrega)rows.push(['Fecha de descarga',fd(l.fechaEntrega)+(l.horaDescarga?' - '+l.horaDescarga:'')]);
-  rows.push(['Plazo cotizaciónes',(l.plazo||'24')+'h']);
+  rows.push(['Plazo cotizaciones',(l.plazo||'24')+'h']);
   if(l.valorSeguro)rows.push(['Valor seguro aprox.','$'+Number(l.valorSeguro).toLocaleString('es-CL')]);
 
   var jsPDF=window.jspdf.jsPDF;

@@ -361,7 +361,7 @@
     var labelMap = {pendiente_admin:'En revisión',abierta:'Abierta',cerrada:'Con cotizaciones',adjudicada:'Adjudicada',completada:'Completada',rechazada:'Rechazada',anulada:'Anulada'};
     var elList = document.getElementById('lista-licitaciones');
     if(licitaciones.length===0){
-      elList.innerHTML = '<div style="padding:32px;text-align:center;color:#9CA3AF;font-size:13px">Aun no tienes licitaciones<br><a href="/cliente-nueva.html" style="color:#FF8808;font-weight:500">Publicar la primera</a></div>';
+      elList.innerHTML = '<div style="padding:32px;text-align:center;color:#9CA3AF;font-size:13px">Aún no tienes licitaciones<br><a href="/cliente-nueva.html" style="color:#FF8808;font-weight:500">Publicar la primera</a></div>';
     } else {
       elList.innerHTML = licitaciones.slice(0,5).map(function(l){
         var nC = (l.cotizaciones||[]).length;

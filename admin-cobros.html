@@ -301,7 +301,7 @@ main{max-width:1100px;margin:0 auto;padding:24px 20px;flex:1}
                 <th>Empresa</th>
                 <th>N° factura</th>
                 <th>Periodo</th>
-                <th>Emision</th>
+                <th>Emisión</th>
                 <th style="text-align:right">Monto</th>
                 <th style="text-align:center">Estado</th>
                 <th></th>
@@ -827,7 +827,7 @@ function verOV(id){
     +'<div class="detail-item"><div class="detail-label">Monto facturado</div><div class="detail-val">'+peso(ov.monto_facturado)+'</div></div>'
     +'<div class="detail-item"><div class="detail-label">Comisión estimada</div><div class="detail-val">'+peso(ov.comision_estimada)+'</div></div>'
     +'<div class="detail-item"><div class="detail-label">Comisión final</div><div class="detail-val" style="color:#1e2d4e">'+peso(ov.comision_final)+'</div></div>'
-    +'<div class="detail-item"><div class="detail-label">UF del dia</div><div class="detail-val">'+(ov.uf_del_dia ? '$'+ov.uf_del_dia.toLocaleString('es-CL') : '—')+'</div></div>'
+    +'<div class="detail-item"><div class="detail-label">UF del día</div><div class="detail-val">'+(ov.uf_del_dia ? '$'+ov.uf_del_dia.toLocaleString('es-CL') : '—')+'</div></div>'
     +'<div class="detail-item"><div class="detail-label">Fecha adjudicación</div><div class="detail-val">'+fecha(ov.fecha_adjudicacion)+'</div></div>'
     +'<div class="detail-item"><div class="detail-label">Fecha confirmacion</div><div class="detail-val">'+fecha(ov.fecha_confirmacion)+'</div></div>'
     +'<div class="detail-item"><div class="detail-label">Fecha facturacion</div><div class="detail-val">'+fecha(ov.fecha_facturacion)+'</div></div>'
@@ -876,7 +876,7 @@ async function confirmarAnulacion(){
 function renderFacturas(){
   var lista = allFacturas;
   if(!lista.length){
-    document.getElementById('tbody-facturas').innerHTML = '<tr><td colspan="7" class="empty">Sin facturas emitidas aun</td></tr>';
+    document.getElementById('tbody-facturas').innerHTML = '<tr><td colspan="7" class="empty">Sin facturas emitidas aún</td></tr>';
     return;
   }
   document.getElementById('tbody-facturas').innerHTML = lista.map(function(f){
@@ -1061,7 +1061,7 @@ function renderAlertas(){
   document.getElementById('alerta-count').textContent = alertas.length+' alertas';
 
   if(!alertas.length){
-    document.getElementById('lista-alertas').innerHTML = '<div class="empty">Sin OV condicionales con mas de '+DIAS_ALERTA+' dias de espera</div>';
+    document.getElementById('lista-alertas').innerHTML = '<div class="empty">Sin OV condicionales con más de '+DIAS_ALERTA+' días de espera</div>';
     return;
   }
 

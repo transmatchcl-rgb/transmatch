@@ -326,7 +326,7 @@ function filtrar(f, btn){
   if(f==='entregado') lista=transportes.filter(function(t){return esEntregado(t.estado);});
 
   if(lista.length===0){
-    document.getElementById('lista').innerHTML='<div class="empty">'+(f==='en_curso'?'Sin transportes en curso':'Sin transportes entregados aun')+'</div>';
+    document.getElementById('lista').innerHTML='<div class="empty">'+(f==='en_curso'?'Sin transportes en curso':'Sin transportes entregados aún')+'</div>';
     return;
   }
   document.getElementById('lista').innerHTML=lista.map(function(t,i){
@@ -828,7 +828,7 @@ async function guardarPOD(transporteId){
   }catch(e){ toast('Error de conexión','err'); }
 }
 
-var EQ_DOCS=[['permiso_circulacion','Permiso de Circulacion'],['revision_tecnica','Revision Tecnica'],['gases','Gases'],['seguro_obligatorio','Seguro Obligatorio'],['poliza_empresa','Poliza empresa']];
+var EQ_DOCS=[['permiso_circulacion','Permiso de Circulacion'],['revision_tecnica','Revisión Técnica'],['gases','Gases'],['seguro_obligatorio','Seguro Obligatorio'],['poliza_empresa','Poliza empresa']];
 var eqFileBuffer={};
 function eqDocInputHtml(key,label){
   return '<div><label style="font-size:11px;color:#374151;display:block;margin-bottom:4px">'+label+'</label>'
@@ -836,7 +836,7 @@ function eqDocInputHtml(key,label){
 }
 function handleEqFile(key,input){
   var f=input.files[0]; if(!f) return;
-  if(f.size>8*1024*1024){ toast('Archivo demasiado grande. Maximo 8 MB','err'); return; }
+  if(f.size>8*1024*1024){ toast('Archivo demasiado grande. Máximo 8 MB','err'); return; }
   var reader=new FileReader();
   reader.onload=function(e){
     eqFileBuffer[key]={nombre:f.name,base64:e.target.result.split(',')[1],mimeType:f.type};
@@ -987,7 +987,7 @@ function cdDocInputHtml(key,label){
 }
 function handleCdFile(key,input){
   var f=input.files[0]; if(!f) return;
-  if(f.size>8*1024*1024){ toast('Archivo demasiado grande. Maximo 8 MB','err'); return; }
+  if(f.size>8*1024*1024){ toast('Archivo demasiado grande. Máximo 8 MB','err'); return; }
   var reader=new FileReader();
   reader.onload=function(e){
     cdFileBuffer[key]={nombre:f.name,base64:e.target.result.split(',')[1],mimeType:f.type};

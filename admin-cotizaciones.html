@@ -332,7 +332,7 @@
           '</div>'+
         '</div>'+
         '<div class="grupo-right">'+
-          '<span class="ncot">'+nCot+' cotización'+(nCot!==1?'es':'')+'</span>'+
+          '<span class="ncot">'+nCot+(nCot!==1?' cotizaciones':' cotización')+'</span>'+
         '</div>'+
       '</div>'+
       '<div class="cotizaciones-wrap" id="cotiz-wrap-'+gi+'">'+cotizHTML+'</div>'+
@@ -423,7 +423,7 @@
         '<button data-aid="'+c.archivoId+'" data-anombre="'+(c.archivoNombre||'propuesta')+'" '+
         'onclick="descargarArchivoModal(this.dataset.aid,this.dataset.anombre)" '+
         'style="padding:9px 16px;background:#eef1f8;color:#1e2d4e;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;width:100%">'+
-        'Descargar propuesta tecnica</button></div>';
+        'Descargar propuesta técnica</button></div>';
     }
 
     document.getElementById('mc-body').innerHTML = html;

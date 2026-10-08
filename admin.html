@@ -711,7 +711,7 @@
       });
       exportarCSV(rows2, 'TransMatch_Usuarios_'+new Date().toISOString().split('T')[0]+'.csv');
     }
-    toast('Exportacion completa - 2 archivos CSV');
+    toast('Exportación completa: 2 archivos CSV');
   }
 
   async function loadRetornos() {
@@ -788,7 +788,7 @@
       ['Fecha entrega', l.fechaEntrega ? new Date(l.fechaEntrega).toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'}) : '--'],
       ['Peso', l.peso ? l.peso+' '+(l.pesoUnidad||'ton') : '--'],
       ['Dimensiones', l.dimensiones||'--'],
-      ['Plazo cotizaciónes', (l.plazo||'24')+' horas'],
+      ['Plazo cotizaciones', (l.plazo||'24')+' horas'],
       ['Cotizaciones', (l.cotizaciones||[]).length+' recibidas'],
     ];
     document.getElementById('ml-info').innerHTML = infoItems.map(([k,v]) =>

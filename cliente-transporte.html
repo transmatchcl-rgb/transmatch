@@ -487,7 +487,7 @@ function renderDetalle(t){
     } else {
       h += '<div style="margin-top:14px;padding-top:14px;border-top:0.5px solid #E5E7EB"><div style="font-size:14px;font-weight:600;color:#111827;margin-bottom:4px">Valora el servicio</div>';
       h += '<div style="font-size:12px;color:#6B7280;margin-bottom:14px">El transporte está completado. Cuéntanos cómo fue el servicio del transportista.</div>';
-      [['cumplimiento','Cumplimiento'],['seriedad','Seriedad'],['comunicacion','Comunicacion'],['estadoEquipo','Estado del equipo'],['documentacion','Documentacion'],['velocidad','Velocidad de respuesta']].forEach(function(kl){
+      [['cumplimiento','Cumplimiento'],['seriedad','Seriedad'],['comunicacion','Comunicación'],['estadoEquipo','Estado del equipo'],['documentacion','Documentación'],['velocidad','Velocidad de respuesta']].forEach(function(kl){
         h += '<div class="val-row"><span style="font-size:13px;color:#374151">'+kl[1]+'</span><div style="display:flex;gap:4px" id="stars-'+t.id+'-'+kl[0]+'">';
         [1,2,3,4,5].forEach(function(n){ h += '<div class="star" onclick="setStar(\''+t.id+'\',\''+kl[0]+'\','+n+')"></div>'; });
         h += '</div></div>';

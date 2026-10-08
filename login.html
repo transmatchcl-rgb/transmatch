@@ -154,7 +154,7 @@ async function doLogin() {
     } else {
       var errMsg = data.error || 'Email o contraseña incorrectos';
       if (errMsg.toLowerCase().includes('pendiente')) {
-        errMsg = 'Tu cuenta esta pendiente de aprobación por TransMatch. Te avisaremos pronto.';
+        errMsg = 'Tu cuenta está pendiente de aprobación por TransMatch. Te avisaremos pronto.';
       }
       showAlert(errMsg);
       btn.disabled = false;
