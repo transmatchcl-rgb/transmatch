@@ -1370,6 +1370,10 @@ function renderAlertasVencimiento(documentos) {
   return '<div style="margin-top:10px">'+alertas.join('')+'</div>';
 }
 
+function _hoyCL(){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Santiago'}).format(new Date()); }catch(e){ return new Date().toISOString().slice(0,10); } }
+function _docVencido(f){ return !!f && f < _hoyCL(); }
+document.addEventListener('DOMContentLoaded',function(){ var h=_hoyCL(); document.querySelectorAll('input[type=date][id^="dv-"]').forEach(function(el){ el.min=h; }); });
+
 async function agregarEquipo() {
   var _selTipo=document.getElementById('eq-tipo').value;
   var tipo=_selTipo;
@@ -1377,6 +1381,8 @@ async function agregarEquipo() {
   var okEl=document.getElementById('ok-eq'); var errEl=document.getElementById('err-eq');
   okEl.style.display='none'; errEl.style.display='none';
   if (!tipo) { errEl.textContent=_selTipo==='Otro'?'Especifica el equipo en "Otro"':'Selecciona el tipo de equipo'; errEl.style.display='block'; return; }
+  var _venc=[].slice.call(document.querySelectorAll('input[type=date][id^="dv-"]')).filter(function(el){ return _docVencido(el.value); });
+  if (_venc.length) { errEl.textContent='Hay documentos con fecha de vencimiento pasada. No se pueden subir documentos vencidos: carga la versión vigente o deja ese documento para después.'; errEl.style.display='block'; return; }
   var _btnAdd = document.getElementById('btn-agregar-eq');
   if (_btnAdd) { if (_btnAdd.disabled) return; _btnAdd.disabled = true; _btnAdd.dataset._txt = _btnAdd.textContent; _btnAdd.textContent = 'Guardando...'; }
   try {
@@ -1767,7 +1773,7 @@ function abrirModalDoc(equipoId, key, label) {
     '</div>' +
     (key === 'adicional'
       ? '<div style="margin-bottom:14px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Descripción del archivo</label><input type="text" id="modal-desc" placeholder="Ej: Certificado de capacidad de carga" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
-      : '<div style="margin-bottom:20px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Fecha de vencimiento</label><input type="date" id="modal-fecha" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>') +
+      : '<div style="margin-bottom:20px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Fecha de vencimiento</label><input type="date" id="modal-fecha" min="'+_hoyCL()+'" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>') +
     '<div style="display:flex;gap:10px;justify-content:flex-end">' +
       '<button id="modal-btn-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>' +
       '<button id="modal-btn-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar</button>' +
@@ -1807,6 +1813,7 @@ async function guardarDocModal(equipoId, key, label) {
 
   var vencimiento = key !== 'adicional' ? ((document.getElementById('modal-fecha') || {}).value || '') : null;
   var descripcion = key === 'adicional' ? ((document.getElementById('modal-desc') || {}).value || '') : null;
+  if (_docVencido(vencimiento)) { toast('Ese documento está vencido. Sube la versión vigente.','err'); if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; } return; }
   var archivoId   = null;
   var archivoNombre = null;
 

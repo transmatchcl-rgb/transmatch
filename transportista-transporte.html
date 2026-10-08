@@ -507,7 +507,9 @@ function renderDetalle(t){
       });
       h+='</div>';
     }
-    h+='<div style="margin-top:15px;padding-top:14px;border-top:1px solid #F1F2F6"><button class="btn btn-outline btn-sm" onclick="abrirModalPatente(\''+t.id+'\')">Cambiar equipo</button></div>';
+    var _pend=eq.equipoId?[]:EQ_DOCS_MANUAL.filter(function(p){ return p[3]&&!((eq.documentos||{})[p[0]]&&eq.documentos[p[0]].archivoId); }).map(function(p){ return p[1]; });
+    if(_pend.length) h+='<div style="margin-top:10px;font-size:12px;color:#92400E;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:8px 10px">Documentos pendientes: '+_pend.join(', ')+'</div>';
+    h+='<div style="margin-top:15px;padding-top:14px;border-top:1px solid #F1F2F6;display:flex;gap:8px;flex-wrap:wrap">'+(_pend.length?'<button class="btn btn-orange btn-sm" onclick="abrirModalPatente(\''+t.id+'\')">Completar documentos</button>':'')+'<button class="btn btn-outline btn-sm" onclick="abrirModalPatente(\''+t.id+'\')">'+(eq.equipoId?'Cambiar equipo':'Cambiar equipo o documentos')+'</button></div>';
   } else {
     h+='<div style="text-align:center;padding:12px 4px 4px"><div style="font-size:13px;color:#6B7280;margin-bottom:15px;line-height:1.45">Aún no asignas el equipo para este transporte. No es obligatorio — el transporte igual sigue su curso.</div>';
     h+='<button class="btn btn-orange btn-sm" onclick="abrirModalPatente(\''+t.id+'\')">Asignar equipo / Ingresar patente</button></div>';
@@ -854,7 +856,30 @@ async function guardarPOD(transporteId){
   }catch(e){ toast('Error de conexión','err'); }
 }
 
-var EQ_DOCS=[['permiso_circulacion','Permiso de Circulacion'],['revision_tecnica','Revisión Técnica'],['gases','Gases'],['seguro_obligatorio','Seguro Obligatorio'],['poliza_empresa','Poliza empresa']];
+var EQ_DOCS=[['permiso_circulacion','Permiso de circulación'],['revision_tecnica','Revisión técnica'],['gases','Gases'],['seguro_obligatorio','SOAP'],['poliza_empresa','Póliza empresa']];
+// Documentos para un equipo ingresado manualmente (no registrado en Mis equipos): [key, label, tieneVencimiento, obligatorio]
+var EQ_DOCS_MANUAL=[
+  ['padron','Padrón o certificado de anotaciones',false,true],
+  ['permiso_circulacion','Permiso de circulación',true,true],
+  ['revision_tecnica','Revisión técnica',true,true],
+  ['seguro_obligatorio','SOAP (si corresponde)',true,false],
+  ['gases','Certificado de gases (si corresponde)',true,false]
+];
+var EQ_DOC_CONTRATO=['contrato_arriendo','Contrato o carta de arriendo con el dueño del equipo (opcional)',false,false];
+function _eqDocVencidos(docs){ var h=hoyChileISO(); return Object.values(docs||{}).filter(function(d){ return d&&d.vencimiento&&String(d.vencimiento).slice(0,10)<h; }).map(function(d){ return d.label||d.key; }); }
+function eqDocManualHtml(p){
+  return '<div style="border:0.5px solid #e8eaf0;border-radius:8px;padding:8px 10px" id="eqbox-'+p[0]+'">'
+    +'<div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:6px">'+p[1]+(p[3]?' <span style="color:#DC2626">*</span>':'')+'</div>'
+    +'<div style="display:grid;grid-template-columns:'+(p[2]?'1fr 140px':'1fr')+';gap:6px">'
+    +'<label id="eqdz-'+p[0]+'" style="display:block;border:1px dashed #cbd2de;border-radius:8px;padding:7px 10px;font-size:12px;color:#9CA3AF;cursor:pointer;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Subir archivo<input type="file" accept="application/pdf,image/*" style="display:none" onchange="handleEqFile(\''+p[0]+'\',this)"/></label>'
+    +(p[2]?'<input type="date" id="eqv-'+p[0]+'" min="'+hoyChileISO()+'" title="Fecha de vencimiento" style="padding:6px 8px;border:1px solid #e8eaf0;border-radius:8px;font-size:12px;font-family:inherit"/>':'')
+    +'</div></div>';
+}
+function toggleTercerizado(){
+  var t=document.getElementById('mp-terc'); var box=document.getElementById('eqbox-contrato_arriendo');
+  if(box) box.style.display=(t&&t.checked)?'block':'none';
+  var g=document.getElementById('mp-guardar-wrap'); if(g) g.style.display=(t&&t.checked)?'none':'flex';
+}
 var eqFileBuffer={};
 function eqDocInputHtml(key,label){
   return '<div><label style="font-size:11px;color:#374151;display:block;margin-bottom:4px">'+label+'</label>'
@@ -881,6 +906,7 @@ async function subirArchivoBuf(buf){
 }
 
 async function abrirModalPatente(transporteId){
+  window._mpTransporte=(typeof transportes!=='undefined'&&transportes.find)?transportes.find(function(x){return x.id===transporteId;}):null;
   // Cargar equipos del transportista para autocomplete
   var equipos=[];
   try{
@@ -898,7 +924,7 @@ async function abrirModalPatente(transporteId){
   }).join('');
 
   eqFileBuffer={};
-  var docInputsHtml=EQ_DOCS.map(function(p){ return eqDocInputHtml(p[0],p[1]); }).join('');
+  var docInputsHtml=EQ_DOCS_MANUAL.map(eqDocManualHtml).join('');
 
   inner.innerHTML='<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Asignar equipo</div>'
     +'<div style="font-size:12px;color:#9CA3AF;margin-bottom:20px">Selecciona de tu flota o ingresa la patente manualmente</div>'
@@ -913,8 +939,12 @@ async function abrirModalPatente(transporteId){
     +'<div><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:4px">Modelo</label><input type="text" id="mp-modelo" placeholder="Ej: FH16" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
     +'</div></div>'
     +'<div id="mp-docs-section"></div>'
-    +'<div id="mp-upload-section" style="margin-top:14px;padding-top:14px;border-top:0.5px solid #f3f4f6"><div style="font-size:12px;font-weight:600;color:#6B7280;margin-bottom:8px">Documentos del equipo (opcional)</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+docInputsHtml+'</div>'
-    +'<label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:#374151;cursor:pointer"><input type="checkbox" id="mp-guardar" style="width:16px;height:16px"/> Guardar este equipo en mi perfil</label></div>'
+    +'<div id="mp-upload-section" style="margin-top:14px;padding-top:14px;border-top:0.5px solid #f3f4f6">'
+    +'<label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;color:#374151;cursor:pointer"><input type="checkbox" id="mp-terc" onchange="toggleTercerizado()" style="width:16px;height:16px;accent-color:#1e2d4e"/> Es un equipo tercerizado (no es de mi empresa)</label>'
+    +'<div style="font-size:12px;font-weight:600;color:#6B7280;margin-bottom:4px">Documentos del equipo</div>'
+    +'<div style="font-size:11px;color:#9CA3AF;margin-bottom:8px">Los marcados con * son necesarios; si no los tienes ahora, puedes asignar el equipo y completarlos después. No se aceptan documentos vencidos.</div>'
+    +'<div style="display:flex;flex-direction:column;gap:8px">'+docInputsHtml+'<div id="eqbox-wrap-contrato">'+eqDocManualHtml(EQ_DOC_CONTRATO)+'</div></div>'
+    +'<label id="mp-guardar-wrap" style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:#374151;cursor:pointer"><input type="checkbox" id="mp-guardar" style="width:16px;height:16px"/> Guardar este equipo en mi perfil</label></div>'
     +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">'
     +'<button id="mp-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>'
     +'<button id="mp-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar</button>'
@@ -923,6 +953,14 @@ async function abrirModalPatente(transporteId){
   modal.appendChild(inner);
   document.body.appendChild(modal);
   window._mpEquipos=equipos;
+  var _ea=window._mpTransporte&&window._mpTransporte.equipoAsignado;
+  if(_ea&&_ea.patente&&!_ea.equipoId){
+    document.getElementById('mp-patente').value=_ea.patente||''; document.getElementById('mp-tipo').value=_ea.tipo||'';
+    document.getElementById('mp-marca').value=_ea.marca||''; document.getElementById('mp-modelo').value=_ea.modelo||'';
+    if(_ea.tercerizado) document.getElementById('mp-terc').checked=true;
+    Object.keys(_ea.documentos||{}).forEach(function(k){ var d=_ea.documentos[k]; var dz=document.getElementById('eqdz-'+k); if(d&&d.archivoId&&dz){ dz.childNodes[0].nodeValue='✓ Cargado'+(d.vencimiento?' · vence '+fechaDMY(d.vencimiento):''); dz.style.color='#14532D'; dz.style.borderColor='#BBF7D0'; } var v=document.getElementById('eqv-'+k); if(v&&d&&d.vencimiento) v.value=d.vencimiento; });
+  }
+  toggleTercerizado();
   document.getElementById('mp-cancel').onclick=function(){ modal.remove(); };
   document.getElementById('mp-save').onclick=function(){ guardarEquipoAsignado(transporteId,modal); };
   modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
@@ -955,7 +993,7 @@ function autocompletarEquipo(sel){
     }).join('');
     sec.innerHTML='<div style="border:0.5px solid #e8eaf0;border-radius:8px;padding:12px 14px;margin-top:0">'
       +'<div style="font-size:12px;font-weight:600;color:#1e2d4e;margin-bottom:8px">Documentos del equipo</div>'
-      +items+'</div>';
+      +items+(_eqDocVencidos(eq.documentos).length?'<div style="font-size:12px;color:#991B1B;margin-top:8px">Tiene documentos vencidos: no se puede asignar hasta actualizarlos en <a href="/transportista-perfil.html" style="color:#991B1B;font-weight:600">Mis equipos</a>.</div>':'')+'</div>';
   } else if(sec){
     sec.innerHTML='<div style="border:0.5px solid #FDE68A;border-radius:8px;padding:10px 14px;background:#FFFBEB;font-size:12px;color:#92400E;margin-top:0">Este equipo no tiene documentos registrados. Puedes subirlos en <a href="/transportista-perfil.html" style="color:#92400E;font-weight:600">Mis equipos</a>.</div>';
   }
@@ -969,16 +1007,36 @@ async function guardarEquipoAsignado(transporteId, modal){
   var eqReg=sel&&sel.value?equipos.find(function(e){return e.id===sel.value;}):null;
   var saveBtn=document.getElementById('mp-save'); if(saveBtn){ saveBtn.disabled=true; saveBtn.textContent='Guardando...'; }
   var documentos=eqReg?eqReg.documentos:undefined;
-  if(!eqReg){
-    var docsObj={};
-    for(var i=0;i<EQ_DOCS.length;i++){
-      var k=EQ_DOCS[i][0], lbl=EQ_DOCS[i][1];
+  var tercerizado=!eqReg && !!(document.getElementById('mp-terc')||{}).checked;
+  function _rb(){ if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Guardar'; } }
+  if(eqReg){
+    var venc=_eqDocVencidos(eqReg.documentos);
+    if(venc.length && !confirm('Este equipo tiene documentos vencidos: '+venc.join(', ')+'.\n\nPuedes asignarlo igual, pero el cliente lo verá como vencido. Actualízalos cuanto antes en Mis equipos.\n\n¿Asignar de todas formas?')){ _rb(); return; }
+  } else {
+    var lista=EQ_DOCS_MANUAL.concat(tercerizado?[EQ_DOC_CONTRATO]:[]);
+    var hoy=hoyChileISO(), faltan=[], vencidos=[];
+    lista.forEach(function(p){
+      var v=p[2]?((document.getElementById('eqv-'+p[0])||{}).value||''):'';
+      var tiene=!!eqFileBuffer[p[0]];
+      if(p[3] && (!tiene || (p[2]&&!v))) faltan.push(p[1].replace(' (si corresponde)',''));
+      else if(tiene && p[2] && !v) faltan.push('fecha de vencimiento de '+p[1].replace(' (si corresponde)',''));
+      if(v && v<hoy) vencidos.push(p[1].replace(' (si corresponde)',''));
+    });
+    var prevEq=(window._mpTransporte&&window._mpTransporte.equipoAsignado&&!window._mpTransporte.equipoAsignado.equipoId&&window._mpTransporte.equipoAsignado.patente===patente)?window._mpTransporte.equipoAsignado:null;
+    var prevDocs=(prevEq&&prevEq.documentos)||{};
+    faltan=faltan.filter(function(n){ var p=lista.find(function(x){ return x[1].replace(' (si corresponde)','')===n; }); return !(p&&prevDocs[p[0]]&&prevDocs[p[0]].archivoId); });
+    if(vencidos.length){ toast('No se pueden subir documentos vencidos: '+vencidos.join(', ')+'. Sube la versión vigente.','err'); _rb(); return; }
+    if(faltan.length && !confirm('Faltan documentos del equipo: '+faltan.join(', ')+'.\n\nPuedes asignarlo igual y completarlos después con "Completar documentos". ¿Continuar?')){ _rb(); return; }
+    var docsObj=Object.assign({},prevDocs);
+    for(var i=0;i<lista.length;i++){
+      var k=lista[i][0], lbl=lista[i][1].replace(' (si corresponde)','');
       if(eqFileBuffer[k]){
         var subido=await subirArchivoBuf(eqFileBuffer[k]);
-        if(subido) docsObj[k]={key:k,label:lbl,archivoId:subido.id,archivoNombre:subido.nombre};
+        if(!subido){ toast('No se pudo subir '+lbl+'. Inténtalo de nuevo.','err'); _rb(); return; }
+        docsObj[k]={key:k,label:lbl,archivoId:subido.id,archivoNombre:subido.nombre,vencimiento:lista[i][2]?((document.getElementById('eqv-'+k)||{}).value||null):null,updatedAt:new Date().toISOString()};
       }
     }
-    if(Object.keys(docsObj).length) documentos=docsObj;
+    documentos=docsObj;
   }
   var payload={
     patente:patente,
@@ -986,6 +1044,7 @@ async function guardarEquipoAsignado(transporteId, modal){
     marca:(document.getElementById('mp-marca').value||'').trim()||undefined,
     modelo:(document.getElementById('mp-modelo').value||'').trim()||undefined,
     equipoId:eqReg?eqReg.id:undefined,
+    tercerizado:tercerizado,
     documentos:documentos,
   };
   try{
@@ -996,7 +1055,7 @@ async function guardarEquipoAsignado(transporteId, modal){
     });
     if(res.ok){
       var chk=document.getElementById('mp-guardar');
-      if(!eqReg && chk && chk.checked){
+      if(!eqReg && !tercerizado && chk && chk.checked){
         try{ await fetch(API+'/api/equipos',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({tipo:payload.tipo||'Equipo',marca:payload.marca,modelo:payload.modelo,patente:payload.patente,documentos:documentos||{}})}); }catch(e){}
       }
       toast('Equipo asignado correctamente'); modal.remove(); await cargar(); setTimeout(function(){toggleCard(transporteId);},200);
