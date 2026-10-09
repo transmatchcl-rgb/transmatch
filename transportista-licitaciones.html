@@ -107,15 +107,16 @@ textarea{resize:vertical;min-height:80px}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const API=(localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
+function _irLogin(){ if(new URLSearchParams(location.search).get('id')){ try{localStorage.setItem('tm_volver',JSON.stringify({url:location.pathname+location.search,ts:Date.now()}));}catch(e){} window.location.replace('/login.html'); } else window.location.replace('/index.html'); }
 (async function(){
 const token=localStorage.getItem('tm_token');
 const role=localStorage.getItem('tm_role');
-if(!token){window.location.replace('/index.html');return}
+if(!token){_irLogin();return}
 if(role==='admin'){window.location.replace('/admin.html');return}
 if(role==='cliente'){window.location.replace('/cliente.html');return}
 try{
 const res=await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+token}});
-if(res.status===401){localStorage.clear();window.location.replace('/index.html');return}
+if(res.status===401){localStorage.clear();_irLogin();return}
 if(res.ok){const{user}=await res.json();if(user.role!=='transportista'){window.location.replace('/index.html');return}}
 }catch(e){}
 document.getElementById('auth-guard').style.display='none';
@@ -353,7 +354,7 @@ return`hace ${Math.floor(d/1440)}d`;
 async function api(path,method='GET',body=null){
 const o={method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}};
 if(body)o.body=JSON.stringify(body);
-try{const r=await fetch(API+path,o);if(r.status===401){localStorage.clear();window.location.replace('/index.html');return null}return{ok:r.ok,data:await r.json()}}
+try{const r=await fetch(API+path,o);if(r.status===401){localStorage.clear();_irLogin();return null}return{ok:r.ok,data:await r.json()}}
 catch(e){return null}
 }
 async function initApp(){
