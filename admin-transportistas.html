@@ -28,6 +28,14 @@
   .hdr-sub{font-size:14px;color:#6B7280;margin-top:2px}
   .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:20px}
   @media(max-width:600px){.grid-3{grid-template-columns:1fr 1fr}}
+  .grid-3{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .hab-t{width:100%;border-collapse:collapse;font-size:12.5px}
+  .hab-t th{text-align:left;font-size:11px;color:#9CA3AF;font-weight:600;padding:6px 8px;border-bottom:0.5px solid #e8eaf0}
+  .hab-t td{padding:7px 8px;border-bottom:0.5px solid #f3f4f6;vertical-align:middle}
+  .hab-wrap{overflow-x:auto;margin-bottom:18px}
+  .hab-lnk{color:#1e2d4e;text-decoration:underline;cursor:pointer;background:none;border:none;font:inherit;padding:0;text-align:left;word-break:break-all}
+  .hab-m label{font-size:12px;color:#6B7280;display:block;margin:12px 0 4px}
+  .hab-m input[type=date],.hab-m input[type=text],.hab-m textarea{width:100%;padding:8px 10px;border:0.5px solid #d6dbe6;border-radius:7px;font:inherit;font-size:13px}
   .stat{background:#fff;border-radius:10px;border:0.5px solid #e8eaf0;box-shadow:0 1px 4px rgba(30,45,78,.06);padding:16px 18px}
   .stat-label{font-size:12px;color:#6B7280;margin-bottom:6px}
   .stat-val{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700}
@@ -153,6 +161,7 @@
       <div class="stat"><div class="stat-label">Total registrados</div><div id="st-total" class="stat-val" style="color:#1e2d4e">--</div></div>
       <div class="stat"><div class="stat-label">Activos</div><div id="st-activos" class="stat-val" style="color:#1ED24E">--</div></div>
       <div class="stat"><div class="stat-label">Pendientes aprobación</div><div id="st-pendientes" class="stat-val" style="color:#FF8808">--</div></div>
+      <div class="stat" style="cursor:pointer" onclick="document.getElementById('fil-docs').value='poliza';filtrar()" title="Ver empresas con la póliza vencida o por vencer"><div class="stat-label">Pólizas por vencer</div><div id="st-polizas" class="stat-val" style="color:#991B1B">--</div></div>
     </div>
 
     <div class="filter-bar">
@@ -162,6 +171,12 @@
         <option value="activo">Activos</option>
         <option value="suspendido">Suspendidos</option>
         <option value="rechazado">Rechazados</option>
+      </select>
+      <select class="sel" id="fil-docs" onchange="filtrar()">
+        <option value="">Documentos: todos</option>
+        <option value="completos">Documentos completos</option>
+        <option value="incompletos">Documentos incompletos</option>
+        <option value="poliza">Póliza vencida o por vencer</option>
       </select>
       <input class="srch" id="fil-buscar" placeholder="Buscar nombre, empresa o email..." oninput="filtrar()"/>
     </div>
@@ -189,6 +204,7 @@
   function detalleEmpresa(g){
     var html='<div class="card-detalle" style="display:none;width:100%;margin-top:12px;padding-top:14px;border-top:0.5px solid #E5E7EB" onclick="event.stopPropagation()">';
     if(g.madre&&g.madre.altaExcel&&g.madre.altaExcel.archivoId){ var ax=g.madre.altaExcel; html+='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#F0FDF4;border:0.5px solid #BBF7D0;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12.5px;color:#14532D;flex-wrap:wrap"><span>📄 Alta de cuenta cargada el '+new Date(ax.subidoAt).toLocaleDateString('es-CL')+'</span><button class="btn btn-outline btn-sm" onclick="descargarAltaExcel(\''+ax.archivoId+'\',\''+String(ax.nombre||'').replace(/['"\\]/g,'')+'\')">Descargar Excel</button></div>'; }
+    if(g.madre) html+='<div id="hab-'+g.id+'">'+habSeccion(g)+'</div>';
     html+='<div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Usuarios de la empresa</div>';
     var filas=[]; if(g.madre) filas.push(g.madre); filas=filas.concat(g.miembros||[]);
     html+=filas.map(function(u){
@@ -208,6 +224,117 @@
     return html;
   }
 
+
+  // ── DOCUMENTOS DE HABILITACIÓN ───────────────────────────────
+  var HAB_DOCS=[
+    {k:'erut',label:'Carpeta tributaria o e-RUT'},
+    {k:'vigencia',label:'Certificado de vigencia'},
+    {k:'cedula_rl',label:'Cédula representante legal'},
+    {k:'f30',label:'Certificado F30'},
+    {k:'poliza',label:'Póliza de seguro',vence:true},
+    {k:'banco',label:'Certificado cuenta bancaria'},
+    {k:'referencias',label:'Referencias comerciales',sub:'2 clientes'}
+  ];
+  function _habDocs(g){ return (g.madre&&g.madre.habilitacion&&g.madre.habilitacion.docs)||{}; }
+  function _hoyCL(){ return new Date().toLocaleDateString('en-CA',{timeZone:'America/Santiago'}); }
+  function _diasA(f){ return Math.round((new Date(f+'T00:00:00Z')-new Date(_hoyCL()+'T00:00:00Z'))/86400000); }
+  function _fmtF(f){ return f?String(f).split('-').reverse().join('-'):''; }
+  function habResumen(g){
+    var docs=_habDocs(g), n=0, pd=null;
+    HAB_DOCS.forEach(function(d){ var x=docs[d.k]; if(x&&x.recibido) n++; });
+    var p=docs.poliza; if(p&&p.recibido&&p.vence) pd=_diasA(p.vence);
+    return { n:n, total:HAB_DOCS.length, polizaDias:pd };
+  }
+  function habBadgeFila(g){
+    if(!g.madre) return '';
+    var r=habResumen(g), h='';
+    if(r.polizaDias!=null&&r.polizaDias<0) h+=' · <span class="badge badge-red">Póliza vencida</span>';
+    else if(r.polizaDias!=null&&r.polizaDias<=30) h+=' · <span class="badge badge-orange">Póliza vence en '+r.polizaDias+' d</span>';
+    h+=' · <span class="badge '+(r.n===r.total?'badge-green':'badge-gray')+'">Docs '+r.n+'/'+r.total+'</span>';
+    return h;
+  }
+  function _habEsc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function habSeccion(g){
+    var docs=_habDocs(g), r=habResumen(g), alerta='';
+    var p=docs.poliza;
+    if(r.polizaDias!=null&&r.polizaDias<=30){
+      alerta='<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;background:'+(r.polizaDias<0?'#FEF2F2;border:0.5px solid #FECACA;color:#991B1B':'#FFF7ED;border:0.5px solid #FED7AA;color:#92400E')+';border-radius:8px;padding:8px 12px;font-size:12.5px;margin-bottom:10px;flex-wrap:wrap"><span>⚠ La póliza '+(r.polizaDias<0?'venció':'vence')+' el '+_fmtF(p.vence)+'.'+(p.pedidoAt?' Pedida el '+new Date(p.pedidoAt).toLocaleDateString('es-CL')+'.':'')+'</span><button class="btn btn-sm" style="background:#FF8808;color:#fff" onclick="habPedir(\''+g.id+'\',\'poliza\',this)">Pedir actualización por correo</button></div>';
+    }
+    var filas=HAB_DOCS.map(function(d){
+      var x=docs[d.k]||{}, est, fecha='—';
+      if(!x.recibido) est='<span class="badge badge-gray">Falta</span>';
+      else if(d.vence&&x.vence){ var dd=_diasA(x.vence); est=dd<0?'<span class="badge badge-red">Vencida</span>':dd<=30?'<span class="badge badge-orange">Vence en '+dd+' d</span>':'<span class="badge badge-green">Recibido</span>'; }
+      else est='<span class="badge badge-green">Recibido</span>';
+      var fs=[]; if(x.fecha) fs.push('Emitido '+_fmtF(x.fecha)); if(d.vence&&x.vence) fs.push('Vence '+_fmtF(x.vence)); if(fs.length) fecha=fs.join(' · ');
+      if(x.nota) fecha+='<div style="font-size:11px;color:#6B7280;margin-top:2px">'+_habEsc(x.nota)+'</div>';
+      var arch=x.archivoId?'<button class="hab-lnk" onclick="habVerDoc(\''+g.id+'\',\''+d.k+'\')">'+_habEsc(x.archivoNombre||'Ver archivo')+'</button>':'—';
+      var acc='<button class="btn btn-outline btn-sm" onclick="habEditar(\''+g.id+'\',\''+d.k+'\')">'+(x.recibido?'Editar':'Registrar')+'</button>';
+      if(!x.recibido) acc+=' <button class="btn btn-outline btn-sm" title="Enviar correo pidiendo este documento" onclick="habPedir(\''+g.id+'\',\''+d.k+'\',this)">Pedir</button>';
+      return '<tr><td style="color:#1e2d4e;font-weight:500">'+d.label+(d.sub?'<div style="font-size:11px;color:#9CA3AF;font-weight:400">'+d.sub+'</div>':'')+(x.pedidoAt&&!x.recibido?'<div style="font-size:11px;color:#92400E;font-weight:400">Pedido el '+new Date(x.pedidoAt).toLocaleDateString('es-CL')+'</div>':'')+'</td><td>'+est+'</td><td>'+fecha+'</td><td>'+arch+'</td><td style="white-space:nowrap;text-align:right">'+acc+'</td></tr>';
+    }).join('');
+    return '<div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Documentos de habilitación · '+r.n+' de '+r.total+'</div>'+alerta
+      +'<div class="hab-wrap"><table class="hab-t"><tr><th>Documento</th><th>Estado</th><th>Fecha</th><th>Archivo</th><th></th></tr>'+filas+'</table></div>';
+  }
+  function _habGrupo(id){ return grupos.find(function(x){ return x.id===id; }); }
+  function _habRefrescar(g){
+    var el=document.getElementById('hab-'+g.id); if(el) el.innerHTML=habSeccion(g);
+    document.getElementById('st-polizas').textContent = grupos.filter(function(x){ var r=habResumen(x); return r.polizaDias!=null&&r.polizaDias<=30; }).length;
+    var row=el&&el.closest('.row'); var meta=row&&row.querySelector('.row-meta');
+    if(meta){ meta.innerHTML=meta.innerHTML.replace(/ · <span class="badge[^"]*">(Póliza[^<]*|Docs \d+\/\d+)<\/span>/g,'')+habBadgeFila(g); }
+  }
+  function habVerDoc(gid,k){ var g=_habGrupo(gid); var x=g&&_habDocs(g)[k]; if(x&&x.archivoId) habVer(x.archivoId,x.archivoNombre); }
+  async function habVer(id,nombre){
+    try{
+      var r=await fetch(API+'/api/archivos/'+id,{headers:{'Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+      var d=await r.json(); if(!r.ok||!d.base64) throw 0;
+      var bin=atob(d.base64), arr=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+      var ext=String(nombre||'').split('.').pop().toLowerCase();
+      var tipo=d.tipo||({pdf:'application/pdf',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp'})[ext]||'application/octet-stream';
+      var url=URL.createObjectURL(new Blob([arr],{type:tipo}));
+      if(/pdf|image/.test(tipo)) window.open(url,'_blank'); else { var a=document.createElement('a'); a.href=url; a.download=nombre||'documento'; a.click(); }
+      setTimeout(function(){ URL.revokeObjectURL(url); },60000);
+    }catch(e){ toast('No se pudo abrir el archivo','err'); }
+  }
+  function habEditar(gid,k){
+    var g=_habGrupo(gid); if(!g||!g.madre) return;
+    var d=HAB_DOCS.find(function(x){return x.k===k;}), x=_habDocs(g)[k]||{};
+    var m=document.createElement('div'); m.id='hab-modal'; m.className='modal-bg open';
+    m.innerHTML='<div class="modal hab-m" onclick="event.stopPropagation()">'
+      +'<div style="font-size:17px;font-weight:700;color:#1e2d4e">'+d.label+'</div><div style="font-size:12.5px;color:#6B7280;margin-top:2px">'+_habEsc(g.nombre)+'</div>'
+      +'<label style="display:flex;gap:8px;align-items:center;color:#374151;font-size:13px;margin-top:16px"><input type="checkbox" id="hab-rec"'+(x.recibido||!x.actualizadoAt?' checked':'')+'> Recibido</label>'
+      +(k==='referencias'?'':'<label>Fecha de emisión (opcional)</label><input type="date" id="hab-fecha" value="'+(x.fecha||'')+'">')
+      +(d.vence?'<label>Fecha de vencimiento</label><input type="date" id="hab-vence" value="'+(x.vence||'')+'"><div style="font-size:11px;color:#6B7280;margin-top:4px">Te avisamos a 30, 15 y 0 días.</div>':'')
+      +'<label>Archivo (PDF o imagen, máx. 8 MB)'+(x.archivoNombre?' · actual: '+_habEsc(x.archivoNombre):'')+'</label><input type="file" id="hab-arch" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx" style="font-size:12.5px">'
+      +'<label>'+(k==='referencias'?'Referencias (nombre, empresa y teléfono)':'Nota (opcional)')+'</label><textarea id="hab-nota" rows="'+(k==='referencias'?4:2)+'">'+_habEsc(x.nota||'')+'</textarea>'
+      +'<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px"><button class="btn btn-outline btn-sm" onclick="document.getElementById(\'hab-modal\').remove()">Cancelar</button><button class="btn btn-primary btn-sm" id="hab-guardar" onclick="habGuardar(\''+gid+'\',\''+k+'\')">Guardar</button></div></div>';
+    m.onclick=function(){ m.remove(); };
+    document.body.appendChild(m);
+  }
+  function _habLeer(file){ return new Promise(function(res,rej){ var fr=new FileReader(); fr.onload=function(){ res(String(fr.result).split(',')[1]); }; fr.onerror=rej; fr.readAsDataURL(file); }); }
+  async function habGuardar(gid,k){
+    var g=_habGrupo(gid); if(!g||!g.madre) return;
+    var btn=document.getElementById('hab-guardar'); var f=document.getElementById('hab-arch').files[0];
+    if(f&&f.size>8*1024*1024){ toast('El archivo pesa más de 8 MB','err'); return; }
+    var body={ email:g.madre.email, doc:k, recibido:document.getElementById('hab-rec').checked, nota:document.getElementById('hab-nota').value };
+    var fe=document.getElementById('hab-fecha'); if(fe) body.fecha=fe.value||null;
+    var ve=document.getElementById('hab-vence'); if(ve) body.vence=ve.value||null;
+    btn.disabled=true; btn.textContent='Guardando...';
+    try{ if(f) body.archivo={ base64:await _habLeer(f), nombre:f.name, mimeType:f.type||'' }; }catch(e){ toast('No se pudo leer el archivo','err'); btn.disabled=false; btn.textContent='Guardar'; return; }
+    var r=await apiFetch('/api/admin/habilitacion','POST',body);
+    if(r&&r.ok){ g.madre.habilitacion=r.data.habilitacion; document.getElementById('hab-modal').remove(); _habRefrescar(g); toast('Documento guardado'); }
+    else { toast((r&&r.data&&r.data.error)||'No se pudo guardar','err'); btn.disabled=false; btn.textContent='Guardar'; }
+  }
+  async function habPedir(gid,k,btn){
+    var g=_habGrupo(gid); if(!g||!g.madre) return;
+    var d=HAB_DOCS.find(function(x){return x.k===k;});
+    if(!confirm('¿Enviar un correo a '+g.madre.email+' pidiendo "'+d.label+'" con plazo de 10 días?')) return;
+    btn.disabled=true;
+    var r=await apiFetch('/api/admin/habilitacion/pedir','POST',{ email:g.madre.email, doc:k });
+    if(r&&r.ok){
+      var docs=(g.madre.habilitacion=g.madre.habilitacion||{}); docs.docs=docs.docs||{}; docs.docs[k]=Object.assign({},docs.docs[k]||{},{pedidoAt:r.data.pedidoAt});
+      _habRefrescar(g); toast(r.data.silenciado?'Modo pruebas activo: el correo no salió':'Correo enviado · plazo '+r.data.plazo);
+    } else { toast((r&&r.data&&r.data.error)||'No se pudo enviar','err'); btn.disabled=false; }
+  }
 
   // ── CARGA DEL EXCEL "ALTA DE CUENTA" ─────────────────────────
   var _alta=null;
@@ -408,6 +535,7 @@
     document.getElementById('st-total').textContent = grupos.length;
     document.getElementById('st-activos').textContent = grupos.filter(function(g){return g.estado==='activo';}).length;
     document.getElementById('st-pendientes').textContent = grupos.filter(function(g){return g.estado==='pendiente';}).length;
+    document.getElementById('st-polizas').textContent = grupos.filter(function(g){ var r=habResumen(g); return r.polizaDias!=null&&r.polizaDias<=30; }).length;
     filtrar();
   }
 
@@ -424,6 +552,8 @@
     var q      = (document.getElementById('fil-buscar').value || '').toLowerCase();
     var lista  = grupos;
     if (estado) lista = lista.filter(function(g){ return g.estado === estado; });
+    var fd=document.getElementById('fil-docs').value;
+    if (fd) lista = lista.filter(function(g){ var r=habResumen(g); if(!g.madre) return false; if(fd==='completos') return r.n===r.total; if(fd==='incompletos') return r.n<r.total; return r.polizaDias!=null&&r.polizaDias<=30; });
     if (q)      lista = lista.filter(function(g){ return (g.nombre+' '+g.email+' '+(g.miembros||[]).map(function(m){return m.email;}).join(' ')).toLowerCase().includes(q); });
 
     document.getElementById('lista-transportistas').innerHTML = lista.length === 0
@@ -433,7 +563,7 @@
           '<div class="av" style="background:' + avColors[i % avColors.length] + '">' + ((g.nombre[0]) || 'T').toUpperCase() + '</div>' +
           '<div class="row-body">' +
             '<div class="row-name">' + g.nombre + '</div>' +
-            '<div class="row-meta">' + g.totalUsuarios + ' usuario' + (g.totalUsuarios!==1?'s':'') + ' · ' + ((g.totalTransportes||0)>0&&g.rating?'★ '+g.rating:'sin valoraciones') + ' · ' + (g.totalTransportes || 0) + ' transp. · ' + (g.nivel==='verificado'?'<span style="color:#166534;font-weight:700">✓ Verificado</span>':'Nuevo') + '</div>' +
+            '<div class="row-meta">' + g.totalUsuarios + ' usuario' + (g.totalUsuarios!==1?'s':'') + ' · ' + ((g.totalTransportes||0)>0&&g.rating?'★ '+g.rating:'sin valoraciones') + ' · ' + (g.totalTransportes || 0) + ' transp. · ' + (g.nivel==='verificado'?'<span style="color:#166534;font-weight:700">✓ Verificado</span>':'Nuevo') + habBadgeFila(g) + '</div>' +
           '</div>' +
           '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">' +
             estadoBadge(g.estado) +
