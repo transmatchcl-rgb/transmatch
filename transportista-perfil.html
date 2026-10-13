@@ -638,16 +638,16 @@
         </div>
 
         <div class="fg full">
-          <div class="doc-section-title" style="margin-top:6px">Carnet de identidad</div>
+          <div class="doc-section-title" style="margin-top:6px">Carnet de identidad (opcional)</div>
         </div>
         <div class="grid2">
           <div class="fg">
-            <label>Carnet — frente *</label>
+            <label>Carnet — frente</label>
             <div class="doc-upload-zone" id="dz-carnetFrente" onclick="document.getElementById('df-carnetFrente').click()">Subir imagen (JPG o PNG)</div>
             <input type="file" id="df-carnetFrente" accept=".jpg,.jpeg,.png,.pdf" style="display:none" onchange="handleCondFile('carnetFrente',this)"/>
           </div>
           <div class="fg">
-            <label>Carnet — reverso *</label>
+            <label>Carnet — reverso</label>
             <div class="doc-upload-zone" id="dz-carnetReverso" onclick="document.getElementById('df-carnetReverso').click()">Subir imagen (JPG o PNG)</div>
             <input type="file" id="df-carnetReverso" accept=".jpg,.jpeg,.png,.pdf" style="display:none" onchange="handleCondFile('carnetReverso',this)"/>
           </div>
@@ -1272,7 +1272,6 @@ async function agregarConductor() {
   var telefono=document.getElementById('cond-telefono').value.trim();
   var errEl=document.getElementById('err-cond'); errEl.style.display='none';
   if(!nombre||!rut){ errEl.textContent='Nombre y RUT son requeridos'; errEl.style.display='block'; return; }
-  if(!condBuffer.carnetFrente||!condBuffer.carnetReverso){ errEl.textContent='Debes subir ambos lados del carnet'; errEl.style.display='block'; return; }
   if(!condBuffer.licenciaFrente||!condBuffer.licenciaReverso){ errEl.textContent='Debes subir ambos lados de la licencia'; errEl.style.display='block'; return; }
   if(!document.getElementById('cond-aviso').checked){ errEl.textContent='Debes confirmar que informaste al conductor'; errEl.style.display='block'; return; }
   var btn=event&&event.target; if(btn){ btn.disabled=true; btn.textContent='Subiendo...'; }
