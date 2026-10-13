@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>TransMatch — Admin WhatsApp</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@700;800&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>TransMatch — Admin WhatsApp</title><link rel="stylesheet" href="/fonts/fonts.css"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Barlow',sans-serif;background:#f5f7fb;display:flex;flex-direction:column;min-height:100vh}
@@ -304,9 +304,10 @@ async function api(path, opts){
   let j={}; try{ j=await r.json(); }catch(e){}
   return { ok:r.ok, status:r.status, data:j };
 }
+function fmt(h){ return h.replace(/(^|[\s>(])\*([^*\n]+)\*/g,'$1<b>$2</b>').replace(/(^|[\s>(])_([^_\n]+)_/g,'$1<i>$2</i>').replace(/(^|[\s>(])~([^~\n]+)~/g,'$1<s>$2</s>'); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function telBonito(t){ t=String(t||''); return /^569\d{8}$/.test(t)?('+56 9 '+t.slice(3,7)+' '+t.slice(7)):(t?'+'+t:''); }
-function iniciales(c){ const n=(c.usuario&&(c.usuario.empresa||c.usuario.nombre))||c.contacto||''; const p=n.trim().split(/\s+/).filter(Boolean); return p.length?(p[0][0]+(p[1]?p[1][0]:'')).toUpperCase():'+56'; }
+function iniciales(c){ if(c.esAdmin) return 'TÚ'; const n=(c.usuario&&(c.usuario.empresa||c.usuario.nombre))||c.contacto||''; const p=n.trim().split(/\s+/).filter(Boolean); return p.length?(p[0][0]+(p[1]?p[1][0]:'')).toUpperCase():'+56'; }
 function nombreConv(c){ if(c.esAdmin) return 'Tú (avisos de admin)'; return (c.usuario&&(c.usuario.nombre||c.usuario.empresa))||c.contacto||telBonito(c.telefono); }
 function rolTag(c){
   if(c.esAdmin) return '<span class="wa-tag t-ad">Admin</span>';
@@ -376,12 +377,13 @@ function volver(){ document.querySelector('.wa-wrap').classList.remove('abierta'
 function pintarHeader(){
   const c=sel; if(!c) return; const v=ventana(c); const u=c.usuario;
   let sub=[];
-  if(u){ sub.push((u.rol==='transportista'?'Transportista':u.rol==='cliente'?'Cliente':u.rol)+(u.nivel==='verificado'?' ✓ Verificado':'')+(u.estado&&u.estado!=='activo'?' · '+u.estado:'')); }
+  if(c.esAdmin){ sub.push('Tu número (recibes aquí los avisos de admin)'); }
+  else if(u){ sub.push((u.rol==='transportista'?'Transportista':u.rol==='cliente'?'Cliente':u.rol)+(u.nivel==='verificado'?' ✓ Verificado':'')+(u.estado&&u.estado!=='activo'?' · '+u.estado:'')); }
   else if(!c.esAdmin) sub.push('No registrado en la plataforma');
   sub.push(telBonito(c.telefono));
-  const win=c.esAdmin?'':(v.abierta?'<span class="wa-win ok">Puedes responder · '+(v.horas>=1?v.horas+' h':v.min+' min')+' restantes</span>':'<span class="wa-win no">Ventana de 24 h cerrada</span>');
-  const perfil=u&&u.email?'<a class="wa-btn" href="/admin-perfil-usuario.html?email='+encodeURIComponent(u.email)+'">Ver perfil</a>':'';
-  document.getElementById('wa-ch').innerHTML='<button class="wa-btn wa-back" onclick="volver()">←</button><div class="wa-av">'+esc(iniciales(c))+'</div><div><div class="nm">'+esc(nombreConv(c))+(u&&u.empresa&&u.nombre?' · '+esc(u.empresa):'')+'</div><div class="sub">'+esc(sub.join(' · '))+'</div></div><div class="act">'+win+perfil+'</div>';
+  const win=(v.abierta?'<span class="wa-win ok">Puedes responder · '+(v.horas>=1?v.horas+' h':v.min+' min')+' restantes</span>':'<span class="wa-win no">Ventana de 24 h cerrada</span>');
+  const perfil=!c.esAdmin&&u&&u.email?'<a class="wa-btn" href="/admin-perfil-usuario.html?email='+encodeURIComponent(u.email)+'">Ver perfil</a>':'';
+  document.getElementById('wa-ch').innerHTML='<button class="wa-btn wa-back" onclick="volver()">←</button><div class="wa-av">'+esc(iniciales(c))+'</div><div><div class="nm">'+esc(nombreConv(c))+(!c.esAdmin&&u&&u.empresa&&u.nombre?' · '+esc(u.empresa):'')+'</div><div class="sub">'+esc(sub.join(' · '))+'</div></div><div class="act">'+win+perfil+'</div>';
   const ta=document.getElementById('wa-texto'), bt=document.getElementById('wa-send'), nt=document.getElementById('wa-note');
   const puede=v.abierta;
   ta.disabled=!puede; bt.disabled=!puede||enviando;
@@ -425,7 +427,7 @@ function contenido(m){
   const out=(k.direction||'')==='outbound';
   if(out&&t==='text'){ const b=((m.text||{}).body||''); if(/^📋/.test(b)) kind='Ficha (automática)'; else if(/^No pudimos abrir el formulario/.test(b)) kind='Respaldo (automático)'; else if(/^✅ Recibido:|^Tienes \d+ documentos? pendientes|^Envía ahora/.test(b)) kind='Automático'; }
   if(out&&t==='document'&&/^Especificaciones/.test(cap)) kind='Ficha (automática)';
-  return { kind, html, out };
+  return { kind, html:fmt(html), out };
 }
 function estadoTxt(k){
   const s=(k&&k.status)||''; if(s==='failed') return '<span class="wa-meta err">✕ No entregado</span>';
