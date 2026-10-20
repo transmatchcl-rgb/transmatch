@@ -373,7 +373,8 @@
           '</select>' +
           '<button onclick="cambiarPlan()" style="background:#1e2d4e;color:#fff;padding:9px 18px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Guardar plan</button>' +
         '</div>' +
-        '<div style="font-size:12px;color:#9CA3AF;margin-top:8px">Plan actual: <strong>' + (u.plan || 'Sin plan') + '</strong></div>';
+        '<div style="font-size:12px;color:#9CA3AF;margin-top:8px">Plan actual: <strong>' + (u.plan || 'Sin plan') + '</strong></div>' +
+        (u.esSubusuario ? '' : vigenciaHtml(u));
     }
 
     var html =
@@ -609,6 +610,50 @@
       toast((r && r.data && r.data.error) || 'Error al invitar', 'err');
       b.disabled = false; b.textContent = 'Enviar invitación';
     }
+  }
+
+  // ── Vigencia de la cuenta (prueba o contrato). Misma información que Clientes → Vencimientos ──
+  function _vigFmt(iso){ if(!iso) return '--'; try{ return new Date(iso+'T00:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return iso; } }
+  function vigenciaHtml(u) {
+    var v = u.vigencia, txt, color = '#6B7280';
+    if (!v || !v.fin) { txt = 'Sin vigencia configurada.'; color = '#92400E'; }
+    else {
+      var dias = Math.ceil((new Date(v.fin + 'T23:59:59') - new Date()) / 86400000);
+      var tipo = v.tipo === 'prueba' ? 'Prueba' : 'Contrato';
+      if (dias < 0) { txt = tipo + ' vencido el ' + _vigFmt(v.fin) + ' (hace ' + (-dias) + ' día' + (dias === -1 ? '' : 's') + ').'; color = '#B91C1C'; }
+      else { txt = tipo + ' ' + (v.periodicidad && v.periodicidad !== 'personalizado' ? v.periodicidad + ' ' : '') + 'desde ' + _vigFmt(v.inicio) + ' hasta el ' + _vigFmt(v.fin) + ' (' + (dias === 0 ? 'vence hoy' : 'quedan ' + dias + ' día' + (dias === 1 ? '' : 's')) + ').'; if (dias <= 15) color = '#B45309'; }
+    }
+    return '<div class="sep"></div>' +
+      '<div style="font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Vigencia de la cuenta</div>' +
+      '<div style="font-size:13px;color:' + color + ';margin-bottom:10px">' + txt + (v && v.notaGestion ? '<br><span style="color:#6B7280;font-size:12px">Nota: ' + _escI(v.notaGestion) + '</span>' : '') + '</div>' +
+      '<button onclick="abrirVigencia()" style="background:#1e2d4e;color:#fff;padding:9px 18px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">' + (v && v.fin ? 'Renovar o editar' : 'Configurar vigencia') + '</button>';
+  }
+  function _vigAddMonths(dateStr, n){ if(!dateStr) return ''; var d=new Date(dateStr+'T00:00:00'); var day=d.getDate(); d.setMonth(d.getMonth()+n); if(d.getDate()<day) d.setDate(0); return d.toISOString().slice(0,10); }
+  function _vigRecalc(){ var per=document.getElementById('vg-per').value, ini=document.getElementById('vg-inicio').value; if(per==='personalizado'||!ini) return; document.getElementById('vg-fin').value=_vigAddMonths(ini,{mensual:1,trimestral:3,semestral:6,anual:12}[per]||1); }
+  function abrirVigencia() {
+    var u = userData; var v = u.vigencia || { tipo:'contrato', inicio:new Date().toISOString().slice(0,10), fin:'', periodicidad:'mensual', notaGestion:'' };
+    var L = 'font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px', I = 'width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px;box-sizing:border-box;font-family:inherit';
+    var opt = function(val, lab, cur){ return '<option value="' + val + '"' + (cur === val ? ' selected' : '') + '>' + lab + '</option>'; };
+    var m = document.createElement('div'); m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+    m.innerHTML = '<div style="background:#fff;border-radius:16px;padding:26px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto">' +
+      '<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Vigencia — ' + _escI(u.empresa || u.nombre || '') + '</div>' +
+      '<div style="font-size:12px;color:#9CA3AF;margin-bottom:18px">Prueba o contrato, con su fecha de vencimiento. Te avisamos 15 días antes y al vencer. No suspende la cuenta automáticamente.</div>' +
+      '<div style="margin-bottom:12px"><label style="' + L + '">Tipo</label><select id="vg-tipo" style="' + I + '">' + opt('contrato','Contrato',v.tipo) + opt('prueba','Prueba',v.tipo) + '</select></div>' +
+      '<div style="margin-bottom:12px"><label style="' + L + '">Periodicidad</label><select id="vg-per" onchange="_vigRecalc()" style="' + I + '">' + opt('mensual','Mensual',v.periodicidad) + opt('trimestral','Trimestral',v.periodicidad) + opt('semestral','Semestral',v.periodicidad) + opt('anual','Anual',v.periodicidad) + opt('personalizado','Personalizada (elijo la fecha)',v.periodicidad) + '</select></div>' +
+      '<div style="display:flex;gap:10px;margin-bottom:12px"><div style="flex:1"><label style="' + L + '">Inicio</label><input type="date" id="vg-inicio" value="' + (v.inicio || '') + '" onchange="_vigRecalc()" style="' + I + '"/></div><div style="flex:1"><label style="' + L + '">Vence</label><input type="date" id="vg-fin" value="' + (v.fin || '') + '" style="' + I + '"/></div></div>' +
+      '<div style="margin-bottom:16px"><label style="' + L + '">Nota de gestión (opcional)</label><textarea id="vg-nota" rows="2" placeholder="Ej: cliente confirmó renovación" style="' + I + ';resize:vertical">' + _escI(v.notaGestion || '') + '</textarea></div>' +
+      '<div style="display:flex;gap:10px;justify-content:flex-end"><button id="vg-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer;font-family:inherit">Cancelar</button><button id="vg-save" style="padding:9px 18px;border-radius:8px;border:none;background:#1e2d4e;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Guardar vigencia</button></div></div>';
+    document.body.appendChild(m);
+    document.getElementById('vg-cancel').onclick = function(){ m.remove(); };
+    m.onclick = function(ev){ if (ev.target === m) m.remove(); };
+    if (!v.fin) _vigRecalc();
+    document.getElementById('vg-save').onclick = async function(){
+      var body = { tipo:document.getElementById('vg-tipo').value, periodicidad:document.getElementById('vg-per').value, inicio:document.getElementById('vg-inicio').value, fin:document.getElementById('vg-fin').value, notaGestion:document.getElementById('vg-nota').value };
+      if (!body.fin) { toast('Ingresa la fecha de vencimiento', 'err'); return; }
+      var r = await api('/api/admin/empresa/' + encodeURIComponent(u.empresaEntId || u.id) + '/vigencia', 'POST', body);
+      if (r && r.ok) { toast('Vigencia guardada'); m.remove(); setTimeout(function(){ location.reload(); }, 700); }
+      else toast((r && r.data && r.data.error) || 'Error al guardar', 'err');
+    };
   }
 
   async function guardarMaxUsuarios() {

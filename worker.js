@@ -532,7 +532,6 @@ async function guardarPerfilEnEmpresa(env, user, body){
   ["giro","direccion","comuna","ciudadEmpresa","telEmpresa","web","descripcion","industrias","facturacion","contactos","contactoOperaciones","contactoComercial","contactoFacturacion","datosBancarios"].forEach(function(k){ if(body[k]!==undefined){ emp[k]=body[k]; changed=true; } });
   if(changed){ emp.updatedAt=new Date().toISOString(); await dalSaveEmpresa(env, emp, _sb); }
 }
-// Sincroniza miembros, cupo e invitaciones de la empresa desde el registro de la cuenta madre.
 // Invitación creada por el admin de TransMatch para sumar un contacto a la cuenta de una empresa.
 // No guarda la cuenta madre: agrega la invitación a madre.invitacionesPendientes y el que llama la guarda.
 const INVITACION_ADMIN_HORAS = 7*24;
@@ -591,6 +590,29 @@ async function _crearInvitacionAdmin(env, madre, inv){
   }catch(e){}
   return { email:inv.email, emailEnviado:!!(envio&&envio.ok), link, expiresAt:registro.expiresAt };
 }
+// Crea el registro de Empresa de una cuenta madre si aún no existe (las cuentas nuevas no pasaban por la migración).
+// Marca al usuario con empresaId/rol; quien llama guarda el usuario. Devuelve la empresa.
+async function _asegurarEmpresa(env, u, sb){
+  if(!u || !u.id || u.esSubusuario || !["cliente","transportista"].includes(u.role)) return null;
+  const _sb = (sb===undefined) ? usarSupabase(env, null) : sb;
+  let emp = await dalGetEmpresaById(env, u.id, _sb);
+  if(!emp){
+    emp = { id:u.id, createdAt:u.createdAt||new Date().toISOString(), tipo:u.role,
+      razonSocial:u.empresa||u.nombre||"", rut:u.rutEmpresa||u.rut||"",
+      giro:u.giro||"", direccion:u.direccion||"", comuna:u.comuna||"", telEmpresa:u.telEmpresa||"", ciudadEmpresa:u.ciudadEmpresa||u.ciudad||"", web:u.web||"", descripcion:u.descripcion||"",
+      facturacion:u.facturacion||null, datosBancarios:u.datosBancarios||null, contactos:u.contactos||[],
+      contactoOperaciones:u.contactoOperaciones||null, contactoComercial:u.contactoComercial||null, contactoFacturacion:u.contactoFacturacion||null,
+      equipos:u.equipos||[], tiposEquipo:u.tiposEquipo||[], zonas:u.zonas||[], industrias:u.industrias||[],
+      plan:u.plan||null, estado:u.estado||"", maxUsuarios:u.max_usuarios||0,
+      duenoId:u.id, duenoEmail:u.email, miembros:[u.email, ...((u.empresaMiembros)||[])],
+      invitacionesPendientes:u.invitacionesPendientes||[], facturasSuscripcion:u.facturasSuscripcion||[],
+      creadaAutoAt:new Date().toISOString() };
+    await dalSaveEmpresa(env, emp, _sb);
+  }
+  u.empresaId = u.id; if(!u.rol) u.rol = "dueno";
+  return emp;
+}
+// Sincroniza miembros, cupo e invitaciones de la empresa desde el registro de la cuenta madre.
 async function syncEmpresaMiembros(env, madre){
   if(!madre || !madre.id) return;
   const _sb=usarSupabase(env, null);
@@ -2519,6 +2541,7 @@ async function handleRequest(request, env, ctx) {
         user.equipos.push({ id:uid(), tipo:eq.tipo, marca:eq.marca||"", modelo:eq.modelo||"", ano:eq.ano||"", patente:eq.patente||"", capacidadMax:parseFloat(eq.capacidadMax)||0, largoMax:parseFloat(eq.largoMax)||0, anchoMax:parseFloat(eq.anchoMax)||0, altoMax:parseFloat(eq.altoMax)||0, descripcion:eq.descripcion||"", createdAt:new Date().toISOString() });
       }
     }
+    try{ await _asegurarEmpresa(env, user, usarSupabase(env, url)); }catch(e){ console.error("asegurarEmpresa", e&&e.message); }
     await dalSaveUsuario(env, user, usarSupabase(env, url));
     await env.SESSIONS.delete("acceso:"+_regToken); // el link de acceso es de un solo uso
     // Notificar al admin si hay equipo pendiente de aprobación
@@ -2943,7 +2966,17 @@ async function handleRequest(request, env, ctx) {
   if (path === "/api/admin/vencimientos" && method === "GET") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     const out=[];
-    const _empresas = await dalGetAllEmpresas(env, usarSupabase(env, url));
+    const _sbVe=usarSupabase(env, url);
+    const _empresas = await dalGetAllEmpresas(env, _sbVe);
+    // Cuentas cliente creadas después de la migración no tenían registro de Empresa: se crean aquí.
+    try{
+      const _ids=new Set(_empresas.filter(Boolean).map(e=>e.id));
+      const _todos=await dalTodosUsuarios(env);
+      for(const u of _todos){
+        if(!u || u.role!=="cliente" || u.esSubusuario || !u.id || _ids.has(u.id)) continue;
+        const emp=await _asegurarEmpresa(env, u, _sbVe); if(emp){ _empresas.push(emp); _ids.add(emp.id); await dalSaveUsuario(env, u, _sbVe); }
+      }
+    }catch(e){ console.error("vencimientos/asegurarEmpresa", e&&e.message); }
     for(const e of _empresas){
       if(!e || e.tipo!=="cliente") continue;
       out.push({ empresaId:e.id, razonSocial:e.razonSocial||e.duenoEmail||"", duenoEmail:e.duenoEmail||"", plan:e.plan||null, estado:e.estado||"", vigencia:e.vigencia||null });
@@ -2970,7 +3003,13 @@ async function handleRequest(request, env, ctx) {
     const eid=path.split("/")[4];
     let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const _sbV=usarSupabase(env, url);
-    const e=await dalGetEmpresaById(env, eid, _sbV); if(!e) return err("Empresa no encontrada",404);
+    let e=await dalGetEmpresaById(env, eid, _sbV);
+    if(!e){
+      const _em=await env.USERS.get("id:"+eid); const _raw=_em?await _USR(env).get(String(_em).toLowerCase()):null;
+      const _u=_raw?JSON.parse(_raw):null;
+      if(_u && _u.role==="cliente" && !_u.esSubusuario){ e=await _asegurarEmpresa(env, _u, _sbV); await dalSaveUsuario(env, _u, _sbV); }
+    }
+    if(!e) return err("Empresa no encontrada",404);
     const tipo=(body.tipo==="prueba")?"prueba":"contrato";
     const periodicidad=["mensual","trimestral","semestral","anual","personalizado"].includes(body.periodicidad)?body.periodicidad:"personalizado";
     e.vigencia={ tipo, inicio:body.inicio||new Date().toISOString().slice(0,10), fin:body.fin||"", periodicidad, notaGestion:String(body.notaGestion||"").slice(0,300), actualizadoAt:new Date().toISOString(), avisadoPre:null, avisadoVenc:null };
@@ -2990,6 +3029,7 @@ async function handleRequest(request, env, ctx) {
     if(!["cliente","transportista"].includes(role)) return err("Rol inválido");
     if(!email.includes("@")) return err("Email inválido");
     if(!nombre) return err("Nombre requerido");
+    if(String(body.telefono||"").replace(/[^0-9]/g,"").length<8) return err("Celular requerido");
     const existing=await _USR(env).get(email);
     if(existing) return err("Este email ya está registrado");
     const maxExtra=Math.max(0,Math.min(50,parseInt(body.maxUsuarios)||0));
@@ -3012,6 +3052,7 @@ async function handleRequest(request, env, ctx) {
       passwordProvisorio:true, creadoPorAdmin:true, createdAt:new Date().toISOString(),
       max_usuarios:maxExtra,
     };
+    try{ await _asegurarEmpresa(env, nuevo, usarSupabase(env, url)); }catch(e){ console.error("asegurarEmpresa", e&&e.message); }
     await dalSaveUsuario(env, nuevo, usarSupabase(env, url));
     let emailEnviado=false;
     try{ const r=await enviarEmail(env,{ to:email, subject:"Tu cuenta TransMatch está lista", html:emailCredenciales(nombre, email, pass) }); emailEnviado = !!(r&&r.ok); }catch(e){}
@@ -5136,7 +5177,7 @@ async function handleRequest(request, env, ctx) {
           if(_empU.contactoFacturacion!==undefined) contactoFacturacionOut=_empU.contactoFacturacion;
         }
       }
-      usuarios.push({ licitacionExpress:!!(_eidU&&empresaCache[_eidU]&&empresaCache[_eidU].licitacionExpress), empresaEntId:_eidU||null, id:u.id,email:u.email,nombre:u.nombre,empresa:empresaOut,role:u.role,estado:u.estado,plan:u.plan,createdAt:u.createdAt,rating:u.rating,totalTransportes:u.totalTransportes,telefono:u.telefono||'',rut:u.rut||'',cargo:u.cargo||'',rutEmpresa:rutEmpresaOut,giro:giroOut,direccion:direccionOut,telEmpresa:telEmpresaOut,ciudadEmpresa:ciudadEmpresaOut,web:webOut,descripcion:descripcionOut,max_usuarios:u.max_usuarios||0,empresaMiembros:u.empresaMiembros||[],invitacionesPendientes:(u.invitacionesPendientes||[]).map(i=>({ emailInvitado:i.emailInvitado, expiresAt:i.expiresAt })),esSubusuario:u.esSubusuario||false,empresaMadreId:u.empresaMadreId||null,rol:u.rol||(u.esSubusuario?'miembro':'dueno'),empresaId:u.empresaId||null,desactivadoManual:u.desactivadoManual||false,notasAdmin:u.notasAdmin||'',equipos:u.equipos||[],tiposEquipo:u.tiposEquipo||[],zonas:u.zonas||[],rutRepresentante:u.rutRepresentante||'',ciudad:u.ciudad||'',whatsapp:u.whatsapp||'',industrias:industriasOut,anosExperiencia:u.anosExperiencia||'',perfilCompletitud:u.perfilCompletitud||0,totalCotizaciones:u.totalCotizaciones||0,facturacion:facturacionOut,contactoOperaciones:contactoOperacionesOut,contactoComercial:contactoComercialOut,contactoFacturacion:contactoFacturacionOut,contactos:contactosOut,datosBancarios:datosBancariosOut,notifEmail:u.notifEmail||false,notifWhatsapp:u.notifWhatsapp||false,comuna:u.comuna||'',region:u.region||'',ciudadesOperacion:u.ciudadesOperacion||[],altaExcel:u.altaExcel||null,habilitacion:u.habilitacion||null });
+      usuarios.push({ licitacionExpress:!!(_eidU&&empresaCache[_eidU]&&empresaCache[_eidU].licitacionExpress), vigencia:(_eidU&&empresaCache[_eidU]&&empresaCache[_eidU].vigencia)||null, empresaEntId:_eidU||null, id:u.id,email:u.email,nombre:u.nombre,empresa:empresaOut,role:u.role,estado:u.estado,plan:u.plan,createdAt:u.createdAt,rating:u.rating,totalTransportes:u.totalTransportes,telefono:u.telefono||'',rut:u.rut||'',cargo:u.cargo||'',rutEmpresa:rutEmpresaOut,giro:giroOut,direccion:direccionOut,telEmpresa:telEmpresaOut,ciudadEmpresa:ciudadEmpresaOut,web:webOut,descripcion:descripcionOut,max_usuarios:u.max_usuarios||0,empresaMiembros:u.empresaMiembros||[],invitacionesPendientes:(u.invitacionesPendientes||[]).map(i=>({ emailInvitado:i.emailInvitado, expiresAt:i.expiresAt })),esSubusuario:u.esSubusuario||false,empresaMadreId:u.empresaMadreId||null,rol:u.rol||(u.esSubusuario?'miembro':'dueno'),empresaId:u.empresaId||null,desactivadoManual:u.desactivadoManual||false,notasAdmin:u.notasAdmin||'',equipos:u.equipos||[],tiposEquipo:u.tiposEquipo||[],zonas:u.zonas||[],rutRepresentante:u.rutRepresentante||'',ciudad:u.ciudad||'',whatsapp:u.whatsapp||'',industrias:industriasOut,anosExperiencia:u.anosExperiencia||'',perfilCompletitud:u.perfilCompletitud||0,totalCotizaciones:u.totalCotizaciones||0,facturacion:facturacionOut,contactoOperaciones:contactoOperacionesOut,contactoComercial:contactoComercialOut,contactoFacturacion:contactoFacturacionOut,contactos:contactosOut,datosBancarios:datosBancariosOut,notifEmail:u.notifEmail||false,notifWhatsapp:u.notifWhatsapp||false,comuna:u.comuna||'',region:u.region||'',ciudadesOperacion:u.ciudadesOperacion||[],altaExcel:u.altaExcel||null,habilitacion:u.habilitacion||null });
     }
     return ok({ usuarios });
   }

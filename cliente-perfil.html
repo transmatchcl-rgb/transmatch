@@ -219,6 +219,13 @@ document.dispatchEvent(new Event('_authReady'));
 <div class="fg"><label>Teléfono / WhatsApp</label><input type="tel" id="inp-telefono" placeholder="+56 9 XXXX XXXX"/></div>
 <div class="fg"><label>Cargo en la empresa</label><input type="text" id="inp-cargo" placeholder="Gerente de operaciones"/></div>
 </div>
+<div id="cli-wa" style="margin-top:14px;border:1px solid #E5E7EB;border-radius:10px;padding:12px 14px;background:#F9FAFB">
+<label style="display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;margin:0">
+<span style="font-size:13px;font-weight:600;color:#1e2d4e">Recibir avisos por WhatsApp <span style="font-size:10px;font-weight:700;color:#FF8808;background:#FFF4E6;border-radius:999px;padding:1px 7px;margin-left:4px">NUEVO</span></span>
+<input type="checkbox" id="cli-wa-chk" onchange="cliWaCambiar()" style="width:18px;height:18px;accent-color:#1e2d4e;cursor:pointer;flex:none"/>
+</label>
+<div id="cli-wa-sub" style="font-size:12px;color:#6B7280;line-height:1.45;margin-top:6px"></div>
+</div>
 <div id="alok-perfil" class="alert-ok">Perfil actualizado correctamente</div>
 <div style="margin-top:16px"><button class="btn btn-green" id="btn-guardar-perfil" onclick="guardarPerfil()">Guardar perfil</button></div>
 </div>
@@ -362,6 +369,7 @@ document.getElementById('inp-nombre').value=U.nombre||'';
 document.getElementById('inp-email').value=U.email||'';
 document.getElementById('inp-telefono').value=U.telefono||U.tel||'';
 document.getElementById('inp-cargo').value=U.cargo||'';
+try{ cliWaPintar(!!U.notifWhatsapp, U.telefono||U.whatsapp||''); }catch(e){}
 document.getElementById('inp-empresa').value=U.empresa||'';
 document.getElementById('inp-rut-empresa').value=U.rutEmpresa||'';
 document.getElementById('inp-giro').value=U.giro||'';
@@ -896,6 +904,29 @@ document.addEventListener('click',function(e){
   if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.nav-mobile-menu'))
     p.classList.remove('open');
 });
+
+// Avisos por WhatsApp del cliente (opt-in). Usa el celular del campo Teléfono / WhatsApp.
+function cliWaTel(t){ var s=String(t||'').replace(/[^0-9]/g,''); if(!s) return null; if(s.indexOf('56')!==0){ if(s.length===9&&s[0]==='9') s='56'+s; else if(s.length===8) s='569'+s; } return /^569\d{8}$/.test(s)?s:null; }
+function cliWaPintar(activo, tel){
+  var chk=document.getElementById('cli-wa-chk'), sub=document.getElementById('cli-wa-sub'); if(!chk||!sub) return;
+  var t=cliWaTel(tel);
+  if(!t){ chk.checked=false; chk.disabled=true; sub.style.color='#92400E'; sub.textContent='Agrega tu celular (+56 9) en Teléfono / WhatsApp y guarda el perfil para poder activarlo.'; return; }
+  chk.disabled=false; chk.checked=!!activo; sub.style.color='#6B7280';
+  var b='+56 9 '+t.slice(3,7)+' '+t.slice(7);
+  sub.innerHTML=activo?('Activado. Los avisos de TransMatch te llegarán al <b>'+b+'</b>. Puedes desactivarlo cuando quieras.'):('Actívalo para recibir los avisos de TransMatch al <b>'+b+'</b>. Seguirás recibiéndolos también por correo.');
+}
+async function cliWaCambiar(){
+  var chk=document.getElementById('cli-wa-chk'), sub=document.getElementById('cli-wa-sub'); var quiere=chk.checked; chk.disabled=true;
+  var tel=(document.getElementById('inp-telefono').value||'').trim();
+  try{
+    var body={ notifWhatsapp:quiere }; if(quiere && cliWaTel(tel)) body.telefono=tel;
+    var r=await fetch(API+'/api/perfil/notificaciones',{ method:'PUT', headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}, body:JSON.stringify(body) });
+    var d=await r.json().catch(function(){ return {}; });
+    if(!r.ok) throw new Error(d.error||'No se pudo guardar');
+    cliWaPintar(!!d.notifWhatsapp, d.telefonoWa||tel);
+  }catch(e){ chk.checked=!quiere; chk.disabled=false; sub.style.color='#B91C1C'; sub.textContent=e.message||'No se pudo guardar'; }
+}
+document.addEventListener('input', function(ev){ if(ev.target&&ev.target.id==='inp-telefono'){ var c=document.getElementById('cli-wa-chk'); if(c) cliWaPintar(c.checked, ev.target.value); } });
 </script>
 
 <footer style="background:#1e2d4e;margin-top:40px;padding:28px 24px 20px">
