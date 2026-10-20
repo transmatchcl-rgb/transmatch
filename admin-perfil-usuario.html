@@ -355,6 +355,7 @@
         '<button onclick="guardarMaxUsuarios()" style="background:#1e2d4e;color:#fff;padding:8px 18px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Guardar</button>' +
         '</div>' +
         '<div style="font-size:12px;color:#9CA3AF;margin-top:8px">' + subusuarios.length + ' sub-usuario(s) en la empresa · cupo: ' + (u.max_usuarios || 0) + '</div>' +
+        (u.esSubusuario ? '' : invitarHtml(u, subusuarios)) +
         subsListHtml +
         '</div></div>';
     }
@@ -572,6 +573,42 @@
     var r = await api('/api/admin/asignar-rol', 'POST', { email: email, rol: rol });
     if (r && r.ok) { toast('Rol actualizado. Toma efecto cuando la persona reinicie sesión.'); }
     else { toast((r && r.data && r.data.error) || 'Error al asignar rol', 'err'); }
+  }
+
+  function _escI(t){ return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  // Invitar contactos a la cuenta de la empresa (correo con link para crear su usuario, válido 7 días)
+  function invitarHtml(u, subusuarios) {
+    var ahora = Date.now();
+    var pend = (u.invitacionesPendientes || []).filter(function(i){ return i && new Date(i.expiresAt).getTime() > ahora; });
+    var usados = subusuarios.length + pend.length;
+    var libres = (u.max_usuarios || 0) - usados;
+    var inp = 'padding:8px 10px;border:1px solid #e8eaf0;border-radius:7px;font-size:13px;font-family:inherit;width:100%;box-sizing:border-box';
+    return '<div style="margin-top:14px;padding-top:14px;border-top:0.5px solid #e8eaf0">' +
+      '<div style="font-size:13px;font-weight:600;color:#1e2d4e;margin-bottom:4px">Invitar contacto</div>' +
+      '<div style="font-size:12px;color:#6B7280;margin-bottom:8px">Le llega un correo para crear su usuario dentro de esta cuenta. Válido 7 días. Cupos libres: <b>' + Math.max(0, libres) + '</b>' + (libres > 0 ? '' : ' · sube "Usuarios extra permitidos" y guarda para invitar') + '.</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><input id="invc-nombre" placeholder="Nombre" style="' + inp + '"/><input id="invc-cargo" placeholder="Cargo (opcional)" style="' + inp + '"/></div>' +
+      '<div style="display:grid;grid-template-columns:2fr 1fr auto;gap:6px;margin-top:6px"><input id="invc-email" type="email" placeholder="Email *" style="' + inp + '"/>' +
+      '<select id="invc-rol" style="' + inp + '"><option value="miembro">Miembro</option><option value="gestor">Gestor</option><option value="visor">Visor</option></select>' +
+      '<button id="invc-btn" onclick="invitarContacto()" style="background:#FF8808;color:#fff;padding:8px 16px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap"' + (libres > 0 ? '' : ' disabled title="Sin cupos libres"') + '>Enviar invitación</button></div>' +
+      (pend.length ? '<div style="font-size:12px;color:#6B7280;margin-top:10px">Invitaciones pendientes: ' + pend.map(function(i){ return '<span style="display:inline-block;background:#FFF4E5;border:1px solid #FFD6A3;border-radius:999px;padding:2px 9px;margin:3px 4px 0 0">' + _escI(i.emailInvitado) + ' · vence ' + new Date(i.expiresAt).toLocaleDateString('es-CL') + '</span>'; }).join('') + '</div>' : '') +
+      '</div>';
+  }
+
+  async function invitarContacto() {
+    var email = (document.getElementById('invc-email').value || '').trim();
+    if (!email || email.indexOf('@') < 0) { toast('Ingresa un email válido', 'err'); return; }
+    var b = document.getElementById('invc-btn'); b.disabled = true; b.textContent = 'Enviando...';
+    var r = await api('/api/admin/invitar-contactos', 'POST', { email: userData.email, invitados: [{ email: email, nombre: (document.getElementById('invc-nombre').value || '').trim(), cargo: (document.getElementById('invc-cargo').value || '').trim(), rol: document.getElementById('invc-rol').value }] });
+    if (r && r.ok) {
+      var inv = (r.data.invitaciones || [])[0] || {};
+      if (inv.emailEnviado) { toast('Invitación enviada a ' + email); }
+      else { toast('Invitación creada, pero no se pudo enviar el correo. Link copiado al portapapeles.', 'err'); try { navigator.clipboard.writeText(inv.link || ''); } catch (e) {} }
+      userData.invitacionesPendientes = (userData.invitacionesPendientes || []).filter(function(i){ return i.emailInvitado !== email.toLowerCase(); }).concat([{ emailInvitado: email.toLowerCase(), expiresAt: inv.expiresAt }]);
+      setTimeout(function(){ location.reload(); }, 1200);
+    } else {
+      toast((r && r.data && r.data.error) || 'Error al invitar', 'err');
+      b.disabled = false; b.textContent = 'Enviar invitación';
+    }
   }
 
   async function guardarMaxUsuarios() {

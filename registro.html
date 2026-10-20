@@ -536,6 +536,8 @@ async function register(){
     document.getElementById('inv-empresa-label').textContent = 'Fuiste invitado por '+inv.empresa;
     document.getElementById('inv-email-label').textContent = inv.emailInvitado;
     document.getElementById('inv-sub').textContent = 'Unirte a '+inv.empresa+' en TransMatch';
+    // Invitaciones enviadas por el admin traen nombre y cargo: se precargan (la persona puede corregirlos)
+    try{ var _n=document.getElementById('inv-nombre'), _c=document.getElementById('inv-cargo'); if(inv.nombre&&_n&&!_n.value) _n.value=inv.nombre; if(inv.cargo&&_c&&!_c.value) _c.value=inv.cargo; }catch(e){}
     var invTycLink = document.getElementById('inv-tyc-link');
     if(invTycLink){
       invTycLink.href = inv.role==='transportista' ? '/Terminos_y_Condiciones_Transportista.pdf' : '/Terminos_y_Condiciones_Cliente.pdf';

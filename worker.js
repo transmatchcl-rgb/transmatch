@@ -9,6 +9,17 @@ const CORS_HEADERS = {
   "Access-Control-Max-Age":       "86400",
 };
 
+// CORS: la API solo responde a páginas de transmatch.cl (y vistas previas de Cloudflare Pages).
+// Llamadas sin Origin (webhooks de Kapso, descargas de WhatsApp) no se ven afectadas.
+const ORIGENES_PERMITIDOS = /^https:\/\/((www\.)?transmatch\.cl|([a-z0-9-]+\.)?transmatch\.pages\.dev)$/;
+function _aplicarCors(request, resp){
+  const origin = request.headers.get("Origin");
+  if(!origin || !resp || !resp.headers || !resp.headers.has("Access-Control-Allow-Origin")) return resp;
+  const r = new Response(resp.body, resp);
+  if(ORIGENES_PERMITIDOS.test(origin)){ r.headers.set("Access-Control-Allow-Origin", origin); r.headers.append("Vary","Origin"); }
+  else r.headers.delete("Access-Control-Allow-Origin");
+  return r;
+}
 function corsResponse(body, status, extra={}) {
   return new Response(body, { status, headers: { ...CORS_HEADERS, "Content-Type":"application/json", ...extra } });
 }
@@ -49,7 +60,9 @@ async function loginOk(env, email){ try{ await env.SESSIONS.delete("login_fail:"
 
 async function signToken(payload, secret) {
   const header = btoa(JSON.stringify({ alg:"HS256", typ:"JWT" }));
-  const body   = btoa(JSON.stringify({ ...payload, iat:Date.now(), exp:Date.now()+86400000*7 }));
+  // Duración de la sesión: admin 12 horas, usuarios 3 días. Los enlaces firmados (WhatsApp, etc.) mantienen 7 días.
+  const ttl = payload.role==="admin" ? 12*3600000 : (payload.role ? 3*86400000 : 7*86400000);
+  const body   = btoa(JSON.stringify({ ...payload, iat:Date.now(), exp:Date.now()+ttl }));
   const msg    = header+"."+body;
   const key    = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name:"HMAC", hash:"SHA-256" }, false, ["sign"]);
   const sig    = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
@@ -520,6 +533,64 @@ async function guardarPerfilEnEmpresa(env, user, body){
   if(changed){ emp.updatedAt=new Date().toISOString(); await dalSaveEmpresa(env, emp, _sb); }
 }
 // Sincroniza miembros, cupo e invitaciones de la empresa desde el registro de la cuenta madre.
+// Invitación creada por el admin de TransMatch para sumar un contacto a la cuenta de una empresa.
+// No guarda la cuenta madre: agrega la invitación a madre.invitacionesPendientes y el que llama la guarda.
+const INVITACION_ADMIN_HORAS = 7*24;
+function _normInvitados(lista){
+  const vistos=new Set();
+  return (Array.isArray(lista)?lista:[]).map(i=>({
+    email:String((i&&i.email)||"").toLowerCase().trim(),
+    nombre:String((i&&i.nombre)||"").trim().slice(0,80),
+    cargo:String((i&&i.cargo)||"").trim().slice(0,80),
+    rol:(["miembro","gestor","visor"].includes(i&&i.rol)?i.rol:"miembro"),
+  })).filter(i=>{ if(!i.email||vistos.has(i.email)) return false; vistos.add(i.email); return true; });
+}
+async function _validarInvitados(env, invitados, emailMadre){
+  for(const i of invitados){
+    if(!i.email.includes("@")) return "Email inválido: "+i.email;
+    if(emailMadre && i.email===String(emailMadre).toLowerCase()) return "El contacto invitado no puede tener el mismo email que la cuenta principal";
+    if(await _USR(env).get(i.email)) return "El email "+i.email+" ya tiene una cuenta en TransMatch";
+  }
+  return null;
+}
+async function _crearInvitacionAdmin(env, madre, inv){
+  const horas=INVITACION_ADMIN_HORAS;
+  const token=uid();
+  const now=new Date();
+  const registro={
+    token, emailInvitado:inv.email, empresaAdminEmail:String(madre.email).toLowerCase(), empresa:madre.empresa||"",
+    role:madre.role, permisos:{}, rol:inv.rol||"miembro",
+    nombreInvitado:inv.nombre||"", cargoInvitado:inv.cargo||"", invitadoPorAdmin:true,
+    createdAt:now.toISOString(), expiresAt:new Date(now.getTime()+horas*3600000).toISOString(),
+  };
+  await env.SESSIONS.put("invitacion:"+token, JSON.stringify(registro), { expirationTtl: horas*3600 });
+  madre.invitacionesPendientes=(madre.invitacionesPendientes||[]).filter(i=>i.emailInvitado!==inv.email);
+  madre.invitacionesPendientes.push({ token, emailInvitado:inv.email, createdAt:registro.createdAt, expiresAt:registro.expiresAt });
+  const link=`https://transmatch.cl/registro.html?invitacion=${token}`;
+  const empresa=madre.empresa||madre.nombre||"tu empresa";
+  const saludo=inv.nombre?("Hola "+inv.nombre.split(" ")[0]+","):"Hola,";
+  let envio=null;
+  try{
+    envio=await enviarEmail(env,{
+      to:inv.email,
+      subject:`Tu acceso a TransMatch · ${empresa}`,
+      html:emailBase(`
+        <h2 style="font-size:24px;font-weight:800;color:#1e2d4e;margin:0 0 8px;letter-spacing:-0.4px">Tienes una invitación</h2>
+        <p style="font-size:15px;color:#64748B;margin:0 0 8px;line-height:1.7">${saludo}</p>
+        <p style="font-size:15px;color:#64748B;margin:0 0 28px;line-height:1.7"><strong style="color:#1e2d4e">${empresa}</strong> ya tiene cuenta en TransMatch y te invitamos a crear tu propio usuario dentro de ella${madre.nombre?(", junto a "+madre.nombre):""}.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;margin:0 0 28px">
+          <tr><td style="padding:20px 24px">
+            <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.06em">Empresa</p>
+            <p style="margin:0;font-size:16px;font-weight:700;color:#1e2d4e">${empresa}</p>
+          </td></tr>
+        </table>
+        ${btnEmail(link, 'Crear mi usuario →', '#FF8904')}
+        <p style="font-size:13px;color:#94A3B8;margin:20px 0 0;text-align:center;line-height:1.6">Este link expira en <strong style="color:#64748B">7 días</strong>.<br>Si no esperabas esta invitación, puedes ignorar este email.</p>
+      `, "Invitación a TransMatch")
+    });
+  }catch(e){}
+  return { email:inv.email, emailEnviado:!!(envio&&envio.ok), link, expiresAt:registro.expiresAt };
+}
 async function syncEmpresaMiembros(env, madre){
   if(!madre || !madre.id) return;
   const _sb=usarSupabase(env, null);
@@ -627,6 +698,56 @@ async function crearOV(env, { transporteId, licitacion, cotizacion }) {
   return ov;
 }
 
+// ── Nivel del transportista: Nuevo / Verificado ─────────────────────────────
+// Reglas: Verificado = 3+ transportes completados (entregado + factura), promedio >= 4,5 y sin
+// incidencias graves del cliente en 90 días. Se pierde si el promedio baja de 4,0.
+// El admin puede forzarlo (nivelManual). Es solo informativo: nunca bloquea cotizar ni transportar.
+const RATING_NEUTRO = 5;
+const NIVEL_MIN_TRANSPORTES = 3, NIVEL_MIN_PROMEDIO = 4.5, NIVEL_PIERDE_BAJO = 4.0;
+const INCIDENCIAS_GRAVES = ["No se presentó","Carga dañada"];
+// Promedio de valoración de los transportistas de la red (solo transportistas con al menos una valoración).
+// Guardado como {sum,n} en SESSIONS; se ajusta en cada valoración y se reconstruye al recalcular niveles.
+async function ratingRed(env){
+  try{ const st=JSON.parse(await env.SESSIONS.get("stats:rating_red")||"null"); if(st&&st.n>0) return Math.round((st.sum/st.n)*100)/100; }catch(e){}
+  return RATING_NEUTRO;
+}
+async function ajustarRatingRed(env, ratingAnterior, ratingNuevo){
+  try{ const st=JSON.parse(await env.SESSIONS.get("stats:rating_red")||'{"sum":0,"n":0}');
+    if(ratingAnterior!=null){ st.sum+= (Number(ratingNuevo)||0)-(Number(ratingAnterior)||0); } else { st.sum+=Number(ratingNuevo)||0; st.n+=1; }
+    await env.SESSIONS.put("stats:rating_red", JSON.stringify(st)); }catch(e){}
+}
+function _calcNivelDesde(u, transportes){
+  const email=(u.email||"").toLowerCase();
+  const mios=(transportes||[]).filter(t=>t&&String(t.transportistaEmail||"").toLowerCase()===email);
+  const completados=mios.filter(t=>t.estado==="completado"||(t.estado==="entregado"&&t.factura)).length;
+  const hace90=Date.now()-90*86400000;
+  const graves=mios.reduce((n,t)=>n+((t.incidenciasCliente||[]).filter(i=>INCIDENCIAS_GRAVES.includes(i.tipo)&&new Date(i.createdAt||0).getTime()>=hace90).length),0);
+  const promedio=(u.totalTransportes||0)>0?(Number(u.rating)||null):null;
+  const prev=u.nivel||{};
+  const cumple=completados>=NIVEL_MIN_TRANSPORTES && promedio!=null && promedio>=NIVEL_MIN_PROMEDIO && graves===0;
+  const mantiene=prev.auto==="verificado" && promedio!=null && promedio>=NIVEL_PIERDE_BAJO;
+  const auto=(cumple||mantiene)?"verificado":"nuevo";
+  const nivel=u.nivelManual?u.nivelManual.nivel:auto;
+  return { nivel, auto, manual:u.nivelManual||null, completados, promedio, graves,
+    desde:(nivel==="verificado"&&prev.nivel==="verificado"&&prev.desde)?prev.desde:(nivel==="verificado"?new Date().toISOString():null),
+    calculadoAt:new Date().toISOString() };
+}
+// Recalcula y guarda el nivel de un transportista (si cambió). Devuelve el nivel.
+async function actualizarNivelTransportista(env, u, transportes){
+  if(!u||u.role!=="transportista") return null;
+  try{
+    if(!transportes){
+      if(usarSupabase(env)) { const rows=await sbSelect(env,"transportes","transportista_email=eq."+encodeURIComponent(u.email)+"&select=datos&limit=1000"); transportes=rows.map(r=>r.datos).filter(Boolean); }
+      else transportes=await dalGetAllTransportes(env,false);
+    }
+    const n=_calcNivelDesde(u, transportes);
+    const prev=u.nivel||{};
+    const cambio=prev.nivel!==n.nivel||prev.auto!==n.auto||prev.completados!==n.completados||prev.promedio!==n.promedio||prev.graves!==n.graves;
+    if(cambio){ u.nivel=n; await dalSaveUsuario(env, u, usarSupabase(env)); }
+    return u.nivel||n;
+  }catch(e){ console.error("nivel",e); return u.nivel||null; }
+}
+
 function calcScore(cotizacion, fechaSolicitada) {
   const allPrecios = [cotizacion._allPrecios || []].flat();
   const precioMax = Math.max(...allPrecios, cotizacion.precio, 1);
@@ -644,7 +765,9 @@ function calcScore(cotizacion, fechaSolicitada) {
     else if (diffDias <= 3) fechaScore = 0.40;
     else                    fechaScore = 0.10;
   }
-  const ratingScore = (cotizacion.transportistaRating || 5) / 5;
+  // Sin valoraciones: se usa el promedio de valoración de los transportistas de la red (no se muestra al cliente)
+  const _r = (cotizacion.transportistaRating!=null) ? cotizacion.transportistaRating : (cotizacion.ratingRed || RATING_NEUTRO);
+  const ratingScore = _r / 5;
   return (precioScore * 0.50) + (fechaScore * 0.30) + (ratingScore * 0.20);
 }
 
@@ -962,9 +1085,9 @@ function anonimizarTransportista(c, revelar) {
   const base = {
     id:c.id, licitacionId:c.licitacionId, precio:c.precio, modalidad:c.modalidad||"", tiempoEntrega:c.tiempoEntrega,
     descripcion:c.descripcion, incluye:c.incluye, tiempoRespuesta:c.tiempoRespuesta,
-    transportistaRating:c.transportistaRating, transportistaTransportes:c.transportistaTransportes,
+    transportistaRating:c.transportistaRating, transportistaTransportes:c.transportistaTransportes, transportistaNivel:c.transportistaNivel||"nuevo",
     archivoId:c.archivoId, archivoNombre:c.archivoNombre, score:c.score, createdAt:c.createdAt,
-    transportistaLabel:`Transportista Verificado ${c.transportistaRating||5}`,
+    transportistaLabel:(c.transportistaNivel==="verificado"?"Transportista verificado":""),
     formulario: formularioSeguro,
   };
   // Al adjudicar, se revela también el archivo propio del transportista
@@ -1063,14 +1186,14 @@ function formatCLP(n) {
 }
 
 function emailLicitacionAprobada(l) {
-  return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Tu licitacion fue aprobada</h2>
+  return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Tu licitación fue aprobada</h2>
     <p style="font-size:14px;color:#6B7280;margin:0 0 20px">Los transportistas ya pueden ver y cotizar tu solicitud.</p>
     <div style="background:#F9FAFB;border-radius:8px;padding:16px;margin-bottom:20px">
       <div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>Equipo:</strong> ${l.tipoEquipo}${l.marca?' - '+l.marca:''}</div>
       <div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>Ruta:</strong> ${l.origen} - ${l.destino}</div>
       <div style="font-size:13px;color:#374151"><strong>Plazo:</strong> ${l.plazo||'24'} horas</div>
     </div>
-    ${btnEmail('https://transmatch.cl/cliente-licitaciones.html','Ver mi licitacion')}`, "Tu licitacion fue aprobada - TransMatch");
+    ${btnEmail('https://transmatch.cl/cliente-licitaciones.html','Ver mi licitación')}`, "Tu licitación fue aprobada - TransMatch");
 }
 
 function emailLicitacionRechazada(l) {
@@ -1235,7 +1358,7 @@ function calcularInformeMensual(empresaId, periodo, lics, trans){
   const adjudicadas=misLics.filter(l=>l.adjudicadaA&&(l.estado==="adjudicada"||l.estado==="completada")&&mesChile(l.adjudicadaAt)===periodo)
     .sort((a,b)=>String(a.adjudicadaAt).localeCompare(String(b.adjudicadaAt)));
   const monto=adjudicadas.reduce((a,l)=>a+(Number(l.adjudicadaA.precio)||0),0);
-  const completados=(trans||[]).filter(t=>t&&(t.empresaId||t.clienteId)===empresaId&&(t.estado==="entregado"||t.estado==="completado")&&mesChile(t.completadoAt||t.entregadoAt)===periodo).length;
+  const completados=(trans||[]).filter(t=>t&&(t.empresaId||t.clienteId)===empresaId&&(t.estado==="entregado"||t.estado==="completado")&&mesChile(t.entregadoAt||t.completadoAt)===periodo).length;
   const valoradas=misLics.filter(l=>l.valoracion&&mesChile(l.valoracion.createdAt)===periodo);
   const valoracionPromedio=valoradas.length?Math.round(valoradas.reduce((a,l)=>a+(Number(l.valoracion.promedio)||0),0)/valoradas.length*10)/10:null;
   const rutasMap={};
@@ -1318,7 +1441,7 @@ function emailDocumentosSolicitados(t, docs) {
   return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Se solicitaron los siguientes documentos</h2>
     <p style="font-size:14px;color:#6B7280;margin:0 0 14px">Para el transporte <strong>${esc(t.codigo||"")}</strong> (${esc(t.origen||"")} → ${esc(t.destino||"")}):</p>
     <ul style="font-size:14px;color:#1e2d4e;margin:0 0 14px;padding-left:20px">${lista}</ul>
-    ${btnEmail('https://transmatch.cl/transportista-transporte.html','Subir documentos','#FF8808')}`, "Documentos solicitados - TransMatch");
+    ${btnEmail('https://transmatch.cl/transportista-transporte.html?id='+encodeURIComponent(t.id||''),'Subir documentos','#FF8808')}`, "Documentos solicitados - TransMatch");
 }
 
 function emailDocumentosCompletos(t) {
@@ -1337,15 +1460,15 @@ function emailCuentaAprobada(nombre) {
 }
 
 function emailOVConfirmada(ov) {
-  return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Comision confirmada</h2>
-    <p style="font-size:14px;color:#6B7280;margin:0 0 16px">El cliente subio su factura. Tu comision quedo fija.</p>
+  return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Comisión confirmada</h2>
+    <p style="font-size:14px;color:#6B7280;margin:0 0 16px">El cliente subió su factura. Tu comisión quedó fija.</p>
     <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:16px;margin-bottom:16px">
       <div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>OV:</strong> ${ov.id_ov}</div>
       <div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>Factura cliente:</strong> ${formatCLP(ov.monto_facturado)}</div>
-      <div style="font-size:22px;font-weight:700;color:#1e2d4e;margin-top:8px">Comision: ${formatCLP(ov.comision_final)}</div>
-      <div style="font-size:11px;color:#9CA3AF;margin-top:4px">UF del dia: $${ov.uf_del_dia?.toLocaleString('es-CL')}</div>
+      <div style="font-size:22px;font-weight:700;color:#1e2d4e;margin-top:8px">Comisión: ${formatCLP(ov.comision_final)}</div>
+      <div style="font-size:11px;color:#9CA3AF;margin-top:4px">UF del día: $${ov.uf_del_dia?.toLocaleString('es-CL')}</div>
     </div>
-    ${btnEmail('https://transmatch.cl/transportista-cobros.html','Ver mis OV')}`, "Comision confirmada - TransMatch");
+    ${btnEmail('https://transmatch.cl/transportista-cobros.html','Ver mis OV')}`, "Comisión confirmada - TransMatch");
 }
 
 function emailFacturaMensual(factura) {
@@ -1355,7 +1478,7 @@ function emailFacturaMensual(factura) {
       <div style="font-size:13px;color:#374151;margin-bottom:6px"><strong>OVs incluidas:</strong> ${factura.total_ovs}</div>
       <div style="font-size:22px;font-weight:700;color:#FF8904;margin-top:8px">Total: ${formatCLP(factura.total_comision)}</div>
     </div>
-    <p style="font-size:13px;color:#374151">Plazo de pago: 30 dias corridos desde esta fecha.</p>
+    <p style="font-size:13px;color:#374151">Plazo de pago: 30 días corridos desde esta fecha.</p>
     <p style="font-size:13px;color:#374151">Transferir a TransMatch SpA y enviar comprobante a <strong>pagos@transmatch.cl</strong></p>
     ${btnEmail('https://transmatch.cl/transportista-cobros.html','Ver mis facturas')}`, "Factura mensual - TransMatch");
 }
@@ -1515,6 +1638,55 @@ async function dalGetActividad(env, sb){
   }
   return JSON.parse(await env.SESSIONS.get("actividad:index") || "[]").slice(0,50);
 }
+// ── Archivos en Cloudflare R2 (binding ARCHIVOS_R2). En la base queda la ficha con base64 = R2_MARCA. ──
+const R2_MARCA="__r2__";
+function _r2Key(id){ return "archivos/"+id; }
+function _b64ABytes(b64){ const s=String(b64||"").replace(/^data:[^,]*,/,""); const bin=atob(s); const u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u; }
+function _bytesAB64(buf){ const u=new Uint8Array(buf); let bin=""; for(let i=0;i<u.length;i+=0x8000) bin+=String.fromCharCode.apply(null, u.subarray(i,i+0x8000)); return btoa(bin); }
+async function _r2Guardar(env, id, b64, tipo){
+  const pref=(String(b64).match(/^data:[^,]*,/)||[""])[0]; // conservar el prefijo data: si venía
+  await env.ARCHIVOS_R2.put(_r2Key(id), _b64ABytes(b64), { httpMetadata:{ contentType: tipo||"application/octet-stream" }, customMetadata:{ pref } });
+}
+async function _r2LeerBase64(env, id){
+  if(!env.ARCHIVOS_R2) return null;
+  const o=await env.ARCHIVOS_R2.get(_r2Key(id)); if(!o) return null;
+  const pref=(o.customMetadata&&o.customMetadata.pref)||"";
+  return pref+_bytesAB64(await o.arrayBuffer());
+}
+
+// ── Respaldo nocturno de la base (Supabase → R2, respaldos/AAAA-MM-DD/tabla.json.gz). ──
+// Corre desde el cron (cada hora): entre 01:00 y 07:00 (hora Chile) respalda hasta 6 tablas por ejecución hasta completar el día.
+// Guarda 30 días. La tabla archivos se respalda sin el contenido (el contenido vive en R2).
+const RESPALDO_TABLAS=["empresas","usuarios","equipos","licitaciones","cotizaciones","preguntas","transportes","ordenes_venta","facturas_suscripcion","facturas_consolidado","retornos","propuestas","notificaciones","actividad","invitaciones","secuencias","archivos"];
+function _hoyChile(){ const p=new Intl.DateTimeFormat("en-CA",{ timeZone:"America/Santiago", year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", hour12:false }).formatToParts(new Date()); const g=k=>(p.find(x=>x.type===k)||{}).value; return { dia:g("year")+"-"+g("month")+"-"+g("day"), hora:parseInt(g("hour"))%24 }; }
+async function respaldoBasePaso(env, forzar){
+  if(!env.ARCHIVOS_R2 || !env.SUPABASE_URL || !env.SUPABASE_KEY) return "sin configurar";
+  const { dia, hora }=_hoyChile();
+  if(!forzar && (hora<1 || hora>=7)) return "fuera de horario";
+  let est=JSON.parse(await env.SESSIONS.get("respaldo:estado")||"null");
+  if(!est || est.dia!==dia) est={ dia, hechas:[], errores:[], inicio:new Date().toISOString() };
+  const tabla=RESPALDO_TABLAS.find(t=>!est.hechas.includes(t));
+  if(!tabla){
+    if(!est.limpiado){ // borrar respaldos de más de 30 días
+      const lim=new Date(Date.now()-30*864e5).toISOString().slice(0,10);
+      const l=await env.ARCHIVOS_R2.list({ prefix:"respaldos/", limit:1000 });
+      const viejos=l.objects.map(o=>o.key).filter(k=>(k.split("/")[1]||"")<lim);
+      if(viejos.length) await env.ARCHIVOS_R2.delete(viejos.slice(0,1000));
+      est.limpiado=true; est.fin=new Date().toISOString(); await env.SESSIONS.put("respaldo:estado", JSON.stringify(est));
+    }
+    return "completo";
+  }
+  try{
+    const sel=tabla==="archivos"?"select=id,nombre,tipo,subido_por,oculto_transportista,visibilidad,licitacion_id,created_at":"select=*";
+    const filas=[];
+    for(let off=0; off<20000; off+=1000){ const r=await sbSelect(env, tabla, sel+"&limit=1000&offset="+off); filas.push(...r); if(r.length<1000) break; }
+    const gz=new Response(new Blob([JSON.stringify(filas)]).stream().pipeThrough(new CompressionStream("gzip")));
+    await env.ARCHIVOS_R2.put("respaldos/"+dia+"/"+tabla+".json.gz", await gz.arrayBuffer(), { httpMetadata:{ contentType:"application/gzip" }, customMetadata:{ filas:String(filas.length) } });
+  }catch(e){ est.errores.push(tabla+": "+(e&&e.message||e)); }
+  est.hechas.push(tabla);
+  await env.SESSIONS.put("respaldo:estado", JSON.stringify(est));
+  return tabla;
+}
 // ── Capa de datos — ARCHIVOS (PDFs/imágenes en base64). ──
 function _archivoRow(id, a){
   return { id, nombre:a.nombre||null, tipo:a.tipo||a.mimeType||null, base64:a.base64||null, subido_por:a.subidoPor||null, oculto_transportista:(a.ocultoTransportista===true?true:(a.ocultoTransportista===false?false:null)), visibilidad:a.visibilidad||null, licitacion_id:a.licitacionId||null, created_at:_licTS(a.createdAt) };
@@ -1524,16 +1696,25 @@ async function dalGetArchivo(env, id, sb){
   if(sb){
     const rows=await sbSelect(env,"archivos","id=eq."+encodeURIComponent(id)+"&limit=1");
     if(!rows[0]) return null; const r=rows[0];
+    if(r.base64===R2_MARCA) r.base64=await _r2LeerBase64(env, id);
     return { id:r.id, nombre:r.nombre, tipo:r.tipo, mimeType:r.tipo, base64:r.base64, subidoPor:r.subido_por, ocultoTransportista:r.oculto_transportista, visibilidad:r.visibilidad, licitacionId:r.licitacion_id, createdAt:r.created_at };
   }
   const raw=await env.ARCHIVOS.get(id); return raw?JSON.parse(raw):null;
 }
 async function dalSaveArchivo(env, id, a, sb){
-  if(sb){ await sbUpsert(env,"archivos",[_archivoRow(id, a)]); return; }
+  if(sb){
+    // Con R2 conectado: el contenido va a R2 y en la base solo queda la ficha (sin el base64).
+    if(env.ARCHIVOS_R2 && a && a.base64 && a.base64!==R2_MARCA){
+      await _r2Guardar(env, id, a.base64, a.tipo||a.mimeType);
+      await sbUpsert(env,"archivos",[_archivoRow(id, { ...a, base64:R2_MARCA })]); return;
+    }
+    const row=_archivoRow(id, a); if(!row.base64) delete row.base64; // solo ficha: no pisar el contenido existente
+    await sbUpsert(env,"archivos",[row]); return;
+  }
   await env.ARCHIVOS.put(id, JSON.stringify(a));
 }
 async function dalDeleteArchivo(env, id, sb){
-  if(sb){ try{ await sbDelete(env,"archivos","id=eq."+encodeURIComponent(id)); }catch(e){} return; }
+  if(sb){ try{ await sbDelete(env,"archivos","id=eq."+encodeURIComponent(id)); }catch(e){} try{ if(env.ARCHIVOS_R2) await env.ARCHIVOS_R2.delete(_r2Key(id)); }catch(e){} return; }
   await env.ARCHIVOS.delete(id);
 }
 
@@ -1562,7 +1743,8 @@ async function registrarActividad(env, tipo, mensaje, datos={}) {
 //   KAPSO_FLOW_ID                         → ID del Flow "Cotizacion TransMatch" en Meta
 //   KAPSO_FLOW_DRAFT=1                    → envía el Flow en modo borrador (para probar antes de publicarlo)
 //   KAPSO_TEMPLATE (opcional)             → nombre de la plantilla (default: nueva_licitacion)
-//   KAPSO_TEMPLATE_LANG (opcional)        → idioma de la plantilla (default: es)
+//   KAPSO_TEMPLATE_LANG (opcional)        → idioma de nueva_licitacion (default: es = "Spanish" en Meta)
+//   KAPSO_TEMPLATE_LANG_ADMIN / _DOCS     → idioma de aviso_admin_licitacion / solicitud_documento (default: es_CL = "Spanish (CHL)")
 //   KAPSO_WEBHOOK_SECRET (opcional)       → secreto de firma del webhook de Kapso (X-Webhook-Signature)
 //   KAPSO_TEST_TO (opcional)              → en pruebas: los avisos solo llegan a ESTE número
 function usarKapso(env){ return !!(env.KAPSO_API_KEY && env.KAPSO_PHONE_NUMBER_ID); }
@@ -1576,15 +1758,49 @@ function _telWa(t){
 }
 // Celular chileno válido para WhatsApp: 569 + 8 dígitos
 function _telWaValido(t){ const s=_telWa(t); return !!(s && /^569\d{8}$/.test(s)); }
+// Sube un archivo de TransMatch a WhatsApp (POST /{phone_number_id}/media) y devuelve su id, o null si falla.
+async function _waSubirMedia(env, archivoId, nombre){
+  try{
+    if(!usarKapso(env) || !archivoId) return null;
+    let bytes=null, tipo="application/pdf";
+    if(env.ARCHIVOS_R2){
+      const o=await env.ARCHIVOS_R2.get(_r2Key(archivoId));
+      if(o){ bytes=await o.arrayBuffer(); tipo=(o.httpMetadata&&o.httpMetadata.contentType)||tipo; }
+    }
+    if(!bytes){ const a=await dalGetArchivo(env, archivoId, usarSupabase(env,null)); if(!a||!a.base64) return null; bytes=_b64ABytes(a.base64); tipo=a.tipo||a.mimeType||tipo; }
+    const base=(env.KAPSO_API_BASE||"https://api.kapso.ai/meta/whatsapp/v24.0").replace(/\/+$/,"");
+    const fd=new FormData();
+    fd.append("messaging_product","whatsapp");
+    fd.append("type", tipo);
+    fd.append("file", new Blob([bytes],{ type:tipo }), nombre||"archivo.pdf");
+    const r=await fetch(base+"/"+env.KAPSO_PHONE_NUMBER_ID+"/media",{ method:"POST", headers:{ "X-API-Key":env.KAPSO_API_KEY }, body:fd });
+    const t=await r.text(); let j=null; try{ j=JSON.parse(t); }catch(e){}
+    if(!r.ok || !j || !j.id){ await _waLogError(env, { type:"media_upload", to:"-" }, r.status, t); return null; }
+    return j.id;
+  }catch(e){ console.error("media upload", e&&e.message); return null; }
+}
 async function kapsoEnviar(env, msg){
   if(!usarKapso(env)) return { skipped:true };
   const base=(env.KAPSO_API_BASE||"https://api.kapso.ai/meta/whatsapp/v24.0").replace(/\/+$/,"");
   const url=base+"/"+env.KAPSO_PHONE_NUMBER_ID+"/messages";
   try{
     const r=await fetch(url,{ method:"POST", headers:{ "X-API-Key":env.KAPSO_API_KEY, "Content-Type":"application/json" }, body: JSON.stringify({ messaging_product:"whatsapp", ...msg }) });
-    if(!r.ok){ const t=await r.text().catch(()=>""); console.error("Kapso send "+r.status, t.slice(0,300)); return { ok:false, status:r.status, error:t }; }
+    if(!r.ok){ const t=await r.text().catch(()=>""); console.error("Kapso send "+r.status, t.slice(0,300)); await _waLogError(env, msg, r.status, t); return { ok:false, status:r.status, error:t }; }
     return { ok:true, data: await r.json().catch(()=>({})) };
   }catch(e){ console.error("Kapso excepción", e&&e.message); return { ok:false, error:String(e&&e.message||e) }; }
+}
+// Guarda los últimos envíos fallidos para poder diagnosticarlos desde el admin.
+// Cuentas internas de TransMatch (para probar con licitaciones de prueba sin mostrarlas a transportistas reales)
+function _esCuentaInterna(u){ return /@transmatch\.cl$/i.test(String((u&&u.email)||"").trim()); }
+async function _waLogError(env, msg, status, texto){
+  try{
+    const prev=JSON.parse(await env.SESSIONS.get("wa:errores")||"[]");
+    const tipo=(msg&&msg.type)+(msg&&msg.interactive?(":"+msg.interactive.type):"")+(msg&&msg.template?(":"+msg.template.name):"");
+    // Kapso responde 500 al enviar documentos aunque el documento sí se entrega: se registra como advertencia, no como error.
+    const nivel=(msg&&msg.type==="document"&&status>=500)?"advertencia":"error";
+    prev.unshift({ fecha:new Date().toISOString(), tipo, nivel, to:msg&&msg.to, status, error:String(texto||"").slice(0,600) });
+    await env.SESSIONS.put("wa:errores", JSON.stringify(prev.slice(0,20)));
+  }catch(e){}
 }
 function kapsoTexto(env, to, texto){ return kapsoEnviar(env, { to, type:"text", text:{ body:String(texto).slice(0,4096) } }); }
 
@@ -1640,7 +1856,7 @@ async function crearCotizacionCore(env, user, body, sb){
   if (!licitacionId||!precio) return { error:"licitacionId y precio son requeridos", status:400 };
   const raw = await dalGetLicitacionById(env, licitacionId, sb); if(!raw) return { error:"No encontrada", status:404 };
   const l = raw;
-  if (l.estado!=="abierta" || licitacionVencida(l)) return { error:"Esta licitacion no esta abierta", status:400 };
+  if (l.estado!=="abierta" || licitacionVencida(l)) return { error:"Esta licitación no está abierta", status:400 };
   const emailsT = await emailsEmpresa(env, user);
   const _misCotiz=_misCotizacionesEn(l, user, emailsT);
   if(_misCotiz.length>=MAX_COTIZ_POR_LICITACION) return { error:"Ya enviaste el máximo de 2 cotizaciones para esta licitación", status:400 };
@@ -1649,13 +1865,13 @@ async function crearCotizacionCore(env, user, body, sb){
   const _modalidad = _MODALIDADES.includes(body.modalidad) ? body.modalidad : "";
   const _sanContacto=function(c){ c=c||{}; const n=(c.nombre||'').toString().trim().slice(0,120),t=(c.telefono||'').toString().trim().slice(0,30),e=(c.email||'').toString().trim().slice(0,120); return (n||t||e)?{nombre:n,telefono:t,email:e}:null; };
   const _contactoEnc=_sanContacto(body.contactoEncargado);
-  const cotizacion = { id:uid(), codigo:await generarCodigo(env,'COT'), licitacionId, transportistaId:user.id, transportistaNombre:user.nombre, transportistaEmpresa:user.empresa, transportistaEmail:user.email, transportistaTelefono:userData.telefono||"", transportistaRating:userData.rating||5.0, transportistaTransportes:userData.totalTransportes||0, precio:parseFloat(precio), modalidad:_modalidad, contactoEncargado:_contactoEnc, tiempoEntrega:tiempoEntrega||"", fechaCargaISO:fechaCargaISO||null, fechaEntregaISO:fechaEntregaISO||null, descripcion:descripcion||"", incluye:incluye||[], archivoId:archivoId||null, archivoNombre:archivoNombre||null, archivoPropioId:archivoPdfId||null, archivoPropioNombre:archivoPdfNombre||null, formulario:formulario||null, tiempoRespuesta:Math.floor((Date.now()-new Date(l.createdAt).getTime())/60000), score:0, createdAt:new Date().toISOString() };
+  const cotizacion = { id:uid(), codigo:await generarCodigo(env,'COT'), licitacionId, transportistaId:user.id, transportistaNombre:user.nombre, transportistaEmpresa:user.empresa, transportistaEmail:user.email, transportistaTelefono:userData.telefono||"", transportistaRating:(userData.totalTransportes||0)>0?(userData.rating||null):null, ratingRed:await ratingRed(env), transportistaNivel:(userData.nivel&&userData.nivel.nivel)||"nuevo", transportistaTransportes:userData.totalTransportes||0, precio:parseFloat(precio), modalidad:_modalidad, contactoEncargado:_contactoEnc, tiempoEntrega:tiempoEntrega||"", fechaCargaISO:fechaCargaISO||null, fechaEntregaISO:fechaEntregaISO||null, descripcion:descripcion||"", incluye:incluye||[], archivoId:archivoId||null, archivoNombre:archivoNombre||null, archivoPropioId:archivoPdfId||null, archivoPropioNombre:archivoPdfNombre||null, formulario:formulario||null, tiempoRespuesta:Math.floor((Date.now()-new Date(l.createdAt).getTime())/60000), score:0, createdAt:new Date().toISOString() };
   if(body.canal==="whatsapp") cotizacion.canal="whatsapp";
   l.cotizaciones = [...(l.cotizaciones||[]), cotizacion];
   const todosPrecios = l.cotizaciones.map(c=>c.precio);
   l.cotizaciones = l.cotizaciones.map(c=>({...c,_allPrecios:todosPrecios,score:calcScore({...c,_allPrecios:todosPrecios},l.fechaCarga)})).sort((a,b)=>b.score-a.score);
   await dalSaveLicitacion(env, l, sb);
-  await crearNotificacion(env,"admin","nueva_cotizacion",`Nueva cotizacion${cotizacion.canal==="whatsapp"?" (WhatsApp)":""}: ${l.tipoEquipo} - ${l.origen}-${l.destino} - ${formatCLP(parseFloat(precio))}`,{ licitacionId, cotizacionId:cotizacion.id });
+  await crearNotificacion(env,"admin","nueva_cotizacion",`Nueva cotización${cotizacion.canal==="whatsapp"?" (WhatsApp)":""}: ${l.tipoEquipo} - ${l.origen}-${l.destino} - ${formatCLP(parseFloat(precio))}`,{ licitacionId, cotizacionId:cotizacion.id });
   await registrarActividad(env,"cotizacion_enviada",`${user.empresa||user.nombre||'Transportista'} cotizó ${formatCLP(parseFloat(precio))} en ${l.tipoEquipo} (${l.origen} → ${l.destino})${cotizacion.canal==="whatsapp"?" vía WhatsApp":""}`,{ licitacionId, cotizacionId:cotizacion.id, codigo:l.codigo });
   return { ok:true, cotizacion, licitacion:l };
 }
@@ -1682,11 +1898,87 @@ async function notificarAdminLicitacionWhatsapp(env, l){
   const cliente = (l.clienteEmpresa||l.clienteNombre||"—") + (l.esPrueba?" (prueba)":"");
   return kapsoEnviar(env, { to, type:"template", template:{
     name: env.KAPSO_TEMPLATE_ADMIN || "aviso_admin_licitacion",
-    language:{ code: env.KAPSO_TEMPLATE_LANG || "es" },
+    language:{ code: env.KAPSO_TEMPLATE_LANG_ADMIN || "es_CL" },
     components:[
       { type:"body", parameters:[ _waParam(l.codigo||"Licitación"), _waParam(cliente), _waParam(_waCarga(l)), _waParam(_waRuta(l)), _waParam(_waFecha(l.fechaCarga)), _waParam(estado) ].map(t=>({ type:"text", text:t })) },
       { type:"button", sub_type:"quick_reply", index:"0", parameters:[ { type:"payload", payload:"adminlic:"+l.id } ] }
     ] } });
+}
+
+// ── Ficha completa de la licitación por WhatsApp (se envía al tocar "Cotizar", dentro de la ventana de 24 h: sin costo) ──
+// Mismos datos que ve el transportista en la plataforma, sin datos del cliente. El archivo de especificaciones
+// solo se adjunta si TransMatch lo marcó visible para transportistas (igual que en la web).
+const _WA_DIAS=["dom","lun","mar","mié","jue","vie","sáb"];
+function _waFechaCorta(iso, hora){
+  const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso||"")); if(!m) return iso?String(iso):"—";
+  const d=new Date(Date.UTC(+m[1],+m[2]-1,+m[3],12));
+  return _WA_DIAS[d.getUTCDay()]+" "+m[3]+"-"+m[2]+(hora?(" · "+hora):"");
+}
+function _waCierreCorto(l){
+  const c=_waCierreISO(l); if(!c) return "—";
+  const p=new Intl.DateTimeFormat("es-CL",{ timeZone:"America/Santiago", year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", hour12:false }).formatToParts(new Date(c));
+  const g=k=>(p.find(x=>x.type===k)||{}).value||"";
+  return _waFechaCorta(g("year")+"-"+g("month")+"-"+g("day"))+" a las "+g("hour")+":"+g("minute");
+}
+function _waDim(v){ const s=String(v||"").trim(); if(!s) return ""; return /[a-wyz]/i.test(s)?s:(s+" m"); }
+// Ficha que recibe el transportista al tocar "Cotizar": ordenada como se cotiza (qué → con qué → dónde → cuándo → requisitos).
+async function enviarFichaLicitacionWa(env, to, l){
+  try{
+    const L=[]; const sec=t=>{ L.push(""); L.push(t); }; const add=v=>{ if(v!==undefined&&v!==null&&String(v).trim()!=="") L.push(String(v).trim()); };
+    const tEnt={ mina:"dentro de la mina", garita:"en garita" };
+    const peso=l.peso?(l.peso+" "+(l.pesoUnidad||"ton")):"";
+    L.push("📋 *"+(l.codigo||"Licitación")+" · Ficha para cotizar*");
+    // 1) Qué se transporta
+    sec("🏗️ *Carga*");
+    if(l.tipoLicitacion==="maquinaria"){
+      const cant=parseInt(l.cantidadEquipos||"1")||1;
+      add((cant>1?cant+" × ":"")+[l.tipoEquipo,l.marca,l.modelo].filter(Boolean).join(" "));
+      add([peso, _waDim(l.dimensiones)?(_waDim(l.dimensiones)+" (largo × ancho × alto)"):""].filter(Boolean).join(" · "));
+    } else if(l.tipoLicitacion==="contenedor"){
+      add([l.cantidadContenedores?(l.cantidadContenedores+" ×"):"", "Contenedor", l.tipoContenedor, l.condicionContenedor].filter(Boolean).join(" "));
+      add([l.pesoVGM?("VGM "+l.pesoVGM):"", peso].filter(Boolean).join(" · "));
+      if(l.mercanciaPeligrosa) add("⚠️ Carga peligrosa"+[l.claseIMO?(" · IMO "+l.claseIMO):"", l.numeroUN?(" · UN "+l.numeroUN):""].join(""));
+      if(l.refrigerado) add("❄️ Refrigerado"+(l.temperaturaReefer?(" a "+l.temperaturaReefer+" °C"):""));
+      if(l.contSobredimensionado) add("Sobredimensionado"+(l.contSobredimensionadoDetalle?(": "+l.contSobredimensionadoDetalle):""));
+    } else {
+      add(l.tipoCarga||"Carga general");
+      add([peso, l.volumen?(l.volumen+" m³"):"", l.cantidadBultos?(l.cantidadBultos+" bultos"):"", l.pesoPorBulto?(l.pesoPorBulto+" kg c/u"):""].filter(Boolean).join(" · "));
+      add(_waDim(l.dimensiones));
+    }
+    // 2) Con qué camión
+    if(l.tipoEquipoRequerido&&l.tipoEquipoRequerido!=="cualquiera"){ sec("🚛 *Camión requerido:* "+l.tipoEquipoRequerido); }
+    // 3) Ruta
+    sec("📍 *Ruta: "+_waRuta(l)+"*");
+    add(l.direccionOrigen?("Retiro: "+l.direccionOrigen):"");
+    (Array.isArray(l.paradas)?l.paradas:[]).forEach((p,i)=>add(p&&p.direccion?("Parada "+(i+1)+": "+p.direccion):""));
+    const ent=tEnt[l.tipoEntregaDestino]||"";
+    add((l.direccionDestino||ent)?("Entrega: "+[l.direccionDestino, ent?("("+ent+")"):""].filter(Boolean).join(" ")):"");
+    // 4) Fechas
+    sec("📅 *Fechas*");
+    add("Carga: "+_waFechaCorta(l.fechaCarga, l.horaCarga));
+    if(l.fechaEntrega) add("Descarga: "+_waFechaCorta(l.fechaEntrega, l.horaDescarga));
+    // 5) Requisitos
+    const req=[];
+    if(l.requiereEstandar) req.push("• Estándar minero"+(l.estandarDetalle?(": "+l.estandarDetalle):""));
+    if(l.valorSeguro) req.push("• Seguro de carga por aprox. "+_clp(_num(l.valorSeguro)));
+    if(req.length){ sec("✅ *Requisitos*"); req.forEach(add); }
+    // 6) Observaciones
+    if(l.descripcion){ sec("📝 *Observaciones del cliente*"); add(String(l.descripcion).trim().slice(0,900)); }
+    const verArchivo=!!(l.archivoId&&l.archivoVisibleTransportista);
+    if(l.archivoId&&!verArchivo){ sec("📎 El cliente adjuntó especificaciones; las verás al adjudicarte."); }
+    sec("⏰ *Cotizaciones hasta el "+_waCierreCorto(l)+"*");
+    await kapsoTexto(env, to, L.join("\n").replace(/\n{3,}/g,"\n\n"));
+    if(verArchivo){
+      const tok=await signToken({ t:"waarch", id:l.archivoId, hasta:Date.now()+48*3600e3 }, env.JWT_SECRET);
+      const api=(env.TM_API_BASE||"https://transmatch.transmatchcl.workers.dev").replace(/\/+$/,"");
+      const nombre=String(l.archivoNombre||"especificaciones.pdf").slice(0,120);
+      const caption="Especificaciones · "+(l.codigo||"");
+      // 1° intento: subir el archivo a WhatsApp y enviarlo por id (evita que Kapso tenga que descargarlo del link).
+      const mediaId=await _waSubirMedia(env, l.archivoId, nombre);
+      if(mediaId) await kapsoEnviar(env, { to, type:"document", document:{ id:mediaId, filename:nombre, caption } });
+      else await kapsoEnviar(env, { to, type:"document", document:{ link: api+"/api/wa/archivo?t="+encodeURIComponent(tok)+"&n="+encodeURIComponent(nombre), filename:nombre, caption } });
+    }
+  }catch(e){ console.error("ficha wa", e&&e.message); }
 }
 function _esAdminWa(env, from){ const a=_telWa(env.ADMIN_WHATSAPP); return !!a && a===_telWa(from); }
 const _WA_EST_ADMIN={ pendiente_admin:"Pendiente de aprobación", abierta:"Abierta (cotizando)", cerrada:"Cerrada, en revisión", adjudicada:"Adjudicada", completada:"Completada", rechazada:"Rechazada", expirada:"Expirada", anulada:"Anulada" };
@@ -1767,10 +2059,14 @@ async function _waFlowToken(env, licId, userId){
 }
 async function kapsoEnviarFlow(env, to, l, user, prev, intro){
   if(!env.KAPSO_FLOW_ID){ console.error("Falta KAPSO_FLOW_ID"); return kapsoTexto(env, to, "Por ahora no podemos abrir el formulario. Cotiza en "+(env.TM_BASE||"https://transmatch.cl")+"/transportista-licitaciones.html?id="+encodeURIComponent(l.id)); }
-  const params={ flow_message_version:"3", flow_token: await _waFlowToken(env, l.id, user.id), flow_id: env.KAPSO_FLOW_ID, flow_cta:"Abrir formulario", flow_action:"navigate", flow_action_payload:{ screen:"SERVICIO", data:_waFlowData(env, l, prev) } };
+  const params={ flow_message_version:"3", flow_token: await _waFlowToken(env, l.id, user.id), flow_id: env.KAPSO_FLOW_ID, flow_cta:"Completar cotización", flow_action:"navigate", flow_action_payload:{ screen:"SERVICIO", data:_waFlowData(env, l, prev) } };
   if(["1","on","true","si","sí"].includes(String(env.KAPSO_FLOW_DRAFT||"").toLowerCase())) params.mode="draft";
-  const texto=(intro?intro+"\n\n":"")+"Completa tu cotización para la *"+(l.codigo||"licitación")+"*. Recibimos cotizaciones hasta el "+_waCierreTexto(l)+".";
-  return kapsoEnviar(env, { to, type:"interactive", interactive:{ type:"flow", body:{ text:texto.slice(0,1024) }, action:{ name:"flow", parameters:params } } });
+  const urlWeb=(env.TM_BASE||"https://transmatch.cl")+"/transportista-licitaciones.html?id="+encodeURIComponent(l.id);
+  const texto=(intro?intro+"\n\n":"")+"👇 Toca *Completar cotización* para enviar tu oferta por la *"+(l.codigo||"licitación")+"*.\n\nSi prefieres, también puedes cotizar en la web: "+urlWeb;
+  const r=await kapsoEnviar(env, { to, type:"interactive", interactive:{ type:"flow", body:{ text:texto.slice(0,1024) }, action:{ name:"flow", parameters:params } } });
+  // Si el formulario no se pudo abrir, que el transportista igual pueda cotizar (no trabar).
+  if(!r||!r.ok) await kapsoTexto(env, to, "No pudimos abrir el formulario de cotización en WhatsApp. Puedes cotizar la "+(l.codigo||"licitación")+" aquí: "+urlWeb);
+  return r;
 }
 // Arma la cotización (mismo formato que cotizacion-editor.html) a partir de la respuesta del Flow.
 function _waArmarCotizacion(l, r){
@@ -1896,6 +2192,7 @@ async function kapsoProcesarMensaje(env, m){
     const mias=_misCotizacionesEn(l, user, await emailsEmpresa(env, user)).length;
     if(mias>=MAX_COTIZ_POR_LICITACION) return kapsoTexto(env, from, "⚠️ Ya enviaste el máximo de "+MAX_COTIZ_POR_LICITACION+" cotizaciones para la "+(l.codigo||"licitación")+".");
     const intro = mias>0 ? ("Ya enviaste "+mias+" de "+MAX_COTIZ_POR_LICITACION+" cotizaciones para esta licitación. Puedes enviar una más.") : "";
+    await enviarFichaLicitacionWa(env, from, l);
     return kapsoEnviarFlow(env, from, l, user, null, intro);
   }
 
@@ -1938,7 +2235,7 @@ async function kapsoProcesarMensaje(env, m){
     await env.SESSIONS.delete("wa_pend:"+pid); // evita doble envío si toca 2 veces
     const r=await crearCotizacionCore(env, user, p.body, sb);
     if(r.error){
-      const msg = r.error==="Esta licitacion no esta abierta" ? "⚠️ La licitación ya cerró y no recibe más cotizaciones." : ("⚠️ No pudimos enviar tu cotización: "+r.error+".");
+      const msg = r.error==="Esta licitación no está abierta" ? "⚠️ La licitación ya cerró y no recibe más cotizaciones." : ("⚠️ No pudimos enviar tu cotización: "+r.error+".");
       return kapsoTexto(env, from, msg);
     }
     return kapsoTexto(env, from, "✅ *Cotización "+(r.cotizacion.codigo||"")+" enviada*\n\nYa está en la plataforma junto a las demás ofertas para la "+(r.licitacion.codigo||"licitación")+". Puedes revisarla o editarla en "+base+".\n\nTe avisaremos por correo si te adjudican. 🚚");
@@ -1992,10 +2289,10 @@ async function notificarDocsWhatsapp(env, t, nuevos){
   else if(u && u.notifWhatsapp===true && _telWaValido(u.telefono||u.whatsapp)) to=_telefonoWaDe(u);
   if(!to) return;
   const labels=(nuevos||[]).map(r=>r.label).filter(Boolean).join(", ");
-  const ind=((nuevos||[]).map(r=>r.indicaciones).find(Boolean))||"—";
+  const ind=((nuevos||[]).map(r=>r.indicaciones).find(Boolean))||"Ninguna";
   await kapsoEnviar(env, { to, type:"template", template:{
     name: env.KAPSO_TEMPLATE_DOCS || "solicitud_documento",
-    language:{ code: env.KAPSO_TEMPLATE_LANG || "es" },
+    language:{ code: env.KAPSO_TEMPLATE_LANG_DOCS || "es_CL" },
     components:[
       { type:"body", parameters:[ _waParam(t.codigo||"Transporte"), _waParam(_waRutaT(t)), _waParam(labels), _waParam(ind) ].map(x=>({ type:"text", text:x })) },
       { type:"button", sub_type:"quick_reply", index:"0", parameters:[ { type:"payload", payload:"docs:"+t.id } ] },
@@ -2184,14 +2481,14 @@ async function handleRequest(request, env, ctx) {
   }
 
   if (path === "/api/auth/register" && method === "POST") {
-    let body = {}; try { body = await request.json(); } catch(e) { return err("Formato invalido"); }
+    let body = {}; try { body = await request.json(); } catch(e) { return err("Formato inválido"); }
     const { email, password, nombre, empresa, role, telefono, whatsapp, rut, zonas, equiposIniciales,
             rutEmpresa, cargo, industrias, tiposEquipo: tiposEquipoBody, otroEquipoPendiente } = body;
     if (!email||!password||!nombre||!role) return err("Faltan campos requeridos");
     const roleNorm = role==="mandante"?"cliente":role;
-    if (!["cliente","transportista","mandante"].includes(role)) return err("Rol invalido");
-    if (password.length<8) return err("Contrasena minimo 8 caracteres");
-    if (!email.includes("@")) return err("Email invalido");
+    if (!["cliente","transportista","mandante"].includes(role)) return err("Rol inválido");
+    if (password.length<8) return err("Contraseña: mínimo 8 caracteres");
+    if (!email.includes("@")) return err("Email inválido");
     // Registro SOLO por invitación: requiere un link de acceso generado por el admin.
     const _regToken = body.regToken || body.acceso;
     if (!_regToken) return err("El registro es solo por invitación. Contacta al administrador para obtener acceso.");
@@ -2201,7 +2498,7 @@ async function handleRequest(request, env, ctx) {
     if (_acceso.role && _acceso.role!=="cualquiera" && _acceso.role!==roleNorm) return err("Este link de acceso es para otro tipo de cuenta.");
     const emailLower = email.toLowerCase();
     const existing = await _USR(env).get(emailLower);
-    if (existing) return err("Este email ya esta registrado");
+    if (existing) return err("Este email ya está registrado");
     const user = {
       id:uid(), email:emailLower, password:await hashPassword(password),
       nombre, empresa:empresa||"", telefono:telefono||"", rut:rut||"",
@@ -2612,7 +2909,7 @@ async function handleRequest(request, env, ctx) {
   // POST /api/admin/asignar-rol — el admin cambia el rol de empresa de un usuario (dueno/gestor/miembro/visor)
   if (path === "/api/admin/asignar-rol" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
-    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato inválido"); }
     const email=(body.email||"").toLowerCase(); const rol=body.rol;
     if(!email||!rol) return err("email y rol requeridos");
     if(!["dueno","gestor","miembro","visor"].includes(rol)) return err("Rol inválido");
@@ -2659,7 +2956,7 @@ async function handleRequest(request, env, ctx) {
   if (path.match(/^\/api\/admin\/empresa\/[^/]+\/licitacion-express$/) && method === "PUT") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     const eid=path.split("/")[4];
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const _sbX=usarSupabase(env, url);
     const e=await dalGetEmpresaById(env, eid, _sbX); if(!e) return err("Empresa no encontrada",404);
     e.licitacionExpress = body.activo===true;
@@ -2671,7 +2968,7 @@ async function handleRequest(request, env, ctx) {
   if (path.match(/^\/api\/admin\/empresa\/[^/]+\/vigencia$/) && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     const eid=path.split("/")[4];
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const _sbV=usarSupabase(env, url);
     const e=await dalGetEmpresaById(env, eid, _sbV); if(!e) return err("Empresa no encontrada",404);
     const tipo=(body.tipo==="prueba")?"prueba":"contrato";
@@ -2685,16 +2982,20 @@ async function handleRequest(request, env, ctx) {
   // y se le envía por correo al usuario. Alternativa al link de acceso.
   if (path === "/api/admin/crear-usuario" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const email=(body.email||"").toLowerCase().trim();
     const nombre=(body.nombre||"").trim();
     const empresa=(body.empresa||"").trim();
     let role = body.role==="mandante"?"cliente":(body.role||"cliente");
-    if(!["cliente","transportista"].includes(role)) return err("Rol invalido");
-    if(!email.includes("@")) return err("Email invalido");
+    if(!["cliente","transportista"].includes(role)) return err("Rol inválido");
+    if(!email.includes("@")) return err("Email inválido");
     if(!nombre) return err("Nombre requerido");
     const existing=await _USR(env).get(email);
     if(existing) return err("Este email ya está registrado");
+    const maxExtra=Math.max(0,Math.min(50,parseInt(body.maxUsuarios)||0));
+    const invitados=_normInvitados(body.invitados);
+    if(invitados.length>maxExtra) return err(`Invitaste a ${invitados.length} contacto(s), pero el cupo de usuarios extra es ${maxExtra}`);
+    const errInv=await _validarInvitados(env, invitados, email); if(errInv) return err(errInv);
     const pass = generarPasswordProvisoria();
     const nuevo = {
       id:uid(), email, password:await hashPassword(pass),
@@ -2709,12 +3010,47 @@ async function handleRequest(request, env, ctx) {
       tiposEquipo: Array.isArray(body.tiposEquipo)?body.tiposEquipo:[],
       perfilCompletitud: role==="cliente"?40:30,
       passwordProvisorio:true, creadoPorAdmin:true, createdAt:new Date().toISOString(),
+      max_usuarios:maxExtra,
     };
     await dalSaveUsuario(env, nuevo, usarSupabase(env, url));
     let emailEnviado=false;
     try{ const r=await enviarEmail(env,{ to:email, subject:"Tu cuenta TransMatch está lista", html:emailCredenciales(nombre, email, pass) }); emailEnviado = !!(r&&r.ok); }catch(e){}
     await registrarActividad(env, role==="transportista"?"transportista_registrado":"cliente_registrado", `Cuenta creada por admin: ${empresa||nombre} (${role})`, { userId:nuevo.id });
-    return ok({ ok:true, email, password:pass, emailEnviado, role });
+    const invitaciones=[];
+    for(const inv of invitados){ invitaciones.push(await _crearInvitacionAdmin(env, nuevo, inv)); }
+    if(invitados.length) await dalSaveUsuario(env, nuevo, usarSupabase(env, url));
+    try{ await syncEmpresaMiembros(env, nuevo); }catch(e){}
+    if(invitados.length) await registrarActividad(env,"invitacion_empresa",`Invitaciones enviadas por admin a ${invitados.map(i=>i.email).join(", ")} (${empresa||nombre})`,{ userId:nuevo.id });
+    return ok({ ok:true, email, password:pass, emailEnviado, role, maxUsuarios:maxExtra, invitaciones });
+  }
+
+  // POST /api/admin/invitar-contactos — el admin invita contactos a la cuenta de una empresa que ya existe
+  // body: { email (cuenta principal), invitados:[{email,nombre,cargo,rol}], maxUsuarios? }
+  if (path === "/api/admin/invitar-contactos" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
+    const emailMadre=String(body.email||"").toLowerCase().trim();
+    const raw=await _USR(env).get(emailMadre); if(!raw) return err("Cuenta no encontrada",404);
+    const madre=JSON.parse(raw);
+    if(madre.esSubusuario) return err("Esta cuenta es un usuario adicional. Invita desde la cuenta principal de la empresa.");
+    if(!["cliente","transportista"].includes(madre.role)) return err("Solo se pueden invitar contactos a cuentas de cliente o transportista");
+    const invitados=_normInvitados(body.invitados);
+    if(!invitados.length) return err("Agrega al menos un email");
+    if(body.maxUsuarios!==undefined && body.maxUsuarios!==null && body.maxUsuarios!=="") madre.max_usuarios=Math.max(0,Math.min(50,parseInt(body.maxUsuarios)||0));
+    const ahora=Date.now();
+    const nuevos=new Set(invitados.map(i=>i.email));
+    const pendientes=(madre.invitacionesPendientes||[]).filter(i=>i&&new Date(i.expiresAt).getTime()>ahora&&!nuevos.has(i.emailInvitado));
+    const usados=(madre.empresaMiembros||[]).length+pendientes.length;
+    const libres=(madre.max_usuarios||0)-usados;
+    if(invitados.length>libres) return err(`La cuenta tiene ${madre.max_usuarios||0} usuario(s) extra permitidos y ${usados} en uso o invitados. Sube el cupo para invitar a ${invitados.length} más.`);
+    const errInv=await _validarInvitados(env, invitados, emailMadre); if(errInv) return err(errInv);
+    madre.invitacionesPendientes=pendientes;
+    const invitaciones=[];
+    for(const inv of invitados){ invitaciones.push(await _crearInvitacionAdmin(env, madre, inv)); }
+    await dalSaveUsuario(env, madre, usarSupabase(env, url));
+    try{ await syncEmpresaMiembros(env, madre); }catch(e){}
+    await registrarActividad(env,"invitacion_empresa",`Invitaciones enviadas por admin a ${invitados.map(i=>i.email).join(", ")} (${madre.empresa||madre.nombre})`,{ userId:madre.id });
+    return ok({ ok:true, maxUsuarios:madre.max_usuarios||0, invitaciones });
   }
 
 
@@ -2723,13 +3059,13 @@ async function handleRequest(request, env, ctx) {
     try {
       const user = await getUser(request, env);
       if (!user) return err("No autenticado", 401);
-      let prefsBody = {}; try { prefsBody = await request.json(); } catch(e) { return err("Formato invalido"); }
+      let prefsBody = {}; try { prefsBody = await request.json(); } catch(e) { return err("Formato inválido"); }
       const { notifPrefs } = prefsBody;
       if (!notifPrefs) return err("Faltan preferencias");
       const _sbP = usarSupabase(env, url);
       const u = await dalGetUsuarioByEmail(env, user.email, _sbP);
       if (!u) return err("Usuario no encontrado", 404);
-      if (typeof notifPrefs !== "object") return err("Formato invalido");
+      if (typeof notifPrefs !== "object") return err("Formato inválido");
       // Fusionar: cada panel guarda solo sus claves sin borrar las del otro
       u.notifPrefs = Object.assign({}, u.notifPrefs || {}, notifPrefs);
       await dalSaveUsuario(env, u, _sbP);
@@ -2740,7 +3076,7 @@ async function handleRequest(request, env, ctx) {
   if (path === "/api/auth/cambiar-password" && method === "POST") {
     const user = await getUser(request, env);
     if (!user) return err("No autenticado", 401);
-    let body = {}; try { body = await request.json(); } catch(e) { return err("Formato invalido"); }
+    let body = {}; try { body = await request.json(); } catch(e) { return err("Formato inválido"); }
     const { passwordActual, passwordNueva } = body;
     if (!passwordActual || !passwordNueva) return err("Faltan campos");
     if (String(passwordNueva).length < 8) return err("La nueva contraseña debe tener al menos 8 caracteres");
@@ -2760,7 +3096,7 @@ async function handleRequest(request, env, ctx) {
 
   // ¿Olvidaste tu contraseña? → correo con enlace de 1 hora. Responde siempre igual (no revela si el correo existe).
   if (path === "/api/auth/olvide" && method === "POST") {
-    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato inválido"); }
     const email=String(body.email||"").toLowerCase().trim();
     const respuesta=ok({ ok:true, mensaje:"Si el correo está registrado, te enviamos un enlace para crear una nueva contraseña." });
     if(!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return respuesta;
@@ -2778,7 +3114,7 @@ async function handleRequest(request, env, ctx) {
     return respuesta;
   }
   if (path === "/api/auth/restablecer" && method === "POST") {
-    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato inválido"); }
     const tok=String(body.token||""), pw=String(body.password||"");
     if(!tok) return err("Enlace inválido");
     const k="reset:"+await _sha256Legacy(tok); const email=await env.SESSIONS.get(k);
@@ -2793,7 +3129,7 @@ async function handleRequest(request, env, ctx) {
     return ok({ ok:true, mensaje:"Contraseña actualizada. Ya puedes iniciar sesión." });
   }
   if (path === "/api/auth/login" && method === "POST") {
-    let body = {}; try { body = await request.json(); } catch(e) { return err("Formato invalido"); }
+    let body = {}; try { body = await request.json(); } catch(e) { return err("Formato inválido"); }
     const { email, password } = body;
     if (!email||!password) return err("Email y contrasena requeridos");
     const emailLower = String(email).toLowerCase().trim();
@@ -2813,7 +3149,7 @@ async function handleRequest(request, env, ctx) {
     if (passwordEsLegacy(user.password)) { try{ user.password = await hashPassword(password); user.passwordMigradaAt = new Date().toISOString(); await dalSaveUsuario(env, user, _sbL); }catch(e){} }
     // Estado efectivo: los sub-usuarios heredan el estado de la cuenta madre (cascada) y respetan su desactivación manual.
     const ef = await efectivoSubusuario(env, user);
-    if (ef.estado==="pendiente")  return err("Cuenta pendiente de aprobacion",403);
+    if (ef.estado==="pendiente")  return err("Cuenta pendiente de aprobación",403);
     if (ef.estado==="rechazado")  return err("Registro rechazado. Contacta al administrador",403);
     if (ef.estado==="suspendido") return err(user.esSubusuario && user.desactivadoManual ? "Tu acceso fue desactivado por tu empresa" : "Cuenta suspendida",403);
     const token = await signToken({ id:user.id, email:emailLower, role:user.role, nombre:user.nombre, empresa:user.empresa, plan:ef.plan, esSubusuario:user.esSubusuario||false, empresaMadreId:user.empresaMadreId||null, rol:(user.rol || (user.esSubusuario?"miembro":"dueno")), empresaId:(user.empresaId || (user.esSubusuario?(user.empresaMadreId||user.id):user.id)) }, env.JWT_SECRET);
@@ -2822,7 +3158,7 @@ async function handleRequest(request, env, ctx) {
 
   if (path === "/api/auth/me" && method === "GET") {
     const user = await getUser(request, env);
-    if (!user) return err("Token invalido",401);
+    if (!user) return err("Token inválido",401);
     if (user.role==="admin") return ok({ user:{ id:"admin", email:user.email, role:"admin", nombre:"Administrador", empresa:"TransMatch", plan:null } });
     const _sbM = usarSupabase(env, url);
     const u = await dalGetUsuarioMerged(env, user.email);
@@ -2843,7 +3179,7 @@ async function handleRequest(request, env, ctx) {
   if (path === "/api/licitaciones" && method === "POST") {
     const user = await getUser(request, env);
     const d = deny(user,"cliente","admin"); if(d) return d;
-    let body = {}; try { body = await request.json(); } catch(e) { return err("Formato invalido"); }
+    let body = {}; try { body = await request.json(); } catch(e) { return err("Formato inválido"); }
     const { tipoEquipo, marca, peso, dimensiones, descripcion, origen, destino, fechaCarga, fechaEntrega, plazo, archivoId, archivoNombre, tipoLicitacion, tipoCarga, cantidadBultos, pesoPorBulto, modelo, cantidadEquipos, direccionOrigen, direccionDestino, contactoOrigenNombre, contactoOrigenTelefono, contactoOrigenEmail, contactoDestinoNombre, contactoDestinoTelefono, contactoDestinoEmail, volumen, horaCarga, horaDescarga, paradas, tipoEntregaDestino, valorSeguro, requiereEstandar, estandarDetalle, estandarArchivoId, estandarArchivoNombre, tipoContenedor, cantidadContenedores, condicionContenedor, pesoVGM, mercanciaPeligrosa, claseIMO, numeroUN, refrigerado, temperaturaReefer, contSobredimensionado, contSobredimensionadoDetalle, numeroContenedor, selloContenedor } = body;
     if (!origen||!destino||!fechaCarga) return err("Faltan campos requeridos");
     // Licitación exprés (6h): solo empresas habilitadas, carga hoy o mañana, publicada antes de las 13:00 (hora Chile)
@@ -2873,7 +3209,7 @@ async function handleRequest(request, env, ctx) {
       // WhatsApp: no se envía solo; el admin elige a quién desde admin-licitaciones.
     }
     await registrarActividad(env,"licitacion_creada",`${user.empresa||user.nombre||'Cliente'} publicó una licitación: ${licitacion.tipoEquipo} (${origen} → ${destino})`,{ licitacionId:id, codigo, empresa:user.empresa });
-    return ok({ ok:true, id, mensaje:"Licitacion enviada." });
+    return ok({ ok:true, id, mensaje:"Licitación enviada." });
   }
 
   if (path === "/api/licitaciones" && method === "GET") {
@@ -2895,7 +3231,7 @@ async function handleRequest(request, env, ctx) {
       const id = l.id;
       if (!l.codigo) { l.codigo = await generarCodigo(env,'LIC'); await dalSaveLicitacion(env, l, _sbL); }
       if (user.role==="transportista") {
-        if (l.esPrueba) continue; // las licitaciones de prueba nunca se muestran a transportistas
+        if (l.esPrueba && !_esCuentaInterna(user)) continue; // las licitaciones de prueba solo las ven cuentas internas (@transmatch.cl)
         if (["abierta","cerrada"].includes(l.estado)) { /* Sin filtro por tipo de equipo: todas las licitaciones abiertas/en revisión se muestran a TODOS los transportistas (matching desactivado a pedido de Majo). */ const _anon=anonimizarCliente(l); const cotEmp=(l.cotizaciones||[]).find(c=>c.transportistaId===user.id || (c.transportistaEmail&&emailsEmpresaT.has(c.transportistaEmail.toLowerCase()))); _anon.empresaYaCotizo=!!cotEmp; _anon.empresaCotizoNombre=(!user.esSubusuario && cotEmp)?(cotEmp.transportistaNombre||''):''; _anon.preguntas=anonimizarPreguntas(l.preguntas,user.id,'transportista'); licitaciones.push(_anon); }
         else if (["adjudicada","completada"].includes(l.estado) && l.adjudicadaA?.transportistaEmail===user.email) licitaciones.push(l);
         else continue;
@@ -2916,7 +3252,7 @@ async function handleRequest(request, env, ctx) {
     const id = path.split("/")[3]; const user = await getUser(request,env); if(!user) return err("No autenticado",401);
     const l = await dalGetLicitacionById(env, id, usarSupabase(env, url)); if(!l) return err("No encontrada",404);
     if(user.role==="cliente"){ const _eid=(user.esSubusuario?(user.empresaMadreId||user.id):user.id); if((l.empresaId||l.clienteId)!==_eid) return err("Sin acceso",403); if(user.rol==="miembro"){ const _cr=(l.creadoPorEmail||l.clienteEmail||"").toLowerCase(); if(_cr!==user.email.toLowerCase()) return err("Sin acceso",403); } }
-    if (user.role==="transportista") { if(l.esPrueba) return err("Sin acceso",403); if(!["abierta","cerrada"].includes(l.estado)) return err("Sin acceso",403); const _anonG=anonimizarCliente(l); _anonG.preguntas=anonimizarPreguntas(l.preguntas,user.id,'transportista'); return ok({ licitacion:_anonG }); }
+    if (user.role==="transportista") { if(l.esPrueba && !_esCuentaInterna(user)) return err("Sin acceso",403); if(!["abierta","cerrada"].includes(l.estado)) return err("Sin acceso",403); const _anonG=anonimizarCliente(l); _anonG.preguntas=anonimizarPreguntas(l.preguntas,user.id,'transportista'); return ok({ licitacion:_anonG }); }
     if (user.role==="cliente") { const lCopy={...l}; const adjId=l.adjudicadaA?.cotizacionId; lCopy.cotizaciones=(l.cotizacionesEnviadas||[]).map(c=>anonimizarTransportista(c, l.estado==="adjudicada" && c.id===adjId)); lCopy.totalCotizaciones=(l.cotizaciones||[]).length; lCopy.preguntas=anonimizarPreguntas(l.preguntas,user.id,'cliente'); return ok({ licitacion:lCopy }); }
     return ok({ licitacion:l });
   }
@@ -2932,20 +3268,53 @@ async function handleRequest(request, env, ctx) {
 
   if (path === "/api/cotizaciones" && method === "POST") {
     const user = await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     delete body.canal; // el canal "whatsapp" solo lo marca el webhook
     const r = await crearCotizacionCore(env, user, body, usarSupabase(env, url));
     if (r.error) return err(r.error, r.status||400);
-    return ok({ ok:true, mensaje:"Cotizacion enviada." });
+    return ok({ ok:true, mensaje:"Cotización enviada." });
   }
 
   // Limpieza de datos de prueba: borra DEFINITIVAMENTE licitaciones (por código) y todo lo que cuelga de ellas:
   // cotizaciones, preguntas, transportes, órdenes de venta, facturas consolidadas que solo tengan esas OV, archivos y notificaciones.
   // POST {codigos:["LIC-0001",...]} → vista previa. POST {codigos, ejecutar:true, confirmacion:"BORRAR"} → borra.
+  // POST /api/admin/archivos/migrar-r2 {limite} — mueve archivos de la base a R2 por tandas (llamar hasta pendientes=0).
+  if (path === "/api/admin/archivos/migrar-r2" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    if(!env.ARCHIVOS_R2) return err("Falta conectar el bucket R2 al worker (binding ARCHIVOS_R2)");
+    if(!usarSupabase(env, url)) return err("Solo aplica con Supabase");
+    let body={}; try{ body=await request.json(); }catch(e){}
+    const limite=Math.min(Math.max(parseInt(body.limite)||5,1),15);
+    const filtro="base64=not.is.null&base64=neq."+R2_MARCA;
+    const rows=await sbSelect(env,"archivos","select=id,tipo,base64&"+filtro+"&limit="+limite);
+    const movidos=[], fallos=[];
+    for(const r of rows){
+      try{
+        await _r2Guardar(env, r.id, r.base64, r.tipo);
+        const chk=await env.ARCHIVOS_R2.head(_r2Key(r.id)); if(!chk || !chk.size) throw new Error("no quedó en R2");
+        const u=_sbBase(env)+"/rest/v1/archivos?id=eq."+encodeURIComponent(r.id);
+        const pr=await fetch(u,{ method:"PATCH", headers:{ "apikey":env.SUPABASE_KEY, "Authorization":"Bearer "+env.SUPABASE_KEY, "Content-Type":"application/json", "Prefer":"return=minimal" }, body:JSON.stringify({ base64:R2_MARCA }) });
+        if(!pr.ok) throw new Error("PATCH "+pr.status);
+        movidos.push(r.id);
+      }catch(e){ fallos.push(r.id+": "+(e&&e.message||e)); }
+    }
+    let pendientes=null; try{ const cu=await fetch(_sbBase(env)+"/rest/v1/archivos?select=id&"+filtro+"&limit=1",{ headers:{ "apikey":env.SUPABASE_KEY, "Authorization":"Bearer "+env.SUPABASE_KEY, "Prefer":"count=exact", "Range":"0-0" } }); const cr=cu.headers.get("content-range")||""; pendientes=parseInt(cr.split("/")[1])||0; }catch(e){}
+    return ok({ ok:true, movidos:movidos.length, fallos, pendientes });
+  }
+  // GET /api/admin/respaldos — lista los respaldos de la base guardados en R2. POST con {ahora:true} avanza un paso del respaldo de hoy.
+  if (path === "/api/admin/respaldos" && (method === "GET" || method === "POST")) {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    if(!env.ARCHIVOS_R2) return err("Falta conectar el bucket R2 al worker (binding ARCHIVOS_R2)");
+    if(method==="POST"){ const r=await respaldoBasePaso(env, true); return ok({ ok:true, paso:r }); }
+    const l=await env.ARCHIVOS_R2.list({ prefix:"respaldos/", limit:1000 });
+    const dias={}; for(const o of l.objects){ const dia=o.key.split("/")[1]; (dias[dia]=dias[dia]||{ archivos:0, bytes:0 }); dias[dia].archivos++; dias[dia].bytes+=o.size; }
+    const estado=JSON.parse(await env.SESSIONS.get("respaldo:estado")||"null");
+    return ok({ dias, estado });
+  }
   if (path === "/api/admin/limpieza" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     const sb=usarSupabase(env, url);
-    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato inválido"); }
     const codigos=[...new Set((Array.isArray(body.codigos)?body.codigos:[]).map(c=>String(c).trim().toUpperCase()).filter(c=>/^LIC-\d+$/.test(c)))];
     const retIds=[...new Set((Array.isArray(body.retornos)?body.retornos:[]).map(String).filter(Boolean))].slice(0,50);
     if(!codigos.length && !retIds.length) return err("Indica al menos un código LIC-XXXX o un retorno");
@@ -2970,6 +3339,11 @@ async function handleRequest(request, env, ctx) {
     const archivos=new Set();
     const juntar=o=>{ if(!o||typeof o!=="object") return; for(const [k,v] of Object.entries(o)){ if(typeof v==="string" && /archivo(propio|sii)?id$/i.test(k) && v) archivos.add(v); else if(v && typeof v==="object") juntar(v); } };
     lics.forEach(juntar); trns.forEach(juntar); factsBorrar.forEach(juntar);
+    // No borrar archivos que también usa otra licitación o transporte que se mantiene (ej: un PDF reutilizado en una prueba)
+    { const enUso=new Set(); const marcar=o=>{ if(!o||typeof o!=="object") return; for(const [k,v] of Object.entries(o)){ if(typeof v==="string" && /archivo(propio|sii)?id$/i.test(k) && v) enUso.add(v); else if(v && typeof v==="object") marcar(v); } };
+      todas.filter(l=>l && !licIds.has(l.id)).forEach(marcar);
+      (await dalGetAllTransportes(env, sb)).filter(t=>t && !trnIds.has(t.id)).forEach(marcar);
+      for(const id of [...archivos]) if(enUso.has(id)) archivos.delete(id); }
     const resumen={
       licitaciones: lics.map(l=>({ codigo:l.codigo, estado:l.estado, cliente:l.clienteEmpresa||l.clienteEmail||"", ruta:(l.origen||"")+" → "+(l.destino||""), cotizaciones:(l.cotizaciones||[]).length })),
       transportes: trns.map(t=>({ codigo:t.codigo, estado:t.estado, transportista:t.transportistaEmpresa||"" })),
@@ -2991,6 +3365,7 @@ async function handleRequest(request, env, ctx) {
       const borrar=async(tabla, col, valores)=>{ if(valores.length) await intento(tabla, ()=>sbDelete(env, tabla, col+"="+encodeURIComponent(enLista(valores)))); };
       const lIds=lics.map(l=>l.id), tIds=trns.map(t=>t.id), oIds=ovs.map(o=>o.id_ov);
       await borrar("archivos","id",[...archivos]);
+      if(env.ARCHIVOS_R2 && archivos.size) await intento("archivos R2", ()=>env.ARCHIVOS_R2.delete([...archivos].map(_r2Key)));
       await borrar("facturas_consolidado","id",factsBorrar.map(f=>f.id));
       await borrar("ordenes_venta","id_ov",oIds);
       await borrar("transportes","id",tIds);
@@ -3037,6 +3412,49 @@ async function handleRequest(request, env, ctx) {
     return ok({ ok:true, borrado:true, ...resumen, fallos });
   }
   // Sincroniza usuarios entre KV y Supabase. POST {} → vista previa; POST {ejecutar:true} → guarda la versión combinada en ambos.
+  // ── Nivel Nuevo / Verificado ──
+  if (path === "/api/transportista/nivel" && method === "GET") {
+    const user=await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
+    const emailEmp=await emailEmpresaTransportista(env,user);
+    const u=await dalGetUsuarioMerged(env, emailEmp); if(!u) return err("No encontrado",404);
+    const n=await actualizarNivelTransportista(env, u);
+    return ok({ nivel:n, reglas:{ minTransportes:NIVEL_MIN_TRANSPORTES, minPromedio:NIVEL_MIN_PROMEDIO, pierdeBajo:NIVEL_PIERDE_BAJO } });
+  }
+  if (path === "/api/admin/transportista/nivel" && (method === "GET" || method === "POST")) {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    let body={}; if(method==="POST"){ try{body=await request.json();}catch(e){return err("Formato inválido");} }
+    const email=String((method==="GET"?url.searchParams.get("email"):body.email)||"").toLowerCase();
+    const u=await dalGetUsuarioMerged(env, email); if(!u||u.role!=="transportista") return err("Transportista no encontrado",404);
+    if(method==="POST"){
+      const acc=body.accion;
+      if(acc==="verificar"||acc==="quitar"){
+        const motivo=String(body.motivo||"").trim().slice(0,300); if(!motivo) return err("Indica un motivo");
+        u.nivelManual={ nivel:acc==="verificar"?"verificado":"nuevo", motivo, por:"TransMatch", fecha:new Date().toISOString() };
+      } else if(acc==="auto"){ delete u.nivelManual; }
+      else return err("Acción inválida");
+    }
+    let n;
+    if(method==="POST"){ n=_calcNivelDesde(u, usarSupabase(env, url)?(await sbSelect(env,"transportes","transportista_email=eq."+encodeURIComponent(u.email)+"&select=datos&limit=1000")).map(r=>r.datos).filter(Boolean):await dalGetAllTransportes(env,false)); u.nivel=n; await dalSaveUsuario(env, u, usarSupabase(env, url)); await registrarActividad(env,"nivel_transportista",`Nivel de ${u.email}: ${n.nivel}${u.nivelManual?" (manual: "+u.nivelManual.motivo+")":" (automático)"}`,{ email:u.email }); }
+    else n=await actualizarNivelTransportista(env, u);
+    return ok({ nivel:n, reglas:{ minTransportes:NIVEL_MIN_TRANSPORTES, minPromedio:NIVEL_MIN_PROMEDIO, pierdeBajo:NIVEL_PIERDE_BAJO } });
+  }
+  if (path === "/api/admin/recalcular-niveles" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    const todos=(await dalTodosUsuarios(env)).filter(u=>u&&u.role==="transportista");
+    const trans=await dalGetAllTransportes(env, usarSupabase(env, url));
+    { const con=todos.filter(u=>(u.totalTransportes||0)>0&&u.rating); await env.SESSIONS.put("stats:rating_red", JSON.stringify({ sum:con.reduce((a,u)=>a+Number(u.rating),0), n:con.length })); }
+    let verificados=0, cambiados=0;
+    for(const u of todos){
+      const n=_calcNivelDesde(u, trans); const prev=u.nivel||{};
+      if(n.nivel==="verificado") verificados++;
+      if(prev.nivel!==n.nivel||prev.completados!==n.completados||prev.promedio!==n.promedio||prev.graves!==n.graves){
+        if(cambiados>=20) continue; // límite de subrequests por llamada: volver a ejecutar si hay más
+        u.nivel=n; await dalSaveUsuario(env, u, usarSupabase(env, url)); cambiados++;
+      }
+    }
+    return ok({ ok:true, transportistas:todos.length, verificados, actualizados:cambiados, pendientes:Math.max(0,todos.filter(u=>{const n=_calcNivelDesde(u,trans),p=u.nivel||{};return p.nivel!==n.nivel||p.completados!==n.completados||p.promedio!==n.promedio||p.graves!==n.graves;}).length) });
+  }
+
   if (path === "/api/admin/sync-usuarios" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     let body={}; try{ body=await request.json(); }catch(e){}
@@ -3078,7 +3496,7 @@ async function handleRequest(request, env, ctx) {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     const id=path.split("/")[4]; const raw=await dalGetLicitacionById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrada",404);
     let _body={}; try{_body=await request.json();}catch(e){}
-    const l=raw; if(l.estado!=="pendiente_admin") return err("No esta pendiente");
+    const l=raw; if(l.estado!=="pendiente_admin") return err("No está pendiente");
     l.estado="abierta"; l.aprobadaAt=new Date().toISOString();
     l.comentarioAdmin=(_body.comentarioAdmin||"").toString().trim();
     // Visibilidad de archivos: aprobado por admin = lo ven los que cotizan; si no, solo el adjudicado.
@@ -3093,7 +3511,7 @@ async function handleRequest(request, env, ctx) {
       try{ const _a=await dalGetArchivo(env, aid, usarSupabase(env, url)); if(_a){ _a.licitacionId=id; _a.visibilidad=(vis?"bidders":"adjudicado"); await dalSaveArchivo(env, aid, _a, usarSupabase(env, url)); } }catch(e){}
     }
     await dalSaveLicitacion(env, l, usarSupabase(env, url));
-    await crearNotificacion(env,l.clienteId,"licitacion_aprobada",`Tu licitacion fue aprobada: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`,{ licitacionId:id });
+    await crearNotificacion(env,l.clienteId,"licitacion_aprobada",`Tu licitación fue aprobada: ${l.tipoEquipo} - ${l.origen} - ${l.destino}`,{ licitacionId:id });
     // Al aprobar NO se envía correo al cliente (solo notificación interna). El cliente solo recibe correo si es rechazada.
     // Notificar a los transportistas elegibles (in-app + email según preferencia).
     // Las licitaciones de prueba NO se notifican ni se muestran a los transportistas.
@@ -3113,7 +3531,7 @@ async function handleRequest(request, env, ctx) {
   if (path.startsWith("/api/admin/licitacion/")&&path.endsWith("/archivos-visibilidad")&&method==="POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     const id=path.split("/")[4]; const raw=await dalGetLicitacionById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrada",404);
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const l=raw;
     const _archVis = body.archivoVisible === true;
     const _estVis  = body.estandarArchivoVisible === true;
@@ -3145,7 +3563,7 @@ async function handleRequest(request, env, ctx) {
     const raw=await dalGetLicitacionById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrada",404);
     const l=raw; l.estado="rechazada"; l.motivoRechazo=body.motivo||"";
     await dalSaveLicitacion(env, l, usarSupabase(env, url));
-    await crearNotificacion(env,l.clienteId,"licitacion_rechazada",`Tu licitacion fue rechazada: ${body.motivo||"Contacta al administrador"}`,{ licitacionId:id });
+    await crearNotificacion(env,l.clienteId,"licitacion_rechazada",`Tu licitación fue rechazada: ${body.motivo||"Contacta al administrador"}`,{ licitacionId:id });
     try{ await enviarEmail(env,{ to:l.clienteEmail, subject:"Tu licitación fue rechazada - TransMatch", html:emailLicitacionRechazada(l) }); }catch(e){}
     await registrarActividad(env,"licitacion_rechazada",`Licitación rechazada: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo, motivo:body.motivo||"" });
     return ok({ ok:true });
@@ -3185,7 +3603,7 @@ async function handleRequest(request, env, ctx) {
 
   if (path.startsWith("/api/licitaciones/") && path.split("/").length===4 && method==="PUT") {
     const id=path.split("/")[3]; const user=await getUser(request,env); if(!user) return err("No autenticado",401);
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const raw=await dalGetLicitacionById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrada",404);
     const l=raw;
     if(user.role==="cliente"){ const _eid=(user.esSubusuario?(user.empresaMadreId||user.id):user.id); if((l.empresaId||l.clienteId)!==_eid) return err("Sin acceso",403); }
@@ -3217,7 +3635,7 @@ async function handleRequest(request, env, ctx) {
   // precio, ruta, fechas y equipo quedan intactos, solo cambia a quién contactar).
   if (path.startsWith("/api/licitaciones/")&&path.endsWith("/contacto")&&method==="PUT") {
     const id=path.split("/")[3]; const user=await getUser(request,env); const d=deny(user,"cliente"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const raw=await dalGetLicitacionById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrada",404);
     const l=raw;
     const _eid=(user.esSubusuario?(user.empresaMadreId||user.id):user.id); if((l.empresaId||l.clienteId)!==_eid) return err("Sin acceso",403);
@@ -3234,7 +3652,7 @@ async function handleRequest(request, env, ctx) {
   // cotizaciones, se avisa a los transportistas que cotizaron para que revisen las nuevas fechas.
   if (path.startsWith("/api/licitaciones/")&&path.endsWith("/fechas")&&method==="PUT") {
     const id=path.split("/")[3]; const user=await getUser(request,env); const d=deny(user,"cliente","admin"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const raw=await dalGetLicitacionById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrada",404);
     const l=raw;
     if(user.role==="cliente"){ const _eid=(user.esSubusuario?(user.empresaMadreId||user.id):user.id); if((l.empresaId||l.clienteId)!==_eid) return err("Sin acceso",403); }
@@ -3278,10 +3696,10 @@ async function handleRequest(request, env, ctx) {
     const raw=await dalGetLicitacionById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrada",404);
     const l=raw;
     if(user.role==="cliente"){ const _eid=(user.esSubusuario?(user.empresaMadreId||user.id):user.id); if((l.empresaId||l.clienteId)!==_eid) return err("Sin acceso",403); }
-    if(!["abierta","cerrada"].includes(l.estado)) return err("Solo puedes cerrar licitaciones abiertas o en revision de cotizaciones");
+    if(!["abierta","cerrada"].includes(l.estado)) return err("Solo puedes cerrar licitaciones abiertas o en revisión de cotizaciones");
     l.estado="anulada"; l.anuladaAt=new Date().toISOString(); l.motivoAnulacion=body.motivo; l.anuladaPor=user.role;
     await dalSaveLicitacion(env, l, usarSupabase(env, url));
-    await crearNotificacion(env,"admin","licitacion_anulada",`Licitacion anulada por cliente: ${l.tipoEquipo} - ${l.origen} - ${l.destino}. Motivo: ${body.motivo}`,{ licitacionId:id });
+    await crearNotificacion(env,"admin","licitacion_anulada",`Licitación anulada por el cliente: ${l.tipoEquipo} - ${l.origen} - ${l.destino}. Motivo: ${body.motivo}`,{ licitacionId:id });
     // A los transportistas NO se les notifica (solo se notifica la adjudicación); para ellos la
     // licitación simplemente deja de aparecer / queda como "No adjudicada" en su historial.
     await registrarActividad(env,"licitacion_anulada",`Licitación anulada por el cliente: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, motivo:body.motivo });
@@ -3292,7 +3710,7 @@ async function handleRequest(request, env, ctx) {
   // Nunca se revela su identidad al cliente (ni entre transportistas): solo se ve el texto.
   if (path.startsWith("/api/licitaciones/")&&path.endsWith("/pregunta")&&method==="POST"&&!path.includes("/responder")) {
     const id=path.split("/")[3]; const user=await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     if(!body.texto||!body.texto.trim()) return err("Escribe tu pregunta");
     const raw=await dalGetLicitacionById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrada",404);
     const l=raw;
@@ -3310,7 +3728,7 @@ async function handleRequest(request, env, ctx) {
   if (path.match(/^\/api\/licitaciones\/[^/]+\/pregunta\/[^/]+\/responder$/)&&method==="POST") {
     const parts=path.split("/"); const id=parts[3]; const preguntaId=parts[5];
     const user=await getUser(request,env); const d=deny(user,"cliente"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     if(!body.respuesta||!body.respuesta.trim()) return err("Escribe una respuesta");
     const raw=await dalGetLicitacionById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrada",404);
     const l=raw;
@@ -3381,7 +3799,7 @@ async function handleRequest(request, env, ctx) {
     if(!["pro","enterprise"].includes(planEfectivo)) return err("Solicitar más cotizaciones es una función de los planes Pro y Enterprise. Tu plan actual recibe las 3 cotizaciones iniciales.",403);
     const raw=await dalGetLicitacionById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrada",404);
     const l=raw; if((l.empresaId||l.clienteId)!==(user.esSubusuario?(user.empresaMadreId||user.id):user.id)) return err("Sin acceso",403);
-    if(l.estado!=="cerrada") return err("No esta en revision");
+    if(l.estado!=="cerrada") return err("No está en revisión");
     const yaIds=new Set((l.cotizacionesEnviadas||[]).map(c=>c.id));
     // Ordenar todas las cotizaciones por score y tomar las siguientes 3 que aún no se mostraron
     const restantes=(l.cotizaciones||[]).filter(c=>!yaIds.has(c.id)).sort((a,b)=>(b.score||0)-(a.score||0));
@@ -3396,14 +3814,14 @@ async function handleRequest(request, env, ctx) {
 
   if (path.startsWith("/api/licitaciones/")&&path.endsWith("/adjudicar")&&method==="POST") {
     const id=path.split("/")[3]; const user=await getUser(request,env); const d=deny(user,"cliente","admin"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const { cotizacionId } = body; if(!cotizacionId) return err("cotizacionId requerido");
     const raw=await dalGetLicitacionById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrada",404);
     const l=raw; if(user.role==="cliente"){ const _eid=(user.esSubusuario?(user.empresaMadreId||user.id):user.id); if((l.empresaId||l.clienteId)!==_eid) return err("Sin acceso",403); }
     if(!["cerrada","abierta"].includes(l.estado)) return err("No se puede adjudicar");
     let cotiz=(l.cotizaciones||[]).find(c=>c.id===cotizacionId);
     if(!cotiz) { const enviadas=l.cotizacionesEnviadas||[]; const idxMatch=cotizacionId.match(/^cotiz_(\d+)$/); if(idxMatch){cotiz=enviadas[parseInt(idxMatch[1])];if(cotiz?.id)cotiz=(l.cotizaciones||[]).find(c=>c.id===cotiz.id)||cotiz;}else{cotiz=enviadas.find(c=>c.id===cotizacionId);} }
-    if(!cotiz) return err("Cotizacion no encontrada");
+    if(!cotiz) return err("Cotización no encontrada");
     l.estado="adjudicada"; l.adjudicadaAt=new Date().toISOString();
     l.adjudicadaA={ cotizacionId, precio:cotiz.precio, transportistaId:cotiz.transportistaId, transportistaNombre:cotiz.transportistaNombre, transportistaEmpresa:cotiz.transportistaEmpresa, transportistaEmail:cotiz.transportistaEmail, transportistaTelefono:cotiz.transportistaTelefono, tiempoEntrega:cotiz.tiempoEntrega, archivoPropioId:cotiz.archivoPropioId||null, archivoPropioNombre:cotiz.archivoPropioNombre||null, formulario:cotiz.formulario||null };
     await dalSaveLicitacion(env, l, usarSupabase(env, url));
@@ -3433,7 +3851,7 @@ async function handleRequest(request, env, ctx) {
     await crearNotificacion(env,cotiz.transportistaId,"adjudicacion",`Ganaste: ${l.tipoEquipo} - ${l.origen} - ${l.destino} - ${formatCLP(cotiz.precio)}`,{ licitacionId:id, clienteEmpresa:l.clienteEmpresa, clienteEmail:l.clienteEmail, ovId:ov.id_ov });
     await registrarActividad(env,"licitacion_adjudicada",`Licitación adjudicada a ${cotiz.transportistaEmpresa||cotiz.transportistaNombre} por ${formatCLP(cotiz.precio)}: ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId:id, codigo:l.codigo, ovId:ov.id_ov });
     await enviarEmail(env,{ to:cotiz.transportistaEmail, subject:`¡Ganaste! ${l.tipoEquipo} - TransMatch`, html:emailAdjudicacionGanada(l,cotiz,ov.comision_estimada,transporteId) });
-    await crearNotificacion(env,cotiz.transportistaId,"ov_condicional",`OV ${ov.id_ov} creada. Comision estimada: ${formatCLP(ov.comision_estimada)}.`,{ ovId:ov.id_ov });
+    await crearNotificacion(env,cotiz.transportistaId,"ov_condicional",`OV ${ov.id_ov} creada. Comisión estimada: ${formatCLP(ov.comision_estimada)}.`,{ ovId:ov.id_ov });
     const todasCotiz=l.cotizaciones||[];
     const total=todasCotiz.length;
     // Ranking por precio (menor es mejor)
@@ -3450,7 +3868,7 @@ async function handleRequest(request, env, ctx) {
 
   if (path === "/api/valoraciones" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"cliente"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const { transporteId, scores, promedio, comentario } = body;
     let { licitacionId } = body;
     if(!transporteId && !licitacionId) return err("transporteId requerido");
@@ -3470,7 +3888,8 @@ async function handleRequest(request, env, ctx) {
     const raw=await dalGetLicitacionById(env, licitacionId, usarSupabase(env, url)); if(!raw) return err("Licitación no encontrada",404);
     const l=raw; if(l.clienteEmail!==user.email && (l.empresaId||l.clienteId)!==(user.esSubusuario?(user.empresaMadreId||user.id):user.id)) return err("Sin acceso",403);
     if(l.valoracion) return err("Ya valoraste");
-    const valoracion={ scores:scores||{}, promedio:prom, comentario:comentario||"", createdAt:new Date().toISOString() };
+    const _mot={}; if(body.motivos&&typeof body.motivos==="object"){ for(const k of Object.keys(body.motivos).slice(0,10)){ const v=String(body.motivos[k]||"").trim().slice(0,500); if(v) _mot[String(k).slice(0,40)]=v; } }
+    const valoracion={ scores:scores||{}, promedio:prom, comentario:comentario||"", motivos:_mot, createdAt:new Date().toISOString() };
     l.valoracion=valoracion; l.estado="completada";
     await dalSaveLicitacion(env, l, usarSupabase(env, url));
     // Marcar el transporte como valorado
@@ -3481,7 +3900,7 @@ async function handleRequest(request, env, ctx) {
     if(l.adjudicadaA?.transportistaEmail) {
       const _sbVal=usarSupabase(env, url);
       const tu=await dalGetUsuarioByEmail(env, l.adjudicadaA.transportistaEmail, _sbVal);
-      if(tu){ const prev=tu.totalTransportes||0; tu.totalTransportes=prev+1; tu.rating=Math.round(((((tu.rating||5)*prev)+prom)/tu.totalTransportes)*10)/10; await dalSaveUsuario(env, tu, _sbVal); }
+      if(tu){ const prev=tu.totalTransportes||0; const ratingAnt=prev>0?(tu.rating||0):null; tu.totalTransportes=prev+1; tu.rating=Math.round(((((prev>0?(tu.rating||0):0))*prev)+prom)/tu.totalTransportes*10)/10; await dalSaveUsuario(env, tu, _sbVal); await ajustarRatingRed(env, ratingAnt, tu.rating); await actualizarNivelTransportista(env, tu); }
     }
     await registrarActividad(env,"transporte_completado",`Transporte completado y valorado (${prom}★): ${l.tipoEquipo} (${l.origen} → ${l.destino})`,{ licitacionId, codigo:l.codigo, promedio:prom });
     return ok({ ok:true, promedio:prom });
@@ -3491,7 +3910,7 @@ async function handleRequest(request, env, ctx) {
 
   if (path === "/api/retornos" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const { ciudadOrigen, ciudadDestino, fecha, fechaDesde, fechaHasta, equipo, capacidad, precio, descripcion } = body;
     if(!ciudadOrigen||!ciudadDestino) return err("ciudadOrigen y ciudadDestino requeridos");
     if(!equipo) return err("equipo requerido"); if(!capacidad) return err("capacidad requerida"); if(!precio) return err("precio requerido");
@@ -3531,7 +3950,7 @@ async function handleRequest(request, env, ctx) {
     const retornoId=path.split("/")[3];
     const _sbP=usarSupabase(env, url);
     const retorno=await dalGetRetornoById(env, retornoId, _sbP); if(!retorno) return err("Retorno no encontrado",404);
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const { origenPropuesto, destinoPropuesto, esTramoParcial, fechaSolicitada } = body;
     const propuestaId=uid();
     const propuesta={
@@ -3560,7 +3979,7 @@ async function handleRequest(request, env, ctx) {
     const propuesta=await dalGetPropuestaById(env, propuestaId, _sbPR); if(!propuesta) return err("Propuesta no encontrada",404);
     const retorno=await dalGetRetornoById(env, propuesta.retornoId, _sbPR); if(!retorno) return err("Retorno no encontrado",404);
     if(retorno.transportistaId!==user.id) return err("Sin acceso",403);
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const { accion, precioNegociado } = body;
     if(!["aceptar","rechazar"].includes(accion)) return err("accion debe ser aceptar o rechazar");
     propuesta.estado=accion==="aceptar"?"aceptada":"rechazada";
@@ -3652,7 +4071,7 @@ async function handleRequest(request, env, ctx) {
 
   if (path === "/api/equipos" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     if(!body.tipo) return err("tipo requerido");
     const emailEmp=await emailEmpresaTransportista(env,user);
     const u=await dalGetUsuarioMerged(env, emailEmp); if(!u) return err("No encontrado",404);
@@ -3675,7 +4094,7 @@ async function handleRequest(request, env, ctx) {
   // POST /api/notificaciones-equipo — notificación interna de vencimiento de documentos
   if (path === "/api/notificaciones-equipo" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     if(!body.mensaje) return err("mensaje requerido");
     await crearNotificacion(env, user.id, body.tipo||"vencimiento_documento", body.mensaje, body.datos||{});
     return ok({ ok:true });
@@ -3806,7 +4225,7 @@ async function handleRequest(request, env, ctx) {
 
   if (path === "/api/conductores" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     if(!body.nombre||!body.rut) return err("Nombre y RUT son requeridos");
     if(body.avisoInformado!==true) return err("Debes confirmar que informaste al conductor sobre el uso de sus datos");
     const emailEmp=await emailEmpresaTransportista(env,user);
@@ -3857,7 +4276,7 @@ async function handleRequest(request, env, ctx) {
 
   if (path === "/api/admin/usuario/whatsapp" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const _sbA=usarSupabase(env, url);
     const u=await dalGetUsuarioByEmail(env, body.email, _sbA); if(!u) return err("Usuario no encontrado",404);
     if(u.role!=="transportista") return err("Solo aplica a transportistas");
@@ -3871,7 +4290,7 @@ async function handleRequest(request, env, ctx) {
 
   if (path === "/api/perfil/notificaciones" && method === "PUT") {
     const user=await getUser(request,env); if(!user) return err("No autenticado",401);
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const _sbN=usarSupabase(env, url);
     const u=await dalGetUsuarioByEmail(env, user.email, _sbN); if(!u) return err("No encontrado",404);
     if(body.notifEmail!==undefined) u.notifEmail=!!body.notifEmail;
@@ -3893,7 +4312,7 @@ async function handleRequest(request, env, ctx) {
     if(!body) return err("Body nulo");
     const nombre=body.nombre||null, tipo=body.tipo||null, base64=body.base64||null, licitacionId=body.licitacionId||null;
     if(!nombre||!base64) return err("nombre y base64 requeridos");
-    if(base64.length>12000000) return err("Archivo demasiado grande. Maximo 8 MB");
+    if(base64.length>12000000) return err("Archivo demasiado grande. Máximo 8 MB");
     const ext=nombre.split('.').pop().toLowerCase();
     if(!['xlsx','xls','pdf','docx','doc','jpg','jpeg','png'].includes(ext)) return err("Tipo no permitido");
     const id=uid();
@@ -3959,7 +4378,7 @@ async function handleRequest(request, env, ctx) {
   // Admin: subir una factura para una empresa
   if (path === "/api/admin/factura-cliente" && method === "POST") {
     const user = await getUser(request, env); const d = deny(user, "admin"); if (d) return d;
-    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato inválido"); }
     const email=(body.email||"").toLowerCase();
     if(!email) return err("email de empresa requerido");
     if(!body.numero) return err("Número de factura requerido");
@@ -3997,7 +4416,7 @@ async function handleRequest(request, env, ctx) {
   // Admin: cambiar estado de pago (pagada / pendiente)
   if (path === "/api/admin/factura-cliente/estado" && method === "POST") {
     const user = await getUser(request, env); const d = deny(user, "admin"); if (d) return d;
-    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato inválido"); }
     const email=(body.email||"").toLowerCase(); if(!email||!body.facturaId) return err("email y facturaId requeridos");
     const raw=await _USR(env).get(email); if(!raw) return err("Empresa no encontrada",404);
     const u=JSON.parse(raw); const f=(u.facturasSuscripcion||[]).find(x=>x.id===body.facturaId); if(!f) return err("Factura no encontrada",404);
@@ -4010,7 +4429,7 @@ async function handleRequest(request, env, ctx) {
   // Admin: editar datos de una factura (corregir N°, periodo, monto, fecha, estado)
   if (path === "/api/admin/factura-cliente/editar" && method === "POST") {
     const user = await getUser(request, env); const d = deny(user, "admin"); if (d) return d;
-    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato inválido"); }
     const email=(body.email||"").toLowerCase(); if(!email||!body.facturaId) return err("email y facturaId requeridos");
     const raw=await _USR(env).get(email); if(!raw) return err("Empresa no encontrada",404);
     const u=JSON.parse(raw); const f=(u.facturasSuscripcion||[]).find(x=>x.id===body.facturaId); if(!f) return err("Factura no encontrada",404);
@@ -4027,7 +4446,7 @@ async function handleRequest(request, env, ctx) {
   // Admin: eliminar una factura
   if (path === "/api/admin/factura-cliente/eliminar" && method === "POST") {
     const user = await getUser(request, env); const d = deny(user, "admin"); if (d) return d;
-    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato inválido"); }
     const email=(body.email||"").toLowerCase(); if(!email||!body.facturaId) return err("email y facturaId requeridos");
     const raw=await _USR(env).get(email); if(!raw) return err("Empresa no encontrada",404);
     const u=JSON.parse(raw); const arr=(u.facturasSuscripcion||[]); const idx=arr.findIndex(x=>x.id===body.facturaId); if(idx<0) return err("Factura no encontrada",404);
@@ -4095,7 +4514,7 @@ async function handleRequest(request, env, ctx) {
   // POST /api/admin/equipos-pendientes — aprobar o rechazar equipo tipo "Otro"
   if (path === "/api/admin/equipos-pendientes" && method === "POST") {
     const user = await getUser(request, env); const d = deny(user, "admin"); if(d) return d;
-    let b = {}; try{ b = await request.json(); }catch(e){ return err("Formato invalido"); }
+    let b = {}; try{ b = await request.json(); }catch(e){ return err("Formato inválido"); }
     const { accion, emailTransportista, equipoTexto } = b;
     if(!accion||!emailTransportista) return err("Faltan campos");
     try{
@@ -4136,7 +4555,7 @@ async function handleRequest(request, env, ctx) {
 
   if (path === "/api/admin/aprobar-transportista" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const { email, accion } = body; if(!email||!accion) return err("email y accion requeridos");
     const raw=await _USR(env).get(email.toLowerCase()); if(!raw) return err("No encontrado",404);
     const u=JSON.parse(raw); u.estado=accion==="aprobar"?"activo":"rechazado"; u.revisadoAt=new Date().toISOString();
@@ -4151,6 +4570,156 @@ async function handleRequest(request, env, ctx) {
 
   // ── CONTACTO: formulario público (sin auth) + Resend ──
   // Webhook de Kapso (WhatsApp): recibe mensajes entrantes (respuestas Sí/No, y a futuro las cotizaciones por flow).
+  // Kapso entrega fechas sin zona horaria (son UTC): se normalizan con "Z" para compararlas bien.
+  const _isoUtc=v=>{ if(!v) return v; const t=String(v); return /(Z|[+-]\d\d:?\d\d)$/.test(t)?t:t+"Z"; };
+  const WA_CONV_FIELDS="kapso(contact_name,messages_count,last_message_id,last_message_type,last_message_timestamp,last_message_text,last_inbound_at,last_outbound_at)";
+  // ── Bandeja de WhatsApp (admin): lee conversaciones e historial desde la API de Kapso y permite responder ──
+  if (path.startsWith("/api/admin/wa/")) {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    if(!usarKapso(env)) return err("WhatsApp no está configurado");
+    const kbase=(env.KAPSO_API_BASE||"https://api.kapso.ai/meta/whatsapp/v24.0").replace(/\/+$/,"")+"/"+env.KAPSO_PHONE_NUMBER_ID;
+    const kget=async(rel, qs)=>{ const r=await fetch(kbase+rel+"?"+new URLSearchParams(qs).toString(),{ headers:{ "X-API-Key":env.KAPSO_API_KEY } }); const t=await r.text(); let j=null; try{ j=JSON.parse(t); }catch(e){} if(!r.ok) throw new Error("Kapso "+r.status+": "+((j&&j.error&&(j.error.message||j.error))||t).toString().slice(0,200)); return j||{}; };
+    const leidoKey="wa:leido";
+    if (path === "/api/admin/wa/conversaciones" && method === "GET") {
+      const qs={ limit:String(Math.min(parseInt(url.searchParams.get("limit"))||50,100)), fields:url.searchParams.get("fields")||WA_CONV_FIELDS };
+      if(url.searchParams.get("after")) qs.after=url.searchParams.get("after");
+      try{
+        const j=await kget("/conversations", qs);
+        if(url.searchParams.get("raw")==="1") return ok(j);
+        const leido=JSON.parse(await env.SESSIONS.get(leidoKey)||"{}");
+        const usuarios=(await dalTodosUsuarios(env)).filter(u=>u&&(u.telefono||u.whatsapp));
+        const porTel={}; for(const u of usuarios){ const t=_telWa(u.telefono||u.whatsapp); if(t && (!porTel[t] || u.estado==="activo")) porTel[t]=u; }
+        const adminTel=_telWa(env.ADMIN_WHATSAPP);
+        const conversaciones=(j.data||[]).map(c=>{
+          const k=Object.assign({}, c.kapso||{}); for(const f of ["last_inbound_at","last_outbound_at","last_message_timestamp"]) k[f]=_isoUtc(k[f]); c.last_active_at=_isoUtc(c.last_active_at); const tel=_telWa(c.phone_number)||String(c.phone_number||"").replace(/\D/g,"");
+          const u=porTel[tel]||null;
+          const ultIn=k.last_inbound_at||null;
+          return { id:c.id, telefono:tel, estado:c.status, ultimaActividad:c.last_active_at||k.last_message_timestamp,
+            contacto:k.contact_name||null, ultimoTexto:k.last_message_text||null, ultimoTipo:k.last_message_type||null,
+            ultimoEntrante:ultIn, ultimoSaliente:k.last_outbound_at||null,
+            noLeido: !!(ultIn && (!leido[c.id] || ultIn>leido[c.id])),
+            esAdmin: !!(adminTel && tel===adminTel),
+            usuario: u?{ id:u.id, email:u.email||"", nombre:u.nombre||"", empresa:u.empresa||"", rol:u.role, estado:u.estado, nivel:u.nivel||null }:null };
+        });
+        return ok({ conversaciones, siguiente:(j.paging&&j.paging.cursors&&j.paging.cursors.after)||null });
+      }catch(e){ return err(String(e.message||e),502); }
+    }
+    if (path === "/api/admin/wa/mensajes" && method === "GET") {
+      const conv=url.searchParams.get("conv"); if(!conv) return err("Falta la conversación");
+      const qs={ conversation_id:conv, limit:String(Math.min(parseInt(url.searchParams.get("limit"))||60,100)) };
+      qs.fields=url.searchParams.get("fields")||"kapso(direction,status,content,media_url,media_data,contact_name,flow_name,flow_response,has_media)";
+      if(url.searchParams.get("before")) qs.before=url.searchParams.get("before");
+      if(url.searchParams.get("after")) qs.after=url.searchParams.get("after");
+      try{ const j=await kget("/messages", qs); return ok({ mensajes:j.data||[], paging:j.paging||null }); }
+      catch(e){ return err(String(e.message||e),502); }
+    }
+    if (path === "/api/admin/wa/leido" && method === "POST") {
+      let b={}; try{ b=await request.json(); }catch(e){}
+      if(!b.conv) return err("Falta la conversación");
+      const leido=JSON.parse(await env.SESSIONS.get(leidoKey)||"{}"); leido[String(b.conv)]=new Date().toISOString();
+      const ent=Object.entries(leido).sort((a,b)=>a[1]<b[1]?1:-1).slice(0,500); await env.SESSIONS.put(leidoKey, JSON.stringify(Object.fromEntries(ent)));
+      return ok({ ok:true });
+    }
+    if (path === "/api/admin/wa/enviar" && method === "POST") {
+      let b={}; try{ b=await request.json(); }catch(e){}
+      const to=_telWa(b.to); const texto=String(b.texto||"").trim();
+      if(!to) return err("Teléfono inválido"); if(!texto) return err("Escribe un mensaje"); if(texto.length>4000) return err("El mensaje es muy largo");
+      const r=await kapsoTexto(env, to, texto);
+      if(!r||!r.ok){ const e=String((r&&r.error)||""); if(/24-hour|24 hour|window/i.test(e)) return err("Pasaron más de 24 h desde el último mensaje de este contacto: WhatsApp no permite escribirle hasta que vuelva a escribir.",422); return err("No se pudo enviar: "+e.slice(0,200),502); }
+      try{ await registrarActividad(env,"whatsapp_respuesta","Respuesta por WhatsApp a +"+to,{ to }); }catch(e){}
+      return ok({ ok:true, id:(r.data&&r.data.messages&&r.data.messages[0]&&r.data.messages[0].id)||null });
+    }
+    if (path === "/api/admin/wa/no-leidos" && method === "GET") {
+      try{
+        const j=await kget("/conversations",{ limit:"50", fields:WA_CONV_FIELDS });
+        const leido=JSON.parse(await env.SESSIONS.get(leidoKey)||"{}"); const adminTel=_telWa(env.ADMIN_WHATSAPP);
+        const n=(j.data||[]).filter(c=>{ const k=c.kapso||{}; const ui=_isoUtc(k.last_inbound_at); return ui && (!leido[c.id]||ui>leido[c.id]) && _telWa(c.phone_number)!==adminTel; }).length;
+        return ok({ noLeidos:n });
+      }catch(e){ return ok({ noLeidos:0, error:String(e.message||e) }); }
+    }
+    return err("Ruta no encontrada",404);
+  }
+  if (path === "/api/admin/whatsapp/estados" && method === "GET") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    return ok({ estados: JSON.parse(await env.SESSIONS.get("wa:estados")||"[]"), errores: JSON.parse(await env.SESSIONS.get("wa:errores")||"[]") });
+  }
+  // POST /api/admin/licitacion-prueba — crea una licitación de PRUEBA (oculta a transportistas, sin correos)
+  // a nombre de una cuenta cliente, para probar el circuito completo (aprobación, WhatsApp, cotización).
+  if (path === "/api/admin/licitacion-prueba" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    let body={}; try{body=await request.json();}catch(e){}
+    const c=await dalGetUsuarioMerged(env, String(body.clienteEmail||"").toLowerCase()); if(!c||c.role!=="cliente") return err("Cuenta cliente no encontrada",404);
+    const sb=usarSupabase(env, url);
+    const hoy=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Santiago"}).format(new Date());
+    const dia=n=>new Date(new Date(hoy+"T12:00:00Z").getTime()+n*864e5).toISOString().slice(0,10);
+    const id=uid(), codigo=await generarCodigo(env,'LIC'), now=new Date().toISOString();
+    const l={ id, codigo, clienteId:c.id, clienteEmail:c.email, clienteEmpresa:c.empresa||"", clienteNombre:c.nombre||"", clienteTelefono:c.telefono||"", empresaId:c.esSubusuario?(c.empresaMadreId||c.id):c.id, creadoPorEmail:c.email, creadoPorNombre:c.nombre||"", esCreadoPorSubusuario:false,
+      tipoLicitacion:"maquinaria", tipoEquipo:"Excavadora", tipoEquipoRequerido:"Cama baja", marca:"Caterpillar", modelo:"320 GC", cantidadEquipos:"1", tipoCarga:"", cantidadBultos:"", pesoPorBulto:"", peso:"22", pesoUnidad:"ton", volumen:"", dimensiones:"9,5 x 3,0 x 3,1",
+      descripcion:"LICITACIÓN DE PRUEBA (TransMatch). No cotizar. Excavadora con balde, requiere amarre con cadenas y lona.", origen:"Santiago", destino:"Rancagua", direccionOrigen:"Camino a Noviciado 2300, Pudahuel", direccionDestino:"Av. Libertador Bernardo O'Higgins 0450, Rancagua",
+      ubicacionOrigen:null, ubicacionDestino:null, paradas:[], tipoEntregaDestino:"garita", contactoOrigenNombre:"", contactoOrigenTelefono:"", contactoOrigenEmail:"", contactoDestinoNombre:"", contactoDestinoTelefono:"", contactoDestinoEmail:"",
+      fechaCarga:dia(3), horaCarga:"08:00", fechaEntrega:dia(4), horaDescarga:"17:00", plazo:"24", valorSeguro:"80000000", requiereEstandar:true, estandarDetalle:"Inducción de seguridad en garita", 
+      archivoId:body.archivoId||null, archivoNombre:body.archivoNombre||null, archivoVisibleTransportista:!!body.archivoId,
+      estado:"pendiente_admin", esPrueba:true, cotizaciones:[], preguntas:[], createdAt:now };
+    await dalSaveLicitacion(env, l, sb, { isNew:true, clienteIndexId:c.id });
+    await registrarActividad(env,"licitacion_creada",`Licitación de PRUEBA creada por TransMatch a nombre de ${c.empresa||c.email}`,{ licitacionId:id, codigo });
+    return ok({ ok:true, id, codigo });
+  }
+
+  // POST /api/admin/whatsapp/prueba — envía las plantillas con datos de ejemplo y devuelve la respuesta de Meta.
+  // Destino: KAPSO_TEST_TO o, si no existe, ADMIN_WHATSAPP. Sirve para validar nombre, idioma y variables.
+  if (path === "/api/admin/whatsapp/prueba" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    if(!usarKapso(env)) return err("WhatsApp no está configurado (faltan KAPSO_API_KEY o KAPSO_PHONE_NUMBER_ID)");
+    const to=_telWa(env.KAPSO_TEST_TO||env.ADMIN_WHATSAPP); if(!to) return err("Define KAPSO_TEST_TO o ADMIN_WHATSAPP");
+    let body={}; try{body=await request.json();}catch(e){}
+    if(body.flowLicitacionId){
+      const lf=await dalGetLicitacionById(env, String(body.flowLicitacionId), usarSupabase(env, url)); if(!lf) return err("Licitación no encontrada",404);
+      const tu=await dalTransportistaPorTelefonoWa(env, to, usarSupabase(env, url)); if(!tu) return err("No hay transportista activo con el número "+to);
+      const r=await kapsoEnviarFlow(env, to, lf, tu, null, "");
+      return ok({ destino:"+"+to, flow:env.KAPSO_FLOW_ID||null, draft:env.KAPSO_FLOW_DRAFT||null, resultado:r });
+    }
+    if(body.fichaLicitacionId){ // prueba de la ficha completa con una licitación real
+      const lf=await dalGetLicitacionById(env, String(body.fichaLicitacionId), usarSupabase(env, url)); if(!lf) return err("Licitación no encontrada",404);
+      await enviarFichaLicitacionWa(env, to, lf); return ok({ destino:"+"+to, ficha:lf.codigo||lf.id, adjunto:!!(lf.archivoId&&lf.archivoVisibleTransportista) });
+    }
+    const cuales=Array.isArray(body.plantillas)&&body.plantillas.length?body.plantillas:["licitacion","admin","documentos"];
+    const hoy=new Date(Date.now()+2*864e5).toISOString().slice(0,10), luego=new Date(Date.now()+4*864e5).toISOString().slice(0,10);
+    const l={ id:"prueba", codigo:"LIC-PRUEBA", tipoLicitacion:"maquinaria", tipoEquipo:"Excavadora", marca:"Caterpillar", origen:"Santiago", destino:"Rancagua", fechaCarga:hoy, fechaEntrega:luego, cierreAt:new Date(Date.now()+24*3600e3).toISOString(), estado:"pendiente_admin", clienteEmpresa:"Empresa de prueba", esPrueba:true };
+    const res={};
+    for(const c of cuales){
+      let msg=null;
+      if(c==="licitacion") msg=_waPlantillaLicitacion(env,to,l);
+      else if(c==="admin") msg={ to, type:"template", template:{ name:env.KAPSO_TEMPLATE_ADMIN||"aviso_admin_licitacion", language:{ code:env.KAPSO_TEMPLATE_LANG_ADMIN||"es_CL" }, components:[ { type:"body", parameters:[ "LIC-PRUEBA","Empresa de prueba (prueba)",_waCarga(l),_waRuta(l),_waFecha(l.fechaCarga),"Pendiente de aprobación" ].map(t=>({ type:"text", text:_waParam(t) })) }, { type:"button", sub_type:"quick_reply", index:"0", parameters:[ { type:"payload", payload:"adminlic:prueba" } ] } ] } };
+      else if(c==="documentos") msg={ to, type:"template", template:{ name:env.KAPSO_TEMPLATE_DOCS||"solicitud_documento", language:{ code:env.KAPSO_TEMPLATE_LANG_DOCS||"es_CL" }, components:[ { type:"body", parameters:[ "TRN-PRUEBA","Santiago → Rancagua","Revisión técnica","Del camión y del semirremolque" ].map(x=>({ type:"text", text:x })) }, { type:"button", sub_type:"quick_reply", index:"0", parameters:[ { type:"payload", payload:"docs:prueba" } ] }, { type:"button", sub_type:"quick_reply", index:"1", parameters:[ { type:"payload", payload:"docsdel:prueba" } ] }, { type:"button", sub_type:"url", index:"2", parameters:[ { type:"text", text:"prueba" } ] } ] } };
+      if(!msg){ res[c]={ ok:false, error:"plantilla desconocida" }; continue; }
+      const r=await kapsoEnviar(env,msg);
+      res[c]={ ok:!!r.ok, plantilla:msg.template.name, idioma:msg.template.language.code, status:r.status||200, id:(r.data&&r.data.messages&&r.data.messages[0]&&r.data.messages[0].id)||null, error:r.ok?null:String(r.error||"").slice(0,500) };
+    }
+    return ok({ destino:"+"+to, modoPrueba:!!env.KAPSO_TEST_TO, flowBorrador:["1","on","true","si","sí"].includes(String(env.KAPSO_FLOW_DRAFT||"").toLowerCase()), flowId:!!env.KAPSO_FLOW_ID, adminWhatsapp:!!env.ADMIN_WHATSAPP, resultados:res });
+  }
+
+  // GET /api/wa/archivo?t=<token> — archivo de especificaciones para WhatsApp (link firmado, vence en 48 h)
+  // Archivo para WhatsApp (link firmado, 48 h). Acepta GET y HEAD (Kapso/Meta pueden revisar el link antes de bajarlo).
+  // Si el archivo está en R2 se entrega directo desde ahí, sin pasar por base64 (más rápido para PDFs grandes).
+  if (path === "/api/wa/archivo" && (method === "GET" || method === "HEAD")) {
+    const tok=await verifyToken(String(url.searchParams.get("t")||""), env.JWT_SECRET);
+    if(!tok || tok.t!=="waarch" || !tok.id || (tok.hasta&&tok.hasta<Date.now())) return new Response("Enlace vencido", { status:403 });
+    const sbA=usarSupabase(env, url);
+    let meta=null, cuerpo=null, largo=null;
+    if(sbA){ const rows=await sbSelect(env,"archivos","select=id,nombre,tipo,base64&id=eq."+encodeURIComponent(tok.id)+"&limit=1"); meta=rows[0]||null; }
+    if(meta && meta.base64===R2_MARCA && env.ARCHIVOS_R2){
+      const o=method==="HEAD" ? await env.ARCHIVOS_R2.head(_r2Key(tok.id)) : await env.ARCHIVOS_R2.get(_r2Key(tok.id));
+      if(!o) return new Response("No encontrado", { status:404 });
+      largo=o.size; cuerpo=method==="HEAD"?null:o.body;
+    } else {
+      const a=meta ? { nombre:meta.nombre, tipo:meta.tipo, base64:meta.base64 } : await dalGetArchivo(env, tok.id, sbA);
+      if(!a||!a.base64) return new Response("No encontrado", { status:404 });
+      const bin=_b64ABytes(a.base64); largo=bin.length; cuerpo=method==="HEAD"?null:bin; meta=meta||a;
+    }
+    const nombre=String((meta&&meta.nombre)||url.searchParams.get("n")||"especificaciones.pdf").replace(/[^\w.\- ]/g,"_");
+    return new Response(cuerpo, { status:200, headers:{ "Content-Type":(meta&&(meta.tipo||meta.mimeType))||"application/octet-stream", "Content-Length":String(largo), "Content-Disposition":'inline; filename="'+nombre+'"', "Cache-Control":"private, max-age=3600" } });
+  }
+
   if (path === "/api/kapso/webhook" && method === "POST") {
     const rawBody = await request.text();
     // Seguridad: si defines KAPSO_WEBHOOK_SECRET se exige la firma X-Webhook-Signature de Kapso (o ?secret= en la URL).
@@ -4160,6 +4729,14 @@ async function handleRequest(request, env, ctx) {
     }
     let body={}; try{ body=JSON.parse(rawBody||"{}"); }catch(e){}
     const mensajes=_kapsoExtraerMensajes(body);
+    // Registro de estados de entrega (sent/delivered/read/failed) para diagnóstico desde el admin
+    try{
+      const est=[];
+      if(Array.isArray(body.entry)) for(const e of body.entry) for(const c of (e.changes||[])) for(const st of ((c.value||{}).statuses||[])) est.push({ id:st.id, estado:st.status, a:st.recipient_id, error:(st.errors&&st.errors[0])?((st.errors[0].code||"")+" "+(st.errors[0].title||st.errors[0].message||"")+((st.errors[0].error_data&&st.errors[0].error_data.details)?" · "+st.errors[0].error_data.details:"")):null });
+      const ev=String(request.headers.get("X-Webhook-Event")||body.event||body.type||"");
+      if(!est.length && /status|failed|delivered|sent|read/i.test(ev)){ const m=body.message||(body.data&&body.data.message)||body; const k=(m&&m.kapso)||{}; est.push({ id:m.id||null, estado:k.status||ev, a:m.to||(body.conversation&&body.conversation.phone_number)||null, error:k.error||((k.statuses&&JSON.stringify(k.statuses).slice(0,300))||null) }); }
+      if(est.length){ const prev=JSON.parse(await env.SESSIONS.get("wa:estados")||"[]"); const now=new Date().toISOString(); await env.SESSIONS.put("wa:estados", JSON.stringify(est.map(x=>Object.assign({fecha:now},x)).concat(prev).slice(0,40))); }
+    }catch(e){}
     const _proc=(async()=>{ for(const m of mensajes){ try{ await kapsoProcesarMensaje(env, m); }catch(e){ console.error("kapso webhook", e&&e.message); } } })();
     if(ctx&&ctx.waitUntil) ctx.waitUntil(_proc); else await _proc;  // responder rápido a Kapso para que no reintente
     return ok({ ok:true, recibidos:mensajes.length });
@@ -4171,12 +4748,22 @@ async function handleRequest(request, env, ctx) {
 
   if (path === "/api/contacto" && method === "POST") {
     let body = {}; try { body = await request.json(); } catch(e) {}
-    const { nombre, empresa, email, telefono, tipo } = body;
-    if (!nombre || !empresa || !email || !telefono || !tipo) {
+    // Escapar todo lo que viene del formulario antes de ponerlo en los correos
+    const _esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])).slice(0,2000);
+    const nombre=_esc(String(body.nombre||"").trim()).slice(0,120), empresa=_esc(String(body.empresa||"").trim()).slice(0,160);
+    const email=String(body.email||"").trim().toLowerCase().slice(0,160), telefono=_esc(String(body.telefono||"").trim()).slice(0,40);
+    const tipo=String(body.tipo||"").trim(), mensaje=_esc(String(body.mensaje||"").trim());
+    if (!nombre || !empresa || !email || !tipo || (!telefono && !mensaje)) {
       return err("Todos los campos son obligatorios");
     }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return err("Ingresa un email válido");
+    if (body.web) return ok({ ok:true }); // trampa anti-bots (campo oculto)
+    // Límite: 5 envíos por hora por IP
+    const _ip=request.headers.get("CF-Connecting-IP")||"x"; const _rk="contacto_ip:"+_ip;
+    const _n=parseInt(await env.SESSIONS.get(_rk)||"0",10); if(_n>=5) return err("Demasiados envíos. Escríbenos a contacto@transmatch.cl",429);
+    await env.SESSIONS.put(_rk, String(_n+1), { expirationTtl:3600 });
 
-    const tipoLabel = tipo === 'mandante' ? 'Mandante (empresa que requiere transporte)' : 'Transportista (empresa de transporte)';
+    const tipoLabel = (tipo === 'mandante' || tipo === 'empresa') ? 'Empresa mandante (requiere transporte)' : tipo === 'transportista' ? 'Transportista (empresa de transporte)' : 'Otro';
 
     // Email al equipo TransMatch
     const htmlEquipo = `
@@ -4190,9 +4777,10 @@ async function handleRequest(request, env, ctx) {
             <tr><td style="padding:8px 0;color:#6B7280;width:120px">Nombre</td><td style="padding:8px 0;color:#111827;font-weight:500">${nombre}</td></tr>
             <tr><td style="padding:8px 0;color:#6B7280">Empresa</td><td style="padding:8px 0;color:#111827;font-weight:500">${empresa}</td></tr>
             <tr><td style="padding:8px 0;color:#6B7280">Email</td><td style="padding:8px 0;color:#1d4ed8">${email}</td></tr>
-            <tr><td style="padding:8px 0;color:#6B7280">Teléfono</td><td style="padding:8px 0;color:#111827;font-weight:500">${telefono}</td></tr>
+            <tr><td style="padding:8px 0;color:#6B7280">Teléfono</td><td style="padding:8px 0;color:#111827;font-weight:500">${telefono||"—"}</td></tr>
             <tr><td style="padding:8px 0;color:#6B7280">Tipo</td><td style="padding:8px 0"><span style="background:#FFF7ED;color:#92400E;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600">${tipoLabel}</span></td></tr>
           </table>
+          ${mensaje?`<div style="margin-top:16px;padding:14px 16px;background:#fff;border:1px solid #e8eaf0;border-radius:8px;font-size:14px;color:#111827;line-height:1.6;white-space:pre-wrap">${mensaje}</div>`:""}
         </div>
       </div>`;
 
@@ -4240,7 +4828,7 @@ async function handleRequest(request, env, ctx) {
     // Guardar en KV como respaldo
     const contactId = uid();
     await env.SESSIONS.put("contacto:" + contactId, JSON.stringify({
-      id: contactId, nombre, empresa, email, telefono, tipo,
+      id: contactId, nombre, empresa, email, telefono, tipo, mensaje,
       createdAt: new Date().toISOString()
     }));
 
@@ -4274,6 +4862,11 @@ async function handleRequest(request, env, ctx) {
     if (!raw) return err("Invitación inválida o expirada", 404);
     const inv = JSON.parse(raw);
     if (inv.usada) return err("Invitación ya utilizada", 410);
+    // Invitación a la cuenta de una empresa (sub-usuario): devolver también el formato que usa registro.html
+    if (inv.emailInvitado) {
+      if (inv.expiresAt && new Date(inv.expiresAt) < new Date()) return err("Invitación expirada", 410);
+      return ok({ valida: true, email: inv.emailInvitado, nombre: inv.nombreInvitado||"", invitacion: { emailInvitado:inv.emailInvitado, empresa:inv.empresa, role:inv.role, nombre:inv.nombreInvitado||"", cargo:inv.cargoInvitado||"" } });
+    }
     return ok({ valida: true, email: inv.email, nombre: inv.nombre });
   }
 
@@ -4306,7 +4899,7 @@ async function handleRequest(request, env, ctx) {
     if(!["cliente","transportista"].includes(user.role)) return err("Sin permisos",403);
     if(user.esSubusuario) return err("Solo la cuenta principal puede cambiar roles",403);
     const emailTarget = decodeURIComponent(path.split("/")[4]).toLowerCase();
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const rol=body.rol;
     if(!["miembro","gestor","visor"].includes(rol)) return err("Rol inválido",400);
     const raw=await _USR(env).get(emailTarget); if(!raw) return err("Usuario no encontrado",404);
@@ -4543,7 +5136,7 @@ async function handleRequest(request, env, ctx) {
           if(_empU.contactoFacturacion!==undefined) contactoFacturacionOut=_empU.contactoFacturacion;
         }
       }
-      usuarios.push({ licitacionExpress:!!(_eidU&&empresaCache[_eidU]&&empresaCache[_eidU].licitacionExpress), empresaEntId:_eidU||null, id:u.id,email:u.email,nombre:u.nombre,empresa:empresaOut,role:u.role,estado:u.estado,plan:u.plan,createdAt:u.createdAt,rating:u.rating,totalTransportes:u.totalTransportes,telefono:u.telefono||'',rut:u.rut||'',cargo:u.cargo||'',rutEmpresa:rutEmpresaOut,giro:giroOut,direccion:direccionOut,telEmpresa:telEmpresaOut,ciudadEmpresa:ciudadEmpresaOut,web:webOut,descripcion:descripcionOut,max_usuarios:u.max_usuarios||0,empresaMiembros:u.empresaMiembros||[],esSubusuario:u.esSubusuario||false,empresaMadreId:u.empresaMadreId||null,rol:u.rol||(u.esSubusuario?'miembro':'dueno'),empresaId:u.empresaId||null,desactivadoManual:u.desactivadoManual||false,notasAdmin:u.notasAdmin||'',equipos:u.equipos||[],tiposEquipo:u.tiposEquipo||[],zonas:u.zonas||[],rutRepresentante:u.rutRepresentante||'',ciudad:u.ciudad||'',whatsapp:u.whatsapp||'',industrias:industriasOut,anosExperiencia:u.anosExperiencia||'',perfilCompletitud:u.perfilCompletitud||0,totalCotizaciones:u.totalCotizaciones||0,facturacion:facturacionOut,contactoOperaciones:contactoOperacionesOut,contactoComercial:contactoComercialOut,contactoFacturacion:contactoFacturacionOut,contactos:contactosOut,datosBancarios:datosBancariosOut,notifEmail:u.notifEmail||false,notifWhatsapp:u.notifWhatsapp||false,comuna:u.comuna||'',region:u.region||'',ciudadesOperacion:u.ciudadesOperacion||[],altaExcel:u.altaExcel||null });
+      usuarios.push({ licitacionExpress:!!(_eidU&&empresaCache[_eidU]&&empresaCache[_eidU].licitacionExpress), empresaEntId:_eidU||null, id:u.id,email:u.email,nombre:u.nombre,empresa:empresaOut,role:u.role,estado:u.estado,plan:u.plan,createdAt:u.createdAt,rating:u.rating,totalTransportes:u.totalTransportes,telefono:u.telefono||'',rut:u.rut||'',cargo:u.cargo||'',rutEmpresa:rutEmpresaOut,giro:giroOut,direccion:direccionOut,telEmpresa:telEmpresaOut,ciudadEmpresa:ciudadEmpresaOut,web:webOut,descripcion:descripcionOut,max_usuarios:u.max_usuarios||0,empresaMiembros:u.empresaMiembros||[],invitacionesPendientes:(u.invitacionesPendientes||[]).map(i=>({ emailInvitado:i.emailInvitado, expiresAt:i.expiresAt })),esSubusuario:u.esSubusuario||false,empresaMadreId:u.empresaMadreId||null,rol:u.rol||(u.esSubusuario?'miembro':'dueno'),empresaId:u.empresaId||null,desactivadoManual:u.desactivadoManual||false,notasAdmin:u.notasAdmin||'',equipos:u.equipos||[],tiposEquipo:u.tiposEquipo||[],zonas:u.zonas||[],rutRepresentante:u.rutRepresentante||'',ciudad:u.ciudad||'',whatsapp:u.whatsapp||'',industrias:industriasOut,anosExperiencia:u.anosExperiencia||'',perfilCompletitud:u.perfilCompletitud||0,totalCotizaciones:u.totalCotizaciones||0,facturacion:facturacionOut,contactoOperaciones:contactoOperacionesOut,contactoComercial:contactoComercialOut,contactoFacturacion:contactoFacturacionOut,contactos:contactosOut,datosBancarios:datosBancariosOut,notifEmail:u.notifEmail||false,notifWhatsapp:u.notifWhatsapp||false,comuna:u.comuna||'',region:u.region||'',ciudadesOperacion:u.ciudadesOperacion||[],altaExcel:u.altaExcel||null,habilitacion:u.habilitacion||null });
     }
     return ok({ usuarios });
   }
@@ -4574,7 +5167,7 @@ async function handleRequest(request, env, ctx) {
   // Acceso de un usuario (admin): ver si está bloqueado, desbloquear o generar una clave provisoria.
   if (path === "/api/admin/usuario/acceso" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
-    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato invalido"); }
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato inválido"); }
     const email=String(body.email||"").toLowerCase().trim(); if(!email) return err("email requerido");
     const intentos=parseInt(await env.SESSIONS.get("login_fail:"+email)||"0",10)||0;
     if(body.accion==="estado") return ok({ ok:true, bloqueado:intentos>=5, intentos });
@@ -4593,7 +5186,7 @@ async function handleRequest(request, env, ctx) {
   }
   if (path === "/api/admin/gestionar-usuario" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const { email, estado, plan, notasAdmin } = body; if(!email) return err("email requerido");
     const raw=await _USR(env).get(email.toLowerCase()); if(!raw) return err("No encontrado",404);
     const u=JSON.parse(raw);
@@ -4609,7 +5202,7 @@ async function handleRequest(request, env, ctx) {
   // Activar/desactivar manualmente un sub-usuario (independiente de la cascada de la madre)
   if (path === "/api/admin/subusuario-activacion" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const { email, activo } = body; if(!email||activo===undefined) return err("email y activo requeridos");
     const raw=await _USR(env).get(email.toLowerCase()); if(!raw) return err("No encontrado",404);
     const u=JSON.parse(raw);
@@ -4653,8 +5246,23 @@ async function handleRequest(request, env, ctx) {
 
   if (path === "/api/perfil" && method === "PUT") {
     const user=await getUser(request,env); if(!user) return err("No autenticado",401);
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const u=await dalGetUsuarioMerged(env, user.email); if(!u) return err("No encontrado",404);
+    // No se aceptan documentos de equipo ya vencidos (solo se revisan los nuevos o modificados)
+    if(Array.isArray(body.equipos)){
+      const hoyCL=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Santiago"}).format(new Date());
+      let previos=u.equipos||[];
+      try{ if(user.role==="transportista"){ const _ee=await emailEmpresaTransportista(env,user); if(_ee&&_ee!==user.email){ const _ue=await dalGetUsuarioMerged(env,_ee); if(_ue&&_ue.equipos) previos=_ue.equipos; } } }catch(e){}
+      for(const eq of body.equipos){
+        const old=(previos.find(x=>x&&x.id===eq.id)||{}).documentos||{};
+        for(const [k,doc] of Object.entries((eq&&eq.documentos)||{})){
+          if(!doc||!doc.vencimiento) continue;
+          const o=old[k]||{};
+          const cambiado=o.vencimiento!==doc.vencimiento||o.archivoId!==doc.archivoId;
+          if(cambiado && String(doc.vencimiento).slice(0,10)<hoyCL) return err("No se pueden subir documentos vencidos ("+(doc.label||k)+"). Sube la versión vigente.");
+        }
+      }
+    }
     // Permisos por rol: personales (todos), perfil de empresa (dueño+gestor), y dueño-only (razón social, RUT, facturación, bancarios).
     const _personales=["nombre","telefono","whatsapp","rut","cargo","ciudad"];
     const _empresaProfile=["direccion","comuna","giro","web","descripcion","anosExperiencia","zonas","equipos","tiposEquipo","industrias","telEmpresa","ciudadEmpresa","contactos","contactoOperaciones","contactoComercial"];
@@ -4724,14 +5332,35 @@ async function handleRequest(request, env, ctx) {
 
   if (path.match(/^\/api\/transportes\/[^/]+\/estado$/)&&method==="POST") {
     const user=await getUser(request,env); if(!user) return err("No autenticado",401);
-    if(user.role!=="transportista") return err("Solo transportistas",403);
+    const esAdmin=user.role==="admin";
+    if(!esAdmin && user.role!=="transportista") return err("Solo transportistas",403);
     const id=path.split("/")[3]; const raw=await dalGetTransporteById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrado",404);
-    const t=raw; if(!(await puedeGestionarTransporte(env,user,t))) return err("Sin acceso",403);
+    const t=raw; if(!esAdmin && !(await puedeGestionarTransporte(env,user,t))) return err("Sin acceso",403);
     let body={}; try{body=await request.json();}catch(e){}
     const { estado, nota } = body;
-    if(!["preparacion","en_ruta","carga_recogida","en_destino","entregado"].includes(estado)) return err("Estado invalido");
-    t.estado=estado; t.historial=t.historial||[]; t.historial.push({ estado, nota:nota||"", fecha:new Date().toISOString(), actor:user.nombre||user.email });
-    if(estado==="entregado") t.entregadoAt=new Date().toISOString();
+    if(!["preparacion","en_ruta","carga_recogida","en_destino","entregado"].includes(estado)) return err("Estado inválido");
+    if(esAdmin && estado!=="entregado") return err("Desde el admin solo se puede confirmar la entrega");
+    const yaEntregado=["entregado","completado"].includes(t.estado);
+    if(yaEntregado && !esAdmin) return err("Este transporte ya está marcado como entregado");
+    if(estado==="entregado"){
+      // Fecha REAL de entrega (la indica el transportista; puede confirmar días después)
+      const hoyCL=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Santiago"}).format(new Date());
+      const fe=String(body.fechaEntrega||hoyCL).slice(0,10);
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(fe)) return err("Fecha de entrega inválida");
+      if(fe>hoyCL) return err("La fecha de entrega no puede ser futura");
+      try{
+        const lic=t.licitacionId?await dalGetLicitacionById(env, t.licitacionId, usarSupabase(env, url)):null;
+        const fc=lic?String(lic.fechaCarga||lic.fechaCargaISO||"").slice(0,10):"";
+        if(/^\d{4}-\d{2}-\d{2}$/.test(fc) && fe<fc) return err("La fecha de entrega no puede ser anterior a la fecha de carga ("+fc.split("-").reverse().join("-")+")");
+      }catch(e){}
+      const hr=/^\d{2}:\d{2}$/.test(String(body.horaEntrega||""))?String(body.horaEntrega):null;
+      t.fechaEntregaReal=fe; t.horaEntregaReal=hr;
+      t.entregadoAt=new Date(fe+"T"+(hr||"12:00")+":00-03:00").toISOString();
+      if(yaEntregado){ t.entregaCorregidaAt=new Date().toISOString(); t.entregaCorregidaPor="TransMatch"; }
+      else { t.entregaConfirmadaAt=new Date().toISOString(); t.entregaConfirmadaPor=esAdmin?"TransMatch":(user.nombre||user.email); }
+    }
+    if(!yaEntregado) t.estado=estado;
+    t.historial=t.historial||[]; t.historial.push({ estado:t.estado, nota:(yaEntregado?"Fecha de entrega corregida a "+t.fechaEntregaReal.split("-").reverse().join("-")+(nota?" · "+nota:""):(nota||"")), fecha:new Date().toISOString(), actor:esAdmin?"TransMatch":(user.nombre||user.email) });
     await dalSaveTransporte(env, t, usarSupabase(env, url));
     return ok({ ok:true, estado });
   }
@@ -4743,7 +5372,7 @@ async function handleRequest(request, env, ctx) {
     if(user.role!=="transportista") return err("Solo transportistas",403);
     const id=path.split("/")[3]; const raw=await dalGetTransporteById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrado",404);
     const t=raw; if(!(await puedeGestionarTransporte(env,user,t))) return err("Sin acceso",403);
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const fotos=Array.isArray(body.fotos)?body.fotos.filter(f=>f&&f.base64).slice(0,6).map(f=>({ base64:f.base64, mimeType:f.mimeType||"image/jpeg", nombre:(f.nombre||"foto").toString().slice(0,120) })):[];
     const receptorNombre=(body.receptorNombre||"").toString().trim().slice(0,120);
     const receptorRut=(body.receptorRut||"").toString().trim().slice(0,20);
@@ -4761,7 +5390,7 @@ async function handleRequest(request, env, ctx) {
     const id=path.split("/")[3]; const raw=await dalGetTransporteById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrado",404);
     const t=raw;
     if(!(await puedeGestionarTransporte(env,user,t))) return err("Sin acceso",403);
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const nuevoEmail=(body.email||"").toLowerCase().trim(); if(!nuevoEmail) return err("email requerido");
     // El destinatario debe pertenecer a la misma empresa
     const emails=await emailsEmpresa(env,user);
@@ -4820,6 +5449,9 @@ async function handleRequest(request, env, ctx) {
     // Aviso interno a TransMatch — nunca se notifica a la contraparte
     try{ await crearNotificacion(env,"admin","incidencia_reportada",`Incidencia reportada por ${user.role} (${user.email}) sobre transporte ${t.codigo||id}: ${body.tipo}`,{ transporteId:id }); }catch(e){}
     await registrarActividad(env,"incidencia_reportada",`Incidencia reportada por ${user.role}: ${body.tipo}`,{ transporteId:id, role:user.role });
+    if(user.role==="cliente" && INCIDENCIAS_GRAVES.includes(body.tipo) && t.transportistaEmail){
+      try{ const tu=await dalGetUsuarioByEmail(env, t.transportistaEmail, usarSupabase(env, url)); if(tu) await actualizarNivelTransportista(env, tu); }catch(e){}
+    }
     return ok({ ok:true, incidencia });
   }
 
@@ -4849,7 +5481,7 @@ async function handleRequest(request, env, ctx) {
     t.factura={ archivoId, nombre:body.nombre||"factura.pdf", subidoAt:new Date().toISOString() };
     t.estado="completado"; t.completadoAt=new Date().toISOString(); t.estadoDocumentos="completo";
     await dalSaveTransporte(env, t, usarSupabase(env, url));
-    await crearNotificacion(env, t.clienteId||"", "factura_disponible", "La factura de tu transporte esta lista.", { transporteId:id });
+    await crearNotificacion(env, t.clienteId||"", "factura_disponible", "La factura de tu transporte está lista.", { transporteId:id });
     const _sbFac=usarSupabase(env, url);
     const _allOVsFac=await dalGetAllOVs(env, _sbFac);
     for(const ov of _allOVsFac){
@@ -4868,8 +5500,8 @@ async function handleRequest(request, env, ctx) {
       ov.fecha_confirmacion=new Date().toISOString(); ov.historial=ov.historial||[];
       ov.historial.push({ estado:"CONFIRMADA", fecha:new Date().toISOString(), actor:"sistema", nota:"Factura recibida. Comisión calculada." });
       await dalSaveOV(env, ov, _sbFac);
-      await crearNotificacion(env,ov.id_transportista,"ov_confirmada",`OV ${ov.id_ov} confirmada. Comision: ${formatCLP(comisionFinal)}.`,{ ovId:ov.id_ov, comisionFinal });
-      await enviarEmail(env,{ to:ov.transportistaEmail, subject:`Comision confirmada - ${ov.id_ov} - TransMatch`, html:emailOVConfirmada(ov) });
+      await crearNotificacion(env,ov.id_transportista,"ov_confirmada",`OV ${ov.id_ov} confirmada. Comisión: ${formatCLP(comisionFinal)}.`,{ ovId:ov.id_ov, comisionFinal });
+      await enviarEmail(env,{ to:ov.transportistaEmail, subject:`Comisión confirmada - ${ov.id_ov} - TransMatch`, html:emailOVConfirmada(ov) });
       break;
     }
     return ok({ ok:true, archivoId });
@@ -4946,7 +5578,7 @@ async function handleRequest(request, env, ctx) {
 
   if (path === "/api/admin/facturacion-batch" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const { periodo } = body; if(!periodo) return err("periodo requerido (formato YYYY-MM)");
     const _sbBatch=usarSupabase(env, url);
     const _allOVsBatch=await dalGetAllOVs(env, _sbBatch); const ovsDelPeriodo=[];
@@ -4984,7 +5616,7 @@ async function handleRequest(request, env, ctx) {
   if (path.match(/^\/api\/admin\/facturas-mensuales\/[^/]+\/factura-sii$/) && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     const facturaId=path.split("/")[4]; const factura=await dalGetFacturaConsById(env, facturaId, usarSupabase(env, url)); if(!factura) return err("Consolidado no encontrado",404);
-    let body={}; try{body=await request.json();}catch(e){ return err("Formato invalido"); }
+    let body={}; try{body=await request.json();}catch(e){ return err("Formato inválido"); }
     if(!body.base64) return err("PDF de la factura requerido");
     if(body.base64.length>12000000) return err("Archivo demasiado grande. Máximo 8 MB");
     const nombre=body.archivoNombre||("factura_"+(factura.periodo||"")+".pdf");
@@ -5042,7 +5674,7 @@ async function handleRequest(request, env, ctx) {
     const id=path.split("/")[3]; const _sbRet=usarSupabase(env, url); const r=await dalGetRetornoById(env, id, _sbRet); if(!r) return err("No encontrado",404);
     if(!(await puedeGestionarRetorno(env,user,r))) return err("Sin acceso",403);
     if(r.estado!=="disponible") return err("Solo puedes editar retornos disponibles",403);
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const campos=["ciudadOrigen","ciudadDestino","fechaDesde","fechaHasta","equipo","capacidad","precio","descripcion","descripción"];
     for(const k of campos){ if(body[k]!==undefined) r[k]=body[k]; }
     if(body.precio) r.precio=parseFloat(body.precio);
@@ -5062,7 +5694,7 @@ async function handleRequest(request, env, ctx) {
 
   if (path === "/api/cotizaciones/editar" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const { licitacionId, precio, tiempoEntrega, fechaCargaISO, fechaEntregaISO, descripcion, archivoId, archivoNombre, archivoPdfId, archivoPdfNombre, formulario } = body;
     if(!licitacionId||!precio) return err("licitacionId y precio requeridos");
     const raw=await dalGetLicitacionById(env, licitacionId, usarSupabase(env, url)); if(!raw) return err("No encontrada",404);
@@ -5107,7 +5739,7 @@ async function handleRequest(request, env, ctx) {
 
   if (path === "/api/cotizaciones/eliminar" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"transportista"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const { licitacionId } = body; if(!licitacionId) return err("licitacionId requerido");
     const raw=await dalGetLicitacionById(env, licitacionId, usarSupabase(env, url)); if(!raw) return err("No encontrada",404);
     const l=raw; if(l.estado!=="abierta") return err("Solo puedes eliminar cotizaciones de licitaciones abiertas");
@@ -5156,7 +5788,7 @@ async function handleRequest(request, env, ctx) {
   if (path.match(/^\/api\/admin\/equipos-pendientes\/[^/]+\/resolver$/) && method === "POST") {
     const user = await getUser(request, env); const d = deny(user,"admin"); if(d) return d;
     const id = path.split("/")[4];
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const { accion, nombreAprobado } = body; // accion: aprobar | rechazar
     if(!["aprobar","rechazar"].includes(accion)) return err("accion debe ser aprobar o rechazar");
     const pendientes = JSON.parse(await env.SESSIONS.get("equipos:pendientes")||"[]");
@@ -5230,7 +5862,7 @@ async function handleRequest(request, env, ctx) {
     const maxU = uAdmin.max_usuarios || 0;
     const miembros = uAdmin.empresaMiembros || [];
     if(miembros.length >= maxU) return err(`Límite de ${maxU} usuarios extra alcanzado`, 403);
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const { emailInvitado, permisos, rol } = body;
     if(!emailInvitado) return err("emailInvitado requerido");
     // Verificar que no está ya registrado
@@ -5301,7 +5933,7 @@ async function handleRequest(request, env, ctx) {
     if(!raw) return err("Invitación no encontrada o expirada", 404);
     const inv = JSON.parse(raw);
     if(new Date(inv.expiresAt) < new Date()) return err("Invitación expirada", 410);
-    return ok({ invitacion: { emailInvitado:inv.emailInvitado, empresa:inv.empresa, role:inv.role } });
+    return ok({ invitacion: { emailInvitado:inv.emailInvitado, empresa:inv.empresa, role:inv.role, nombre:inv.nombreInvitado||"", cargo:inv.cargoInvitado||"" } });
   }
 
   // POST /api/invitacion/:token/aceptar — crear cuenta desde invitación
@@ -5311,7 +5943,7 @@ async function handleRequest(request, env, ctx) {
     if(!raw) return err("Invitación no encontrada o expirada", 404);
     const inv = JSON.parse(raw);
     if(new Date(inv.expiresAt) < new Date()) return err("Invitación expirada", 410);
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const { nombre, password, cargo, telefono, rut } = body;
     if(!nombre||!password) return err("nombre y password requeridos");
     if(!telefono) return err("Teléfono requerido");
@@ -5366,7 +5998,7 @@ async function handleRequest(request, env, ctx) {
     if(!rawTarget) return err("Usuario no encontrado", 404);
     const uTarget = JSON.parse(rawTarget);
     if(uTarget.empresaAdminEmail !== user.email) return err("Este usuario no pertenece a tu empresa", 403);
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     uTarget.permisos = body.permisos || {};
     await _USR(env).put(emailTarget, JSON.stringify(uTarget));
     return ok({ ok:true });
@@ -5401,14 +6033,26 @@ async function handleRequest(request, env, ctx) {
     const id = path.split("/")[3];
     const raw = await dalGetTransporteById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrado",404);
     const t = raw; if(!(await puedeGestionarTransporte(env,user,t))) return err("Sin acceso",403);
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     if(!body.patente) return err("patente requerida");
+    {
+      const hoyCL=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Santiago"}).format(new Date());
+      let docs=body.documentos||{};
+      if(!body.equipoId){
+        // Equipo ingresado a mano: no se aceptan documentos vencidos (solo los recién subidos).
+        // Los faltantes NO bloquean: quedan como pendientes para no trabar el transporte.
+        const prev=(t.equipoAsignado&&t.equipoAsignado.patente===body.patente&&t.equipoAsignado.documentos)||{};
+        const venc=Object.entries(docs).filter(([k,d])=>d&&d.vencimiento&&String(d.vencimiento).slice(0,10)<hoyCL&&!(prev[k]&&prev[k].archivoId===d.archivoId)).map(([k,d])=>d.label||k);
+        if(venc.length) return err("No se pueden subir documentos vencidos: "+venc.join(", ")+". Sube la versión vigente.");
+      }
+    }
     t.equipoAsignado = {
       patente: body.patente,
       tipo: body.tipo||"",
       marca: body.marca||"",
       modelo: body.modelo||"",
       equipoId: body.equipoId||null,
+      tercerizado: !body.equipoId && !!body.tercerizado,
       documentos: body.documentos||null,
     };
     t.historial = t.historial||[];
@@ -5424,7 +6068,7 @@ async function handleRequest(request, env, ctx) {
     const id = path.split("/")[3];
     const raw = await dalGetTransporteById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrado",404);
     const t = raw; if(!(await puedeGestionarTransporte(env,user,t))) return err("Sin acceso",403);
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     if(!body.nombre||!body.rut) return err("nombre y rut requeridos");
     t.conductorAsignado = {
       nombre: body.nombre,
@@ -5449,7 +6093,7 @@ async function handleRequest(request, env, ctx) {
     const id = path.split("/")[3];
     const raw = await dalGetTransporteById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrado",404);
     const t = raw; if(!(await puedeGestionarTransporte(env,user,t))) return err("Sin acceso",403);
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     if(!body.label||!String(body.label).trim()) return err("Indica un nombre para el documento (ej: Seguro de carga)");
     if(!body.base64) return err("Archivo requerido");
     const archivoId=uid();
@@ -5494,7 +6138,7 @@ async function handleRequest(request, env, ctx) {
   // POST /api/admin/alta-transportista — guarda los datos del Excel "Alta de cuenta" (ya revisados por el admin)
   if (path === "/api/admin/alta-transportista" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const sb=usarSupabase(env, url);
     const cargar=async em=>{ em=String(em||"").toLowerCase(); if(!em) return null; const x=await dalGetUsuarioByEmail(env, em, sb); if(x) return x; const r=await _USR(env).get(em); return r?JSON.parse(r):null; };
     const guardar=async u=>{ await _USR(env).put(String(u.email).toLowerCase(), JSON.stringify(u)); if(sb){ try{ await dalSaveUsuario(env, u, sb); }catch(e){} } };
@@ -5539,6 +6183,115 @@ async function handleRequest(request, env, ctx) {
     return ok({ ok:true, cambios });
   }
 
+  // ── ADMIN: DOCUMENTOS DE HABILITACIÓN DEL TRANSPORTISTA ───────
+  // ── ADMIN: AVISO DE CAMBIO DE POLÍTICA Y T&C ──
+  if (path === "/api/admin/aviso-legal" && method === "GET") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    const us=(await dalTodosUsuarios(env)).filter(_avisoLegalDest);
+    const lista=us.map(u=>({ email:u.email, nombre:u.nombre||"", empresa:u.empresa||"", role:u.role, estado:u.estado||"", sub:!!u.esSubusuario, aviso:(u.avisosLegales&&u.avisosLegales[AVISO_LEGAL_VERSION])||null }))
+      .sort((a,b)=>(a.role+a.empresa+a.email).localeCompare(b.role+b.empresa+b.email));
+    return ok({ version:AVISO_LEGAL_VERSION, lista });
+  }
+  if (path === "/api/admin/aviso-legal/vista" && method === "GET") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    const rol=url.searchParams.get("rol")==="cliente"?"cliente":"transportista";
+    return new Response(emailAvisoLegal({ role:rol, nombre:"Juan Pérez", empresa:rol==="cliente"?"Empresa Cliente S.A.":"Transportes Ejemplo SpA" }), { headers:{ "Content-Type":"text/html; charset=utf-8" } });
+  }
+  if (path === "/api/admin/aviso-legal/enviar" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato inválido"); }
+    const sb=usarSupabase(env, url);
+    if(body.prueba){
+      const para=String(body.para||env.ADMIN_EMAIL||"").trim(); if(!para.includes("@")) return err("Falta el correo de prueba");
+      const rol=body.rol==="cliente"?"cliente":"transportista";
+      const r=await enviarEmail(env,{ to:para, subject:"[PRUEBA "+rol+"] Actualizamos nuestra Política de Privacidad y Términos - TransMatch", html:emailAvisoLegal({ role:rol, nombre:"Majo", empresa:rol==="cliente"?"Empresa Cliente S.A.":"Transportes Ejemplo SpA" }) });
+      return ok({ ok:!!(r&&r.ok), silenciado:!!(r&&r.muted), error:r&&!r.ok?String(r.error||r.status||""):null });
+    }
+    const emails=(Array.isArray(body.emails)?body.emails:[]).map(e=>String(e||"").toLowerCase()).filter(Boolean).slice(0,6);
+    const res=[];
+    for(const em of emails){
+      try{
+        const u=await dalGetUsuarioByEmail(env, em, sb);
+        if(!_avisoLegalDest(u)){ res.push({ email:em, ok:false, error:"No es destinatario" }); continue; }
+        if(u.avisosLegales&&u.avisosLegales[AVISO_LEGAL_VERSION]&&u.avisosLegales[AVISO_LEGAL_VERSION].ok&&!body.reenviar){ res.push({ email:em, ok:true, ya:true, aviso:u.avisosLegales[AVISO_LEGAL_VERSION] }); continue; }
+        const r=await enviarEmail(env,{ to:u.email, subject:"Actualizamos nuestra Política de Privacidad y Términos - TransMatch", html:emailAvisoLegal(u) });
+        if(r&&r.muted){ res.push({ email:em, ok:false, error:"MODO_PRUEBAS activo: no se envió" }); continue; }
+        const reg={ ok:!!(r&&r.ok), enviadoAt:new Date().toISOString(), por:user.email||"admin", status:(r&&r.status)||null, error:r&&!r.ok?String(r.error||"").slice(0,200):null };
+        u.avisosLegales=Object.assign({}, u.avisosLegales||{}, { [AVISO_LEGAL_VERSION]:reg });
+        await dalSaveUsuario(env, u, sb);
+        res.push({ email:em, ok:reg.ok, aviso:reg, error:reg.error });
+        await new Promise(x=>setTimeout(x,350)); // Resend: máx. ~2-5 por segundo
+      }catch(e){ res.push({ email:em, ok:false, error:String(e&&e.message||e).slice(0,200) }); }
+    }
+    try{ await registrarActividad(env,"aviso_legal",`Aviso de Política y T&C enviado a ${res.filter(x=>x.ok&&!x.ya).length} usuario(s)`,{}); }catch(e){}
+    return ok({ resultados:res });
+  }
+  // GET /api/admin/whatsapp/numero — nivel (tier) de mensajes y calidad del número, vía Kapso
+  if (path === "/api/admin/whatsapp/numero" && method === "GET") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    if(!usarKapso(env)) return err("Kapso no configurado");
+    const base=(env.KAPSO_API_BASE||"https://api.kapso.ai/meta/whatsapp/v24.0").replace(/\/+$/,"");
+    const r=await fetch(base+"/"+env.KAPSO_PHONE_NUMBER_ID+"?fields=display_phone_number,verified_name,quality_rating,messaging_limit_tier,throughput,name_status,status",{ headers:{ "X-API-Key":env.KAPSO_API_KEY } });
+    const t=await r.text(); let j=null; try{ j=JSON.parse(t); }catch(e){}
+    return ok({ status:r.status, numero:j||t.slice(0,500) });
+  }
+  // POST /api/admin/habilitacion — marca/actualiza un documento (con o sin archivo) en la cuenta madre
+  if (path === "/api/admin/habilitacion" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato inválido"); }
+    const def=HAB_DOCS.find(x=>x.k===body.doc); if(!def) return err("Documento no válido");
+    const sb=usarSupabase(env, url);
+    const madre=await dalGetUsuarioByEmail(env, String(body.email||"").toLowerCase(), sb);
+    if(!madre||madre.role!=="transportista"||madre.esSubusuario) return err("Cuenta de transportista no encontrada",404);
+    const limpio=v=>String(v==null?"":v).replace(/[<>"'`]/g,"").replace(/\s+/g," ").trim();
+    const fechaOk=v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v||""))?String(v):null;
+    const hab=madre.habilitacion||{}; hab.docs=hab.docs||{};
+    const doc=Object.assign({}, hab.docs[def.k]||{});
+    if(body.archivo&&body.archivo.base64){
+      if(String(body.archivo.base64).length>12000000) return err("Archivo demasiado grande. Máximo 8 MB");
+      const nombre=limpio(body.archivo.nombre||"documento.pdf").slice(0,120)||"documento.pdf";
+      const ext=nombre.split(".").pop().toLowerCase();
+      if(!["pdf","jpg","jpeg","png","webp","heic","doc","docx","xls","xlsx"].includes(ext)) return err("Tipo de archivo no permitido");
+      const aid=uid();
+      await dalSaveArchivo(env, aid, { id:aid, nombre, tipo:body.archivo.mimeType||null, mimeType:body.archivo.mimeType||null, base64:body.archivo.base64, subidoPor:user.id, subidoPorEmail:user.email, createdAt:new Date().toISOString() }, sb);
+      doc.archivoId=aid; doc.archivoNombre=nombre; doc.recibido=true;
+    }
+    if(body.quitarArchivo){ delete doc.archivoId; delete doc.archivoNombre; }
+    if(body.recibido!==undefined) doc.recibido=!!body.recibido;
+    if(body.fecha!==undefined) doc.fecha=fechaOk(body.fecha);
+    if(def.vence && body.vence!==undefined){ const v=fechaOk(body.vence); if(v!==doc.vence){ doc.vence=v; doc.avisos={}; } }
+    if(body.nota!==undefined) doc.nota=limpio(body.nota).slice(0,500);
+    doc.actualizadoAt=new Date().toISOString(); doc.actualizadoPor=user.email||"admin";
+    hab.docs[def.k]=doc; madre.habilitacion=hab; madre.updatedAt=new Date().toISOString();
+    await dalSaveUsuario(env, madre, sb);
+    try{ await registrarActividad(env,"habilitacion_doc",`Documento de habilitación actualizado: ${def.label} · ${madre.empresa||madre.email}`,{ email:madre.email }); }catch(e){}
+    return ok({ ok:true, habilitacion:hab });
+  }
+  // POST /api/admin/habilitacion/pedir — correo al transportista pidiendo un documento (lo dispara el admin)
+  if (path === "/api/admin/habilitacion/pedir" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    let body={}; try{ body=await request.json(); }catch(e){ return err("Formato inválido"); }
+    const def=HAB_DOCS.find(x=>x.k===body.doc); if(!def) return err("Documento no válido");
+    const sb=usarSupabase(env, url);
+    const madre=await dalGetUsuarioByEmail(env, String(body.email||"").toLowerCase(), sb);
+    if(!madre||madre.role!=="transportista"||madre.esSubusuario) return err("Cuenta de transportista no encontrada",404);
+    const hab=madre.habilitacion||{}; hab.docs=hab.docs||{};
+    const doc=Object.assign({}, hab.docs[def.k]||{});
+    const plazo=new Date(Date.now()+10*864e5).toLocaleDateString("es-CL",{ timeZone:"America/Santiago", day:"2-digit", month:"2-digit", year:"numeric" });
+    const accion = doc.recibido ? "la versión actualizada de tu <strong>"+def.label+"</strong>" : "tu <strong>"+def.label+"</strong>";
+    const motivo = (def.vence && doc.vence) ? ("<p style=\"font-size:14px;color:#374151;line-height:1.6;margin:0 0 14px\">La que tenemos registrada "+(doc.vence<new Date().toISOString().slice(0,10)?"venció":"vence")+" el "+doc.vence.split("-").reverse().join("-")+".</p>") : "";
+    const html=emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Necesitamos un documento</h2>
+      <p style="font-size:14px;color:#374151;line-height:1.6;margin:0 0 14px">Hola${madre.nombre?" "+madre.nombre:""}: para mantener al día la cuenta de ${madre.empresa||"tu empresa"} en TransMatch necesitamos ${accion}.</p>${motivo}
+      <p style="font-size:14px;color:#374151;line-height:1.6;margin:0 0 14px">Envíala respondiendo este correo o a <a href="mailto:contacto@transmatch.cl" style="color:#1e2d4e">contacto@transmatch.cl</a> a más tardar el <strong>${plazo}</strong>. Tus transportes adjudicados no se ven afectados.</p>
+      <p style="font-size:12px;color:#6B7280;line-height:1.5;margin:16px 0 0">Si ya lo enviaste, ignora este mensaje.</p>`, "Documento pendiente - TransMatch");
+    const r=await enviarEmail(env,{ to:madre.email, subject:`Documento pendiente: ${def.label} - TransMatch`, html });
+    if(!r||!r.ok) return err("No se pudo enviar el correo",502);
+    doc.pedidoAt=new Date().toISOString(); hab.docs[def.k]=doc; madre.habilitacion=hab;
+    await dalSaveUsuario(env, madre, sb);
+    try{ await registrarActividad(env,"habilitacion_pedido",`Se pidió ${def.label} a ${madre.empresa||madre.email}`,{ email:madre.email }); }catch(e){}
+    return ok({ ok:true, pedidoAt:doc.pedidoAt, plazo, silenciado:!!r.muted });
+  }
+
   // ── ADMIN: INFORMES MENSUALES ──────────────────────────────────
   if (path === "/api/admin/informes" && method === "GET") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
@@ -5561,7 +6314,7 @@ async function handleRequest(request, env, ctx) {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     const eid=path.split("/")[4]; const sb=usarSupabase(env, url);
     const emp=await dalGetEmpresaById(env, eid, sb); if(!emp) return err("Empresa no encontrada",404);
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const cfg=emp.informeMensual||{};
     if(body.auto!==undefined) cfg.auto=!!body.auto;
     if(Array.isArray(body.destinatarios)){
@@ -5574,7 +6327,7 @@ async function handleRequest(request, env, ctx) {
   }
   if (path === "/api/admin/informes/enviar" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const periodo=String(body.periodo||""); if(!/^\d{4}-\d{2}$/.test(periodo)) return err("Periodo inválido");
     const ids=Array.isArray(body.empresaIds)?body.empresaIds.slice(0,50):[]; if(!ids.length) return err("Selecciona al menos un cliente");
     const sb=usarSupabase(env, url);
@@ -5599,7 +6352,7 @@ async function handleRequest(request, env, ctx) {
     const raw = await dalGetTransporteById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrado",404);
     const t = raw; if((t.empresaId||t.clienteId)!==(user.esSubusuario?(user.empresaMadreId||user.id):user.id)) return err("Sin acceso",403);
     if(t.valoracion) return err("Este transporte ya fue valorado; no se pueden solicitar más documentos");
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const limpiar = v => String(v||"").replace(/[<>"'`]/g,"").replace(/\s+/g," ").trim();
     const indicaciones = limpiar(body.indicaciones).slice(0,300);
     const reqs = t.requisitosEstandar||[];
@@ -5651,7 +6404,7 @@ async function handleRequest(request, env, ctx) {
     const parts = path.split("/"); const id = parts[3]; const reqId = parts[5];
     const raw = await dalGetTransporteById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrado",404);
     const t = raw; if(!(await puedeGestionarTransporte(env,user,t))) return err("Sin acceso",403);
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     if(!body.base64) return err("Archivo requerido");
     const r = await cargarRequisitoCore(env, t, reqId, { base64:body.base64, mimeType:body.mimeType, nombre:body.nombre }, user.nombre||user.email, usarSupabase(env, url));
     if(r.error) return err(r.error, r.status||400);
@@ -5665,9 +6418,9 @@ async function handleRequest(request, env, ctx) {
     const t = raw;
     if(user.role==="cliente"&&t.clienteEmail!==user.email) return err("Sin acceso",403);
     if(user.role==="transportista"&&!(await puedeGestionarTransporte(env,user,t))) return err("Sin acceso",403);
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     const { rol, contacto } = body;
-    if(!rol||!contacto||!contacto.nombre||!contacto.telefono) return err("rol, nombre y telefono requeridos");
+    if(!rol||!contacto||!contacto.nombre||!contacto.telefono) return err("rol, nombre y teléfono requeridos");
     if(!["cliente","transportista"].includes(rol)) return err("rol debe ser cliente o transportista");
     if(!t.contactosOperacionales) t.contactosOperacionales={};
     if(!t.contactosOperacionales[rol]) t.contactosOperacionales[rol]=[];
@@ -5700,7 +6453,7 @@ async function handleRequest(request, env, ctx) {
     const id = path.split("/")[3];
     const raw = await dalGetTransporteById(env, id, usarSupabase(env, url)); if(!raw) return err("No encontrado",404);
     const t = raw; if((t.empresaId||t.clienteId)!==(user.esSubusuario?(user.empresaMadreId||user.id):user.id)) return err("Sin acceso",403);
-    let body={}; try{body=await request.json();}catch(e){return err("Formato invalido");}
+    let body={}; try{body=await request.json();}catch(e){return err("Formato inválido");}
     if(!body.direcciones) return err("direcciones requerido");
     t.direcciones = body.direcciones;
     ["carga","descarga"].forEach(function(k){ if(t.direcciones && t.direcciones[k] && typeof t.direcciones[k]==="object") { const d=t.direcciones[k]; d.ubicacion = limpiarUbicacion(d.ubicacion); const u=d.ubicacion; d.mapsUrl = u ? (/^https:/i.test(u) ? u : "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(u)) : (d.direccion ? "https://www.google.com/maps/search/"+encodeURIComponent(String(d.direccion)) : ""); } });
@@ -5748,8 +6501,137 @@ async function procesarVencimientosEmpresas(env){
   }catch(e){}
 }
 
+// Documentos de habilitación del transportista (se reciben por correo; el admin los registra).
+// Solo la póliza tiene vencimiento con aviso.
+const HAB_DOCS=[
+  { k:"erut", label:"Carpeta tributaria o e-RUT" },
+  { k:"vigencia", label:"Certificado de vigencia de la sociedad" },
+  { k:"cedula_rl", label:"Cédula del representante legal" },
+  { k:"f30", label:"Certificado F30" },
+  { k:"poliza", label:"Póliza de seguro", vence:true },
+  { k:"banco", label:"Certificado de cuenta bancaria" },
+  { k:"referencias", label:"Referencias comerciales" }
+];
+// Aviso al admin a 30, 15 y 0 días del vencimiento de la póliza (1 vez por hito). 1 barrido al día.
+async function procesarVencimientosHabilitacion(env){
+  try{
+    const hoyStr=new Date().toLocaleDateString("en-CA",{ timeZone:"America/Santiago" });
+    if(await env.SESSIONS.get("cron:venchab:lastrun")===hoyStr) return;
+    await env.SESSIONS.put("cron:venchab:lastrun", hoyStr);
+    const hoy=new Date(hoyStr+"T00:00:00Z").getTime();
+    const sb=usarSupabase(env,null);
+    const usuarios=await dalTodosUsuarios(env);
+    const filas=[];
+    for(const u of usuarios){
+      if(!u||u.role!=="transportista"||u.esSubusuario||u.estado==="rechazado") continue;
+      const docs=(u.habilitacion&&u.habilitacion.docs)||{}; let cambio=false;
+      for(const def of HAB_DOCS){
+        if(!def.vence) continue; const doc=docs[def.k]; if(!doc||!doc.vence) continue;
+        const dias=Math.round((new Date(doc.vence+"T00:00:00Z").getTime()-hoy)/86400000);
+        const hito= dias<=0?"0":dias<=15?"15":dias<=30?"30":null; if(!hito) continue;
+        doc.avisos=doc.avisos||{}; if(doc.avisos[hito]) continue;
+        doc.avisos[hito]=hoyStr; cambio=true;
+        filas.push({ empresa:u.empresa||u.email, doc:def.label, vence:doc.vence, dias });
+      }
+      if(cambio){ u.habilitacion.docs=docs; try{ await dalSaveUsuario(env, u, sb); }catch(e){} }
+    }
+    if(!filas.length) return;
+    const txt=d=>d<0?"Vencida hace "+(-d)+" día(s)":d===0?"Vence hoy":"Vence en "+d+" día(s)";
+    const msg=filas.map(f=>f.empresa+": "+f.doc+" — "+txt(f.dias).toLowerCase()).join(" · ");
+    await crearNotificacion(env,"admin","vencimiento_habilitacion",msg,{});
+    if(env.ADMIN_EMAIL){
+      const cont='<h1 style="margin:0 0 10px;font-size:20px;color:#1e2d4e">Pólizas por vencer</h1><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;margin-top:12px">'+filas.map(r=>'<tr><td style="padding:6px 0;color:#1e2d4e;font-weight:600">'+r.empresa+'</td><td style="padding:6px 0;text-align:right;color:#374151">'+r.vence.split("-").reverse().join("-")+'</td><td style="padding:6px 0;text-align:right;color:#854F0B">'+txt(r.dias)+'</td></tr>').join('')+'</table>'+btnEmail("https://transmatch.cl/admin-transportistas.html","Ver documentos");
+      try{ await enviarEmail(env,{ to:env.ADMIN_EMAIL, subject:"Pólizas de transportistas por vencer - TransMatch", html:emailBase(cont,"Pólizas por vencer") }); }catch(e){}
+    }
+  }catch(e){ console.error("venc habilitacion", e&&e.message); }
+}
+
+// Día anterior a la carga: si el transporte tiene documentos pendientes o le falta equipo/conductor,
+// avisa al transportista (notificación + correo) y al admin. Solo avisa: no bloquea nada. 1 vez por transporte y fecha.
+async function procesarAlertaDocsCarga(env){
+  try{
+    const ahora=new Date();
+    const hoyStr=ahora.toLocaleDateString("en-CA",{ timeZone:"America/Santiago" });
+    const hora=Number(ahora.toLocaleString("en-US",{ timeZone:"America/Santiago", hour:"2-digit", hour12:false }));
+    if(hora<9) return;
+    if(await env.SESSIONS.get("cron:alertadocs:lastrun")===hoyStr) return;
+    await env.SESSIONS.put("cron:alertadocs:lastrun", hoyStr);
+    const manana=new Date(new Date(hoyStr+"T12:00:00Z").getTime()+864e5).toISOString().slice(0,10);
+    const sb=usarSupabase(env,null);
+    const [trans, lics]=await Promise.all([dalGetAllTransportes(env, sb), dalGetAllLicitaciones(env, sb)]);
+    const licMap=new Map(lics.filter(Boolean).map(l=>[l.id,l]));
+    const resumen=[];
+    for(const t of trans){
+      if(!t||t.estado!=="preparacion") continue;
+      const l=licMap.get(t.licitacionId); if(!l||!l.fechaCarga) continue;
+      const fc=String(l.fechaCarga).slice(0,10); if(fc!==manana) continue;
+      if(t.alertaDocsCarga===fc) continue;
+      const faltan=[];
+      if(!t.equipoAsignado) faltan.push("Equipo asignado");
+      if(!t.conductorAsignado) faltan.push("Conductor asignado");
+      for(const r of (t.requisitosEstandar||[])) if(!r.archivoId) faltan.push(r.label||"Documento");
+      if(!faltan.length) continue;
+      t.alertaDocsCarga=fc;
+      try{ await dalSaveTransporte(env, t, sb); }catch(e){ continue; }
+      const fechaTxt=fc.split("-").reverse().join("-")+(l.horaCarga?" a las "+l.horaCarga:"");
+      const msg=`Mañana es la carga de ${t.codigo||"tu transporte"} (${t.origen||""} → ${t.destino||""}) y falta: ${faltan.join(", ")}.`;
+      try{
+        const u=t.transportistaEmail?await dalGetUsuarioByEmail(env, t.transportistaEmail, sb):null;
+        if(u&&u.id) await crearNotificacion(env, u.id, "docs_pendientes_carga", msg, { transporteId:t.id });
+      }catch(e){}
+      if(t.transportistaEmail){
+        const esc=v=>String(v||"").replace(/[<>&"']/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;","'":"&#39;"}[c]));
+        const html=emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Mañana es la carga: falta información</h2>
+          <p style="font-size:14px;color:#374151;line-height:1.6;margin:0 0 12px">El transporte <strong>${esc(t.codigo)}</strong> (${esc(t.origen)} → ${esc(t.destino)}) se carga el <strong>${esc(fechaTxt)}</strong>. Todavía falta:</p>
+          <ul style="font-size:14px;color:#1e2d4e;margin:0 0 14px;padding-left:20px">${faltan.map(f=>'<li style="margin:0 0 6px">'+esc(f)+'</li>').join("")}</ul>
+          <p style="font-size:14px;color:#374151;line-height:1.6;margin:0 0 14px">Complétalo hoy para que el cliente tenga todo antes de la carga.</p>
+          ${btnEmail('https://transmatch.cl/transportista-transporte.html?id='+encodeURIComponent(t.id),'Completar ahora','#FF8808')}`, "Carga mañana - TransMatch");
+        try{ await enviarEmail(env,{ to:t.transportistaEmail, subject:`Mañana es la carga de ${t.codigo||"tu transporte"}: falta información - TransMatch`, html }); }catch(e){}
+      }
+      resumen.push((t.codigo||t.id)+" ("+(t.transportistaEmpresa||t.transportistaEmail||"")+"): "+faltan.length+" pendiente(s)");
+    }
+    if(resumen.length) await crearNotificacion(env,"admin","docs_pendientes_carga","Cargas de mañana con información pendiente: "+resumen.join(" · "),{});
+  }catch(e){ console.error("alerta docs carga", e&&e.message); }
+}
+
+// ── AVISO DE CAMBIO DE POLÍTICA Y T&C (vigencia 16-11-2026) ──
+const AVISO_LEGAL_VERSION="2026-11-16";
+function emailAvisoLegal(u){
+  const esT=u.role==="transportista";
+  const nombre=String(u.nombre||"").split(" ")[0].replace(/[<>&"']/g,"");
+  const li=t=>'<li style="margin:0 0 8px">'+t+'</li>';
+  const comunes=[
+    "Actualizamos la Política de Privacidad a la nueva Ley N° 21.719 de protección de datos: qué datos tratamos, para qué, cuánto tiempo los guardamos, qué proveedores nos ayudan (y dónde están) y cómo ejercer tus derechos.",
+    "Explicamos cómo te avisaremos si ocurre un incidente de seguridad que afecte tus datos."
+  ];
+  const propios = esT ? [
+    "Avisos y gestiones por WhatsApp (si los activas): nuevas licitaciones, cotizaciones y envío de documentos.",
+    "Si aún no tienes valoraciones, para ordenar tu cotización usamos el promedio de la red. Y puedes pedir que una persona revise la evaluación de tu cotización.",
+    "Datos de tus conductores: al registrarlos confirmas que les informaste que sus datos quedan en la plataforma."
+  ] : [
+    "Si un transportista aún no tiene valoraciones, para ordenar las cotizaciones usamos el promedio de la red.",
+    "Actualizamos la cláusula de protección de datos personales de acuerdo con la nueva ley."
+  ];
+  const pdf = esT ? "Terminos_y_Condiciones_Transportista.pdf" : "Terminos_y_Condiciones_Cliente.pdf";
+  const ver = esT ? "Transportistas v1.1" : "Clientes v3.3";
+  return emailBase(`<h2 style="font-size:20px;font-weight:700;color:#111827;margin:0 0 8px">Actualizamos nuestra Política de Privacidad y Términos y Condiciones</h2>
+    <p style="font-size:14px;color:#374151;line-height:1.6;margin:0 0 14px">Hola${nombre?" "+nombre:""}: te escribimos porque usas TransMatch${u.empresa?" con la cuenta de <strong>"+String(u.empresa).replace(/[<>&"']/g,"")+"</strong>":""}. Actualizamos la <strong>Política de Privacidad (v2.0)</strong> y los <strong>Términos y Condiciones (${ver})</strong>. Los cambios rigen desde el <strong>16 de noviembre de 2026</strong>.</p>
+    <p style="font-size:14px;color:#111827;font-weight:600;margin:0 0 6px">Lo principal</p>
+    <ul style="font-size:14px;color:#374151;line-height:1.55;margin:0 0 16px;padding-left:20px">${comunes.concat(propios).map(li).join("")}</ul>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px"><tr>
+      <td style="padding:0 8px 8px 0"><a href="https://transmatch.cl/privacidad.html" style="display:inline-block;padding:11px 18px;border-radius:10px;background:#1e2d4e;color:#fff;font-size:14px;font-weight:600;text-decoration:none">Ver Política de Privacidad</a></td>
+      <td style="padding:0 0 8px 0"><a href="https://transmatch.cl/${pdf}" style="display:inline-block;padding:11px 18px;border-radius:10px;background:#FF8808;color:#fff;font-size:14px;font-weight:600;text-decoration:none">Ver Términos y Condiciones</a></td>
+    </tr></table>
+    <p style="font-size:14px;color:#374151;line-height:1.6;margin:0 0 12px">No tienes que hacer nada: si sigues usando TransMatch desde el 16 de noviembre, se entiende que aceptas las nuevas versiones. Si no estás de acuerdo, puedes cerrar tu cuenta o pedirnos la eliminación de tus datos antes de esa fecha escribiendo a <a href="mailto:contacto@transmatch.cl" style="color:#1e2d4e">contacto@transmatch.cl</a>. Las versiones anteriores siguen disponibles en <a href="https://transmatch.cl/terminos.html" style="color:#1e2d4e">transmatch.cl/terminos</a>.</p>
+    <p style="font-size:14px;color:#374151;line-height:1.6;margin:0">Si tienes dudas, responde este correo.<br/>Equipo TransMatch</p>`, "Actualizamos nuestra Política de Privacidad y Términos - TransMatch");
+}
+function _avisoLegalDest(u){ return u && u.email && String(u.email).includes("@") && (u.role==="transportista"||u.role==="cliente") && !String(u.email).startsWith("__"); }
+
 export default {
-  fetch: (request, env, ctx) => handleRequest(request, env, ctx),
+  fetch: async (request, env, ctx) => {
+    const resp = await handleRequest(request, env, ctx);
+    return _aplicarCors(request, resp);
+  },
   async scheduled(event, env, ctx) {
     // Ejecutado por el Cron Trigger de Cloudflare (ej: cada 10 min)
     ctx.waitUntil(procesarLicitacionesVencidas(env));
@@ -5757,7 +6639,13 @@ export default {
     ctx.waitUntil(procesarVencimientosDocumentos(env));
     // Barrido de vigencias de empresas cliente (1 vez al día)
     ctx.waitUntil(procesarVencimientosEmpresas(env));
+    // Pólizas de transportistas por vencer (1 vez al día, aviso al admin)
+    ctx.waitUntil(procesarVencimientosHabilitacion(env));
+    // Día antes de la carga: aviso si faltan documentos, equipo o conductor (1 vez por transporte)
+    ctx.waitUntil(procesarAlertaDocsCarga(env));
     // Informe mensual a clientes con envío automático (día 1, desde las 9:00 hora Chile; 1 vez por mes)
     ctx.waitUntil(procesarInformesMensuales(env));
+    // Respaldo nocturno de la base a R2 (01:00–07:00 Chile, hasta 6 tablas por ejecución; cron cada hora)
+    ctx.waitUntil((async()=>{ for(let i=0;i<6;i++){ const r=await respaldoBasePaso(env); if(r==="completo"||r==="fuera de horario"||r==="sin configurar") break; } })().catch(e=>console.error("respaldo", e&&e.message)));
   }
 };
