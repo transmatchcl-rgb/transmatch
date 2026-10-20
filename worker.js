@@ -590,6 +590,8 @@ async function _crearInvitacionAdmin(env, madre, inv){
   }catch(e){}
   return { email:inv.email, emailEnviado:!!(envio&&envio.ok), link, expiresAt:registro.expiresAt };
 }
+function _fechaCL(iso){ const p=String(iso||"").split("-"); return p.length===3?(p[2]+"-"+p[1]+"-"+p[0]):String(iso||""); }
+function _msgVigenciaVencida(fin){ return "La vigencia de tu cuenta venció el "+_fechaCL(fin)+". Puedes seguir revisando tus licitaciones y transportes, pero para publicar nuevas necesitas renovarla. Escríbenos y la renovamos."; }
 // Crea el registro de Empresa de una cuenta madre si aún no existe (las cuentas nuevas no pasaban por la migración).
 // Marca al usuario con empresaId/rol; quien llama guarda el usuario. Devuelve la empresa.
 async function _asegurarEmpresa(env, u, sb){
@@ -3214,7 +3216,7 @@ async function handleRequest(request, env, ctx) {
       }
     }
     const _empMe = await empresaDe(env, u); if(_empMe) overlayPerfilEmpresa(u, _empMe);
-    return ok({ user:{ id:u.id, email:u.email, role:u.role, nombre:u.nombre, empresa:u.empresa, comuna:u.comuna||'', licitacionExpress:!!(_empMe&&_empMe.licitacionExpress), plan:planOut, rating:u.rating, totalTransportes:u.totalTransportes, estado:estadoOut, desactivadoManual:u.desactivadoManual||false, notifEmail:u.notifEmail, notifWhatsapp:u.notifWhatsapp, whatsapp:u.whatsapp, telefono:u.telefono, ciudad:u.ciudad, rut:u.rut, rutEmpresa:u.rutEmpresa, cargo:u.cargo, giro:u.giro, telEmpresa:u.telEmpresa, ciudadEmpresa:u.ciudadEmpresa, direccion:u.direccion, web:u.web, descripcion:u.descripcion, anosExperiencia:u.anosExperiencia, zonas:u.zonas||[], equipos:u.equipos||[], tiposEquipo:u.tiposEquipo||[], facturacion:u.facturacion||{}, contactoOperaciones:u.contactoOperaciones, contactoComercial:u.contactoComercial, contactoFacturacion:u.contactoFacturacion, contactos:u.contactos||[], datosBancarios:u.datosBancarios||{}, industrias:u.industrias||[], max_usuarios:u.max_usuarios||0, esSubusuario:u.esSubusuario||false, empresaMadreId:u.empresaMadreId||null, rol:u.rol||(u.esSubusuario?'miembro':'dueno'), empresaId:u.empresaId||null, empresaMiembros:u.empresaMiembros||[], permisos:u.permisos||{}, perfilCompletitud:u.perfilCompletitud||0, totalCotizaciones:u.totalCotizaciones||0, notifPrefs:u.notifPrefs||{} } });
+    return ok({ user:{ id:u.id, email:u.email, role:u.role, nombre:u.nombre, empresa:u.empresa, comuna:u.comuna||'', licitacionExpress:!!(_empMe&&_empMe.licitacionExpress), vigenciaFin:(_empMe&&_empMe.vigencia&&_empMe.vigencia.fin)||null, vigenciaVencida:!!(_empMe&&_empMe.vigencia&&_empMe.vigencia.fin&&_empMe.vigencia.fin<ahoraChile().fecha), plan:planOut, rating:u.rating, totalTransportes:u.totalTransportes, estado:estadoOut, desactivadoManual:u.desactivadoManual||false, notifEmail:u.notifEmail, notifWhatsapp:u.notifWhatsapp, whatsapp:u.whatsapp, telefono:u.telefono, ciudad:u.ciudad, rut:u.rut, rutEmpresa:u.rutEmpresa, cargo:u.cargo, giro:u.giro, telEmpresa:u.telEmpresa, ciudadEmpresa:u.ciudadEmpresa, direccion:u.direccion, web:u.web, descripcion:u.descripcion, anosExperiencia:u.anosExperiencia, zonas:u.zonas||[], equipos:u.equipos||[], tiposEquipo:u.tiposEquipo||[], facturacion:u.facturacion||{}, contactoOperaciones:u.contactoOperaciones, contactoComercial:u.contactoComercial, contactoFacturacion:u.contactoFacturacion, contactos:u.contactos||[], datosBancarios:u.datosBancarios||{}, industrias:u.industrias||[], max_usuarios:u.max_usuarios||0, esSubusuario:u.esSubusuario||false, empresaMadreId:u.empresaMadreId||null, rol:u.rol||(u.esSubusuario?'miembro':'dueno'), empresaId:u.empresaId||null, empresaMiembros:u.empresaMiembros||[], permisos:u.permisos||{}, perfilCompletitud:u.perfilCompletitud||0, totalCotizaciones:u.totalCotizaciones||0, notifPrefs:u.notifPrefs||{} } });
   }
 
   if (path === "/api/licitaciones" && method === "POST") {
@@ -3228,6 +3230,9 @@ async function handleRequest(request, env, ctx) {
     if (user.role==="cliente") {
       const _hc=ahoraChile();
       const _empX=await empresaDe(env, user);
+      // Vigencia vencida: puede entrar y ver su historial, pero no publicar nuevas licitaciones hasta renovar.
+      const _vigX=_empX&&_empX.vigencia;
+      if(_vigX && _vigX.fin && _vigX.fin < _hc.fecha) return err(_msgVigenciaVencida(_vigX.fin), 403);
       const _puedeExpress=!!(_empX&&_empX.licitacionExpress) && _hc.hora<13;
       if (fechaCarga < _hc.fecha) return err("La fecha de carga no puede ser anterior a hoy");
       if (fechaCarga===_hc.fecha && !_puedeExpress) return err("La fecha de carga debe ser desde mañana en adelante");

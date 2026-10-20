@@ -127,7 +127,7 @@ if(role==='transportista'){window.location.replace('/transportista.html');return
 try{
 var res=await fetch(API+'/api/auth/me',{headers:{'Authorization':'Bearer '+token}});
 if(res.status===401){localStorage.clear();window.location.replace('/index.html');return}
-if(res.ok){var d=await res.json();if(d.user.role!=='cliente'){window.location.replace('/index.html');return}localStorage.setItem('tm_plan',d.user.plan||'');window._tmExpress=!!d.user.licitacionExpress;}
+if(res.ok){var d=await res.json();if(d.user.role!=='cliente'){window.location.replace('/index.html');return}localStorage.setItem('tm_plan',d.user.plan||'');window._tmExpress=!!d.user.licitacionExpress;if(d.user.vigenciaVencida){try{tmAvisoVigencia(d.user.vigenciaFin);}catch(e){}}}
 }catch(e){}
 document.getElementById('auth-guard').style.display='none';
 try{aplicarFechaMinima();actualizarPlazoExpress();}catch(e){}
@@ -143,6 +143,16 @@ var p=localStorage.getItem('tm_plan')||'basico';
 if(p==='basico'){var nr=document.getElementById('nav-retornos');if(nr)nr.style.display='none';}
 setTimeout(function(){if(typeof _cargarNotif==='function')_cargarNotif();},500);
 })();
+
+// Cuenta con vigencia vencida: aviso arriba del formulario (el worker igual bloquea la publicación).
+function tmAvisoVigencia(fin){
+  if(document.getElementById('aviso-vigencia')) return;
+  var f=String(fin||'').split('-'); var ff=f.length===3?(f[2]+'-'+f[1]+'-'+f[0]):(fin||'');
+  var d=document.createElement('div'); d.id='aviso-vigencia';
+  d.style.cssText='background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;border-radius:12px;padding:14px 16px;margin:0 0 16px;font-size:14px;line-height:1.5';
+  d.innerHTML='<b>La vigencia de tu cuenta venció el '+ff+'.</b><br>Puedes seguir revisando tus licitaciones y transportes, pero para publicar nuevas necesitas renovarla. Escríbenos y la renovamos.';
+  var m=document.querySelector('main'); if(m) m.insertBefore(d, m.firstChild);
+}
 </script>
 </head>
 <body>
