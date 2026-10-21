@@ -207,9 +207,10 @@
 
 
   <main>
-    <div style="margin-bottom:18px">
-      <div style="font-size:20px;font-weight:600;color:#1e2d4e">Transportes</div>
-      <div style="font-size:14px;color:#6B7280;margin-top:2px">Seguimiento de todos los transportes activos y completados</div>
+    <div style="margin-bottom:18px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <div><div style="font-size:20px;font-weight:600;color:#1e2d4e">Transportes</div>
+      <div style="font-size:14px;color:#6B7280;margin-top:2px">Seguimiento de todos los transportes activos y completados</div></div>
+      <button onclick="abrirTransportePrueba()" style="background:#fff;border:1px solid #e8eaf0;color:#5B21B6;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">+ Transporte de prueba</button>
     </div>
 
     <div class="stat-grid" id="stats">
@@ -341,6 +342,29 @@ async function api(path, method, body){
   return{ok:r.ok,data:await r.json()};
 }
 
+// ── Transporte de prueba (carga hoy) para probar hitos, conductor y avisos ──
+function abrirTransportePrueba(){
+  var I='width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px;box-sizing:border-box;font-family:inherit';
+  var ult={}; try{ ult=JSON.parse(localStorage.getItem('tm_trn_prueba')||'{}'); }catch(e){}
+  var m=document.createElement('div'); m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px';
+  m.innerHTML='<div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:440px">'+
+    '<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Crear transporte de prueba</div>'+
+    '<div style="font-size:12px;color:#6B7280;margin-bottom:16px;line-height:1.45">Crea un transporte con carga hoy, Santiago → Rancagua, marcado como PRUEBA. No genera orden de venta ni correos de adjudicación. Usa cuentas de prueba: el cliente recibirá los avisos de hitos.</div>'+
+    '<label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Email de la cuenta cliente</label><input id="tp-cli" type="email" value="'+(ult.c||'')+'" style="'+I+';margin-bottom:12px"/>'+
+    '<label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px">Email de la cuenta transportista</label><input id="tp-tr" type="email" value="'+(ult.t||'')+'" style="'+I+';margin-bottom:18px"/>'+
+    '<div style="display:flex;gap:10px;justify-content:flex-end"><button id="tp-x" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button><button id="tp-ok" style="padding:9px 18px;border-radius:8px;border:none;background:#1e2d4e;color:#fff;font-size:13px;font-weight:600;cursor:pointer">Crear</button></div></div>';
+  document.body.appendChild(m);
+  document.getElementById('tp-x').onclick=function(){ m.remove(); };
+  document.getElementById('tp-ok').onclick=async function(){
+    var c=document.getElementById('tp-cli').value.trim(), t=document.getElementById('tp-tr').value.trim();
+    if(!c||!t){ toast('Completa los dos emails','err'); return; }
+    var b=this; b.disabled=true; b.textContent='Creando...';
+    var r=await api('/api/admin/transporte-prueba','POST',{ clienteEmail:c, transportistaEmail:t });
+    if(r&&r.ok){ try{ localStorage.setItem('tm_trn_prueba',JSON.stringify({c:c,t:t})); }catch(e){} toast('Transporte de prueba '+r.data.codigo+' creado'); m.remove(); cargar(); }
+    else { toast((r&&r.data&&r.data.error)||'Error al crear','err'); b.disabled=false; b.textContent='Crear'; }
+  };
+}
+
 // ── Carga ────────────────────────────────────────────────────
 async function cargar(){
   document.getElementById('lista-transportes').innerHTML='<div class="spinner"></div>';
@@ -400,7 +424,7 @@ function renderCard(t){
   var detId='det-'+t.id;
   return '<div class="trn-card" id="trn-card-'+t.id+'">'+
     '<div class="trn-hdr" onclick="toggleCard(\''+t.id+'\')">'+
-      '<div class="trn-code">'+(t.codigo||'TRN')+'</div>'+
+      '<div class="trn-code">'+(t.codigo||'TRN')+(t.esPrueba?' <span style="background:#EDE9FE;color:#5B21B6;font-size:10px;font-weight:700;border-radius:999px;padding:1px 7px;vertical-align:middle">PRUEBA</span>':'')+'</div>'+
       '<div class="trn-body-hdr">'+
         '<div class="trn-name">'+t.tipoEquipo+'</div>'+
         '<div class="trn-meta">'+

@@ -4986,6 +4986,36 @@ async function handleRequest(request, env, ctx) {
   }
   // POST /api/admin/licitacion-prueba — crea una licitación de PRUEBA (oculta a transportistas, sin correos)
   // a nombre de una cuenta cliente, para probar el circuito completo (aprobación, WhatsApp, cotización).
+  // POST /api/admin/transporte-prueba — crea un transporte de PRUEBA (carga hoy) entre una cuenta cliente y una transportista,
+  // para probar hitos, conductor y avisos sin pasar por licitar/cotizar/adjudicar. No genera OV ni correos de adjudicación.
+  if (path === "/api/admin/transporte-prueba" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    let body={}; try{body=await request.json();}catch(e){}
+    const c=await dalGetUsuarioMerged(env, String(body.clienteEmail||"").toLowerCase().trim()); if(!c||c.role!=="cliente") return err("Cuenta cliente no encontrada",404);
+    const tr=await dalGetUsuarioMerged(env, String(body.transportistaEmail||"").toLowerCase().trim()); if(!tr||tr.role!=="transportista") return err("Cuenta transportista no encontrada",404);
+    const sb=usarSupabase(env, url);
+    const hc=ahoraChile(); const now=new Date().toISOString();
+    const lid=uid(), lcod=await generarCodigo(env,'LIC');
+    const empresaId=c.esSubusuario?(c.empresaMadreId||c.id):c.id;
+    const cotiz={ id:uid(), codigo:await generarCodigo(env,'COT'), licitacionId:lid, transportistaId:tr.id, transportistaNombre:tr.nombre||"", transportistaEmpresa:tr.empresa||"", transportistaEmail:tr.email, transportistaTelefono:tr.telefono||"", precio:450000, descripcion:"Cotización de prueba", createdAt:now };
+    const l={ id:lid, codigo:lcod, clienteId:c.id, clienteEmail:c.email, clienteEmpresa:c.empresa||"", clienteNombre:c.nombre||"", clienteTelefono:c.telefono||"", empresaId, creadoPorEmail:c.email, creadoPorNombre:c.nombre||"",
+      tipoLicitacion:"carga", tipoEquipo:"Camión plano", marca:"", descripcion:"TRANSPORTE DE PRUEBA (TransMatch). No es un servicio real.", origen:"Santiago", destino:"Rancagua",
+      direccionOrigen:"Camino a Noviciado 2300, Pudahuel", direccionDestino:"Av. Libertador Bernardo O'Higgins 0450, Rancagua", paradas:[],
+      fechaCarga:hc.fecha, horaCarga:"08:00", fechaEntrega:hc.fecha, horaDescarga:"17:00", plazo:"24",
+      estado:"adjudicada", esPrueba:true, cotizaciones:[cotiz], preguntas:[], createdAt:now, adjudicadaAt:now,
+      adjudicadaA:{ cotizacionId:cotiz.id, precio:cotiz.precio, transportistaId:tr.id, transportistaNombre:cotiz.transportistaNombre, transportistaEmpresa:cotiz.transportistaEmpresa, transportistaEmail:tr.email, transportistaTelefono:cotiz.transportistaTelefono } };
+    await dalSaveLicitacion(env, l, sb, { isNew:true, clienteIndexId:c.id });
+    const tid=uid();
+    const t={ id:tid, codigo:await generarCodigo(env,'TRN'), licitacionId:lid, empresaId, creadoPorEmail:c.email, creadoPorNombre:c.nombre||"", licitacionCodigo:lcod, tipoEquipo:l.tipoEquipo,
+      origen:l.origen, destino:l.destino, precio:cotiz.precio, clienteEmail:c.email, clienteEmpresa:c.empresa||"", clienteNombre:c.nombre||"", clienteTelefono:c.telefono||"",
+      requisitosEstandar:[], transportistaEmail:tr.email, transportistaNombre:tr.nombre||"", transportistaEmpresa:tr.empresa||"", transportistaTelefono:tr.telefono||"",
+      estado:"preparacion", estadoDocumentos:"pendiente", historial:[{ estado:"preparacion", nota:"Transporte de PRUEBA creado por TransMatch", fecha:now, actor:"Sistema" }],
+      oc:null, factura:null, adjudicadoAt:now, esPrueba:true };
+    await dalSaveTransporte(env, t, sb, { isNew:true });
+    await registrarActividad(env,"transporte_prueba",`Transporte de PRUEBA ${t.codigo} creado (${c.email} → ${tr.email})`,{ transporteId:tid });
+    return ok({ ok:true, id:tid, codigo:t.codigo, licitacion:lcod });
+  }
+
   if (path === "/api/admin/licitacion-prueba" && method === "POST") {
     const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
     let body={}; try{body=await request.json();}catch(e){}
