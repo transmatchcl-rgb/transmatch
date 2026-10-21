@@ -2529,8 +2529,8 @@ async function enviarAccesoConductor(env, t, sb){
   const link="https://wa.me/"+_waNumeroNegocio(env)+"?text="+encodeURIComponent((t.codigo||"Transporte")+" código "+code);
   let enviado=false, error=null;
   if(usarKapso(env)){
-    let fecha="la fecha acordada";
-    try{ const l=t.licitacionId?await dalGetLicitacionById(env, t.licitacionId, sb):null; const fc=l&&String(l.fechaCarga||"").slice(0,10); if(/^\d{4}-\d{2}-\d{2}$/.test(fc||"")){ const _hoy=ahoraChile().fecha; fecha=(fc===_hoy?"hoy ":"el ")+_waFecha(fc).slice(0,5)+(l.horaCarga?" a las "+l.horaCarga:""); } }catch(e){}
+    let fecha="día acordado";
+    try{ const l=t.licitacionId?await dalGetLicitacionById(env, t.licitacionId, sb):null; const fc=l&&String(l.fechaCarga||"").slice(0,10); if(/^\d{4}-\d{2}-\d{2}$/.test(fc||"")){ fecha=_waFecha(fc).slice(0,5)+(l.horaCarga?" a las "+l.horaCarga:""); } }catch(e){}
     const to=env.KAPSO_TEST_TO?_telWa(env.KAPSO_TEST_TO):tel;
     const r=await kapsoEnviar(env, { to, type:"template", template:{
       name: env.KAPSO_TEMPLATE_CONDUCTOR || "acceso_conductor",
