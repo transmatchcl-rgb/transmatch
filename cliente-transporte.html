@@ -42,6 +42,7 @@
   .s-preparacion{background:#DBEAFE;color:#1e40af}
   .s-en_ruta{background:#DBEAFE;color:#1e40af}
   .s-carga_recogida{background:#DBEAFE;color:#1e40af}
+  .s-en_origen{background:#DBEAFE;color:#1e40af}
   .s-en_destino{background:#DBEAFE;color:#1e40af}
   .s-entregado{background:#F0FDF4;color:#14532D}
   .s-completado{background:#F3F4F6;color:#6B7280}
@@ -164,7 +165,7 @@
 var API = (localStorage.getItem('tm_api')||'https://transmatch.transmatchcl.workers.dev');
 var transportes = [];
 
-var ESTADO_LABELS = {preparacion:'En curso',en_ruta:'En curso',carga_recogida:'En curso',en_destino:'En curso',entregado:'Entregado',completado:'✓ Completado'};
+var ESTADO_LABELS = {preparacion:'En curso',en_origen:'En curso',en_ruta:'En curso',carga_recogida:'En curso',en_destino:'En curso',entregado:'Entregado',completado:'✓ Completado'};
 function estadoLabel(e){ return ESTADO_LABELS[e]||e; }
 
 
@@ -213,6 +214,7 @@ async function cargar(){
       else { wrap.style.display='none'; }
     }
     render();
+    abrirDesdeLink();
   } catch(e) {
     document.getElementById('lista').innerHTML = '<div class="empty">Error al cargar</div>';
   }
@@ -459,6 +461,8 @@ function renderDetalle(t){
     h += '</div>';
   }
 
+  if(typeof tmHitosHtml==='function') h += tmHitosHtml(t);
+
   // Historial
   var hist = t.historial || [];
   if(hist.length > 0){
@@ -527,6 +531,15 @@ function toggleHistorial(transporteId){
   if(arrow) arrow.style.transform = abierto?'rotate(0deg)':'rotate(90deg)';
 }
 
+// Link desde WhatsApp o correo (?id=<transporte>): abre ese transporte una sola vez
+var _linkAbierto=false;
+function abrirDesdeLink(){
+  if(_linkAbierto) return; _linkAbierto=true;
+  var id=new URLSearchParams(location.search).get('id'); if(!id) return;
+  var b=document.getElementById('body-'+id); if(!b) return;
+  if(!b.classList.contains('open')) toggleCard(id);
+  setTimeout(function(){ var c=document.getElementById('body-'+id); if(c&&c.parentNode) c.parentNode.scrollIntoView({behavior:'smooth',block:'start'}); },150);
+}
 function toggleCard(id){
   var body = document.getElementById('body-'+id);
   var arr  = document.getElementById('arr-'+id);
@@ -882,7 +895,7 @@ async function descargar(archivoId, nombre){
 (async function(){
   var token = localStorage.getItem('tm_token');
   var role  = localStorage.getItem('tm_role');
-  if(!token || role !== 'cliente'){ window.location.replace('/index.html'); return; }
+  if(!token || role !== 'cliente'){ if(new URLSearchParams(location.search).get('id')){ try{localStorage.setItem('tm_volver',JSON.stringify({url:location.pathname+location.search,ts:Date.now()}));}catch(e){} window.location.replace('/login.html'); } else window.location.replace('/index.html'); return; }
   document.getElementById('nav-avatar').textContent = (localStorage.getItem('tm_nombre')||'?')[0].toUpperCase();
   document.getElementById('auth-guard').style.display = 'none';
   document.getElementById('app').style.display = 'flex';document.getElementById('app').style.flexDirection='column';document.getElementById('app').style.minHeight='100vh';
@@ -1057,4 +1070,5 @@ document.addEventListener('click',function(e){
   </div>
 </footer>
 <script src="/guia.js" defer></script>
+<script src="/hitos-fotos.js" defer></script>
 </body></html>

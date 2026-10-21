@@ -2199,6 +2199,7 @@ async function kapsoProcesarMensaje(env, m){
   if(await _waYaProcesado(env, m.id)) return; // Kapso/Meta pueden reintentar el mismo evento
   const { from, botonId, flujo, texto } = _kapsoLeerMensaje(m);
   if(botonId && botonId.startsWith("adminlic:") && await waAdminProcesar(env, from, botonId, null)) return;
+  if(await waHitosProcesar(env, m, from, botonId, texto)) return;
   if(await waDocsProcesar(env, m, from, botonId, texto)) return;
   if(texto && !botonId && await waAdminProcesar(env, from, null, texto)) return;
   if(!from || (!botonId && !flujo)) return;
@@ -2381,6 +2382,298 @@ async function kapsoDescargarMedia(env, m){
 }
 function _waExt(mime){ return ({ "image/jpeg":"jpg","image/jpg":"jpg","image/png":"png","image/webp":"webp","image/heic":"heic","application/pdf":"pdf" })[mime]||"bin"; }
 
+// ══ HITOS DEL TRANSPORTE POR WHATSAPP ══
+// El conductor (o el transportista) manda una foto al chat de TransMatch y toca el hito.
+// Queda en el transporte (estado + historial + foto) y al cliente se le avisa al llegar a origen y a destino.
+const HITOS_ORDEN = ["preparacion","en_origen","carga_recogida","en_ruta","en_destino","entregado"];
+const HITOS_BOTON = { en_origen:"Llegué a origen", carga_recogida:"Carga recogida", en_ruta:"Voy en ruta", en_destino:"Llegué a destino" };
+const HITOS_LABEL = { preparacion:"En preparación", en_origen:"En origen", carga_recogida:"Carga recogida", en_ruta:"En ruta", en_destino:"En destino", entregado:"Entregado", completado:"Completado" };
+const HITOS_AVISO_CLIENTE = ["en_origen","en_destino"];
+const HITOS_IMG_MIMES = /^image\/(jpeg|jpg|png|webp|heic)$/i;
+function _hitoActivo(t){ return !!(t && t.id && !t.valoracion && !["entregado","completado"].includes(t.estado)); }
+function _horaCL(iso){ try{ return new Intl.DateTimeFormat("es-CL",{ timeZone:"America/Santiago", hour:"2-digit", minute:"2-digit", hour12:false }).format(iso?new Date(iso):new Date()); }catch(e){ return ""; } }
+function _hitosSiguientes(t){ const i=Math.max(0, HITOS_ORDEN.indexOf(t.estado||"preparacion")); return HITOS_ORDEN.slice(i+1).filter(e=>HITOS_BOTON[e]); }
+async function _waHitosIndexar(env, tel, tid){
+  const k="wa_hito_tel:"+tel; let l=[]; try{ l=JSON.parse(await env.SESSIONS.get(k)||"[]"); }catch(e){}
+  if(!l.includes(tid)) l.unshift(tid);
+  await env.SESSIONS.put(k, JSON.stringify(l.slice(0,20)), { expirationTtl: 90*86400 });
+}
+// ¿Quién es este número para este transporte? Conductor asignado, dueño/asignado o encargado con link.
+async function _waHitosActor(env, t, tel, sb){
+  const t56=_telWa(tel);
+  const c=t.conductorAsignado;
+  if(c && c.telefono && _telWa(c.telefono)===t56) return { rol:"conductor", nombre:(c.nombre||"Conductor")+" (conductor)" };
+  return await _waDocsActor(env, t, tel, sb);
+}
+// Transportes activos que este número puede reportar
+async function _waHitosCandidatos(env, tel, sb){
+  const ids=new Set();
+  try{ for(const id of JSON.parse(await env.SESSIONS.get("wa_hito_tel:"+tel)||"[]")) ids.add(id); }catch(e){}
+  const out=[];
+  for(const id of ids){ const t=await dalGetTransporteById(env, id, sb); if(_hitoActivo(t) && await _waHitosActor(env, t, tel, sb)) out.push(t); }
+  try{
+    const u=await dalTransportistaPorTelefonoWa(env, tel, sb);
+    if(u){
+      const emails=await emailsEmpresa(env, u);
+      for(const t of await dalGetAllTransportes(env, sb)){
+        if(!_hitoActivo(t) || ids.has(t.id)) continue;
+        if(emails.has(String(t.transportistaEmail||"").toLowerCase()) || (t.asignadoEmail && emails.has(String(t.asignadoEmail).toLowerCase()))){ ids.add(t.id); out.push(t); }
+      }
+    }
+  }catch(e){}
+  return out;
+}
+async function _waHitosPreguntar(env, from, t, intro){
+  const sig=_hitosSiguientes(t);
+  const hayDocs=_waDocsPendientes(t).length>0;
+  const txt=((intro?intro+"\n\n":"")+"Transporte *"+(t.codigo||"")+"* ("+_waRutaT(t)+"). Estado actual: *"+(HITOS_LABEL[t.estado]||t.estado||"—")+"*.\n¿Qué estás reportando?").slice(0,1024);
+  if(sig.length<=2 && !hayDocs){
+    const bt=sig.map(e=>({ type:"reply", reply:{ id:"hito:"+t.id+":"+e, title:HITOS_BOTON[e] } }));
+    bt.push({ type:"reply", reply:{ id:"hito:"+t.id+":foto", title:"Solo guardar foto" } });
+    return kapsoEnviar(env, { to:from, type:"interactive", interactive:{ type:"button", body:{ text:txt }, action:{ buttons:bt } } });
+  }
+  if(!hayDocs){
+    const bt=sig.slice(0,2).map(e=>({ type:"reply", reply:{ id:"hito:"+t.id+":"+e, title:HITOS_BOTON[e] } }));
+    bt.push({ type:"reply", reply:{ id:"hitomas:"+t.id, title:"Otro hito" } });
+    return kapsoEnviar(env, { to:from, type:"interactive", interactive:{ type:"button", body:{ text:txt }, action:{ buttons:bt } } });
+  }
+  return _waHitosLista(env, from, t, txt);
+}
+async function _waHitosLista(env, from, t, txt){
+  const rows=_hitosSiguientes(t).map(e=>({ id:"hito:"+t.id+":"+e, title:HITOS_BOTON[e], description:"Cambia el estado a "+HITOS_LABEL[e] }));
+  rows.push({ id:"hito:"+t.id+":foto", title:"Solo guardar foto", description:"Se guarda en el transporte, sin cambiar el estado" });
+  if(_waDocsPendientes(t).length) rows.push({ id:"hito:"+t.id+":doc", title:"Es un documento", description:"Un documento que te pidió el cliente" });
+  return kapsoEnviar(env, { to:from, type:"interactive", interactive:{ type:"list", body:{ text:(txt||("¿Qué estás reportando en el transporte *"+(t.codigo||"")+"*?")).slice(0,1024) }, action:{ button:"Elegir", sections:[ { title:"Opciones", rows:rows.slice(0,10) } ] } } });
+}
+function _waLinkArchivo(env, archivoId, nombre, horas){
+  return signToken({ t:"waarch", id:archivoId, hasta:Date.now()+(horas||48)*3600e3 }, env.JWT_SECRET).then(tok=>(env.TM_API_BASE||"https://transmatch.transmatchcl.workers.dev").replace(/\/+$/,"")+"/api/wa/archivo?t="+encodeURIComponent(tok)+"&n="+encodeURIComponent(nombre||"foto.jpg"));
+}
+// Aviso al cliente cuando el transporte llega a origen o a destino (WhatsApp si lo activó; si no, correo). Una vez por hito.
+async function notificarHitoCliente(env, t, estado, fotoId, sb){
+  if(!HITOS_AVISO_CLIENTE.includes(estado)) return;
+  t.avisosHito=t.avisosHito||{};
+  if(t.avisosHito[estado]) return;
+  t.avisosHito[estado]=new Date().toISOString();
+  await dalSaveTransporte(env, t, sb);
+  const base=env.TM_BASE||"https://transmatch.cl";
+  const lugar=estado==="en_origen"?(t.origen||"el origen"):(t.destino||"el destino");
+  const accion=estado==="en_origen"?"llegó al punto de carga":"llegó al punto de entrega";
+  const titulo=estado==="en_origen"?"Llegó a origen":"Llegó a destino";
+  const hora=_horaCL();
+  const transp=t.transportistaEmpresa||t.transportistaNombre||"El transportista";
+  let img=base+"/img/hero-maquinaria.jpg", imgMail=null;
+  if(fotoId){ try{ img=await _waLinkArchivo(env, fotoId, "foto.jpg", 7*24); imgMail=await _waLinkArchivo(env, fotoId, "foto.jpg", 30*24); }catch(e){} }
+  const emails=[...new Set([t.creadoPorEmail, t.clienteEmail].filter(Boolean).map(e=>String(e).toLowerCase()))];
+  const telsEnviados=new Set();
+  for(const email of emails){
+    const u=await dalGetUsuarioByEmail(env, email, sb); if(!u || u.estado==="suspendido") continue;
+    try{ if(u.id) await crearNotificacion(env, u.id, "hito_transporte", `${t.codigo||"Transporte"}: ${transp} ${accion} en ${lugar} a las ${hora}`, { transporteId:t.id }); }catch(e){}
+    let porWa=false;
+    let to=null;
+    if(env.KAPSO_TEST_TO) to=_telWa(env.KAPSO_TEST_TO);
+    else if(u.notifWhatsapp===true && _telWaValido(u.telefono||u.whatsapp)) to=_telefonoWaDe(u);
+    if(to && usarKapso(env)){
+      if(telsEnviados.has(to)) porWa=true;
+      else {
+        const r=await kapsoEnviar(env, { to, type:"template", template:{
+          name: env.KAPSO_TEMPLATE_HITO || "aviso_hito_transporte",
+          language:{ code: env.KAPSO_TEMPLATE_LANG_HITO || "es" },
+          components:[
+            { type:"header", parameters:[ { type:"image", image:{ link:img } } ] },
+            { type:"body", parameters:[ t.codigo||"Transporte", transp, accion, lugar, hora ].map(x=>({ type:"text", text:_waParam(x) })) },
+            // Botón "Ver transporte": URL https://transmatch.cl/cliente-transporte.html?id={{1}}
+            { type:"button", sub_type:"url", index:"0", parameters:[ { type:"text", text:String(t.id) } ] }
+          ] } });
+        if(r && r.ok){ porWa=true; telsEnviados.add(to); }
+      }
+    }
+    if(!porWa){
+      try{
+        await enviarEmail(env, { to:email, subject:`${t.codigo||"Transporte"} · ${titulo}`, html:emailBase(`
+          <h2 style="font-size:22px;font-weight:800;color:#1e2d4e;margin:0 0 8px">${titulo}</h2>
+          <p style="font-size:15px;color:#64748B;margin:0 0 18px;line-height:1.7"><strong style="color:#1e2d4e">${transp}</strong> ${accion} en <strong style="color:#1e2d4e">${lugar}</strong> a las ${hora}.</p>
+          ${imgMail?`<img src="${imgMail}" alt="Foto del transporte" style="width:100%;max-width:520px;border-radius:10px;margin:0 0 18px;display:block"/>`:""}
+          <p style="font-size:13px;color:#94A3B8;margin:0 0 22px">Transporte ${t.codigo||""} · ${_waRutaT(t)}</p>
+          ${btnEmail(base+"/cliente-transporte.html?id="+encodeURIComponent(t.id), "Ver transporte →", "#FF8904")}
+        `, titulo+" · "+(t.codigo||"")) });
+      }catch(e){}
+    }
+  }
+}
+// Registra un hito (cambio de estado hacia adelante) con foto opcional. Lo usan WhatsApp y la web.
+async function aplicarHitoTransporte(env, t, estado, fotoId, actorNombre, via, sb){
+  const iAct=HITOS_ORDEN.indexOf(t.estado||"preparacion"), iNew=HITOS_ORDEN.indexOf(estado);
+  if(iNew<0 || estado==="entregado") return { error:"Hito no válido" };
+  if(iNew<=iAct) return { error:"El transporte ya está en "+(HITOS_LABEL[t.estado]||t.estado) };
+  const ahora=new Date().toISOString();
+  t.estado=estado;
+  t.hitos=t.hitos||[]; t.hitos.push({ estado, fecha:ahora, actor:actorNombre, via, fotoId:fotoId||null });
+  t.historial=t.historial||[]; t.historial.push({ estado, fecha:ahora, actor:actorNombre, nota:(via==="whatsapp"?"Reportado por WhatsApp":"")+(fotoId?" (con foto)":""), fotoId:fotoId||null });
+  await dalSaveTransporte(env, t, sb);
+  try{ await notificarHitoCliente(env, t, estado, fotoId, sb); }catch(e){ console.error("notificarHitoCliente", e&&e.message); }
+  return { ok:true };
+}
+// Acceso del conductor: plantilla con su transporte + link de respaldo para reenviar a mano.
+async function enviarAccesoConductor(env, t, sb){
+  const c=t.conductorAsignado||{};
+  const tel=_telWa(c.telefono);
+  if(!_telWaValido(c.telefono)) return { ok:false, motivo:"sin_telefono" };
+  await _waHitosIndexar(env, tel, t.id);
+  let code=await env.SESSIONS.get("wa_delcode_t:"+t.id);
+  if(!code){
+    const abc="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; const rnd=crypto.getRandomValues(new Uint8Array(5));
+    code=[...rnd].map(b=>abc[b%abc.length]).join("");
+    await env.SESSIONS.put("wa_delcode:"+code, JSON.stringify({ tid:t.id, por:t.transportistaEmail }), { expirationTtl: 60*86400 });
+    await env.SESSIONS.put("wa_delcode_t:"+t.id, code, { expirationTtl: 60*86400 });
+  }
+  const link="https://wa.me/"+_waNumeroNegocio(env)+"?text="+encodeURIComponent((t.codigo||"Transporte")+" código "+code);
+  let enviado=false, error=null;
+  if(usarKapso(env)){
+    let fecha="la fecha acordada";
+    try{ const l=t.licitacionId?await dalGetLicitacionById(env, t.licitacionId, sb):null; const fc=l&&String(l.fechaCarga||"").slice(0,10); if(/^\d{4}-\d{2}-\d{2}$/.test(fc||"")){ const _hoy=ahoraChile().fecha; fecha=(fc===_hoy?"hoy ":"el ")+_waFecha(fc).slice(0,5)+(l.horaCarga?" a las "+l.horaCarga:""); } }catch(e){}
+    const to=env.KAPSO_TEST_TO?_telWa(env.KAPSO_TEST_TO):tel;
+    const r=await kapsoEnviar(env, { to, type:"template", template:{
+      name: env.KAPSO_TEMPLATE_CONDUCTOR || "acceso_conductor",
+      language:{ code: env.KAPSO_TEMPLATE_LANG_CONDUCTOR || "es" },
+      components:[
+        { type:"body", parameters:[ String(c.nombre||"").split(" ")[0]||"Hola", t.transportistaEmpresa||"Tu empresa de transporte", t.codigo||"Transporte", _waRutaT(t), fecha ].map(x=>({ type:"text", text:_waParam(x) })) },
+        { type:"button", sub_type:"quick_reply", index:"0", parameters:[ { type:"payload", payload:"hitos:"+t.id } ] }
+      ] } });
+    enviado=!!(r&&r.ok); if(!enviado) error=String((r&&r.error)||"").slice(0,200);
+  }
+  t.accesoConductor=Object.assign({}, t.accesoConductor||{}, { telefono:tel, enviadoAt:new Date().toISOString(), enviado, error, dia:ahoraChile().fecha });
+  await dalSaveTransporte(env, t, sb);
+  return { ok:true, enviado, link, telefono:tel, error };
+}
+// El acceso del conductor se envía el MISMO DÍA de la carga desde las 6:00 (hora Chile), para que la conversación
+// de WhatsApp esté abierta durante el traslado. Si se asigna ese mismo día después de las 6:00, se envía al tiro.
+const ACCESO_CONDUCTOR_HORA = 6;
+async function _fechaCargaTransporte(env, t, sb, licMap){
+  try{ const l=licMap?licMap.get(t.licitacionId):(t.licitacionId?await dalGetLicitacionById(env, t.licitacionId, sb):null); const fc=l&&String(l.fechaCarga||"").slice(0,10); return /^\d{4}-\d{2}-\d{2}$/.test(fc||"")?fc:""; }catch(e){ return ""; }
+}
+function _accesoYaEnviadoHoy(t, hoy){ const a=t.accesoConductor, c=t.conductorAsignado||{}; return !!(a && a.enviado && a.dia===hoy && a.telefono===_telWa(c.telefono)); }
+// Al asignar o cambiar el conductor: programa el envío o lo manda al tiro si la carga es hoy.
+async function programarAccesoConductor(env, t, sb){
+  const c=t.conductorAsignado||{};
+  if(!_hitoActivo(t) || !_telWaValido(c.telefono)) return null;
+  const tel=_telWa(c.telefono);
+  await _waHitosIndexar(env, tel, t.id);
+  const hc=ahoraChile(); const fc=await _fechaCargaTransporte(env, t, sb);
+  if(fc && fc<=hc.fecha && hc.hora>=ACCESO_CONDUCTOR_HORA){
+    if(_accesoYaEnviadoHoy(t, hc.fecha)) return { ok:true, enviado:true, yaEnviado:true };
+    return await enviarAccesoConductor(env, t, sb);
+  }
+  t.accesoConductor={ telefono:tel, programadoPara:fc||null, enviado:false };
+  await dalSaveTransporte(env, t, sb);
+  return { ok:true, enviado:false, programadoPara:fc||null };
+}
+// Cron: cada mañana envía el acceso a los conductores de los transportes que cargan hoy (1 vez por transporte y día).
+async function procesarAccesoConductores(env){
+  try{
+    if(!usarKapso(env)) return;
+    const hc=ahoraChile(); if(hc.hora<ACCESO_CONDUCTOR_HORA) return;
+    if(await env.SESSIONS.get("cron:accesocond:lastrun")===hc.fecha) return;
+    await env.SESSIONS.put("cron:accesocond:lastrun", hc.fecha, { expirationTtl: 3*86400 });
+    const sb=usarSupabase(env,null);
+    const [trans, lics]=await Promise.all([dalGetAllTransportes(env, sb), dalGetAllLicitaciones(env, sb)]);
+    const licMap=new Map(lics.filter(Boolean).map(l=>[l.id,l]));
+    for(const t of trans){
+      if(!_hitoActivo(t) || !t.conductorAsignado || !_telWaValido(t.conductorAsignado.telefono)) continue;
+      if(await _fechaCargaTransporte(env, t, sb, licMap)!==hc.fecha) continue;
+      if(_accesoYaEnviadoHoy(t, hc.fecha)) continue;
+      try{ await enviarAccesoConductor(env, t, sb); }catch(e){ console.error("accesoConductor cron", t.id, e&&e.message); }
+    }
+  }catch(e){ console.error("procesarAccesoConductores", e&&e.message); }
+}
+const _HITO_INSTRUCCIONES="Cuando llegues al origen, envía una foto por aquí y toca *Llegué a origen*. Haz lo mismo al cargar, al salir y al llegar al destino. 📸";
+// Devuelve true si el mensaje era del flujo de hitos (y ya se respondió).
+async function waHitosProcesar(env, m, from, botonId, texto){
+  if(!from) return false;
+  const sb=usarSupabase(env,null);
+  const tel=_telWa(from);
+  const cargar=async(tid)=>{ const t=await dalGetTransporteById(env, tid, sb); return _hitoActivo(t)?t:null; };
+  // Botón "Entendido" de la plantilla de acceso del conductor
+  if(botonId && botonId.startsWith("hitos:")){
+    const t=await cargar(botonId.slice(6));
+    if(!t){ await kapsoTexto(env, from, "Este transporte ya terminó o no está disponible."); return true; }
+    if(!(await _waHitosActor(env, t, from, sb))){ await kapsoTexto(env, from, "Este número no está asignado a ese transporte. Pídele a la empresa de transporte que revise tu celular."); return true; }
+    await _waHitosIndexar(env, tel, t.id);
+    await kapsoTexto(env, from, "Perfecto 👍 Transporte *"+(t.codigo||"")+"* ("+_waRutaT(t)+").\n\n"+_HITO_INSTRUCCIONES);
+    return true;
+  }
+  // Elegir transporte (cuando el número tiene varios activos)
+  if(botonId && botonId.startsWith("hitot:")){
+    const t=await cargar(botonId.slice(6));
+    if(!t || !(await _waHitosActor(env, t, from, sb))){ await kapsoTexto(env, from, "Ese transporte ya no está disponible."); return true; }
+    let p=null; try{ p=JSON.parse(await env.SESSIONS.get("wa_hito_foto:"+tel)||"null"); }catch(e){}
+    if(p){ p.tid=t.id; await env.SESSIONS.put("wa_hito_foto:"+tel, JSON.stringify(p), { expirationTtl: 6*3600 }); }
+    await _waHitosPreguntar(env, from, t, "");
+    return true;
+  }
+  if(botonId && botonId.startsWith("hitomas:")){
+    const t=await cargar(botonId.slice(8));
+    if(!t){ await kapsoTexto(env, from, "Este transporte ya terminó o no está disponible."); return true; }
+    await _waHitosLista(env, from, t, null);
+    return true;
+  }
+  // Elección de hito
+  if(botonId && botonId.startsWith("hito:")){
+    const [, tid, accion]=botonId.split(":");
+    const t=await cargar(tid);
+    if(!t){ await kapsoTexto(env, from, "Este transporte ya terminó o no está disponible."); return true; }
+    const actor=await _waHitosActor(env, t, from, sb);
+    if(!actor){ await kapsoTexto(env, from, "Este número no está autorizado para reportar ese transporte."); return true; }
+    let p=null; try{ p=JSON.parse(await env.SESSIONS.get("wa_hito_foto:"+tel)||"null"); }catch(e){}
+    const fotoId=(p && (!p.tid || p.tid===t.id)) ? p.archivoId : null;
+    if(accion==="doc"){
+      await env.SESSIONS.delete("wa_hito_foto:"+tel);
+      const pend=_waDocsPendientes(t);
+      if(fotoId && pend.length===1){
+        const a=await dalGetArchivo(env, fotoId, sb);
+        if(a && a.base64){ const r=await cargarRequisitoCore(env, t, pend[0].id, { base64:a.base64, mimeType:a.mimeType||a.tipo||"image/jpeg", nombre:String(pend[0].label||"documento").slice(0,60)+".jpg" }, actor.nombre, sb); if(!r.error){ await kapsoTexto(env, from, "✅ *Recibido:* "+pend[0].label+" ("+(t.codigo||"")+"). Ya quedó cargado en la plataforma."); return true; } }
+      }
+      await _waDocsPedir(env, from, t, "Ok, es un documento. Elige cuál es y vuelve a enviar la foto.");
+      return true;
+    }
+    if(accion==="foto"){
+      if(!fotoId){ await kapsoTexto(env, from, "Envía la foto y la guardamos en el transporte *"+(t.codigo||"")+"*."); return true; }
+      t.fotos=t.fotos||[]; t.fotos.push({ fotoId, fecha:new Date().toISOString(), actor:actor.nombre, estado:t.estado });
+      t.historial=t.historial||[]; t.historial.push({ estado:t.estado, fecha:new Date().toISOString(), actor:actor.nombre, nota:"Foto agregada por WhatsApp", fotoId });
+      await dalSaveTransporte(env, t, sb);
+      await env.SESSIONS.delete("wa_hito_foto:"+tel);
+      await kapsoTexto(env, from, "✅ Foto guardada en el transporte *"+(t.codigo||"")+"*.");
+      return true;
+    }
+    if(!HITOS_BOTON[accion]){ await kapsoTexto(env, from, "Esa opción ya no está disponible."); return true; }
+    const r=await aplicarHitoTransporte(env, t, accion, fotoId, actor.nombre, "whatsapp", sb);
+    if(r.error){ await kapsoTexto(env, from, "⚠️ "+r.error+"."); return true; }
+    await env.SESSIONS.delete("wa_hito_foto:"+tel);
+    await _waHitosIndexar(env, tel, t.id);
+    const aviso=HITOS_AVISO_CLIENTE.includes(accion)?" Le avisamos al cliente.":"";
+    const sig=_hitosSiguientes(t);
+    const prox=sig.length?("\n\nCuando "+({carga_recogida:"cargues",en_ruta:"salgas",en_destino:"llegues al destino"}[sig[0]]||"avances")+", manda otra foto y toca *"+HITOS_BOTON[sig[0]]+"*."):"\n\nPara confirmar la entrega, el transportista la registra en la plataforma.";
+    await kapsoTexto(env, from, "✅ Listo: *"+HITOS_BOTON[accion]+"* ("+(t.codigo||"")+")."+aviso+(fotoId?"":" (sin foto)")+prox);
+    return true;
+  }
+  // Llega una foto: si hay una solicitud de documentos en curso, la maneja el flujo de documentos
+  if(m.image){
+    if(await env.SESSIONS.get("wa_doc_sess:"+tel)) return false;
+    const cands=await _waHitosCandidatos(env, tel, sb);
+    if(!cands.length) return false;
+    const arch=await kapsoDescargarMedia(env, m);
+    if(arch.error==="muy_grande"){ await kapsoTexto(env, from, "⚠️ La foto supera 8 MB. Envía una más liviana."); return true; }
+    if(arch.error || !HITOS_IMG_MIMES.test(arch.mimeType||"")){ await kapsoTexto(env, from, "⚠️ No pudimos recibir la foto. Intenta de nuevo en unos minutos."); return true; }
+    const archivoId=uid();
+    await dalSaveArchivo(env, archivoId, { base64:arch.base64, mimeType:arch.mimeType, nombre:"foto_"+new Date().toISOString().slice(0,16).replace(/[-:T]/g,"")+"."+_waExt(arch.mimeType), createdAt:new Date().toISOString(), transporteId:cands.length===1?cands[0].id:null }, sb);
+    await env.SESSIONS.put("wa_hito_foto:"+tel, JSON.stringify({ archivoId, tid:cands.length===1?cands[0].id:null }), { expirationTtl: 6*3600 });
+    if(cands.length===1){ await _waHitosPreguntar(env, from, cands[0], "📸 Recibimos tu foto."); return true; }
+    const rows=cands.slice(0,10).map(t=>({ id:"hitot:"+t.id, title:String(t.codigo||"Transporte").slice(0,24), description:(_waRutaT(t)+" · "+(HITOS_LABEL[t.estado]||t.estado||"")).slice(0,72) }));
+    await kapsoEnviar(env, { to:from, type:"interactive", interactive:{ type:"list", body:{ text:"📸 Recibimos tu foto. Tienes "+cands.length+" transportes activos. ¿De cuál es?" }, action:{ button:"Elegir transporte", sections:[ { title:"Transportes", rows } ] } } });
+    return true;
+  }
+  return false;
+}
+
 // Devuelve true si el mensaje era del flujo de documentos (y ya se respondió).
 async function waDocsProcesar(env, m, from, botonId, texto){
   if(!from) return false;
@@ -2437,6 +2730,8 @@ async function waDocsProcesar(env, m, from, botonId, texto){
     const d=JSON.parse(raw); const t=await cargarT(d.tid);
     if(!t){ await kapsoTexto(env, from, "Este transporte ya no recibe documentos."); return true; }
     await env.SESSIONS.put("wa_deleg:"+tel+":"+t.id, "1", { expirationTtl: 60*86400 });
+    try{ if(_hitoActivo(t)) await _waHitosIndexar(env, tel, t.id); }catch(e){}
+    if(!_waDocsPendientes(t).length && _hitoActivo(t)){ await kapsoTexto(env, from, "Hola 👋 Quedaste conectado al transporte *"+(t.codigo||"")+"* ("+_waRutaT(t)+") de "+(t.transportistaEmpresa||"la empresa de transporte")+".\n\n"+_HITO_INSTRUCCIONES); return true; }
     await _waDocsPedir(env, from, t, "Hola 👋 Envías documentos para el transporte *"+(t.codigo||"")+"* de "+(t.transportistaEmpresa||"la empresa de transporte")+".");
     return true;
   }
@@ -5384,7 +5679,7 @@ async function handleRequest(request, env, ctx) {
     const t=raw; if(!esAdmin && !(await puedeGestionarTransporte(env,user,t))) return err("Sin acceso",403);
     let body={}; try{body=await request.json();}catch(e){}
     const { estado, nota } = body;
-    if(!["preparacion","en_ruta","carga_recogida","en_destino","entregado"].includes(estado)) return err("Estado inválido");
+    if(!["preparacion","en_origen","en_ruta","carga_recogida","en_destino","entregado"].includes(estado)) return err("Estado inválido");
     if(esAdmin && estado!=="entregado") return err("Desde el admin solo se puede confirmar la entrega");
     const yaEntregado=["entregado","completado"].includes(t.estado);
     if(yaEntregado && !esAdmin) return err("Este transporte ya está marcado como entregado");
@@ -5407,7 +5702,9 @@ async function handleRequest(request, env, ctx) {
     }
     if(!yaEntregado) t.estado=estado;
     t.historial=t.historial||[]; t.historial.push({ estado:t.estado, nota:(yaEntregado?"Fecha de entrega corregida a "+t.fechaEntregaReal.split("-").reverse().join("-")+(nota?" · "+nota:""):(nota||"")), fecha:new Date().toISOString(), actor:esAdmin?"TransMatch":(user.nombre||user.email) });
+    if(!yaEntregado && ["en_origen","en_ruta","carga_recogida","en_destino"].includes(estado)){ t.hitos=t.hitos||[]; t.hitos.push({ estado, fecha:new Date().toISOString(), actor:esAdmin?"TransMatch":(user.nombre||user.email), via:"web", fotoId:null }); }
     await dalSaveTransporte(env, t, usarSupabase(env, url));
+    if(!yaEntregado && HITOS_AVISO_CLIENTE.includes(estado)){ try{ await notificarHitoCliente(env, t, estado, null, usarSupabase(env, url)); }catch(e){ console.error("notificarHitoCliente", e&&e.message); } }
     return ok({ ok:true, estado });
   }
 
@@ -6129,7 +6426,24 @@ async function handleRequest(request, env, ctx) {
     t.historial = t.historial||[];
     t.historial.push({ estado:t.estado, fecha:new Date().toISOString(), actor:user.nombre||user.email, nota:"Conductor asignado: "+body.nombre });
     await dalSaveTransporte(env, t, usarSupabase(env, url));
-    return ok({ ok:true });
+    // Acceso automático del conductor por WhatsApp (si tiene celular y el transporte sigue activo)
+    let acceso=null;
+    try{ acceso=await programarAccesoConductor(env, t, usarSupabase(env, url)); }catch(e){ console.error("accesoConductor", e&&e.message); }
+    return ok({ ok:true, acceso });
+  }
+
+  // POST /api/transportes/:id/conductor/acceso — (re)envía al conductor el acceso por WhatsApp y devuelve el link de respaldo
+  if (path.match(/^\/api\/transportes\/[^/]+\/conductor\/acceso$/) && method === "POST") {
+    const user = await getUser(request, env); if(!user) return err("No autenticado",401);
+    if(user.role !== "transportista" && user.role !== "admin") return err("Sin permisos",403);
+    const id = path.split("/")[3];
+    const _sbC = usarSupabase(env, url);
+    const t = await dalGetTransporteById(env, id, _sbC); if(!t) return err("No encontrado",404);
+    if(user.role!=="admin" && !(await puedeGestionarTransporte(env,user,t))) return err("Sin acceso",403);
+    if(!_hitoActivo(t)) return err("Este transporte ya terminó");
+    if(!t.conductorAsignado || !_telWaValido(t.conductorAsignado.telefono)) return err("Agrega el celular (+56 9) del conductor para enviarle el acceso");
+    const r = await enviarAccesoConductor(env, t, _sbC);
+    return ok(r);
   }
 
   // POST /api/transportes/:id/documento-extra — seguros, contratos, permisos, etc. (transportista)
@@ -6689,6 +7003,8 @@ export default {
     ctx.waitUntil(procesarVencimientosHabilitacion(env));
     // Día antes de la carga: aviso si faltan documentos, equipo o conductor (1 vez por transporte)
     ctx.waitUntil(procesarAlertaDocsCarga(env));
+    // Día de la carga desde las 6:00: acceso por WhatsApp al conductor para reportar el avance (1 vez por transporte)
+    ctx.waitUntil(procesarAccesoConductores(env));
     // Informe mensual a clientes con envío automático (día 1, desde las 9:00 hora Chile; 1 vez por mes)
     ctx.waitUntil(procesarInformesMensuales(env));
     // Respaldo nocturno de la base a R2 (01:00–07:00 Chile, hasta 6 tablas por ejecución; cron cada hora)

@@ -41,6 +41,7 @@
   .s-preparacion{background:#DBEAFE;color:#1e40af}
   .s-en_ruta{background:#DBEAFE;color:#1e40af}
   .s-carga_recogida{background:#DBEAFE;color:#1e40af}
+  .s-en_origen{background:#DBEAFE;color:#1e40af}
   .s-en_destino{background:#DBEAFE;color:#1e40af}
   .s-entregado{background:#F0FDF4;color:#14532D}
   .s-completado{background:#F3F4F6;color:#6B7280}
@@ -268,6 +269,7 @@ var transportes = [];
 
 var ESTADOS = [
   {id:'preparacion',    label:'En preparación', icon:'·'},
+  {id:'en_origen',      label:'En origen',       icon:'·'},
   {id:'carga_recogida', label:'Carga recogida',  icon:'·'},
   {id:'en_ruta',        label:'En ruta',         icon:'·'},
   {id:'en_destino',     label:'En destino',      icon:'·'},
@@ -532,6 +534,7 @@ function renderDetalle(t){
     function dlCond(id,nom,lbl){ return id?'<button onclick="descargar(\''+id+'\',\''+(nom||lbl)+'\')" title="Descargar" style="background:#F0FDF4;color:#14532D;border:1px solid #BBF7D0;font-size:12px;font-weight:600;padding:6px 11px;border-radius:7px;cursor:pointer">'+lbl+'</button>':'<span style="background:transparent;color:#6B7280;border:1px dashed #e8eaf0;font-size:12px;font-weight:500;padding:6px 11px;border-radius:7px">'+lbl+' · no cargado</span>'; }
     h+='<div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Documentos del conductor</div>';
     h+='<div style="display:flex;flex-wrap:wrap;gap:7px">'+dlCond(cd.carnetFrenteId,cd.carnetFrenteNombre,'Carnet frente')+dlCond(cd.carnetReversoId,cd.carnetReversoNombre,'Carnet reverso')+dlCond(cd.licenciaFrenteId,cd.licenciaFrenteNombre,'Licencia frente')+dlCond(cd.licenciaReversoId,cd.licenciaReversoNombre,'Licencia reverso')+'</div>';
+    h+=tmAccesoConductorHtml(t);
     h+='<div style="margin-top:15px;padding-top:14px;border-top:1px solid #F1F2F6"><button class="btn btn-outline btn-sm" onclick="abrirModalConductor(\''+t.id+'\')">Cambiar conductor</button></div>';
   } else {
     h+='<div style="text-align:center;padding:12px 4px 4px"><div style="font-size:13px;color:#6B7280;margin-bottom:15px;line-height:1.45">Aún no asignas el conductor para este transporte. No es obligatorio.</div>';
@@ -539,6 +542,8 @@ function renderDetalle(t){
   }
   h+='</div>';
   h+='</div>';
+
+  if(typeof tmHitosHtml==='function') h+=tmHitosHtml(t);
 
   // -- DOCUMENTOS REQUERIDOS POR EL CLIENTE (estandar) --
   var _reqs=t.requisitosEstandar||[];
@@ -1154,9 +1159,41 @@ async function guardarConductorAsignado(transporteId, modal){
       if(!cReg && chk && chk.checked){
         try{ await fetch(API+'/api/conductores',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')},body:JSON.stringify({nombre:nombre,rut:rut,telefono:telefono,carnetFrenteId:payload.carnetFrenteId,carnetFrenteNombre:payload.carnetFrenteNombre,carnetReversoId:payload.carnetReversoId,carnetReversoNombre:payload.carnetReversoNombre,licenciaFrenteId:payload.licenciaFrenteId,licenciaFrenteNombre:payload.licenciaFrenteNombre,licenciaReversoId:payload.licenciaReversoId,licenciaReversoNombre:payload.licenciaReversoNombre})}); }catch(e){}
       }
-      toast('Conductor asignado correctamente'); modal.remove(); await cargar(); setTimeout(function(){toggleCard(transporteId);},200);
+      var _dc={}; try{ _dc=await res.json(); }catch(e){}
+      toast((_dc&&_dc.acceso&&_dc.acceso.enviado)?'Conductor asignado. Le enviamos el acceso por WhatsApp':((_dc&&_dc.acceso&&_dc.acceso.programadoPara)?'Conductor asignado. Le llegará el acceso por WhatsApp el día de la carga a las 6:00':'Conductor asignado correctamente')); modal.remove(); await cargar(); setTimeout(function(){toggleCard(transporteId);},200);
     } else { var d=await res.json(); toast(d.error||'Error al guardar','err'); if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Guardar'; } }
   }catch(e){ toast('Error de conexión','err'); if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Guardar'; } }
+}
+
+// Acceso del conductor por WhatsApp para reportar el avance (llegada a origen, carga, destino) con fotos
+function tmAccesoConductorHtml(t){
+  var cd=t.conductorAsignado||{}; if(['entregado','completado'].indexOf(t.estado)>=0) return '';
+  var a=t.accesoConductor, h='<div style="margin-top:14px;padding:12px 14px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px">';
+  h+='<div style="font-size:13px;font-weight:700;color:#14532D;margin-bottom:4px">Avance por WhatsApp</div>';
+  var tel=String(cd.telefono||'').replace(/\D/g,'');
+  if(!tel || tel.length<8){ return h+'<div style="font-size:12px;color:#374151;line-height:1.45">Agrega el celular del conductor (en "Cambiar conductor") para que pueda avisar por WhatsApp cuando llegue a origen y a destino, con fotos.</div></div>'; }
+  var est, lbl='Reenviar acceso';
+  var dmy=function(f){ var p=String(f||'').split('-'); return p.length===3?p[2]+'-'+p[1]:f; };
+  if(a && a.enviado){ est='Le enviamos el acceso por WhatsApp el '+new Date(a.enviadoAt).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'. Con eso puede avisar cuando llegue a origen y a destino, con fotos.'; }
+  else if(a && a.error){ est='No pudimos enviarle el WhatsApp automático. Usa "Reenviar acceso" y comparte el link con el conductor.'; }
+  else if(a && a.programadoPara){ est='Le enviaremos el acceso por WhatsApp el día de la carga ('+dmy(a.programadoPara)+') a las 6:00 am, para que pueda avisar cuando llegue a origen y a destino, con fotos.'; lbl='Enviar ahora'; }
+  else { est='El conductor puede avisar por WhatsApp cuando llegue a origen y a destino, con fotos. El acceso se envía el día de la carga a las 6:00 am.'; lbl='Enviar ahora'; }
+  h+='<div style="font-size:12px;color:#374151;line-height:1.45;margin-bottom:8px">'+est+'</div>';
+  h+='<button class="btn btn-outline btn-sm" id="acc-btn-'+t.id+'" data-lbl="'+lbl+'" onclick="reenviarAccesoConductor(\''+t.id+'\')">'+lbl+'</button>';
+  h+='<div id="acc-link-'+t.id+'" style="display:none;margin-top:8px"></div>';
+  return h+'</div>';
+}
+async function reenviarAccesoConductor(tid){
+  var b=document.getElementById('acc-btn-'+tid); if(b){ b.disabled=true; b.textContent='Enviando...'; }
+  try{
+    var res=await fetch(API+'/api/transportes/'+tid+'/conductor/acceso',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('tm_token')}});
+    var d=await res.json().catch(function(){ return {}; });
+    if(!res.ok){ toast(d.error||'No se pudo enviar','err'); return; }
+    toast(d.enviado?'Acceso reenviado al conductor por WhatsApp':'No se pudo enviar el WhatsApp. Comparte el link con el conductor.', d.enviado?undefined:'err');
+    var box=document.getElementById('acc-link-'+tid);
+    if(box && d.link){ box.style.display='block'; box.innerHTML='<div style="font-size:12px;color:#374151;margin-bottom:5px">Si no le llegó, reenvíale este link. Con un toque se le abre el chat con TransMatch:</div><div style="display:flex;gap:6px"><input readonly value="'+d.link+'" onclick="this.select()" style="flex:1;min-width:0;font-size:11px;padding:6px 8px;border:1px solid #e8eaf0;border-radius:6px"/><button class="btn btn-outline btn-sm" onclick="navigator.clipboard&&navigator.clipboard.writeText(\''+d.link+'\');toast(\'Link copiado\')">Copiar</button></div>'; }
+  }catch(e){ toast('Error de conexión','err'); }
+  finally{ if(b){ b.disabled=false; b.textContent='Reenviar acceso'; } }
 }
 
 async function responderValoracion(transporteId){
@@ -1656,5 +1693,6 @@ document.addEventListener('click',function(e){
 </footer>
 <script src="/guia.js" defer></script>
 <script src="/wa-switch.js" defer></script>
+<script src="/hitos-fotos.js" defer></script>
 </body>
 </html>

@@ -490,8 +490,8 @@ function renderDetalle(t){
   html+='</div>';
 
   // Timeline
-  var ESTADOS=['preparacion','carga_recogida','en_ruta','en_destino','entregado'];
-  var LABELS={'preparacion':'En preparación','en_ruta':'En ruta','carga_recogida':'Carga recogida','en_destino':'En destino','entregado':'Entregado'};
+  var ESTADOS=['preparacion','en_origen','carga_recogida','en_ruta','en_destino','entregado'];
+  var LABELS={'preparacion':'En preparación','en_origen':'En origen','en_ruta':'En ruta','carga_recogida':'Carga recogida','en_destino':'En destino','entregado':'Entregado'};
   var historial=t.historial||[];
   var idxActual=ESTADOS.indexOf(t.estado);
 
