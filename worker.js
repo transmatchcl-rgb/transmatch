@@ -1376,7 +1376,7 @@ function nombrePeriodo(periodo){ const [y,m]=String(periodo).split("-").map(Numb
 function calcularInformeMensual(empresaId, periodo, lics, trans){
   const deEmp=l=>l&&!l.esPrueba&&(l.empresaId||l.clienteId)===empresaId;
   const misLics=(lics||[]).filter(deEmp);
-  const publicadas=misLics.filter(l=>mesChile(l.createdAt)===periodo && l.estado!=="rechazada");
+  const publicadas=misLics.filter(l=>!l.esDirecto && mesChile(l.createdAt)===periodo && l.estado!=="rechazada");
   const conCotiz=publicadas.filter(l=>l.estado!=="pendiente_admin");
   const cotizPromedio=conCotiz.length?Math.round(conCotiz.reduce((a,l)=>a+((l.cotizaciones||[]).length),0)/conCotiz.length*10)/10:0;
   const adjudicadas=misLics.filter(l=>l.adjudicadaA&&(l.estado==="adjudicada"||l.estado==="completada")&&mesChile(l.adjudicadaAt)===periodo)
@@ -4986,6 +4986,67 @@ async function handleRequest(request, env, ctx) {
   }
   // POST /api/admin/licitacion-prueba — crea una licitación de PRUEBA (oculta a transportistas, sin correos)
   // a nombre de una cuenta cliente, para probar el circuito completo (aprobación, WhatsApp, cotización).
+  // POST /api/admin/transporte-directo — registra un transporte REAL cerrado fuera de la plataforma (p. ej. una emergencia
+  // que TransMatch coordinó directo con un transportista). Crea licitación adjudicada (oculta, marcada esDirecto), transporte y
+  // OV CONDICIONAL para que la comisión siga el flujo normal (factura del transportista → OV CONFIRMADA → factura mensual).
+  // No avisa a la red de transportistas. Opcional: correo de adjudicación al transportista y marcar como ya entregado.
+  if (path === "/api/admin/transporte-directo" && method === "POST") {
+    const user=await getUser(request,env); const d=deny(user,"admin"); if(d) return d;
+    let b={}; try{b=await request.json();}catch(e){ return err("Formato inválido"); }
+    const S=(v,n)=>String(v==null?"":v).trim().slice(0,n||300);
+    const c=await dalGetUsuarioMerged(env, S(b.clienteEmail).toLowerCase()); if(!c||c.role!=="cliente") return err("Cuenta cliente no encontrada",404);
+    const tr=await dalGetUsuarioMerged(env, S(b.transportistaEmail).toLowerCase()); if(!tr||tr.role!=="transportista") return err("Cuenta transportista no encontrada",404);
+    const precio=Math.round(parseFloat(String(b.precio||"").replace(/[^\d.]/g,""))||0);
+    if(precio<=0) return err("Ingresa el valor neto del flete");
+    const tipoEquipo=S(b.tipoEquipo,120), origen=S(b.origen,120), destino=S(b.destino,120);
+    if(!tipoEquipo||!origen||!destino) return err("Equipo, origen y destino son obligatorios");
+    const isoOk=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||"");
+    const fechaCarga=S(b.fechaCarga,10); if(!isoOk(fechaCarga)) return err("Fecha de carga inválida");
+    const fechaEntrega=isoOk(S(b.fechaEntrega,10))?S(b.fechaEntrega,10):fechaCarga;
+    if(fechaEntrega<fechaCarga) return err("La fecha de entrega no puede ser anterior a la de carga");
+    const hoyCL=ahoraChile().fecha;
+    if(b.yaEntregado && fechaEntrega>hoyCL) return err("Si ya se entregó, la fecha de entrega no puede ser futura");
+    const sb=usarSupabase(env, url); const now=new Date().toISOString();
+    const empresaId=c.esSubusuario?(c.empresaMadreId||c.id):c.id;
+    const motivo=S(b.motivo,500);
+    const lid=uid(), lcod=await generarCodigo(env,'LIC');
+    const cotiz={ id:uid(), codigo:await generarCodigo(env,'COT'), licitacionId:lid, transportistaId:tr.id, transportistaNombre:tr.nombre||"", transportistaEmpresa:tr.empresa||"",
+      transportistaEmail:tr.email, transportistaTelefono:tr.telefono||"", transportistaRating:tr.rating||RATING_NEUTRO, transportistaTransportes:tr.totalTransportes||0,
+      precio, tiempoEntrega:fechaEntrega, fechaEntregaISO:fechaEntrega, descripcion:"Servicio acordado directamente con TransMatch", incluye:[], esDirecto:true, score:0, createdAt:now };
+    const l={ id:lid, codigo:lcod, clienteId:c.id, clienteEmail:c.email, clienteEmpresa:c.empresa||"", clienteNombre:c.nombre||"", clienteTelefono:c.telefono||"", empresaId,
+      creadoPorEmail:c.email, creadoPorNombre:c.nombre||"", tipoLicitacion:(["maquinaria","carga","contenedor"].includes(b.tipoLicitacion)?b.tipoLicitacion:"maquinaria"),
+      tipoEquipo, marca:S(b.marca,120), descripcion:S(b.descripcion,1500), origen, destino, direccionOrigen:S(b.direccionOrigen), direccionDestino:S(b.direccionDestino), paradas:[],
+      tipoEntregaDestino:"no_aplica", fechaCarga, horaCarga:S(b.horaCarga,5), fechaEntrega, horaDescarga:"", plazo:"0",
+      estado:"adjudicada", esDirecto:true, motivoDirecto:motivo, registradoPor:user.email, cotizaciones:[cotiz], cotizacionesEnviadas:[], preguntas:[], ronda:0,
+      createdAt:now, aprobadaAt:now, cierreAt:now, adjudicadaAt:now,
+      adjudicadaA:{ cotizacionId:cotiz.id, precio, transportistaId:tr.id, transportistaNombre:cotiz.transportistaNombre, transportistaEmpresa:cotiz.transportistaEmpresa, transportistaEmail:tr.email, transportistaTelefono:cotiz.transportistaTelefono, tiempoEntrega:fechaEntrega } };
+    await dalSaveLicitacion(env, l, sb, { isNew:true, clienteIndexId:c.id });
+    let clienteFacturacion=null;
+    try{ const cu=(await dalGetUsuarioById(env, empresaId, sb))||c; const f=cu.facturacion||{};
+      clienteFacturacion={ razonSocial:f.razonSocial||cu.empresa||l.clienteEmpresa||"", rut:f.rut||cu.rutEmpresa||"", giro:f.giro||cu.giro||"", direccion:f.direccion||cu.direccion||"", email:f.email||cu.email||l.clienteEmail||"", contactoNombre:f.contactoNombre||"", telefono:f.telefono||cu.telefono||l.clienteTelefono||"" };
+    }catch(e){}
+    const tid=uid();
+    const t={ id:tid, codigo:await generarCodigo(env,'TRN'), licitacionId:lid, empresaId, creadoPorEmail:c.email, creadoPorNombre:c.nombre||"", licitacionCodigo:lcod,
+      tipoEquipo:tipoEquipo+(l.marca?" - "+l.marca:""), origen, destino, ubicacionOrigen:"", ubicacionDestino:"", precio,
+      clienteEmail:c.email, clienteEmpresa:c.empresa||"", clienteNombre:c.nombre||"", clienteTelefono:c.telefono||"", clienteFacturacion, requisitosEstandar:[],
+      transportistaEmail:tr.email, transportistaNombre:tr.nombre||"", transportistaEmpresa:tr.empresa||"", transportistaTelefono:tr.telefono||"", contactoEncargado:null,
+      estado:"preparacion", estadoDocumentos:"pendiente", esDirecto:true, motivoDirecto:motivo,
+      historial:[{ estado:"preparacion", nota:"Transporte directo registrado por TransMatch"+(motivo?" · "+motivo:""), fecha:now, actor:"TransMatch" }],
+      oc:null, factura:null, adjudicadoAt:now };
+    if(b.yaEntregado){
+      t.estado="entregado"; t.fechaEntregaReal=fechaEntrega; t.horaEntregaReal=null;
+      t.entregadoAt=new Date(fechaEntrega+"T12:00:00-03:00").toISOString(); t.entregaConfirmadaAt=now; t.entregaConfirmadaPor="TransMatch";
+      t.historial.push({ estado:"entregado", nota:"Entrega registrada al crear el transporte directo", fecha:now, actor:"TransMatch" });
+    }
+    await dalSaveTransporte(env, t, sb, { isNew:true });
+    const ov=await crearOV(env, { transporteId:tid, licitacion:l, cotizacion:cotiz });
+    try{ ov.historial[0].nota="OV creada al registrar transporte directo"; ov.origen="directo"; await dalSaveOV(env, ov, sb); }catch(e){}
+    await crearNotificacion(env, tr.id, "adjudicacion", `Transporte asignado: ${tipoEquipo} - ${origen} - ${destino} - ${formatCLP(precio)}`, { licitacionId:lid, transporteId:tid, ovId:ov.id_ov });
+    if(b.avisarTransportista){ try{ await enviarEmail(env,{ to:tr.email, subject:`Transporte registrado: ${tipoEquipo} - TransMatch`, html:emailAdjudicacionGanada(l,cotiz,ov.comision_estimada,tid) }); }catch(e){} }
+    await registrarActividad(env,"transporte_directo",`Transporte directo ${t.codigo} registrado: ${c.empresa||c.email} → ${tr.empresa||tr.email} por ${formatCLP(precio)} (${origen} → ${destino})`,{ transporteId:tid, licitacionId:lid, ovId:ov.id_ov });
+    return ok({ ok:true, id:tid, codigo:t.codigo, licitacion:lcod, ovId:ov.id_ov, comisionEstimada:ov.comision_estimada });
+  }
+
   // POST /api/admin/transporte-prueba — crea un transporte de PRUEBA (carga hoy) entre una cuenta cliente y una transportista,
   // para probar hitos, conductor y avisos sin pasar por licitar/cotizar/adjudicar. No genera OV ni correos de adjudicación.
   if (path === "/api/admin/transporte-prueba" && method === "POST") {

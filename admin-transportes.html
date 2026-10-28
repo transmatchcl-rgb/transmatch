@@ -210,7 +210,8 @@
     <div style="margin-bottom:18px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
       <div><div style="font-size:20px;font-weight:600;color:#1e2d4e">Transportes</div>
       <div style="font-size:14px;color:#6B7280;margin-top:2px">Seguimiento de todos los transportes activos y completados</div></div>
-      <button onclick="abrirTransportePrueba()" style="background:#fff;border:1px solid #e8eaf0;color:#5B21B6;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">+ Transporte de prueba</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="abrirTransporteDirecto()" style="background:#FF8808;border:none;color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">+ Transporte directo</button>
+      <button onclick="abrirTransportePrueba()" style="background:#fff;border:1px solid #e8eaf0;color:#5B21B6;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">+ Transporte de prueba</button></div>
     </div>
 
     <div class="stat-grid" id="stats">
@@ -342,6 +343,75 @@ async function api(path, method, body){
   return{ok:r.ok,data:await r.json()};
 }
 
+// ── Transporte directo: servicio real cerrado fuera de la plataforma (emergencias) ──
+// Crea licitación adjudicada oculta + transporte + OV, para que la comisión siga el flujo normal.
+var _tdUsuarios=null;
+function _tdEsc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];}); }
+function _tdHoy(){ try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Santiago'}).format(new Date()); }catch(e){ return new Date().toISOString().slice(0,10); } }
+async function abrirTransporteDirecto(){
+  if(!_tdUsuarios){
+    var r=await api('/api/admin/usuarios');
+    if(!r||!r.ok){ toast('No se pudieron cargar las cuentas','err'); return; }
+    _tdUsuarios=(r.data.usuarios||[]).filter(function(u){ return u.estado!=='rechazado'&&u.estado!=='eliminado'; });
+  }
+  var opts=function(role){
+    return _tdUsuarios.filter(function(u){ return u.role===role&&!u.esSubusuario; })
+      .sort(function(a,b){ return String(a.empresa||a.email).localeCompare(String(b.empresa||b.email),'es'); })
+      .map(function(u){ return '<option value="'+_tdEsc(u.email)+'">'+_tdEsc((u.empresa||'Sin empresa')+' · '+u.email)+'</option>'; }).join('');
+  };
+  var I='width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px;box-sizing:border-box;font-family:inherit;background:#fff';
+  var L='font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:5px';
+  var f=function(lbl,html,extra){ return '<div style="'+(extra||'')+'"><label style="'+L+'">'+lbl+'</label>'+html+'</div>'; };
+  var hoy=_tdHoy();
+  var m=document.createElement('div'); m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto';
+  m.innerHTML='<div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:560px;margin:auto">'+
+    '<div style="font-size:16px;font-weight:700;color:#1e2d4e;margin-bottom:4px">Registrar transporte directo</div>'+
+    '<div style="font-size:12px;color:#6B7280;margin-bottom:16px;line-height:1.45">Para servicios reales que TransMatch cerró directo con un transportista (sin licitación). Crea el transporte y la orden de venta con la comisión habitual. <strong>No se avisa a la red de transportistas.</strong></div>'+
+    '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px">'+
+      f('Cliente *','<select id="td-cli" style="'+I+'"><option value="">Selecciona…</option>'+opts('cliente')+'</select>','grid-column:1/-1')+
+      f('Transportista *','<select id="td-tr" style="'+I+'"><option value="">Selecciona…</option>'+opts('transportista')+'</select>','grid-column:1/-1')+
+      f('Tipo','<select id="td-tipo" style="'+I+'"><option value="maquinaria">Maquinaria</option><option value="carga">Carga general</option><option value="contenedor">Contenedor</option></select>')+
+      f('Equipo / carga *','<input id="td-eq" placeholder="Ej: Excavadora" style="'+I+'"/>')+
+      f('Marca / modelo','<input id="td-marca" style="'+I+'"/>','grid-column:1/-1')+
+      f('Origen (ciudad) *','<input id="td-ori" style="'+I+'"/>')+
+      f('Destino (ciudad) *','<input id="td-des" style="'+I+'"/>')+
+      f('Dirección origen','<input id="td-dori" style="'+I+'"/>')+
+      f('Dirección destino','<input id="td-ddes" style="'+I+'"/>')+
+      f('Fecha de carga *','<input id="td-fc" type="date" value="'+hoy+'" style="'+I+'"/>')+
+      f('Hora de carga','<input id="td-hc" type="time" style="'+I+'"/>')+
+      f('Fecha de entrega','<input id="td-fe" type="date" value="'+hoy+'" style="'+I+'"/>')+
+      f('Valor neto del flete (CLP) *','<input id="td-precio" inputmode="numeric" placeholder="Sin IVA" style="'+I+'"/>')+
+      f('Descripción','<textarea id="td-desc" rows="2" style="'+I+';resize:vertical"></textarea>','grid-column:1/-1')+
+      f('Motivo (interno)','<input id="td-mot" placeholder="Ej: Emergencia, traslado urgente solicitado por teléfono" style="'+I+'"/>','grid-column:1/-1')+
+    '</div>'+
+    '<div id="td-com" style="font-size:12px;color:#92400E;background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:8px 12px;margin-top:14px;display:none"></div>'+
+    '<label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;color:#374151;margin-top:14px;cursor:pointer"><input id="td-ent" type="checkbox" style="margin-top:2px"/> El traslado ya se entregó (en la fecha de entrega indicada)</label>'+
+    '<label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;color:#374151;margin-top:8px;cursor:pointer"><input id="td-mail" type="checkbox" checked style="margin-top:2px"/> Enviar correo al transportista con el transporte y la comisión estimada</label>'+
+    '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px"><button id="td-x" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button><button id="td-ok" style="padding:9px 18px;border-radius:8px;border:none;background:#FF8808;color:#fff;font-size:13px;font-weight:600;cursor:pointer">Registrar</button></div></div>';
+  document.body.appendChild(m);
+  var $=function(id){ return document.getElementById(id); };
+  var precioNum=function(){ return parseInt(String($('td-precio').value).replace(/\D/g,''),10)||0; };
+  $('td-precio').oninput=function(){
+    var n=precioNum(); this.value=n?n.toLocaleString('es-CL'):'';
+    var box=$('td-com'); if(!n){ box.style.display='none'; return; }
+    box.style.display='block'; box.textContent='Comisión estimada: '+new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(Math.round(n*0.05))+' aprox. (se ajusta al mínimo de 0,5 UF / tope de 10 UF). Se confirma cuando el transportista suba su factura.';
+  };
+  $('td-x').onclick=function(){ m.remove(); };
+  $('td-ok').onclick=async function(){
+    var body={ clienteEmail:$('td-cli').value, transportistaEmail:$('td-tr').value, tipoLicitacion:$('td-tipo').value, tipoEquipo:$('td-eq').value.trim(), marca:$('td-marca').value.trim(),
+      origen:$('td-ori').value.trim(), destino:$('td-des').value.trim(), direccionOrigen:$('td-dori').value.trim(), direccionDestino:$('td-ddes').value.trim(),
+      fechaCarga:$('td-fc').value, horaCarga:$('td-hc').value, fechaEntrega:$('td-fe').value, precio:precioNum(), descripcion:$('td-desc').value.trim(), motivo:$('td-mot').value.trim(),
+      yaEntregado:$('td-ent').checked, avisarTransportista:$('td-mail').checked };
+    if(!body.clienteEmail||!body.transportistaEmail){ toast('Selecciona cliente y transportista','err'); return; }
+    if(!body.tipoEquipo||!body.origen||!body.destino||!body.fechaCarga||!body.precio){ toast('Completa los campos obligatorios (*)','err'); return; }
+    if(body.fechaEntrega&&body.fechaEntrega<body.fechaCarga){ toast('La entrega no puede ser antes de la carga','err'); return; }
+    var b=this; b.disabled=true; b.textContent='Registrando...';
+    var r=await api('/api/admin/transporte-directo','POST',body);
+    if(r&&r.ok){ toast('Transporte '+r.data.codigo+' registrado · '+r.data.ovId); m.remove(); cargar(); }
+    else { toast((r&&r.data&&r.data.error)||'Error al registrar','err'); b.disabled=false; b.textContent='Registrar'; }
+  };
+}
+
 // ── Transporte de prueba (carga hoy) para probar hitos, conductor y avisos ──
 function abrirTransportePrueba(){
   var I='width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px;box-sizing:border-box;font-family:inherit';
@@ -424,7 +494,7 @@ function renderCard(t){
   var detId='det-'+t.id;
   return '<div class="trn-card" id="trn-card-'+t.id+'">'+
     '<div class="trn-hdr" onclick="toggleCard(\''+t.id+'\')">'+
-      '<div class="trn-code">'+(t.codigo||'TRN')+(t.esPrueba?' <span style="background:#EDE9FE;color:#5B21B6;font-size:10px;font-weight:700;border-radius:999px;padding:1px 7px;vertical-align:middle">PRUEBA</span>':'')+'</div>'+
+      '<div class="trn-code">'+(t.codigo||'TRN')+(t.esPrueba?' <span style="background:#EDE9FE;color:#5B21B6;font-size:10px;font-weight:700;border-radius:999px;padding:1px 7px;vertical-align:middle">PRUEBA</span>':'')+(t.esDirecto?' <span title="Cerrado directo por TransMatch, sin licitación" style="background:#FFF1E0;color:#B45309;font-size:10px;font-weight:700;border-radius:999px;padding:1px 7px;vertical-align:middle">DIRECTO</span>':'')+'</div>'+
       '<div class="trn-body-hdr">'+
         '<div class="trn-name">'+t.tipoEquipo+'</div>'+
         '<div class="trn-meta">'+
