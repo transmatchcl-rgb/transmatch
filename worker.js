@@ -2027,10 +2027,15 @@ async function waAdminProcesar(env, from, botonId, texto){
 async function waCandidatosLicitacion(env, l, sb){
   const enviados=new Set((l.waEnviados||[]).map(x=>String(x.uid)));
   const fallback=l.modoNotificacion==="fallback";
-  return (await dalTransportistasWhatsapp(env, sb)).filter(u=>!u.desactivadoManual).map(u=>({
-    id:u.id, empresa:u.empresa||"", nombre:u.nombre||"", telefono:_waTelBonito(_telefonoWaDe(u)),
-    tiposEquipo:u.tiposEquipo||[], calza: fallback || puedeTransportar(u.tiposEquipo||[], l), enviado: enviados.has(String(u.id))
-  }));
+  // Todos los transportistas activos: el admin decide a quién avisar, aunque no hayan activado WhatsApp.
+  return (await _dalTransportistasTodos(env, sb)).filter(u=>u.estado==="activo" && !u.desactivadoManual).map(u=>{
+    const telOk=_telWaValido(u.telefono||u.whatsapp);
+    return {
+      id:u.id, empresa:u.empresa||"", nombre:u.nombre||"", telefono:telOk?_waTelBonito(_telefonoWaDe(u)):(u.telefono||u.whatsapp||""),
+      tiposEquipo:u.tiposEquipo||[], calza: fallback || puedeTransportar(u.tiposEquipo||[], l), enviado: enviados.has(String(u.id)),
+      optIn: u.notifWhatsapp===true, optOut: u.notifWhatsapp===false && u.notifWhatsappPor==="usuario", telValido: telOk
+    };
+  });
 }
 // Envía la plantilla a los transportistas elegidos y lo registra en l.waEnviados (no repite).
 // NO guarda la licitación: lo hace quien llama.
@@ -2041,7 +2046,8 @@ async function enviarWhatsappLicitacion(env, l, ids, sb){
   ids=[...new Set((Array.isArray(ids)?ids:[]).map(String))];
   if(!ids.length) return { enviados:0, fallidos:0 };
   const ya=new Set((l.waEnviados||[]).map(x=>String(x.uid)));
-  const users=(await dalTransportistasWhatsapp(env, sb)).filter(u=>ids.includes(String(u.id)) && !ya.has(String(u.id)) && !u.desactivadoManual);
+  // El admin elige libremente: basta que esté activo y tenga celular válido (no exige haber activado WhatsApp).
+  const users=(await _dalTransportistasTodos(env, sb)).filter(u=>u.estado==="activo" && !u.desactivadoManual && _telWaValido(u.telefono||u.whatsapp) && ids.includes(String(u.id)) && !ya.has(String(u.id)));
   l.waEnviados=l.waEnviados||[];
   let enviados=0, fallidos=0;
   if(env.KAPSO_TEST_TO){ // modo prueba: un solo envío, al número de prueba
