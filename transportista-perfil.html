@@ -1774,6 +1774,7 @@ function abrirModalDoc(equipoId, key, label) {
     (key === 'adicional'
       ? '<div style="margin-bottom:14px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Descripción del archivo</label><input type="text" id="modal-desc" placeholder="Ej: Certificado de capacidad de carga" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>'
       : '<div style="margin-bottom:20px"><label style="font-size:12px;font-weight:500;color:#374151;display:block;margin-bottom:6px">Fecha de vencimiento</label><input type="date" id="modal-fecha" min="'+_hoyCL()+'" style="width:100%;padding:9px 12px;border:1px solid #e8eaf0;border-radius:8px;font-size:13px"/></div>') +
+    '<div id="modal-doc-err" style="display:none;background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;border-radius:8px;padding:9px 12px;font-size:12px;margin-bottom:14px"></div>' +
     '<div style="display:flex;gap:10px;justify-content:flex-end">' +
       '<button id="modal-btn-cancel" style="padding:9px 18px;border-radius:8px;border:1px solid #e8eaf0;background:#fff;font-size:13px;cursor:pointer">Cancelar</button>' +
       '<button id="modal-btn-save" style="padding:9px 18px;border-radius:8px;background:#1e2d4e;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Guardar</button>' +
@@ -1791,64 +1792,74 @@ function abrirModalDoc(equipoId, key, label) {
 }
 
 
-var modalFileBuffer = null;
+var modalFileBuffer = null, modalFileLeyendo = false;
 function triggerModalFile() { document.getElementById("modal-file").click(); }
 
 function handleModalFile(input) {
   var file = input.files[0];
   if (!file) return;
-  if (file.size > 8 * 1024 * 1024) { alert('Máximo 8 MB'); return; }
+  var errEl = document.getElementById('modal-doc-err');
+  var ext = (file.name.split('.').pop() || '').toLowerCase();
+  if (['pdf','jpg','jpeg','png'].indexOf(ext) < 0) { if (errEl) { errEl.textContent = 'Formato no permitido (' + ext + '). Sube el documento en PDF, JPG o PNG.'; errEl.style.display = 'block'; } input.value = ''; return; }
+  if (file.size > 8 * 1024 * 1024) { if (errEl) { errEl.textContent = 'El archivo pesa más de 8 MB.'; errEl.style.display = 'block'; } input.value = ''; return; }
+  if (errEl) errEl.style.display = 'none';
+  modalFileLeyendo = true; modalFileBuffer = null;
+  var dz = document.getElementById('modal-dz');
+  if (dz) dz.textContent = 'Cargando ' + file.name + '…';
   var reader = new FileReader();
   reader.onload = function(e) {
     modalFileBuffer = { nombre: file.name, base64: e.target.result.split(',')[1], mimeType: file.type };
-    var dz = document.getElementById('modal-dz');
+    modalFileLeyendo = false;
     if (dz) { dz.textContent = '✓ ' + file.name; dz.classList.add('has-file'); }
   };
+  reader.onerror = function() { modalFileLeyendo = false; if (errEl) { errEl.textContent = 'No se pudo leer el archivo. Intenta con otro.'; errEl.style.display = 'block'; } };
   reader.readAsDataURL(file);
 }
 
 async function guardarDocModal(equipoId, key, label) {
-  var btn = document.querySelector('#modal-doc button:last-child');
-  if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+  var btn = document.getElementById('modal-btn-save');
+  var errEl = document.getElementById('modal-doc-err');
+  var fallar = function(msg){ if(errEl){ errEl.textContent = msg; errEl.style.display = 'block'; } else { toast(msg,'err'); } if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; } };
+  if (errEl) errEl.style.display = 'none';
+  if (modalFileLeyendo) { fallar('Espera un momento, el archivo todavía se está cargando.'); return; }
 
   var vencimiento = key !== 'adicional' ? ((document.getElementById('modal-fecha') || {}).value || '') : null;
   var descripcion = key === 'adicional' ? ((document.getElementById('modal-desc') || {}).value || '') : null;
-  if (_docVencido(vencimiento)) { toast('Ese documento está vencido. Sube la versión vigente.','err'); if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; } return; }
-  var archivoId   = null;
-  var archivoNombre = null;
+  if (key !== 'adicional' && !vencimiento) { fallar('Ingresa la nueva fecha de vencimiento del documento.'); return; }
+  if (_docVencido(vencimiento)) { fallar('Ese documento está vencido. Sube la versión vigente.'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+  var _h = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') };
+  var _msgDe = async function(res){ try { var j = await res.json(); return j.error || j.mensaje || ''; } catch(e) { return ''; } };
+  var archivoId = null, archivoNombre = null;
 
-  if (modalFileBuffer) {
-    try {
-      var res = await fetch(API + '/api/archivos/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') },
-        body: JSON.stringify({ nombre: modalFileBuffer.nombre, tipo: modalFileBuffer.mimeType, base64: modalFileBuffer.base64 })
-      });
-      if (res.ok) { var d = await res.json(); archivoId = d.id; archivoNombre = modalFileBuffer.nombre; }
-    } catch(e) { console.error(e); }
-  }
-
-  // Guardar en el perfil del usuario — documentos por equipo
   try {
-    var userRes = await fetch(API + '/api/auth/me', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') } });
-    var userData = await userRes.json();
-    var u = userData.user || {};
-    var equipos = u.equipos || [];
-    var eq = equipos.find(function(e){ return e.id === equipoId; });
-    if (eq) {
-      if (!eq.documentos) eq.documentos = {};
-      eq.documentos[key] = { key: key, label: label, vencimiento: vencimiento, descripcion: descripcion, archivoId: archivoId || (eq.documentos[key] ? eq.documentos[key].archivoId : null), archivoNombre: archivoNombre || (eq.documentos[key] ? eq.documentos[key].archivoNombre : null), updatedAt: new Date().toISOString() };
-      await fetch(API + '/api/perfil', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') },
-        body: JSON.stringify({ equipos: equipos })
-      });
+    if (modalFileBuffer) {
+      var up = await fetch(API + '/api/archivos/upload', { method: 'POST', headers: _h, body: JSON.stringify({ nombre: modalFileBuffer.nombre, tipo: modalFileBuffer.mimeType, base64: modalFileBuffer.base64 }) });
+      if (up.status === 401) { fallar('Tu sesión expiró. Vuelve a iniciar sesión y sube el documento de nuevo.'); return; }
+      if (!up.ok) { var me = await _msgDe(up); fallar('No se pudo subir el archivo' + (me ? ': ' + me : '') + '. No se guardó ningún cambio.'); return; }
+      var d = await up.json(); archivoId = d.id; archivoNombre = modalFileBuffer.nombre;
     }
-  } catch(e) { console.error(e); }
+
+    // Guardar en el perfil del usuario — documentos por equipo
+    var userRes = await fetch(API + '/api/auth/me', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('tm_token') } });
+    if (userRes.status === 401) { fallar('Tu sesión expiró. Vuelve a iniciar sesión y sube el documento de nuevo.'); return; }
+    if (!userRes.ok) { fallar('No se pudo guardar. Intenta de nuevo.'); return; }
+    var userData = await userRes.json();
+    var equipos = (userData.user || {}).equipos || [];
+    var eq = equipos.find(function(e){ return e.id === equipoId; });
+    if (!eq) { fallar('No encontramos este equipo en tu cuenta. Recarga la página e intenta de nuevo.'); return; }
+    if (!eq.documentos) eq.documentos = {};
+    var prev = eq.documentos[key] || {};
+    eq.documentos[key] = { key: key, label: label, vencimiento: vencimiento, descripcion: descripcion, archivoId: archivoId || prev.archivoId || null, archivoNombre: archivoNombre || prev.archivoNombre || null, updatedAt: new Date().toISOString() };
+    var saveRes = await fetch(API + '/api/perfil', { method: 'PUT', headers: _h, body: JSON.stringify({ equipos: equipos }) });
+    if (saveRes.status === 401) { fallar('Tu sesión expiró. Vuelve a iniciar sesión y sube el documento de nuevo.'); return; }
+    if (!saveRes.ok) { var m = await _msgDe(saveRes); fallar(m ? m : 'No se pudo guardar el documento. Intenta de nuevo.'); return; }
+  } catch(e) { console.error(e); fallar('Error de conexión. No se guardó el documento, intenta de nuevo.'); return; }
 
   modalFileBuffer = null;
   var modal = document.getElementById('modal-doc');
   if (modal) modal.remove();
+  toast('Documento actualizado');
   // Si el modal de editar equipo está abierto para este mismo equipo, refrescar su sección de documentos
   var editModal = document.getElementById('modal-eq-edit');
   if (editModal && editModal.dataset.eqid === equipoId) {
